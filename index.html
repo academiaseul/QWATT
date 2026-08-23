@@ -285,6 +285,12 @@
   .drawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;
     transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto}
   .drawer.open{transform:none}
+  /* modo SPA: en escritorio el menú queda anclado y empuja el contenido */
+  body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
+  @media(min-width:1000px){
+    html.qd-docked body{margin-left:300px}
+    .drawer-overlay{display:none !important}
+  }
   @media(prefers-reduced-motion:reduce){.drawer{transition:none}.drawer-overlay{transition:none}}
   .d-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
   .d-brand{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc}
@@ -1288,16 +1294,22 @@ setInterval(loadRealOracle, 300000); // refresh real market data every 5 min
 const drawer = document.getElementById('drawer');
 const drawerOverlay = document.getElementById('drawerOverlay');
 const menuBtn = document.getElementById('menuBtn');
+const DOCK_MQ = window.matchMedia('(min-width:1000px)');
 function setDrawer(open) {
   drawer.classList.toggle('open', open);
   drawerOverlay.classList.toggle('open', open);
+  document.documentElement.classList.toggle('qd-docked', open && DOCK_MQ.matches);
   menuBtn.setAttribute('aria-expanded', open);
+  try { localStorage.setItem('qwatt.drawer', open ? '1' : '0'); } catch (e) {}
 }
 menuBtn.addEventListener('click', () => setDrawer(!drawer.classList.contains('open')));
 document.getElementById('drawerClose').addEventListener('click', () => setDrawer(false));
 drawerOverlay.addEventListener('click', () => setDrawer(false));
 document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
-drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setDrawer(false)));
+// en escritorio anclado el menú permanece abierto al navegar; en móvil se cierra
+drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', () => { if (!DOCK_MQ.matches) setDrawer(false); }));
+DOCK_MQ.addEventListener('change', () => setDrawer(drawer.classList.contains('open')));
+try { if (localStorage.getItem('qwatt.drawer') === '1' && DOCK_MQ.matches) setDrawer(true); } catch (e) {}
 
 /* scroll-spy: resalta en el menú la sección visible */
 const spyLinks = new Map();

@@ -89,6 +89,94 @@
 </style>
 </head>
 <body>
+<!-- menu lateral QWATT (compartido) -->
+<div class="qd-overlay" id="qdOverlay"></div>
+<aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
+<style>
+body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
+@media(min-width:1000px){html.qd-docked body{margin-left:300px}.qd-overlay{display:none !important}}
+.qd-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
+.qd-overlay.open{opacity:1;visibility:visible}
+.qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.qdrawer.open{transform:none}
+@media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
+.qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
+.qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
+.qd-brand .qb{color:#d08a57}
+.qd-x{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px;font-family:inherit}
+.qd-x:hover{color:#f0e8dc}
+.qd-nav{padding:16px 14px;flex:1}
+.qd-t{font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin:0 0 7px}
+.qd-t.mt{margin-top:20px}
+.qd-nav a{display:block;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-radius:3px;text-decoration:none;transition:color .15s,background .15s;margin-bottom:2px}
+.qd-nav a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+.qd-nav a.on{color:#16100a;background:#d08a57;font-weight:600}
+.qd-foot{padding:14px 20px;border-top:1px solid #2b2115;font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
+#qwnav .qw-menu{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:13px;line-height:1;padding:6px 11px;cursor:pointer;flex:none}
+#qwnav .qw-menu:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+.qd-trig{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.08em;padding:7px 12px;cursor:pointer}
+.qd-trig:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+</style>
+<div class="qd-head">
+<a class="qd-brand" href="index.html"><span class="qb">&#9889;</span> QWATT</a>
+<button class="qd-x" id="qdClose" aria-label="Cerrar menu">&#10005;</button>
+</div>
+<nav class="qd-nav">
+<div class="qd-t">Explorar QWATT</div>
+<a href="index.html">Inicio</a>
+<a href="index.html#peg">C&oacute;mo funciona</a>
+<a href="index.html#dash">Dashboard</a>
+<a href="index.html#onchain">Onchain</a>
+<a href="index.html#clean">QWATT-Clean</a>
+<a href="index.html#tok">Tokenomics</a>
+<a href="index.html#road">Roadmap</a>
+<a href="index.html#security">Seguridad</a>
+<div class="qd-t mt">Apps</div>
+<a href="console.html">Consola Onchain</a>
+<a href="grid.html">QWATT Grid</a>
+<a href="pay.html">QWATT Pay</a>
+<a href="proof.html">QWATT Explorer</a>
+<a href="respaldo.html">QWATT Proof</a>
+<a href="red.html">QWATT Pulse</a>
+<a href="piloto.html">Piloto Solar</a>
+<a href="backup.html">Backup</a>
+<div class="qd-t mt">Recursos</div>
+<a href="whitepaper.html">Whitepaper</a>
+<a href="terminos.html">T&eacute;rminos</a>
+<a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+<a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
+</nav>
+<div class="qd-foot">&#9679; STELLAR TESTNET</div>
+</aside>
+<script>
+(function(){
+  var d=document.getElementById('qdrawer'),o=document.getElementById('qdOverlay');
+  var MQ=window.matchMedia('(min-width:1000px)');
+  function set(open){
+    d.classList.toggle('open',open);
+    o.classList.toggle('open',open);
+    document.documentElement.classList.toggle('qd-docked',open&&MQ.matches);
+    var b=document.getElementById('qdOpen');
+    if(b)b.setAttribute('aria-expanded',open);
+    try{localStorage.setItem('qwatt.drawer',open?'1':'0')}catch(e){}
+  }
+  document.addEventListener('click',function(e){
+    if(e.target.closest&&e.target.closest('#qdOpen'))set(!d.classList.contains('open'));
+  });
+  document.getElementById('qdClose').addEventListener('click',function(){set(false)});
+  o.addEventListener('click',function(){set(false)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
+  d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(!MQ.matches)set(false)})});
+  if(MQ.addEventListener)MQ.addEventListener('change',function(){set(d.classList.contains('open'))});
+  try{if(localStorage.getItem('qwatt.drawer')==='1'&&MQ.matches)set(true)}catch(e){}
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
+  if(location.pathname.indexOf('/proof')===0)page='proof';
+  d.querySelectorAll('a[href]').forEach(function(a){
+    var h=a.getAttribute('href');
+    if(h.indexOf('#')<0&&h.indexOf('http')!==0&&h.replace(/\.html$/,'')===page)a.classList.add('on');
+  });
+})();
+</script>
 <!-- barra QWATT: navegacion entre apps -->
 <nav id="qwnav" aria-label="QWATT apps">
 <style>
@@ -121,6 +209,7 @@
 }
 </style>
 <div class="qw-in">
+<button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
 <a class="qw-home" href="index.html"><span class="qw-bolt">&#9889;</span>QWATT</a>
 <span class="qw-sep"></span>
 <div class="qw-links">
