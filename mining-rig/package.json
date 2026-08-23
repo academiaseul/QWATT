@@ -1,0 +1,18 @@
+{
+  "name": "qwatt-mining-rig",
+  "version": "0.1.0",
+  "private": true,
+  "description": "QWATT proof-of-generation bridge: Modbus solar meter -> QWATT payouts on Stellar testnet",
+  "main": "miner.js",
+  "scripts": {
+    "start": "node miner.js",
+    "simulate": "node miner.js --simulate",
+    "dry": "node miner.js --simulate --dry-run"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "^12.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

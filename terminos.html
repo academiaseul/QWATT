@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QWATT — Términos y seguridad</title>
+<meta name="description" content="Términos de uso, riesgos cripto, reglas de seguridad y glosario del proyecto QWATT (demo en la testnet de Stellar).">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="canonical" href="https://qwatt.org/terminos.html">
+<meta name="theme-color" content="#120c07">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/terminos.html">
+<meta property="og:title" content="QWATT — Términos y seguridad">
+<meta property="og:description" content="Términos de uso, riesgos cripto, reglas de seguridad y glosario del proyecto QWATT (demo en la testnet de Stellar).">
+<meta property="og:locale" content="es_CL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="QWATT — Términos y seguridad">
+<meta name="twitter:description" content="Términos de uso, riesgos cripto, reglas de seguridad y glosario del proyecto QWATT (demo en la testnet de Stellar).">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#1b1a14; --ink-2:#474334; --grey:#98937f; --line:#e6e2d6;
+    --paper:#faf8f2; --paper-2:#f1ecdf; --navy:#291d13;
+    --teal:#b0582f; --teal-lt:#d08a63; --amber:#6b4a2e;
+    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+    --gut:28px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:860px;margin:0 auto;padding:0 var(--gut)}
+  header{position:sticky;top:0;z-index:50;background:rgba(18,12,7,.93);
+    -webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d}
+  .nav{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 0;max-width:1200px;margin:0 auto;padding-left:var(--gut);padding-right:var(--gut)}
+  .brand{font-family:var(--mono);font-weight:600;font-size:14px;letter-spacing:.24em;text-transform:uppercase;display:inline-flex;align-items:baseline;gap:9px;color:#f0e8dc}
+  .brand .bolt{color:#d08a57;letter-spacing:0}
+  .brand{white-space:nowrap}
+  .brand small{font-size:10px;color:#8b7a64;letter-spacing:.2em;margin-left:6px;padding-left:14px;border-left:1px solid #3b2d1d}
+  @media(max-width:640px){.brand small{display:none}}
+  .back{font-family:var(--mono);font-size:12px;letter-spacing:.08em;color:#b3a48f}
+  .back:hover{color:#f0e8dc}
+  .s-hero{padding:76px 0 56px;border-bottom:1px solid var(--line);text-align:center}
+  .tag{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:14px}
+  h1{font-size:clamp(1.9rem,1.3rem+2.4vw,3.1rem);font-weight:300;letter-spacing:-0.022em;line-height:1.1}
+  .lede{font-size:16.5px;line-height:1.62;color:var(--ink-2);max-width:56ch;margin:18px auto 0}
+  .updated{font-family:var(--mono);font-size:11.5px;color:var(--grey);margin-top:18px}
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:21px;font-weight:400;letter-spacing:-.02em;margin-bottom:16px}
+  h2 .n{font-family:var(--mono);font-size:12px;color:var(--teal);letter-spacing:.16em;display:block;margin-bottom:8px}
+  p{font-size:14.5px;line-height:1.65;color:var(--ink-2);margin-bottom:12px}
+  b{color:var(--ink);font-weight:600}
+  ul.lines{list-style:none;margin-top:8px}
+  ul.lines li{font-size:14.5px;line-height:1.6;color:var(--ink-2);padding:10px 0 10px 24px;position:relative;border-top:1px solid var(--line)}
+  ul.lines li:first-child{border-top:0}
+  ul.lines li::before{content:'↳';position:absolute;left:0;color:var(--teal)}
+  .glos{border-top:1.4px solid var(--ink);margin-top:8px}
+  .glos dt{font-family:var(--mono);font-size:13px;font-weight:500;letter-spacing:.04em;padding-top:16px;color:var(--ink)}
+  .glos dd{font-size:14px;line-height:1.6;color:var(--ink-2);padding:6px 0 16px;border-bottom:1px solid var(--line)}
+  .warn{background:var(--paper-2);padding:18px 20px;clip-path:polygon(0 0,calc(100% - 20px) 0,100% 20px,100% 100%,0 100%);margin:16px 0}
+  .warn p{margin:0;font-size:13.5px}
+  .en-note{background:var(--navy);color:#cfc1ae;padding:26px 28px;margin:52px 0;clip-path:polygon(0 0,calc(100% - 26px) 0,100% 26px,100% 100%,0 100%)}
+  .en-note h2{color:#fff}
+  .en-note p{color:#cfc1ae;font-size:14px}
+  footer{padding:44px 0 40px;text-align:center;font-size:12.5px;color:var(--grey)}
+  footer a{color:var(--teal);border-bottom:1px solid var(--teal)}
+  code{font-family:var(--mono);font-size:.92em;background:var(--paper-2);padding:1px 5px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="brand" href="index.html"><span class="bolt">&#9889;</span>QWATT <small>1 QWATT = 1 MWH</small></a>
+    <a class="back" href="index.html">&#8592; VOLVER AL SITIO</a>
+  </div>
+</header>
+
+<div class="s-hero">
+  <div class="wrap">
+    <span class="tag">LEGAL &#183; SEGURIDAD &#183; GLOSARIO</span>
+    <h1>Términos, riesgos y<br>reglas de seguridad</h1>
+    <p class="lede">Lo que necesitas saber antes de usar QWATT: qué es este proyecto, qué riesgos tiene lo cripto, cómo cuidar tus claves y qué significa cada término.</p>
+    <div class="updated">ÚLTIMA ACTUALIZACIÓN &#183; 22 AGO 2026</div>
+  </div>
+</div>
+
+<section>
+  <div class="wrap">
+    <h2><span class="n">01</span>Naturaleza del proyecto</h2>
+    <p>QWATT es un <b>proyecto de demostración</b> construido para la Stellar × AI Studio Build Challenge. El activo QWATT existe únicamente en la <b>testnet de Stellar</b>, una red de pruebas cuyos tokens no tienen valor económico y que se reinicia periódicamente (aprox. cada trimestre), borrando todos los activos y saldos.</p>
+    <p>La paridad 1 QWATT = 1 MWh es un <b>mecanismo demostrativo</b>: el distribuidor vende al precio del oráculo, pero no existe todavía un contrato inteligente que la defienda automáticamente ni una reserva capitalizada que la respalde. Los precios de la electricidad mostrados provienen del mercado spot EPEX day-ahead (Alemania) vía aWATTar y la conversión EUR→USD es aproximada.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="n">02</span>Sin oferta ni asesoría financiera</h2>
+    <p>Nada en este sitio constituye una <b>oferta de inversión</b>, una invitación a comprar valores ni <b>asesoría financiera, legal o tributaria</b>. QWATT (demo) no está registrado ante ninguna autoridad financiera y no debe usarse para decisiones de inversión.</p>
+    <p>Si el proyecto QWATT lanzara en el futuro un activo en la red principal, ese lanzamiento estaría sujeto a sus propios términos, auditorías y al marco regulatorio aplicable — este sitio no lo anticipa ni lo promete.</p>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="n">03</span>Riesgos de los criptoactivos</h2>
+    <ul class="lines">
+      <li><b>Irreversibilidad.</b> Las transacciones en blockchain no se pueden deshacer. No hay banco al que llamar: un pago enviado a la dirección equivocada se pierde.</li>
+      <li><b>Pérdida de claves.</b> Quien pierde su clave secreta pierde el acceso a sus fondos para siempre. No existe "recuperar contraseña".</li>
+      <li><b>Volatilidad.</b> Los criptoactivos pueden perder valor rápidamente. Un activo anclado a la energía sigue al precio de la electricidad — que puede ser cero o incluso negativo.</li>
+      <li><b>Riesgo tecnológico.</b> Errores de software, oráculos defectuosos o fallas de red pueden producir precios o resultados incorrectos.</li>
+      <li><b>Riesgo regulatorio.</b> El tratamiento legal de los criptoactivos varía por país y puede cambiar.</li>
+      <li><b>Reinicios de testnet.</b> En la red de pruebas, todo puede desaparecer en cada reset — por diseño.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="n">04</span>Custodia: tus claves, tus fondos</h2>
+    <p>QWATT es <b>auto-custodia</b>: las claves se generan y usan en tu navegador, y las transacciones se firman localmente con el SDK de Stellar. El equipo de QWATT <b>no almacena, no ve y no puede recuperar</b> tus claves secretas.</p>
+    <div class="warn"><p>&#9888;&#65039; <b>El equipo de QWATT nunca te pedirá tu clave secreta (S…)</b> — ni por correo, ni por chat, ni por redes sociales. Cualquiera que lo haga es un estafador. Las claves públicas (G…) sí se pueden compartir: sirven para recibir, no para gastar.</p></div>
+    <ul class="lines">
+      <li>Guarda tus claves secretas fuera de línea (papel o gestor de contraseñas), nunca en capturas de pantalla ni chats.</li>
+      <li>La herramienta <a href="backup.html" style="color:var(--teal)">Backup</a> cifra tus claves con AES-256-GCM localmente, sin tocar la red.</li>
+      <li>Verifica siempre el dominio: <code>qwatt.org</code>. Desconfía de clones con dominios parecidos.</li>
+      <li>En este demo el navegador puede recordar claves de testnet (localStorage) por comodidad; en la red principal, usa una wallet dedicada o hardware wallet.</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="n">05</span>Glosario cripto</h2>
+    <dl class="glos">
+      <dt>QWATT</dt>
+      <dd>El activo de este demo: un token en la testnet de Stellar cuyo precio de venta sigue el spot del megavatio-hora. 1 QWATT = 1 MWh.</dd>
+      <dt>Stellar / XLM</dt>
+      <dd>Una blockchain pública optimizada para pagos y emisión de activos. XLM (lumen) es su moneda nativa, usada para pagar comisiones (~$0.00001 por operación).</dd>
+      <dt>Testnet</dt>
+      <dd>La red de pruebas de Stellar: idéntica a la real, pero con dinero de juguete que reparte gratis el "Friendbot". Se reinicia periódicamente.</dd>
+      <dt>Emisor (issuer)</dt>
+      <dd>La cuenta que crea un activo. En Stellar, "acuñar" es simplemente que el emisor pague tokens desde su cuenta: ahí nacen.</dd>
+      <dt>Distribuidor / tesorería</dt>
+      <dd>La cuenta que recibió el supply completo en la génesis y lo vende o reparte. Sus reservas son públicas y auditables.</dd>
+      <dt>Trustline</dt>
+      <dd>La autorización que una cuenta abre para poder recibir un activo específico de un emisor específico. Sin trustline no hay recepción.</dd>
+      <dt>Transacción atómica</dt>
+      <dd>Varias operaciones empaquetadas en una sola transacción: o se ejecutan todas o ninguna. Así compras QWATT sin confiar en intermediarios.</dd>
+      <dt>Memo</dt>
+      <dd>Un campo de texto corto (28 bytes) que viaja con la transacción y queda en el libro mayor para siempre. QWATT lo usa para dejar constancia del precio.</dd>
+      <dt>Oráculo</dt>
+      <dd>La fuente que trae datos del mundo real a la cadena — aquí, el precio spot del MWh (EPEX day-ahead vía aWATTar).</dd>
+      <dt>Proof of Generation (PoG)</dt>
+      <dd>El "minado" de QWATT: un medidor certifica kWh solares generados y el protocolo paga 0.001 QWATT por kWh, con el precio atestiguado en el memo.</dd>
+      <dt>Clave pública (G…) / secreta (S…)</dt>
+      <dd>La pública es tu dirección: se comparte. La secreta firma transacciones: quien la tiene, controla los fondos. Jamás se comparte.</dd>
+      <dt>Horizon</dt>
+      <dd>La API pública de Stellar: cualquiera puede consultar cuentas, saldos y transacciones — es lo que hace la página Proof cada 15 segundos.</dd>
+    </dl>
+  </div>
+</section>
+
+<div class="wrap">
+  <div class="en-note">
+    <h2>English summary</h2>
+    <p>QWATT is an independent demonstration project on the Stellar <b style="color:#fff">testnet</b> — no real money is involved, and the test network resets periodically. Nothing on this site is investment advice or an offer of securities. Crypto carries real risks: transactions are irreversible, lost secret keys mean lost funds, and prices (including electricity) can go to zero or negative. QWATT is self-custodial: keys are generated and used in your browser only, and <b style="color:#fff">the QWATT team will never ask for your secret key</b>. Anyone who does is a scammer.</p>
+  </div>
+</div>
+
+<footer id="qwfoot">
+<style>
+#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;text-align:left;padding:0;color:#b3a48f}
+#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 28px 26px}
+#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
+#qwfoot a{color:#b3a48f;border-bottom:0;text-decoration:none;transition:color .15s}
+#qwfoot a:hover{color:#f0e8dc}
+#qwfoot .qf-brand{font-family:var(--mono);font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
+#qwfoot .qf-brand .qf-bolt{color:#d08a57}
+#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px;color:#b3a48f}
+#qwfoot .qf-chip{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
+#qwfoot h4{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
+#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
+#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
+#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#qwfoot .qf-bottom a{color:#d08a57}
+</style>
+<div class="qf-in">
+  <div class="qf-cols">
+    <div>
+      <a class="qf-brand" href="index.html"><span class="qf-bolt">&#9889;</span> QWATT</a>
+      <p class="qf-lead">El activo digital anclado al precio real de la energ&iacute;a el&eacute;ctrica. 1 QWATT = 1 MWh, verificable onchain.</p>
+      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+    </div>
+    <div class="qf-grp">
+      <h4>Apps</h4>
+      <a href="console.html">Consola Onchain</a>
+      <a href="grid.html">QWATT Grid</a>
+      <a href="pay.html">QWATT Pay</a>
+      <a href="respaldo.html">QWATT Proof</a>
+      <a href="red.html">QWATT Pulse</a>
+      <a href="piloto.html">Piloto Solar</a>
+    </div>
+    <div class="qf-grp">
+      <h4>Recursos</h4>
+      <a href="index.html">Inicio</a>
+      <a href="index.html#clean">QWATT-Clean</a>
+      <a href="whitepaper.html">Whitepaper</a>
+      <a href="backup.html">Backup de claves</a>
+      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    </div>
+  </div>
+  <div class="qf-bottom">
+    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span><a href="index.html#security">Seguridad</a> &#183; <a href="index.html">volver al sitio</a></span>
+  </div>
+</div>
+</footer>
+</body>
+</html>

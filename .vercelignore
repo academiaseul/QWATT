@@ -1,0 +1,8 @@
+# Never upload the mining rig — config.json holds the distributor secret
+# and wallet.json holds the rig wallet secret. The rig runs locally, not on the site.
+mining-rig
+.claude
+.env*
+*.local.txt
+PROGRESS.md
+CLEAN-TOKEN-ARCHITECTURE.md

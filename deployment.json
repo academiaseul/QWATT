@@ -1,0 +1,12 @@
+{
+  "network": "testnet",
+  "assetCode": "QWATT",
+  "issuer": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
+  "distributor": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+  "genesisTx": "1859e7e54e847d187f7f628d81af8a879e7e42166c21354038b020670c40c56e",
+  "genesisLedger": 4277175,
+  "genesisLedgerDisplay": "4,277,175",
+  "genesisDateES": "22 de agosto de 2026",
+  "genesisDateEN": "August 22, 2026",
+  "supply": "42700000"
+}

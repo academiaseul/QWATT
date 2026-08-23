@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QWATT — Whitepaper</title>
+<meta name="description" content="Whitepaper de QWATT: arquitectura del protocolo de verificación energética, modelo de oráculo, ciclo de vida del activo e integración con Stellar.">
+<link rel="canonical" href="https://qwatt.org/whitepaper.html">
+<meta name="theme-color" content="#120c07">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/whitepaper.html">
+<meta property="og:title" content="QWATT — Whitepaper">
+<meta property="og:description" content="Whitepaper de QWATT: arquitectura del protocolo de verificación energética, modelo de oráculo, ciclo de vida del activo e integración con Stellar.">
+<meta property="og:locale" content="es_CL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="QWATT — Whitepaper">
+<meta name="twitter:description" content="Whitepaper de QWATT: arquitectura del protocolo de verificación energética, modelo de oráculo, ciclo de vida del activo e integración con Stellar.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#16100a; --panel:#231a10; --panel2:#2b2015; --line:#3b2d1d;
+    --ink:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
+    --accent:#d08a57; --cyan:#d9b26a; --good:#3cb87f;
+    --display:'Chakra Petch','Segoe UI',sans-serif;
+    --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.75;padding:24px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto}
+  header.site{display:flex;align-items:center;justify-content:space-between;margin-bottom:34px;flex-wrap:wrap;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px}
+  .brand a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:10px}
+  .bolt{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:17px;background:linear-gradient(135deg,var(--accent),#a2602f);color:#1a1206}
+  .brand em{font-style:normal;color:var(--accent)}
+  .net-badge{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid rgba(208,138,87,.4);background:rgba(208,138,87,.07);padding:5px 12px;border-radius:99px}
+
+  .titlepage{border-bottom:1px solid var(--line);padding-bottom:30px;margin-bottom:34px}
+  .doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:2.5px;color:var(--accent);text-transform:uppercase;margin-bottom:12px}
+  h1{font-family:var(--display);font-size:clamp(28px,5vw,42px);line-height:1.15;text-wrap:balance;margin-bottom:14px}
+  .subtitle{color:var(--muted);font-size:16px;max-width:38em}
+  .doc-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--faint)}
+
+  nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:36px}
+  nav.toc .t{font-family:var(--display);font-size:13px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
+  nav.toc ol{margin-left:20px;font-size:14px;columns:2;column-gap:30px}
+  @media(max-width:640px){nav.toc ol{columns:1}}
+  nav.toc li{margin:4px 0;-webkit-column-break-inside:avoid;break-inside:avoid}
+  nav.toc a{color:var(--ink);text-decoration:none}
+  nav.toc a:hover{color:var(--accent)}
+
+  section{margin-bottom:40px}
+  h2{font-family:var(--display);font-size:22px;margin-bottom:14px;padding-top:8px}
+  h2 .n{color:var(--accent);font-family:var(--mono);font-size:15px;margin-right:10px}
+  h3{font-family:var(--display);font-size:16px;margin:22px 0 8px}
+  p{margin-bottom:14px;color:#cdd4e4}
+  p b{color:var(--ink)}
+  .callout{
+    background:var(--panel);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;
+    padding:14px 18px;margin:18px 0;font-size:14.5px;color:var(--muted);
+  }
+  .callout b{color:var(--accent)}
+  code{font-family:var(--mono);font-size:.9em;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  .formula{
+    font-family:var(--mono);font-size:14px;background:#1e150e;border:1px solid var(--line);border-radius:10px;
+    padding:14px 18px;margin:16px 0;text-align:center;color:var(--accent);
+  }
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
+  th{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}
+  td{color:#cdd4e4}
+  td.mono{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  a{color:var(--cyan)}
+  .diagram{margin:20px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
+  .diagram svg{display:block;width:100%;height:auto}
+  .diagram .cap{font-size:12.5px;color:var(--faint);text-align:center;margin-top:8px;font-family:var(--mono)}
+  ul.doc{margin:0 0 14px 22px;color:#cdd4e4}
+  ul.doc li{margin-bottom:8px}
+  .disclaimer{
+    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    font-size:13px;color:var(--muted);margin-top:8px;
+  }
+  footer{border-top:1px solid var(--line);margin-top:44px;padding-top:20px;color:var(--faint);font-size:12.5px;text-align:center}
+  @media print{
+    body{background:#fff;color:#111;padding:0}
+    :root{--ink:#111;--muted:#444;--faint:#666;--panel:#f5f5f5;--panel2:#eee;--line:#ccc}
+    header.site,nav.toc{display:none}
+    p,td,ul.doc{color:#222}
+  }
+</style>
+</head>
+<body>
+<!-- barra QWATT: navegacion entre apps -->
+<nav id="qwnav" aria-label="QWATT apps">
+<style>
+#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
+#qwnav a{text-decoration:none;white-space:nowrap}
+#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
+#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
+#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
+#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
+#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#qwnav .qw-links::-webkit-scrollbar{display:none}
+#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
+#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
+#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
+#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
+@keyframes qwblink{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
+#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
+@media(max-width:860px){
+#qwnav .qw-links{display:none}
+#qwnav .qw-chip{display:none}
+#qwnav .qw-sep{display:none}
+#qwnav .qw-burger{display:block}
+#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
+#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
+#qwnav.open .qw-links a:last-child{border-bottom:0}
+#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
+}
+</style>
+<div class="qw-in">
+<a class="qw-home" href="index.html"><span class="qw-bolt">&#9889;</span>QWATT</a>
+<span class="qw-sep"></span>
+<div class="qw-links">
+<a href="console.html">CONSOLA</a>
+<a href="grid.html">GRID</a>
+<a href="pay.html">PAY</a>
+<a href="respaldo.html">PROOF</a>
+<a href="red.html">PULSE</a>
+<a href="piloto.html">PILOTO</a>
+<a href="whitepaper.html">WHITEPAPER</a>
+<a href="backup.html">BACKUP</a>
+<a href="terminos.html">T&Eacute;RMINOS</a>
+</div>
+<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
+<button class="qw-burger" aria-label="Abrir men&uacute;" aria-expanded="false">MEN&Uacute; &#9776;</button>
+</div>
+<script>
+(function(){
+  var nav=document.getElementById('qwnav');
+  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
+  document.body.style.paddingTop=(pad+52)+'px';
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
+  nav.querySelectorAll('.qw-links a').forEach(function(a){
+    if(a.getAttribute('href').replace(/\.html$/,'')===page)a.classList.add('qw-on');
+  });
+  nav.querySelector('.qw-burger').addEventListener('click',function(){
+    var open=nav.classList.toggle('open');
+    this.setAttribute('aria-expanded',open);
+  });
+})();
+</script>
+</nav>
+<div class="wrap">
+  <style>
+    .stx{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;border:1px solid;border-radius:99px;padding:2px 9px;vertical-align:2px;margin-left:8px;white-space:nowrap}
+    .stx.t{color:#d08a57;border-color:rgba(208,138,87,.45)}
+    .stx.p{color:#d9b26a;border-color:rgba(217,178,106,.4)}
+    .stx.f{color:#8b7a64;border-color:#3b2d1d}
+    .stx.d{color:#8b7a64;border-color:#3b2d1d}
+    .flow{font-family:var(--mono);font-size:13px;line-height:2;background:#1e150e;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0;color:var(--muted);overflow-x:auto;white-space:pre}
+    .flow b{color:var(--accent);font-weight:600}
+  </style>
+  <header class="site">
+    <div class="brand"><a href="index.html"><span class="bolt">&#9889;</span><span><em>QWATT</em></span></a></div>
+    <div class="net-badge">WHITEPAPER v2.0</div>
+  </header>
+
+  <div class="titlepage">
+    <div class="doc-kicker">Whitepaper &#183; v2.0 &#183; protocolo de verificaci&oacute;n energ&eacute;tica</div>
+    <h1>QWATT: energ&iacute;a verificada onchain</h1>
+    <p class="subtitle">
+      Un protocolo que conecta la producci&oacute;n renovable medible con registros digitales
+      transparentes sobre la red Stellar. La unidad del protocolo es f&iacute;sica y universal:
+      <b style="color:var(--accent)">1 QWATT representa 1 MWh</b>. Este documento describe el problema,
+      la arquitectura, el modelo de or&aacute;culo, la seguridad y el estado real de cada componente.
+    </p>
+    <div class="doc-meta">
+      <span>agosto de 2026</span>
+      <span>red: Stellar testnet</span>
+      <span>estado: prototipo</span>
+    </div>
+  </div>
+
+  <nav class="toc">
+    <div class="t">Contenido</div>
+    <ol>
+      <li><a href="#s1">Resumen</a></li>
+      <li><a href="#s2">El problema</a></li>
+      <li><a href="#s3">Fragmentaci&oacute;n del dato energ&eacute;tico</a></li>
+      <li><a href="#s4">Arquitectura QWATT</a></li>
+      <li><a href="#s5">Verificaci&oacute;n energ&eacute;tica</a></li>
+      <li><a href="#s6">Modelo de or&aacute;culo</a></li>
+      <li><a href="#s7">Capa blockchain</a></li>
+      <li><a href="#s8">Integraci&oacute;n con Stellar</a></li>
+      <li><a href="#s9">Ciclo de vida QWATT</a></li>
+      <li><a href="#s10">Modelo de datos</a></li>
+      <li><a href="#s11">Modelo de seguridad</a></li>
+      <li><a href="#s12">Modelo de activo</a></li>
+      <li><a href="#s13">Piloto: El Array&aacute;n</a></li>
+      <li><a href="#s14">Roadmap</a></li>
+      <li><a href="#s15">Consideraciones regulatorias</a></li>
+      <li><a href="#s16">Aplicaciones futuras</a></li>
+    </ol>
+  </nav>
+
+  <section id="s1">
+    <h2><span class="n">1.</span>Resumen</h2>
+    <p>QWATT es un <b>protocolo de verificaci&oacute;n y registro energ&eacute;tico</b>: una capa de
+    infraestructura que toma evidencia medible de producci&oacute;n renovable y la convierte en
+    registros digitales transparentes, auditables por cualquiera, sobre la red Stellar.</p>
+    <p>La convenci&oacute;n central del protocolo es simple: <b>1 QWATT representa 1 MWh de
+    energ&iacute;a bajo el protocolo</b>. QWATT no es electricidad f&iacute;sica ni un certificado
+    regulado: es la representaci&oacute;n digital de un evento energ&eacute;tico medido, con su
+    evidencia anclada en una cadena p&uacute;blica.</p>
+    <div class="callout"><b>Estado actual:</b> prototipo funcional. El activo QWATT existe realmente en la
+    testnet de Stellar (42.7M emitidos, verificables en el explorador p&uacute;blico); el puente de
+    medici&oacute;n opera con hardware simulado; el primer kit fotovoltaico est&aacute; en dise&ntilde;o.
+    Cada componente de este documento indica su estado: <span class="stx t">TESTNET</span>
+    <span class="stx p">PROTOTIPO</span> <span class="stx f">PLANIFICADO</span></div>
+  </section>
+
+  <section id="s2">
+    <h2><span class="n">2.</span>El problema</h2>
+    <p>La energ&iacute;a renovable se produce, se consume y se paga — pero la <b>evidencia</b> de
+    d&oacute;nde vino, cu&aacute;ndo se gener&oacute; y qui&eacute;n la produjo vive en sistemas cerrados.
+    Quien quiere demostrar que consumi&oacute; energ&iacute;a limpia depende de intermediarios, procesos
+    manuales y certificados que se emiten meses despu&eacute;s del hecho f&iacute;sico.</p>
+    <p>El resultado: la confianza en la energ&iacute;a renovable se compra cara. Auditor&iacute;as,
+    registros duplicados y verificaci&oacute;n manual agregan costo a cada MWh limpio — justo lo
+    contrario de lo que una red el&eacute;ctrica descarbonizada necesita.</p>
+  </section>
+
+  <section id="s3">
+    <h2><span class="n">3.</span>Fragmentaci&oacute;n del dato energ&eacute;tico</h2>
+    <p>El dato que probar&iacute;a el origen de un MWh existe — pero est&aacute; fragmentado entre
+    medidores, sistemas SCADA, plataformas de facturaci&oacute;n y registros de certificados que no
+    comparten un lenguaje com&uacute;n:</p>
+    <ul class="doc">
+      <li><b>Medidores</b> registran la generaci&oacute;n con precisi&oacute;n, pero su dato rara vez sale de la planta en forma verificable.</li>
+      <li><b>SCADA</b> opera en tiempo real, en formatos propietarios y redes cerradas.</li>
+      <li><b>Certificados</b> (REC, GdO) se emiten en registros centralizados, con ventanas de tiempo gruesas y poca granularidad.</li>
+      <li><b>Facturaci&oacute;n</b> liquida el valor econ&oacute;mico semanas despu&eacute;s, desconectada de la evidencia f&iacute;sica.</li>
+    </ul>
+    <p>Esa fragmentaci&oacute;n habilita doble conteo, dificulta el reporte ESG serio y hace del
+    <i>greenwashing</i> un problema estructural, no una excepci&oacute;n. QWATT propone un registro
+    com&uacute;n, p&uacute;blico y granular donde la evidencia y el registro viven juntos.</p>
+  </section>
+
+  <section id="s4">
+    <h2><span class="n">4.</span>Arquitectura QWATT</h2>
+    <p>El protocolo se organiza en capas con una regla estricta: <b>cada capa solo conf&iacute;a en la
+    evidencia que recibe de la capa anterior</b>, y toda salida hacia la cadena es p&uacute;blica.</p>
+    <div class="flow">ENERG&Iacute;A F&Iacute;SICA        solar &#183; e&oacute;lica &#183; BESS         <b>&#8595;</b>
+MEDICI&Oacute;N              medidores Modbus &#183; SCADA      <b>&#8595;</b>
+VALIDACI&Oacute;N            integraci&oacute;n de kWh &#183; sanidad   <b>&#8595;</b>
+OR&Aacute;CULO QWATT         atestaci&oacute;n de precio y evento  <b>&#8595;</b>
+PROTOCOLO QWATT       emisi&oacute;n &#183; registro &#183; PoG       <b>&#8595;</b>
+STELLAR               transacci&oacute;n &#183; memo &#183; ledger    <b>&#8595;</b>
+CAPA DE APLICACI&Oacute;N    Grid &#183; Proof &#183; Pulse &#183; Pay</div>
+    <table>
+      <tr><th>Capa</th><th>Implementaci&oacute;n</th><th>Estado</th></tr>
+      <tr><td>Energ&iacute;a f&iacute;sica</td><td>Kit FV El Array&aacute;n (dise&ntilde;o de ingenier&iacute;a)</td><td><span class="stx f">PLANIFICADO</span></td></tr>
+      <tr><td>Medici&oacute;n</td><td>Puente Modbus TCP (cliente propio, sin drivers)</td><td><span class="stx p">PROTOTIPO</span></td></tr>
+      <tr><td>Or&aacute;culo de precio</td><td>EPEX day-ahead v&iacute;a aWATTar + FX</td><td><span class="stx t">EN VIVO</span></td></tr>
+      <tr><td>Protocolo / emisi&oacute;n</td><td>Activo QWATT + pagos PoG</td><td><span class="stx t">TESTNET</span></td></tr>
+      <tr><td>Registro Stellar</td><td>Transacciones reales, auditables</td><td><span class="stx t">TESTNET</span></td></tr>
+      <tr><td>Aplicaciones</td><td>Grid, Proof, Pulse, Pay</td><td><span class="stx t">TESTNET</span> <span class="stx d">DEMO</span></td></tr>
+    </table>
+    <p>Para activos de escala industrial, la telemetr&iacute;a no entra por un medidor &uacute;nico sino
+    por <b>m&oacute;dulos de exportaci&oacute;n certificados en la capa SCADA</b>: la planta firma lotes de
+    generaci&oacute;n (identidad, intervalo, MWh) que el or&aacute;culo de QWATT ingiere como eventos. La
+    primera integraci&oacute;n certificada prevista es <b>Quorelia SCADA</b>, software de infraestructura
+    cr&iacute;tica de grado gubernamental <span class="stx f">PLANIFICADO</span>.</p>
+  </section>
+
+  <section id="s5">
+    <h2><span class="n">5.</span>Verificaci&oacute;n energ&eacute;tica</h2>
+    <p>Todo dato de generaci&oacute;n atraviesa un ciclo de estados expl&iacute;cito. El protocolo nunca
+    trata una lectura como verdad hasta que complet&oacute; su validaci&oacute;n:</p>
+    <div class="formula">UNVERIFIED &#8594; RECEIVED &#8594; VALIDATING &#8594; VERIFIED &#8594; RECORDED &#8594; RETIRED</div>
+    <p><b>Qu&eacute; valida el prototipo hoy:</b> continuidad de la lectura del medidor, integraci&oacute;n
+    de potencia a energ&iacute;a (kWh), y atestaci&oacute;n del precio spot del MWh en el momento del evento.
+    <b>Qu&eacute; falta para producci&oacute;n:</b> firma criptogr&aacute;fica en el medidor, identidad
+    registrada de la planta y validaci&oacute;n cruzada con datos de red — parte del roadmap
+    <span class="stx f">PLANIFICADO</span>.</p>
+  </section>
+
+  <section id="s6">
+    <h2><span class="n">6.</span>Modelo de or&aacute;culo</h2>
+    <p>La energ&iacute;a f&iacute;sica no puede entrar sola a una blockchain: necesita un puente. QWATT
+    usa dos or&aacute;culos con roles distintos:</p>
+    <ul class="doc">
+      <li><b>Or&aacute;culo de precio</b> <span class="stx t">EN VIVO</span> — publica el precio spot real del MWh
+      (mercado EPEX day-ahead, v&iacute;a aWATTar) convertido a USD. Es el valor de referencia del protocolo
+      y queda sellado en el memo de cada transacci&oacute;n.</li>
+      <li><b>Or&aacute;culo de generaci&oacute;n</b> <span class="stx p">PROTOTIPO</span> — el puente de medici&oacute;n
+      lee el medidor Modbus, integra los kWh y emite el evento con un memo de prueba de generaci&oacute;n:
+      <code>PoG:1.250kWh@173.44/MWh</code>.</li>
+    </ul>
+    <div class="callout"><b>Frontera de confianza.</b> El or&aacute;culo es un componente <b>confiado</b> del
+    sistema: QWATT es <b>auditable y verificable</b>, no &laquo;trustless&raquo;. Reducir esa confianza —
+    firmas en el medidor, m&uacute;ltiples fuentes, validaci&oacute;n en contrato — es el eje del roadmap
+    t&eacute;cnico, no una promesa del presente.</div>
+  </section>
+
+  <section id="s7">
+    <h2><span class="n">7.</span>Capa blockchain</h2>
+    <p>&iquest;Por qu&eacute; una blockchain? Porque el problema de fondo es de <b>registro compartido</b>:
+    productores, consumidores, auditores y reguladores necesitan una misma fuente de verdad que ninguno
+    controle en exclusiva. Una cadena p&uacute;blica aporta exactamente tres cosas al protocolo:</p>
+    <ul class="doc">
+      <li><b>Inmutabilidad:</b> un evento registrado no puede reescribirse; la historia energ&eacute;tica queda fija.</li>
+      <li><b>Auditabilidad p&uacute;blica:</b> cualquiera verifica el activo, las reservas y cada transacci&oacute;n sin pedir permiso.</li>
+      <li><b>Liquidaci&oacute;n at&oacute;mica:</b> valor y registro se mueven en una sola operaci&oacute;n indivisible, sin intermediarios.</li>
+    </ul>
+    <p>Y una cosa que la cadena <b>no</b> aporta: la veracidad del mundo f&iacute;sico. Ese es el trabajo
+    del or&aacute;culo (&sect;6) — por eso el modelo de seguridad (&sect;11) trata la frontera
+    f&iacute;sico&#8594;digital como el punto cr&iacute;tico del sistema.</p>
+  </section>
+
+  <section id="s8">
+    <h2><span class="n">8.</span>Integraci&oacute;n con Stellar <span class="stx t">TESTNET</span></h2>
+    <p>QWATT usa Stellar por razones de ingenier&iacute;a: activos nativos sin contrato, comisiones de
+    ~$0.00001, liquidaci&oacute;n en ~5 segundos, trustlines expl&iacute;citas y memos onchain que funcionan
+    como campo de atestaci&oacute;n. El despliegue actual es real y verificable:</p>
+    <table>
+      <tr><th>Par&aacute;metro</th><th>Valor</th></tr>
+      <tr><td>Red</td><td>Stellar testnet</td></tr>
+      <tr><td>Activo</td><td class="mono"><a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">QWATT (alphanum12) &#8599;</a></td></tr>
+      <tr><td>Cuenta emisora</td><td class="mono">GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46</td></tr>
+      <tr><td>Cuenta distribuidora</td><td class="mono">GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW</td></tr>
+      <tr><td>Transacci&oacute;n g&eacute;nesis</td><td class="mono"><a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/tx/1859e7e54e847d187f7f628d81af8a879e7e42166c21354038b020670c40c56e">1859e7e5&hellip;40c56e &#8599;</a></td></tr>
+      <tr><td>Ledger de emisi&oacute;n</td><td class="num">4,277,175</td></tr>
+      <tr><td>Supply emitido</td><td class="num">42,700,000 QWATT</td></tr>
+      <tr><td>Memo de g&eacute;nesis</td><td class="mono">QWATT genesis 1QWATT=1MWh</td></tr>
+    </table>
+    <p>Las compras se ejecutan como <b>una transacci&oacute;n at&oacute;mica de tres operaciones</b> —
+    todo ocurre o nada ocurre, firmado por ambas partes:</p>
+    <div class="formula">changeTrust &#8594; payment (XLM) &#8594; payment (QWATT)</div>
+  </section>
+
+  <section id="s9">
+    <h2><span class="n">9.</span>Ciclo de vida QWATT</h2>
+    <div class="flow"><b>GENERAR</b>     la energ&iacute;a se produce            <span class="stx f">PLANIFICADO</span>
+<b>VERIFICAR</b>   la producci&oacute;n se valida           <span class="stx p">PROTOTIPO</span>
+<b>REGISTRAR</b>   nace el registro digital (PoG)    <span class="stx t">TESTNET</span>
+<b>TRANSFERIR</b>  la unidad se mueve entre cuentas  <span class="stx t">TESTNET</span>
+<b>RETIRAR</b>     el ciclo se cierra (burn)         <span class="stx f">PLANIFICADO</span>
+<b>PRUEBA</b>      la historia queda auditable       <span class="stx t">TESTNET</span></div>
+    <p>El minado por prueba de generaci&oacute;n paga <b>0.001 QWATT por kWh medido</b> desde la
+    tesorer&iacute;a — el supply no se infla con cada evento. El retiro (burn) al consumir la
+    energ&iacute;a representada es arquitectura futura.</p>
+  </section>
+
+  <section id="s10">
+    <h2><span class="n">10.</span>Modelo de datos</h2>
+    <p>La unidad conceptual del protocolo es el <b>evento energ&eacute;tico</b>:</p>
+    <table>
+      <tr><th>Campo</th><th>Descripci&oacute;n</th><th>Hoy vive en</th></tr>
+      <tr><td class="mono">timestamp</td><td>Momento del evento</td><td>Transacci&oacute;n Stellar <span class="stx t">TESTNET</span></td></tr>
+      <tr><td class="mono">energy_kwh</td><td>Energ&iacute;a medida</td><td>Memo PoG <span class="stx t">TESTNET</span></td></tr>
+      <tr><td class="mono">oracle_price</td><td>Precio spot del MWh</td><td>Memo PoG <span class="stx t">TESTNET</span></td></tr>
+      <tr><td class="mono">qwatt_units</td><td>0.001 QWATT por kWh</td><td>Monto del pago <span class="stx t">TESTNET</span></td></tr>
+      <tr><td class="mono">transaction_hash</td><td>Prueba onchain</td><td>Ledger p&uacute;blico <span class="stx t">TESTNET</span></td></tr>
+      <tr><td class="mono">plant_id</td><td>Identidad de la planta</td><td>&mdash; <span class="stx f">PLANIFICADO</span></td></tr>
+      <tr><td class="mono">meter_signature</td><td>Firma del medidor</td><td>&mdash; <span class="stx f">PLANIFICADO</span></td></tr>
+      <tr><td class="mono">verification_status</td><td>Estado del ciclo (&sect;5)</td><td>Parcial <span class="stx p">PROTOTIPO</span></td></tr>
+    </table>
+    <p>Un evento de ejemplo <span class="stx d">DEMOSTRACI&Oacute;N</span>:</p>
+    <div class="formula">planta solar &#8594; 1.000 MWh &#8594; verificado &#8594; evento QW-000001 &#8594; registro onchain &#8594; 1 QWATT</div>
+  </section>
+
+  <section id="s11">
+    <h2><span class="n">11.</span>Modelo de seguridad</h2>
+    <ul class="doc">
+      <li><b>Auto-custodia total.</b> Las claves se generan y usan en el navegador del usuario; las
+      transacciones se firman localmente con el SDK de Stellar. Ning&uacute;n servidor de QWATT ve,
+      almacena o puede recuperar claves secretas.</li>
+      <li><b>Sin secretos del lado del servidor.</b> El sitio es est&aacute;tico: no hay backend que
+      comprometer ni base de datos que filtrar.</li>
+      <li><b>Cadena de evidencia p&uacute;blica.</b> Activo, reservas y transacciones son verificables
+      por terceros en Horizon y stellar.expert, sin intermediarios.</li>
+      <li><b>Riesgos reconocidos:</b> el or&aacute;culo es un componente confiado (&sect;6); la
+      tesorer&iacute;a opera hoy con una sola clave (multi-firma y contrato Soroban en el roadmap);
+      la testnet se reinicia peri&oacute;dicamente por dise&ntilde;o.</li>
+    </ul>
+  </section>
+
+  <section id="s12">
+    <h2><span class="n">12.</span>Modelo de activo</h2>
+    <table>
+      <tr><th>Concepto</th><th>Valor</th><th>Estado</th></tr>
+      <tr><td>Suministro m&aacute;ximo</td><td class="num">100,000,000 QWATT</td><td><span class="stx t">TESTNET</span></td></tr>
+      <tr><td>Emitido</td><td class="num">42,700,000 QWATT</td><td><span class="stx t">TESTNET</span></td></tr>
+      <tr><td>Minado PoG</td><td class="num">0.001 QWATT / kWh</td><td><span class="stx p">PROTOTIPO</span></td></tr>
+      <tr><td>Asignaci&oacute;n (comunidad 40% &#183; reserva 25% &#183; equipo 15% &#183; ecosistema 12% &#183; tesorer&iacute;a 8%)</td><td>&mdash;</td><td><span class="stx f">PLANIFICADA</span></td></tr>
+    </table>
+    <div class="callout"><b>Precisi&oacute;n importante.</b> La paridad 1 QWATT = 1 MWh es una
+    <b>convenci&oacute;n del protocolo</b>, no una equivalencia certificada con generaci&oacute;n real.
+    El supply de testnet no representa energ&iacute;a producida. Convertir la convenci&oacute;n en
+    equivalencia auditable es, precisamente, el objetivo del piloto.</div>
+  </section>
+
+  <section id="s13">
+    <h2><span class="n">13.</span>Piloto: El Array&aacute;n <span class="stx p">EN DISE&Ntilde;O</span></h2>
+    <p>El primer circuito f&iacute;sico completo del protocolo: un kit fotovoltaico sin bater&iacute;as
+    en la precordillera de Santiago, cuyo medidor alimenta el puente de minado.</p>
+    <div class="flow">panel FV <b>&#8594;</b> microinversor grid-tie <b>&#8594;</b> medidor Modbus <b>&#8594;</b> puente PoG <b>&#8594;</b> pago QWATT en testnet</div>
+    <p>Lo que el piloto demuestra: que un kWh real, medido por hardware real, puede convertirse en un
+    registro onchain verificable <b>sin intervenci&oacute;n humana</b>. El puente de software ya existe y
+    opera con generaci&oacute;n simulada; el hardware est&aacute; especificado en el
+    <a href="piloto.html">documento de ingenier&iacute;a del piloto</a>.</p>
+  </section>
+
+  <section id="s14">
+    <h2><span class="n">14.</span>Roadmap</h2>
+    <table>
+      <tr><th>Fase</th><th>Alcance</th><th>Estado</th></tr>
+      <tr><td class="num">Q3 2026</td><td>Activo en testnet &#183; or&aacute;culo de precio real &#183; puente PoG &#183; sitio y apps</td><td><span class="stx t">HECHO</span></td></tr>
+      <tr><td class="num">Q4 2026</td><td>Hardware real del piloto &#183; firma de lecturas en el medidor</td><td><span class="stx f">PLANIFICADO</span></td></tr>
+      <tr><td class="num">Q1 2027</td><td>Contrato Soroban de verificaci&oacute;n &#183; multi-firma de tesorer&iacute;a &#183; auditor&iacute;a</td><td><span class="stx f">PLANIFICADO</span></td></tr>
+      <tr><td class="num">Q2 2027</td><td>Capa de atributo QWATT-Clean (&sect;16) &#183; aplicaciones de liquidaci&oacute;n &#183; evaluaci&oacute;n regulatoria pre-mainnet</td><td><span class="stx f">PLANIFICADO</span></td></tr>
+    </table>
+  </section>
+
+  <section id="s15">
+    <h2><span class="n">15.</span>Consideraciones regulatorias</h2>
+    <p>QWATT est&aacute; en desarrollo y opera exclusivamente en un entorno de testnet/demostraci&oacute;n.
+    Nada en este documento constituye una oferta de inversi&oacute;n ni asesor&iacute;a financiera, legal o
+    tributaria. Las representaciones energ&eacute;ticas descritas <b>no</b> constituyen un derecho legal
+    sobre electricidad, un certificado de energ&iacute;a renovable, un cr&eacute;dito de carbono, un
+    instrumento financiero ni un valor regulado.</p>
+    <p>Cualquier despliegue en red principal o comercializaci&oacute;n estar&aacute; precedido por
+    revisi&oacute;n legal formal del marco aplicable (regulaci&oacute;n el&eacute;ctrica local,
+    normativa de criptoactivos y reglas de certificaci&oacute;n renovable de cada jurisdicci&oacute;n).</p>
+  </section>
+
+  <section id="s16">
+    <h2><span class="n">16.</span>Aplicaciones futuras <span class="stx f">PLANIFICADO</span></h2>
+    <h3>QWATT-Clean: la capa de atributo verde</h3>
+    <p>Sobre el registro de cantidad (1 QWATT = 1 MWh) el protocolo puede derivar un segundo registro:
+    el <b>atributo limpio</b> de ese MWh. Cuando un evento verificado proviene de una fuente renovable,
+    se emitir&iacute;a un <b>QWATT-C</b> con metadatos del evento: fuente, planta, hora y el factor de
+    emisi&oacute;n de la red desplazada (kgCO&#8322;e evitados por MWh).</p>
+    <div class="formula">evento verificado &#8594; 1 QWATT (cantidad) + 1 QWATT-C (atributo limpio) &#8594; transferir &#8594; retirar (burn) &#8594; prueba p&uacute;blica</div>
+    <p>El retiro onchain elimina el <b>doble conteo</b> — el defecto estructural de los certificados
+    tradicionales: un atributo quemado no puede reclamarse dos veces, y cualquier auditor puede
+    comprobarlo. Empresas que buscan demostrar consumo limpio podr&iacute;an adquirir y retirar QWATT-C
+    como evidencia transparente de reducci&oacute;n de huella.</p>
+    <div class="callout"><b>Precisi&oacute;n regulatoria.</b> QWATT-C ser&iacute;a un instrumento
+    <b>voluntario de transparencia</b>, no un certificado de energ&iacute;a renovable (REC/GdO), un
+    cr&eacute;dito de carbono ni un t&iacute;tulo v&aacute;lido para subsidios, salvo que una
+    certificaci&oacute;n o marco legal lo respalde expl&iacute;citamente. La homologaci&oacute;n con
+    esquemas reconocidos (I-REC, GdO, esquemas nacionales) es parte del trabajo regulatorio previo a
+    cualquier comercializaci&oacute;n.</div>
+    <h3>Otras aplicaciones</h3>
+    <ul class="doc">
+      <li><b>Trazabilidad renovable granular:</b> evidencia por hora y por planta, en lugar de certificados anuales agregados.</li>
+      <li><b>PPAs liquidados onchain:</b> contratos de compraventa de energ&iacute;a cuya liquidaci&oacute;n sigue autom&aacute;ticamente a la evidencia de generaci&oacute;n.</li>
+      <li><b>Cobertura de precio:</b> ahorro y cobertura denominados en unidades de energ&iacute;a, ancladas al precio spot real.</li>
+      <li><b>Micro-redes P2P:</b> techos solares que venden excedentes a vecinos con verificaci&oacute;n y pago en la misma capa.</li>
+      <li><b>Reporte ESG auditable:</b> consumo limpio demostrable con enlaces a eventos onchain, no con declaraciones.</li>
+    </ul>
+    <p>Cada una de estas aplicaciones se apoya en la misma primitiva: <b>un evento energ&eacute;tico
+    verificado, registrado p&uacute;blicamente</b>. Ese es el producto de QWATT.</p>
+  </section>
+
+  <div class="disclaimer">
+    QWATT est&aacute; en desarrollo. Los activos y representaciones energ&eacute;ticas descritos operan en
+    un entorno de testnet/demostraci&oacute;n y no constituyen un derecho legal sobre electricidad, un
+    producto financiero, un certificado de energ&iacute;a renovable, un cr&eacute;dito de carbono ni un
+    valor regulado. Este documento debe ser revisado por asesor&iacute;a legal antes de cualquier uso
+    comercial. Ver <a href="terminos.html">t&eacute;rminos, riesgos y glosario</a>.
+  </div>
+
+  <footer>
+    QWATT Whitepaper v2.0 &#183; agosto 2026 &#183; <a href="index.html">qwatt.org</a> &#183;
+    <a href="respaldo.html">proof</a> &#183; <a href="piloto.html">piloto</a> &#183;
+    construido sobre Stellar
+  </footer>
+</div>
+
+<!-- pie QWATT unificado -->
+<footer id="qwfoot">
+<style>
+#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
+#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
+#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
+#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
+#qwfoot a:hover{color:#f0e8dc}
+#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
+#qwfoot .qf-brand .qf-bolt{color:#d08a57}
+#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
+#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
+#qwfoot h4{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
+#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
+#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
+#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#qwfoot .qf-bottom a{color:#d08a57}
+</style>
+<div class="qf-in">
+  <div class="qf-cols">
+    <div>
+      <a class="qf-brand" href="index.html"><span class="qf-bolt">&#9889;</span> QWATT</a>
+      <p class="qf-lead">El activo digital anclado al precio real de la energ&iacute;a el&eacute;ctrica. 1 QWATT = 1 MWh, verificable onchain.</p>
+      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+    </div>
+    <div class="qf-grp">
+      <h4>Apps</h4>
+      <a href="console.html">Consola Onchain</a>
+      <a href="grid.html">QWATT Grid</a>
+      <a href="pay.html">QWATT Pay</a>
+      <a href="respaldo.html">QWATT Proof</a>
+      <a href="red.html">QWATT Pulse</a>
+      <a href="piloto.html">Piloto Solar</a>
+    </div>
+    <div class="qf-grp">
+      <h4>Recursos</h4>
+      <a href="index.html">Inicio</a>
+      <a href="index.html#clean">QWATT-Clean</a>
+      <a href="whitepaper.html">Whitepaper</a>
+      <a href="backup.html">Backup de claves</a>
+      <a href="terminos.html">T&eacute;rminos y seguridad</a>
+      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    </div>
+  </div>
+  <div class="qf-bottom">
+    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+  </div>
+</div>
+</footer>
+</body>
+</html>

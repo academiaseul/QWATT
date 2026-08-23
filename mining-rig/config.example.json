@@ -1,0 +1,27 @@
+{
+  "horizon": "https://horizon-testnet.stellar.org",
+  "friendbot": "https://friendbot.stellar.org",
+  "assetCode": "QWATT",
+  "assetIssuer": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
+  "distributorSecret": "PASTE_DISTRIBUTOR_SECRET_HERE",
+  "payoutThresholdKwh": 0.1,
+  "pollSeconds": 5,
+  "source": {
+    "mode": "simulate",
+    "host": "192.168.1.50",
+    "port": 502,
+    "unitId": 1,
+    "register": {
+      "type": "input",
+      "addr": 12,
+      "count": 2,
+      "format": "float32be",
+      "scale": 1
+    },
+    "measures": "power_w"
+  },
+  "simulate": {
+    "peakWatts": 400,
+    "speedup": 720
+  }
+}

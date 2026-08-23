@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Piloto El Arrayán</title>
+<meta name="description" content="Piloto solar El Arrayán: del kWh físico al registro onchain. El primer kit fotovoltaico del protocolo de verificación energética QWATT.">
+<link rel="canonical" href="https://qwatt.org/piloto.html">
+<meta name="theme-color" content="#120c07">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/piloto.html">
+<meta property="og:title" content="Piloto El Arrayán">
+<meta property="og:description" content="Piloto solar El Arrayán: del kWh físico al registro onchain. El primer kit fotovoltaico del protocolo de verificación energética QWATT.">
+<meta property="og:locale" content="es_CL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Piloto El Arrayán">
+<meta name="twitter:description" content="Piloto solar El Arrayán: del kWh físico al registro onchain. El primer kit fotovoltaico del protocolo de verificación energética QWATT.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --bg:#16100a; --panel:#231a10; --panel2:#2b2015; --line:#3b2d1d;
+    --ink:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
+    --accent:#d08a57; --cyan:#d9b26a; --good:#3cb87f; --bad:#e05c5c; --sun:#ffd24d;
+    --display:'Chakra Petch','Segoe UI',sans-serif;
+    --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  }
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;margin:0;padding:28px 24px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:880px;margin:0 auto}
+  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px}
+  .bolt{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:17px;background:linear-gradient(135deg,var(--accent),#a2602f);color:#1a1206}
+  .brand em{font-style:normal;color:var(--accent)}
+  .net-badge{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid rgba(208,138,87,.4);background:rgba(208,138,87,.07);padding:5px 12px;border-radius:99px}
+  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:2.5px;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
+  h1{font-family:var(--display);font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:0 0 12px;text-wrap:balance}
+  .lead{color:var(--muted);font-size:16px;max-width:46em;margin-bottom:8px}
+  .site-meta{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--faint);margin:14px 0 30px}
+  .site-meta span b{color:var(--sun);font-weight:500}
+  section{margin-bottom:38px}
+  h2{font-family:var(--display);font-size:21px;margin:0 0 12px;padding-top:6px}
+  h2 .n{color:var(--accent);font-family:var(--mono);font-size:14px;margin-right:10px}
+  h3{font-family:var(--display);font-size:15.5px;margin:20px 0 8px}
+  p{margin:0 0 13px;color:#cdd4e4}
+  p b{color:var(--ink)}
+  .callout{background:var(--panel);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;padding:13px 17px;margin:16px 0;font-size:14px;color:var(--muted)}
+  .callout b{color:var(--accent)}
+  .callout.warn{border-left-color:var(--bad)} .callout.warn b{color:var(--bad)}
+  code{font-family:var(--mono);font-size:.88em;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
+  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}
+  td{color:#cdd4e4}
+  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+  td b{color:var(--ink)}
+  a{color:var(--cyan)}
+  figure{margin:20px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;overflow-x:auto}
+  figure svg{display:block;width:100%;height:auto;min-width:640px}
+  figcaption{font-size:12.5px;color:var(--faint);text-align:center;margin-top:10px;font-family:var(--mono)}
+  ul.doc{margin:0 0 13px 22px;color:#cdd4e4;padding:0}
+  ul.doc li{margin-bottom:7px}
+  ol.doc{margin:0 0 13px 22px;color:#cdd4e4;padding:0}
+  ol.doc li{margin-bottom:7px}
+  .formula{font-family:var(--mono);font-size:13.5px;background:#1e150e;border:1px solid var(--line);border-radius:10px;padding:13px 17px;margin:14px 0;text-align:center;color:var(--accent)}
+  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+  @media(max-width:760px){.kpi{grid-template-columns:repeat(2,1fr)}}
+  .kpi > div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+  .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .kpi .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:4px;color:var(--sun)}
+  .kpi .s{font-family:var(--mono);font-size:11px;color:var(--faint)}
+  footer{border-top:1px solid var(--line);margin-top:40px;padding-top:18px;color:var(--faint);font-size:12.5px;text-align:center}
+  @media(max-width:760px){ section div[style*="repeat(4"]{grid-template-columns:repeat(2,minmax(0,1fr)) !important} }
+</style>
+
+</head>
+<body>
+<!-- barra QWATT: navegacion entre apps -->
+<nav id="qwnav" aria-label="QWATT apps">
+<style>
+#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
+#qwnav a{text-decoration:none;white-space:nowrap}
+#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
+#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
+#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
+#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
+#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#qwnav .qw-links::-webkit-scrollbar{display:none}
+#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
+#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
+#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
+#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
+@keyframes qwblink{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
+#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
+@media(max-width:860px){
+#qwnav .qw-links{display:none}
+#qwnav .qw-chip{display:none}
+#qwnav .qw-sep{display:none}
+#qwnav .qw-burger{display:block}
+#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
+#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
+#qwnav.open .qw-links a:last-child{border-bottom:0}
+#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
+}
+</style>
+<div class="qw-in">
+<a class="qw-home" href="index.html"><span class="qw-bolt">&#9889;</span>QWATT</a>
+<span class="qw-sep"></span>
+<div class="qw-links">
+<a href="console.html">CONSOLA</a>
+<a href="grid.html">GRID</a>
+<a href="pay.html">PAY</a>
+<a href="respaldo.html">PROOF</a>
+<a href="red.html">PULSE</a>
+<a href="piloto.html">PILOTO</a>
+<a href="whitepaper.html">WHITEPAPER</a>
+<a href="backup.html">BACKUP</a>
+<a href="terminos.html">T&Eacute;RMINOS</a>
+</div>
+<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
+<button class="qw-burger" aria-label="Abrir men&uacute;" aria-expanded="false">MEN&Uacute; &#9776;</button>
+</div>
+<script>
+(function(){
+  var nav=document.getElementById('qwnav');
+  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
+  document.body.style.paddingTop=(pad+52)+'px';
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
+  nav.querySelectorAll('.qw-links a').forEach(function(a){
+    if(a.getAttribute('href').replace(/\.html$/,'')===page)a.classList.add('qw-on');
+  });
+  nav.querySelector('.qw-burger').addEventListener('click',function(){
+    var open=nav.classList.toggle('open');
+    this.setAttribute('aria-expanded',open);
+  });
+})();
+</script>
+</nav>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="bolt">&#9889;</span><em>QWATT</em></div>
+    <div class="net-badge">PILOTO F&Iacute;SICO v1</div>
+  </header>
+
+  <div class="kicker">Blueprint del piloto &#183; casa de Felipe Veloso</div>
+  <h1>El Array&aacute;n: el primer kWh real que se convierte en QWATT</h1>
+  <p class="lead">
+    Un kit solar con bater&iacute;as instalado en la precordillera de Santiago, cuyo medidor
+    <b>mintea QWATT autom&aacute;ticamente</b> por cada kWh verificado que genera. Este documento
+    especifica el equipo, el mecanismo cripto completo, la econom&iacute;a y el plan de instalaci&oacute;n.
+  </p>
+  <div class="site-meta">
+    <span>&#128205; <b>El Array&aacute;n</b>, Lo Barnechea &#183; ~1.000&#8211;1.200 m</span>
+    <span>&#9728;&#65039; irradiaci&oacute;n Santiago: <b>&#8776;5,5 kWh/m&sup2;/d&iacute;a</b> prom.</span>
+    <span>&#9889; sistema: <b>4,4 kWp + 9,6 kWh</b></span>
+    <span>&#127760; red: Stellar testnet</span>
+  </div>
+
+  <!-- ============ 1. LA IDEA ============ -->
+  <section>
+    <h2><span class="n">1.</span>Qu&eacute; demuestra el piloto</h2>
+    <p>
+      Hasta ahora QWATT vive en software: el sol de la app es simulado. Este piloto cierra el
+      c&iacute;rculo con hardware real: <b>paneles reales generan kWh reales, un medidor real los firma,
+      y la blockchain los convierte en moneda</b> — sin intervenci&oacute;n humana. Si funciona en la casa
+      de Felipe, el mismo kit se replica en cualquier techo de Chile.
+    </p>
+    <p>
+      A diferencia de proyectos como d.energy (validadores con KYC que hacen staking de certificados
+      de energ&iacute;a), aqu&iacute; el minteo sale <b>directo del fierro</b>: la cadena de custodia va del
+      panel al medidor, del medidor a la firma criptogr&aacute;fica, y de la firma al token. Todo auditable
+      de punta a punta en el explorador.
+    </p>
+    <div class="callout">
+      <b>La regla no cambia:</b> 1 QWATT = 1 MWh. El kit de Felipe genera &#8776;0,5 MWh al mes,
+      as&iacute; que mintea &#8776;0,5 QWATT mensuales. Pocos tokens, todos respaldados por electricidad
+      que existi&oacute; de verdad — eso es exactamente lo que queremos demostrar.
+    </div>
+  </section>
+  <!-- ============ PROOF OF GENERATION · 4 PASOS ============ -->
+  <section>
+    <h2><span class="n">&#9889;</span>C&oacute;mo funciona Proof of Generation</h2>
+    <p style="color:#b3a48f">Las blockchains tradicionales consumen energ&iacute;a. <b style="color:#f0e8dc">QWATT exige crearla.</b></p>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0">
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:30px;line-height:1">&#9728;&#65039;</div>
+        <div style="font-family:var(--display);font-weight:700;font-size:15px">1 &#183; Genera</div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Los paneles producen kWh f&iacute;sicos. Sin validadores, sin staking de certificados: <b style="color:var(--sun)">el sol es el consenso</b>.</div>
+      </div>
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:30px;line-height:1">&#128269;</div>
+        <div style="font-family:var(--display);font-weight:700;font-size:15px">2 &#183; Verifica</div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Dos medidores independientes deben coincidir. El gateway firma cada lectura con su clave y <b style="color:var(--cyan)">ancla el hash en la blockchain</b>.</div>
+      </div>
+      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:30px;line-height:1">&#9889;</div>
+        <div style="font-family:var(--display);font-weight:700;font-size:15px">3 &#183; Mintea</div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Una transacci&oacute;n at&oacute;mica entrega <b style="color:var(--accent)">1 QWATT por cada MWh verificado</b>. Evidencia y pago son inseparables.</div>
+      </div>
+      <div style="background:var(--panel);border:1px solid rgba(60,184,127,.4);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
+        <div style="font-size:30px;line-height:1">&#9989;</div>
+        <div style="font-family:var(--display);font-weight:700;font-size:15px">4 &#183; El resultado</div>
+        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Cada QWATT en circulaci&oacute;n representa energ&iacute;a que existi&oacute; de verdad. <b style="color:var(--good)">Sin generaci&oacute;n, no hay QWATT nuevos.</b></div>
+      </div>
+    </div>
+    <div class="callout">
+      <b>La diferencia con d.energy:</b> su &laquo;Proof of Energy&raquo; exige validadores con KYC que hacen
+      staking de certificados (EACs) y compensan 1000:1. QWATT mintea <b>directo del medidor</b>:
+      la cadena de custodia va del panel al token sin intermediarios que creer.
+    </div>
+  </section>
+
+
+  <!-- ============ 2. DIAGRAMA SISTEMA ============ -->
+  <section>
+    <h2><span class="n">2.</span>El sistema completo</h2>
+    <p>
+      Tres capas conectadas: la <b style="color:var(--sun)">energ&iacute;a</b> fluye de los paneles a la casa,
+      los <b style="color:var(--cyan)">datos</b> fluyen del medidor a la blockchain,
+      y el <b style="color:var(--accent)">valor</b> fluye de vuelta a la wallet de Felipe.
+    </p>
+    <figure>
+      <svg viewBox="0 0 900 560" role="img" aria-label="Sistema del piloto: capa de energía (paneles, inversor híbrido, batería, casa), capa de datos (medidor, gateway, oráculo, Stellar) y capa de valor (mint de QWATT a la wallet)">
+        <defs>
+          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b3a48f"/>
+          </marker>
+          <marker id="arwsun" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#ffd24d"/>
+          </marker>
+          <marker id="arwcyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#d9b26a"/>
+          </marker>
+          <marker id="arwacc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#d08a57"/>
+          </marker>
+        </defs>
+
+        <!-- ===== ENERGY LAYER band ===== -->
+        <text x="18" y="30" font-family="IBM Plex Mono,monospace" font-size="11" fill="#ffd24d" letter-spacing="2">CAPA ENERG&Iacute;A &#183; DC/AC</text>
+        <!-- sun -->
+        <circle cx="60" cy="86" r="20" fill="none" stroke="#ffd24d" stroke-width="2.5"/>
+        <path d="M60 56 v-10 M60 116 v10 M30 86 h-10 M90 86 h10 M39 65 l-7 -7 M81 107 l7 7 M81 65 l7 -7 M39 107 l-7 7" stroke="#ffd24d" stroke-width="2.5" stroke-linecap="round"/>
+        <!-- panels -->
+        <rect x="130" y="52" width="150" height="68" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
+        <text x="205" y="79" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">8 paneles 550 Wp</text>
+        <text x="205" y="99" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">4,4 kWp &#183; 30&#176; norte</text>
+        <line x1="90" y1="86" x2="126" y2="86" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
+        <!-- inverter -->
+        <rect x="360" y="52" width="180" height="68" rx="10" fill="#2b2015" stroke="#5c4a1e"/>
+        <text x="450" y="79" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d08a57">Inversor h&iacute;brido 5 kW</text>
+        <text x="450" y="99" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">MPPT + cargador 48 V</text>
+        <line x1="280" y1="86" x2="356" y2="86" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
+        <text x="318" y="78" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">DC 6 mm&sup2;</text>
+        <!-- battery -->
+        <rect x="360" y="160" width="180" height="60" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
+        <text x="450" y="185" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">Bater&iacute;a LiFePO4</text>
+        <text x="450" y="204" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">9,6 kWh &#183; 48 V</text>
+        <line x1="450" y1="120" x2="450" y2="156" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
+        <line x1="470" y1="156" x2="470" y2="120" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#arw)"/>
+        <text x="530" y="142" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">carga / descarga</text>
+        <!-- house -->
+        <rect x="640" y="52" width="150" height="68" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
+        <text x="715" y="79" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">Casa de Felipe</text>
+        <text x="715" y="99" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">consumos AC 220 V</text>
+        <line x1="540" y1="86" x2="636" y2="86" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
+        <text x="588" y="78" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">AC 220 V</text>
+        <!-- grid optional -->
+        <rect x="640" y="160" width="150" height="52" rx="10" fill="#10141f" stroke="#3b2d1d" stroke-dasharray="5 4"/>
+        <text x="715" y="182" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="12" fill="#b3a48f">Red Enel (respaldo)</text>
+        <text x="715" y="199" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">fase 1: sin inyecci&oacute;n</text>
+        <line x1="715" y1="156" x2="715" y2="124" stroke="#b3a48f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arw)"/>
+
+        <!-- ===== DATA LAYER ===== -->
+        <text x="18" y="292" font-family="IBM Plex Mono,monospace" font-size="11" fill="#d9b26a" letter-spacing="2">CAPA DATOS &#183; TELEMETR&Iacute;A + FIRMA</text>
+        <!-- meter -->
+        <rect x="60" y="312" width="170" height="66" rx="10" fill="#2b2015" stroke="#1e4b63"/>
+        <text x="145" y="338" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">Medidor (CTs)</text>
+        <text x="145" y="358" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">Shelly Pro 3EM / Modbus</text>
+        <line x1="450" y1="224" x2="180" y2="308" stroke="#d9b26a" stroke-width="1.5" marker-end="url(#arwcyan)"/>
+        <text x="270" y="272" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">mide kWh generados</text>
+        <!-- gateway -->
+        <rect x="310" y="312" width="180" height="66" rx="10" fill="#2b2015" stroke="#1e4b63"/>
+        <text x="400" y="338" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">Gateway Raspberry Pi</text>
+        <text x="400" y="358" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">or&aacute;culo local &#183; clave ed25519</text>
+        <line x1="230" y1="345" x2="306" y2="345" stroke="#d9b26a" stroke-width="1.5" marker-end="url(#arwcyan)"/>
+        <text x="268" y="337" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">cada 5 min</text>
+        <!-- stellar -->
+        <rect x="570" y="312" width="200" height="66" rx="10" fill="#2b2015" stroke="#1e4b63"/>
+        <text x="670" y="338" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">Stellar testnet</text>
+        <text x="670" y="358" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">hash anclado + mint at&oacute;mico</text>
+        <line x1="490" y1="345" x2="566" y2="345" stroke="#d9b26a" stroke-width="1.5" marker-end="url(#arwcyan)"/>
+        <text x="528" y="337" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">4G / WiFi</text>
+
+        <!-- ===== VALUE LAYER ===== -->
+        <text x="18" y="446" font-family="IBM Plex Mono,monospace" font-size="11" fill="#d08a57" letter-spacing="2">CAPA VALOR &#183; QWATT</text>
+        <rect x="60" y="466" width="190" height="66" rx="10" fill="#241d0e" stroke="#5c4a1e"/>
+        <text x="155" y="492" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d08a57">Wallet de Felipe</text>
+        <text x="155" y="512" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">+0,5 QWATT / mes</text>
+        <line x1="620" y1="382" x2="230" y2="464" stroke="#d08a57" stroke-width="2" marker-end="url(#arwacc)"/>
+        <text x="430" y="430" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#d08a57">mint: 1 QWATT por MWh verificado</text>
+        <rect x="330" y="466" width="150" height="66" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
+        <text x="405" y="492" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="12.5" font-weight="600" fill="#f0e8dc">Vender / gastar</text>
+        <text x="405" y="512" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">recompra &#183; DEX &#183; P2P</text>
+        <line x1="250" y1="499" x2="326" y2="499" stroke="#d08a57" stroke-width="1.5" marker-end="url(#arwacc)"/>
+        <rect x="560" y="466" width="210" height="66" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
+        <text x="665" y="492" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="12.5" font-weight="600" fill="#f0e8dc">stellar.expert</text>
+        <text x="665" y="512" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">cualquiera audita el mint</text>
+        <line x1="480" y1="499" x2="556" y2="499" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#arw)"/>
+      </svg>
+      <figcaption>Fig. 1 &#183; La energ&iacute;a fluye hacia la derecha; los datos bajan firmados a la blockchain; el valor vuelve como QWATT.</figcaption>
+    </figure>
+  </section>
+  <!-- ============ 3. EL KIT ============ -->
+  <section>
+    <h2><span class="n">3.</span>El kit solar &#183; lista de equipos (BOM)</h2>
+    <p>
+      Dimensionado para una casa de monta&ntilde;a con cortes de red ocasionales: genera de d&iacute;a,
+      guarda en bater&iacute;a para la noche, y la red de Enel queda solo como respaldo.
+      Precios estimados para cotizar en Chile (SolarStore, Naturenergy, tiendas Deye/Pylontech) — <b>[cotizar]</b>.
+    </p>
+    <table>
+      <tr><th>#</th><th>Equipo</th><th>Especificaci&oacute;n</th><th>Cant.</th><th>Est. USD</th></tr>
+      <tr><td>1</td><td><b>Paneles solares</b></td><td>Mono PERC 550 Wp (Trina / JA / Canadian Solar), Vmp&#8776;42 V</td><td class="num">8</td><td class="num">$800&#8211;1.050</td></tr>
+      <tr><td>2</td><td><b>Inversor h&iacute;brido</b></td><td>5 kW 48 V, MPPT 500 V, cargador AC (Deye SUN-5K-SG04LP1 o Growatt SPF 5000ES) — con puerto <b>Modbus/RS485</b> para telemetr&iacute;a</td><td class="num">1</td><td class="num">$900&#8211;1.300</td></tr>
+      <tr><td>3</td><td><b>Bater&iacute;a LiFePO4</b></td><td>48 V, 4,8 kWh c/u, BMS integrado (Pylontech US5000 o equiv. Deye)</td><td class="num">2</td><td class="num">$2.600&#8211;3.000</td></tr>
+      <tr><td>4</td><td>Estructura de montaje</td><td>Aluminio, techo inclinado o suelo, apta viento de cordillera, inclinaci&oacute;n 30&#176; orientaci&oacute;n norte</td><td class="num">1</td><td class="num">$300&#8211;450</td></tr>
+      <tr><td>5</td><td>Protecciones DC</td><td>Fusibles gPV 15 A + portafusibles, seccionador DC, SPD tipo II, tablero estanco</td><td class="num">1</td><td class="num">$150&#8211;250</td></tr>
+      <tr><td>6</td><td>Protecciones AC</td><td>Diferencial 30 mA, termomagn&eacute;tico, SPD AC</td><td class="num">1</td><td class="num">$100&#8211;180</td></tr>
+      <tr><td>7</td><td>Cableado</td><td>Solar 6 mm&sup2; + conectores MC4; bater&iacute;a 25&#8211;35 mm&sup2;; canalizaci&oacute;n EMT</td><td class="num">—</td><td class="num">$150&#8211;250</td></tr>
+      <tr><td>8</td><td>Puesta a tierra</td><td>Jabalina + barra + conductor 10 mm&sup2;</td><td class="num">1</td><td class="num">$80&#8211;120</td></tr>
+      <tr><td>9</td><td><b>Medici&oacute;n</b></td><td>Shelly Pro 3EM con CTs 120 A (o directamente el Modbus del inversor) — mide generaci&oacute;n FV, bater&iacute;a y consumo</td><td class="num">1</td><td class="num">$120&#8211;160</td></tr>
+      <tr><td>10</td><td><b>Gateway / or&aacute;culo</b></td><td>Raspberry Pi 4 (2 GB) + microSD industrial + fuente + gabinete riel DIN + dongle 4G con SIM de datos</td><td class="num">1</td><td class="num">$150&#8211;220</td></tr>
+      <tr><td colspan="4"><b>Total equipos</b></td><td class="num"><b>$5.350&#8211;6.980</b></td></tr>
+      <tr><td colspan="4">Mano de obra (instalador autorizado SEC, 2 d&iacute;as) — <b>[cotizar]</b></td><td class="num">$600&#8211;1.000</td></tr>
+    </table>
+    <div class="callout">
+      <b>Los tres fierros que hacen la magia cripto:</b> el <b>inversor con Modbus</b> (#2) reporta cada
+      kWh generado; el <b>medidor con CTs</b> (#9) lo verifica de forma independiente — dos fuentes que
+      deben coincidir; y el <b>gateway</b> (#10) guarda la clave que firma. Sin esos tres, es un kit solar
+      com&uacute;n; con ellos, es una m&aacute;quina de mintear verdad.
+    </div>
+  </section>
+
+  <!-- ============ 4. MECANISMO CRIPTO ============ -->
+  <section>
+    <h2><span class="n">4.</span>El mecanismo cripto: proof-of-generation</h2>
+    <p>
+      El coraz&oacute;n del sistema es un ciclo de medici&oacute;n &#8594; firma &#8594; minteo que corre solo,
+      24/7, en el gateway:
+    </p>
+    <ol class="doc">
+      <li><b>Registro del sitio (una vez, en la instalaci&oacute;n).</b> Se crea la cuenta Stellar del sistema y se escribe su identidad en la blockchain con <code>manageData</code>: <code>panel:size_kw=4.4</code>, <code>panel:battery_kwh=9.6</code>, <code>panel:site=sha256(coordenadas)</code>, <code>panel:installer</code>. El sistema queda registrado p&uacute;blicamente antes de generar su primer kWh.</li>
+      <li><b>Medici&oacute;n (cada 5 minutos).</b> El gateway lee del inversor v&iacute;a Modbus: kWh acumulados FV, potencia instant&aacute;nea, estado de carga de la bater&iacute;a — y del Shelly (CTs) la medici&oacute;n independiente. Ambas lecturas van a un lote JSON con timestamp.</li>
+      <li><b>Firma.</b> El lote se hashea (SHA-256) y el gateway lo firma con su clave ed25519 — la misma que controla la cuenta Stellar del sistema. La clave nunca sale del Pi.</li>
+      <li><b>Minteo at&oacute;mico (cada hora, o al acumular &#8805;1 kWh).</b> Una sola transacci&oacute;n Stellar con tres operaciones inseparables: <code>manageData meter:{ts} = hash</code> (ancla la evidencia) + <code>manageData panel:total_kwh</code> (acumulado p&uacute;blico) + <code>payment</code> de la distribuidora al sistema por <code>kWh/1000</code> QWATT. Memo: <code>SOLAR:{kwh}kWh</code>. Firman el gateway y la tesorer&iacute;a: todo o nada.</li>
+      <li><b>Auditor&iacute;a permanente.</b> Cualquier persona abre la cuenta del sistema en stellar.expert y ve: su identidad, cada hash de lectura, el total generado y cada QWATT recibido. La p&aacute;gina Pulse del sitio lo muestra en vivo.</li>
+    </ol>
+
+    <h3>Anti-fraude: por qu&eacute; no se puede mintear aire</h3>
+    <ul class="doc">
+      <li><b>Tope f&iacute;sico:</b> la tesorer&iacute;a rechaza cualquier lote donde <code>kWh &gt; 4,4 kW &times; horas &times; 1,15</code> — un sistema no puede generar m&aacute;s que su capacidad.</li>
+      <li><b>Curva solar:</b> generaci&oacute;n reportada de noche (seg&uacute;n hora solar del sitio) = lote rechazado + alerta.</li>
+      <li><b>Doble medici&oacute;n:</b> inversor y CTs independientes deben coincidir dentro de &plusmn;5%; divergencia sostenida = sistema en cuarentena.</li>
+      <li><b>Plausibilidad clim&aacute;tica:</b> el or&aacute;culo compara contra irradiancia de referencia (API meteorol&oacute;gica del sector) — un d&iacute;a nublado no puede rendir como uno despejado.</li>
+      <li><b>Identidad anclada:</b> el hash de las coordenadas y la capacidad viven onchain desde el d&iacute;a uno; no se puede inflar la capacidad despu&eacute;s sin dejar rastro.</li>
+    </ul>
+
+    <h3>El ciclo del QWATT: generar, guardar, vender</h3>
+    <figure>
+      <svg viewBox="0 0 900 360" role="img" aria-label="Ciclo del QWATT: el sistema solar mintea, la wallet guarda, y existen tres salidas: recompra de tesorería al precio del oráculo, orden en el DEX de Stellar, y pago P2P a vecinos o comercios">
+        <defs>
+          <marker id="cyc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#d08a57"/>
+          </marker>
+          <marker id="cycg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+            <path d="M0,0 L10,5 L0,10 z" fill="#b3a48f"/>
+          </marker>
+        </defs>
+        <!-- mint -->
+        <rect x="30" y="130" width="190" height="80" rx="12" fill="#241d0e" stroke="#5c4a1e"/>
+        <text x="125" y="162" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="14" font-weight="600" fill="#ffd24d">&#9728;&#65039; GENERAR</text>
+        <text x="125" y="184" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">kWh verificados &#8594; mint</text>
+        <!-- wallet -->
+        <rect x="330" y="130" width="190" height="80" rx="12" fill="#2b2015" stroke="#5c4a1e"/>
+        <text x="425" y="162" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="14" font-weight="600" fill="#d08a57">&#128091; GUARDAR</text>
+        <text x="425" y="184" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">wallet Stellar de Felipe</text>
+        <line x1="220" y1="170" x2="326" y2="170" stroke="#d08a57" stroke-width="2" marker-end="url(#cyc)"/>
+        <text x="273" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">0,5 QWATT/mes</text>
+        <!-- three exits -->
+        <rect x="650" y="30" width="220" height="76" rx="12" fill="#15251c" stroke="#2a5c42"/>
+        <text x="760" y="58" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#3cb87f">1 &#183; Recompra tesorer&iacute;a</text>
+        <text x="760" y="78" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">QWATT &#8594; XLM al precio or&aacute;culo</text>
+        <text x="760" y="94" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">1 tx at&oacute;mica, en la app</text>
+        <rect x="650" y="140" width="220" height="76" rx="12" fill="#2b2015" stroke="#1e4b63"/>
+        <text x="760" y="168" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">2 &#183; DEX de Stellar</text>
+        <text x="760" y="188" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">orden QWATT/XLM en el libro</text>
+        <text x="760" y="204" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">precio de mercado</text>
+        <rect x="650" y="250" width="220" height="76" rx="12" fill="#2b2015" stroke="#3b2d1d"/>
+        <text x="760" y="278" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">3 &#183; P2P</text>
+        <text x="760" y="298" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">pagar a vecinos con QR</text>
+        <text x="760" y="314" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">energ&iacute;a como plata</text>
+        <line x1="520" y1="150" x2="646" y2="72" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#cycg)"/>
+        <line x1="520" y1="172" x2="646" y2="176" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#cycg)"/>
+        <line x1="520" y1="194" x2="646" y2="284" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#cycg)"/>
+        <!-- burn return -->
+        <path d="M 650 96 C 420 96 240 110 130 126" fill="none" stroke="#3cb87f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#cycg)"/>
+        <text x="330" y="86" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#3cb87f">la tesorer&iacute;a quema o re-reserva lo recomprado</text>
+      </svg>
+      <figcaption>Fig. 2 &#183; Un QWATT minteado tiene tres salidas; la recompra de tesorer&iacute;a garantiza siempre un comprador al precio del MWh.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ============ 5. ECONOMÍA ============ -->
+  <section>
+    <h2><span class="n">5.</span>La econom&iacute;a real del piloto</h2>
+    <div class="formula">4,4 kWp &times; 5,5 HSP &times; 75% rendimiento &#8776; 18 kWh/d&iacute;a &#8776; 0,55 MWh/mes &#8776; 6,5 MWh/a&ntilde;o</div>
+    <div class="kpi">
+      <div><div class="l">Minteo mensual</div><div class="v">&#8776;0,55 QWATT</div><div class="s">1 QWATT = 1 MWh</div></div>
+      <div><div class="l">Valor anual</div><div class="v">&#8776;US$490</div><div class="s">@ $75/MWh or&aacute;culo</div></div>
+      <div><div class="l">Ahorro en cuenta luz</div><div class="v">&#8776;CLP 80&#8211;110 mil</div><div class="s">mensual, autoconsumo</div></div>
+      <div><div class="l">Retorno del kit</div><div class="v">5&#8211;7 a&ntilde;os</div><div class="s">ahorro + QWATT</div></div>
+    </div>
+    <p>
+      Los n&uacute;meros son deliberadamente honestos: la energ&iacute;a real vale lo que vale. El valor del
+      piloto no es hacerse rico minteando — es demostrar que <b>cada token del sistema corresponde a
+      electricidad f&iacute;sica verificable</b>, algo que casi ninguna cripto puede decir. El ahorro
+      principal de Felipe viene del autoconsumo (deja de comprarle esos kWh a Enel); el QWATT es la
+      capa de valor digital encima.
+    </p>
+  </section>
+
+  <!-- ============ 6. INSTALACIÓN EN EL ARRAYÁN ============ -->
+  <section>
+    <h2><span class="n">6.</span>Instalaci&oacute;n en El Array&aacute;n: sitio y normativa</h2>
+    <h3>El sitio</h3>
+    <ul class="doc">
+      <li><b>Orientaci&oacute;n e inclinaci&oacute;n:</b> paneles al norte, ~30&#176; (latitud 33&#176;S). En la precordillera el aire limpio y el fr&iacute;o mejoran el rendimiento — los paneles rinden m&aacute;s a baja temperatura.</li>
+      <li><b>Sombras de ladera:</b> analizar el horizonte hacia el norte en invierno (sol bajo). Una hora de sombra matinal en junio puede costar 10% del d&iacute;a — elegir el punto del terreno con horizonte despejado.</li>
+      <li><b>Nieve y viento:</b> estructura con torque certificado y 30&#176; de inclinaci&oacute;n para que la nieve deslice; los cables con holgura t&eacute;rmica.</li>
+      <li><b>Conectividad:</b> se&ntilde;al 4G en El Array&aacute;n es buena en general; el dongle del gateway con SIM de datos (Entel/WOM) + b&uacute;fer local de 72 h si se cae el enlace — los lotes se firman offline y se suben al volver la conexi&oacute;n.</li>
+    </ul>
+    <h3>Normativa (Chile) — en simple</h3>
+    <ul class="doc">
+      <li>Toda instalaci&oacute;n el&eacute;ctrica fija debe ser ejecutada/declarada por un <b>instalador autorizado SEC</b> (tr&aacute;mite TE4). No es opcional y protege a Felipe.</li>
+      <li><b>Fase 1 sin inyecci&oacute;n a la red</b> (el inversor h&iacute;brido se configura con export = 0): evita el tr&aacute;mite de netbilling y simplifica todo. La casa consume su sol y su bater&iacute;a; Enel solo respalda.</li>
+      <li>Si m&aacute;s adelante quieren <b>vender excedentes a Enel</b>, se hace el tr&aacute;mite de la Ley 21.118 (netbilling) — y ah&iacute; el piloto gana su segunda fuente de ingreso, esta vez en pesos.</li>
+    </ul>
+    <div class="callout warn">
+      <b>Seguridad primero:</b> 48 V de bater&iacute;a LiFePO4 y 400+ V DC de strings no perdonan improvisaci&oacute;n.
+      El montaje el&eacute;ctrico lo hace el instalador certificado; nosotros ponemos el software, la telemetr&iacute;a
+      y la capa cripto. (Esto es dise&ntilde;o de ingenier&iacute;a, no asesor&iacute;a legal ni el&eacute;ctrica.)
+    </div>
+  </section>
+
+  <!-- ============ 7. PLAN 4 SEMANAS ============ -->
+  <section>
+    <h2><span class="n">7.</span>Plan de 4 semanas</h2>
+    <table>
+      <tr><th>Semana</th><th>Hito</th><th>Entregable</th></tr>
+      <tr><td class="num"><b>S1</b></td><td>Cotizar el kit (3 proveedores), visita al sitio con el instalador, an&aacute;lisis de sombras, contratar TE4</td><td>BOM cerrado + fecha de instalaci&oacute;n</td></tr>
+      <tr><td class="num"><b>S2</b></td><td>Instalaci&oacute;n f&iacute;sica (2 d&iacute;as): estructura, paneles, inversor, bater&iacute;as, protecciones, tierra. Comisionado el&eacute;ctrico</td><td>Sistema generando y respaldando la casa</td></tr>
+      <tr><td class="num"><b>S3</b></td><td>Telemetr&iacute;a: Shelly + Modbus + gateway. Or&aacute;culo en modo observaci&oacute;n (mide y firma, sin mintear) — validar doble medici&oacute;n</td><td>72 h de datos limpios, dashboard en vivo</td></tr>
+      <tr><td class="num"><b>S4</b></td><td>Registro del sitio onchain, primer minteo real, primera venta (recompra de tesorer&iacute;a), integraci&oacute;n con Pulse y Proof del sitio</td><td><b>El primer QWATT del mundo respaldado por el sol de El Array&aacute;n</b> &#128293;</td></tr>
+    </table>
+    <h3>Qu&eacute; medimos para declarar &eacute;xito</h3>
+    <ul class="doc">
+      <li>Uptime de telemetr&iacute;a &gt; 99% en 30 d&iacute;as; divergencia inversor/CTs &lt; 5%.</li>
+      <li>100% de los lotes anclados onchain con su hash verificable; cero minteos rechazados por fraude falso-positivo.</li>
+      <li>Una venta completa QWATT &#8594; XLM ejecutada por Felipe desde su tel&eacute;fono.</li>
+      <li>Un tercero (juez, amigo, inversionista) audita un lote de punta a punta sin nuestra ayuda: lectura &#8594; hash &#8594; tx &#8594; token.</li>
+    </ul>
+  </section>
+
+  <footer>
+    <a href="index.html" style="color:inherit">QWATT</a> &#183; Piloto El Array&aacute;n v1 &#183; casa de Felipe Veloso &#183; Lo Barnechea, Santiago de Chile &#183;
+    dise&ntilde;o de ingenier&iacute;a del prototipo — precios [cotizar] &#183; testnet only
+  </footer>
+</div>
+
+
+<!-- pie QWATT unificado -->
+<footer id="qwfoot">
+<style>
+#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
+#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
+#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
+#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
+#qwfoot a:hover{color:#f0e8dc}
+#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
+#qwfoot .qf-brand .qf-bolt{color:#d08a57}
+#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
+#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
+#qwfoot h4{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
+#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
+#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
+#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#qwfoot .qf-bottom a{color:#d08a57}
+</style>
+<div class="qf-in">
+  <div class="qf-cols">
+    <div>
+      <a class="qf-brand" href="index.html"><span class="qf-bolt">&#9889;</span> QWATT</a>
+      <p class="qf-lead">El activo digital anclado al precio real de la energ&iacute;a el&eacute;ctrica. 1 QWATT = 1 MWh, verificable onchain.</p>
+      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+    </div>
+    <div class="qf-grp">
+      <h4>Apps</h4>
+      <a href="console.html">Consola Onchain</a>
+      <a href="grid.html">QWATT Grid</a>
+      <a href="pay.html">QWATT Pay</a>
+      <a href="respaldo.html">QWATT Proof</a>
+      <a href="red.html">QWATT Pulse</a>
+      <a href="piloto.html">Piloto Solar</a>
+    </div>
+    <div class="qf-grp">
+      <h4>Recursos</h4>
+      <a href="index.html">Inicio</a>
+      <a href="index.html#clean">QWATT-Clean</a>
+      <a href="whitepaper.html">Whitepaper</a>
+      <a href="backup.html">Backup de claves</a>
+      <a href="terminos.html">T&eacute;rminos y seguridad</a>
+      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    </div>
+  </div>
+  <div class="qf-bottom">
+    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+  </div>
+</div>
+</footer>
+</body>
+</html>

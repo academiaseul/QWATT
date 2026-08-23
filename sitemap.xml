@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://qwatt.org/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>https://qwatt.org/piloto.html</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://qwatt.org/whitepaper.html</loc><changefreq>monthly</changefreq><priority>0.9</priority></url>
+  <url><loc>https://qwatt.org/respaldo.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>
+  <url><loc>https://qwatt.org/grid.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qwatt.org/console.html</loc><changefreq>monthly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://qwatt.org/red.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://qwatt.org/pay.html</loc><changefreq>monthly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://qwatt.org/backup.html</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <url><loc>https://qwatt.org/terminos.html</loc><changefreq>yearly</changefreq><priority>0.4</priority></url>
+</urlset>

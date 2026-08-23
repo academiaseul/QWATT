@@ -1,0 +1,5 @@
+# Netlify headers file — stellar.toml must be CORS-readable per SEP-1.
+# (GitHub Pages already sends Access-Control-Allow-Origin: * for all files.)
+/.well-known/stellar.toml
+  Access-Control-Allow-Origin: *
+  Content-Type: text/plain

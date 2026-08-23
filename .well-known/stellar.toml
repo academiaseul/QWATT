@@ -1,0 +1,27 @@
+# QWATT — SEP-1 asset metadata
+# Must be reachable at https://<your-domain>/.well-known/stellar.toml with
+# CORS enabled (see the _headers file for Netlify; GitHub Pages sends it by default).
+# After the site is live, set home_domain = <your-domain> on the issuer account
+# so stellar.expert and wallets display this metadata (see README).
+
+VERSION = "2.6.0"
+NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
+
+ACCOUNTS = [
+  "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
+  "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW"
+]
+
+[DOCUMENTATION]
+ORG_NAME = "QWATT (demo)"
+ORG_URL = "https://qwatt.org"
+ORG_DESCRIPTION = "Demo project from the Stellar x AI Studio Build Challenge: QWATT tracks the spot price of one megawatt-hour of electricity. Testnet only."
+
+[[CURRENCIES]]
+code = "QWATT"
+issuer = "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
+status = "test"
+display_decimals = 2
+name = "QWATT"
+desc = "1 QWATT represents the spot price of 1 MWh of electricity. Demo asset issued on the Stellar testnet for the Stellar x AI Studio Build Challenge. Not an investment product."
+is_asset_anchored = false
