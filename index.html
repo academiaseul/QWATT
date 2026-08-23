@@ -285,6 +285,12 @@
   .drawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;
     transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto}
   .drawer.open{transform:none}
+  /* scrollbar sutil, a tono con el panel */
+  .drawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
+  .drawer::-webkit-scrollbar{width:6px}
+  .drawer::-webkit-scrollbar-track{background:transparent}
+  .drawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
+  .drawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
   /* modo SPA: en escritorio el menú queda anclado y empuja el contenido */
   body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
   @media(min-width:1000px){

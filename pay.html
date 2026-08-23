@@ -118,6 +118,11 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
 .qd-overlay.open{opacity:1;visibility:visible}
 .qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
 .qdrawer.open{transform:none}
+.qdrawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
+.qdrawer::-webkit-scrollbar{width:6px}
+.qdrawer::-webkit-scrollbar-track{background:transparent}
+.qdrawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
+.qdrawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
 @media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
 .qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
 .qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
