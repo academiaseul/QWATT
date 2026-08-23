@@ -3,20 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QWATT — energía renovable onchain</title>
-<meta name="description" content="QWATT: el activo digital renovable anclado al precio real del megavatio-hora. 1 QWATT = 1 MWh, en vivo en la testnet de Stellar.">
+<title>QWATT — The Clean Token</title>
+<meta name="description" content="QWATT, The Clean Token: energía renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo de verificación energética, en la testnet de Stellar.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
 <link rel="canonical" href="https://qwatt.org/">
 <meta name="theme-color" content="#120c07">
 <meta property="og:site_name" content="QWATT">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://qwatt.org/">
-<meta property="og:title" content="QWATT — energía renovable onchain">
-<meta property="og:description" content="QWATT: el activo digital renovable anclado al precio real del megavatio-hora. 1 QWATT = 1 MWh, en vivo en la testnet de Stellar.">
+<meta property="og:title" content="QWATT — The Clean Token">
+<meta property="og:description" content="QWATT, The Clean Token: energía renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo de verificación energética, en la testnet de Stellar.">
 <meta property="og:locale" content="es_CL">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="QWATT — energía renovable onchain">
-<meta name="twitter:description" content="QWATT: el activo digital renovable anclado al precio real del megavatio-hora. 1 QWATT = 1 MWh, en vivo en la testnet de Stellar.">
+<meta name="twitter:title" content="QWATT — The Clean Token">
+<meta name="twitter:description" content="QWATT, The Clean Token: energía renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo de verificación energética, en la testnet de Stellar.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -208,6 +208,13 @@
   .dark-sec .panel .sub{color:#b3a08b}
   .dark-sec .panel p{color:#c2b29d}
   .dark-sec a{color:var(--teal-lt)}
+  .why-st{max-width:880px;margin:0 auto 36px}
+  .ws-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:#d08a63;text-transform:uppercase;text-align:center;margin-bottom:14px}
+  .ws-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+  @media(max-width:760px){.ws-grid{grid-template-columns:1fr 1fr}}
+  .ws{background:rgba(255,255,255,.055);padding:15px 14px 16px;text-align:center}
+  .ws b{display:block;font-family:var(--mono);font-size:16.5px;font-weight:500;color:#f0e8dc;letter-spacing:.02em;white-space:nowrap}
+  .ws small{display:block;font-family:var(--mono);font-size:10px;color:#c2b29d;margin-top:5px;letter-spacing:.1em;text-transform:uppercase}
   .tok-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
   @media(max-width:860px){.tok-grid{grid-template-columns:1fr}}
   .facts{list-style:none}
@@ -312,7 +319,7 @@
 </style>
 <script type="application/ld+json">
 {"@context":"https://schema.org","@graph":[
- {"@type":"Organization","name":"QWATT","url":"https://qwatt.org","description":"On-chain energy verification and tracking protocol connecting measurable renewable-energy production with transparent digital records. Prototype on the Stellar testnet."},
+ {"@type":"Organization","name":"QWATT","alternateName":"The Clean Token","url":"https://qwatt.org","description":"QWATT, The Clean Token: an on-chain energy verification and tracking protocol connecting measurable renewable-energy production with transparent digital records. Prototype on the Stellar testnet."},
  {"@type":"WebSite","name":"QWATT","url":"https://qwatt.org","inLanguage":["es","en"]}
 ]}
 </script>
@@ -321,7 +328,7 @@
 
 <header>
   <div class="wrap nav">
-    <a class="brand" href="#"><span class="bolt">&#9889;</span>QWATT <small>1 QWATT = 1 MWH</small></a>
+    <a class="brand" href="#"><span class="bolt">&#9889;</span>QWATT <small>THE CLEAN TOKEN</small></a>
     <nav class="links">
       <a href="#peg" data-i18n="nav_peg"></a>
       <a href="#dash" data-i18n="nav_dash"></a>
@@ -506,6 +513,15 @@
       <h2 data-i18n="oc_h2"></h2>
       <p data-i18n="oc_sub"></p>
     </div>
+    <div class="why-st">
+      <div class="ws-tag" data-i18n="ws_h"></div>
+      <div class="ws-grid">
+        <div class="ws"><b>~5 s</b><small data-i18n="ws1"></small></div>
+        <div class="ws"><b>$0.00001</b><small data-i18n="ws2"></small></div>
+        <div class="ws"><b data-i18n="ws3b"></b><small data-i18n="ws3"></small></div>
+        <div class="ws"><b data-i18n="ws4b"></b><small data-i18n="ws4"></small></div>
+      </div>
+    </div>
     <div class="tok-grid">
       <div class="panel">
         <h3 data-i18n="oc_asset_h"></h3>
@@ -515,6 +531,7 @@
           <li><span data-i18n="oc_f_genesis"></span><span><a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/tx/1859e7e54e847d187f7f628d81af8a879e7e42166c21354038b020670c40c56e">1859e7e5&hellip; &#8599;</a></span></li>
           <li><span data-i18n="oc_f_ledger"></span><span>4,277,175</span></li>
           <li><span data-i18n="oc_f_supply"></span><span>42,700,000 QWATT</span></li>
+          <li><span data-i18n="oc_f_trust"></span><span id="liveTrust">&mdash;</span></li>
           <li><span data-i18n="oc_f_fee"></span><span>0.00002 XLM</span></li>
         </ul>
         <p class="mono-note">
@@ -1088,7 +1105,7 @@ Object.assign(I18N.es, {
   sl5:'QWATT opera únicamente en la testnet de Stellar: ningún dinero real está en juego durante el piloto.',
   sec_more:'Leer términos, riesgos y glosario cripto →',
   drop_all:'VER EL ECOSISTEMA COMPLETO →',
-  ft_by:'energía renovable · verificable onchain',
+  ft_by:'The Clean Token · energía renovable verificada onchain',
   ft_res:'Recursos',
   fa_console:'Consola Onchain', fa_piloto:'Piloto Solar', fa_backup:'Backup de claves',
   stat_testnet:'TESTNET', stat_proto:'PROTOTIPO', stat_plan:'PLANIFICADO', stat_pilot:'PILOTO', stat_demo:'DEMO',
@@ -1122,7 +1139,12 @@ Object.assign(I18N.es, {
   cl2_p:'El doble conteo es el defecto estructural de los certificados tradicionales. Un atributo retirado onchain se quema: nadie puede volver a reclamarlo, y cualquier auditor lo comprueba en segundos.',
   cl3_h:'Huella reducida, demostrable',
   cl3_p:'Las empresas que adquieren y retiran QWATT-C obtienen evidencia pública de su consumo limpio y del CO&#8322;e desplazado — reportes ESG con enlaces verificables, no promesas.',
-  cl_note:'QWATT-C es arquitectura planificada: un instrumento voluntario de transparencia. No constituye un certificado de energía renovable, un crédito de carbono ni un título válido para subsidios, salvo homologación expresa. <a href="whitepaper.html#s16">Ver whitepaper §16 →</a>'
+  cl_note:'QWATT-C es arquitectura planificada: un instrumento voluntario de transparencia. No constituye un certificado de energía renovable, un crédito de carbono ni un título válido para subsidios, salvo homologación expresa. <a href="whitepaper.html#s16">Ver whitepaper §16 →</a>',
+  ws_h:'¿Por qué Stellar?',
+  ws1:'Liquidación', ws2:'Comisión por operación',
+  ws3b:'Activos nativos', ws3:'Emisión sin contrato',
+  ws4b:'Memos onchain', ws4:'Atestación por transacción',
+  oc_f_trust:'Trustlines abiertas'
 });
 Object.assign(I18N.en, {
   nav_apps:'Apps', nav_sec:'Security', nav_terms:'Terms',
@@ -1146,7 +1168,7 @@ Object.assign(I18N.en, {
   sl5:'QWATT runs only on the Stellar testnet: no real money is at stake during the pilot.',
   sec_more:'Read the terms, risks and crypto glossary →',
   drop_all:'VIEW THE FULL ECOSYSTEM →',
-  ft_by:'renewable energy · verifiable onchain',
+  ft_by:'The Clean Token · renewable energy, verified onchain',
   ft_res:'Resources',
   fa_console:'Onchain Console', fa_piloto:'Solar Pilot', fa_backup:'Key backup',
   stat_testnet:'TESTNET', stat_proto:'PROTOTYPE', stat_plan:'PLANNED', stat_pilot:'PILOT', stat_demo:'DEMO',
@@ -1180,7 +1202,12 @@ Object.assign(I18N.en, {
   cl2_p:'Double counting is the structural flaw of traditional certificates. An attribute retired on-chain is burned: nobody can claim it again, and any auditor can verify that in seconds.',
   cl3_h:'Footprint reduction, provable',
   cl3_p:'Companies that acquire and retire QWATT-C get public evidence of their clean consumption and displaced CO&#8322;e — ESG reports with verifiable links, not promises.',
-  cl_note:'QWATT-C is planned architecture: a voluntary transparency instrument. It does not constitute a renewable-energy certificate, a carbon credit, or a subsidy-eligible title unless expressly homologated. <a href="whitepaper.html#s16">See whitepaper §16 →</a>'
+  cl_note:'QWATT-C is planned architecture: a voluntary transparency instrument. It does not constitute a renewable-energy certificate, a carbon credit, or a subsidy-eligible title unless expressly homologated. <a href="whitepaper.html#s16">See whitepaper §16 →</a>',
+  ws_h:'Why Stellar?',
+  ws1:'Settlement', ws2:'Fee per operation',
+  ws3b:'Native assets', ws3:'Contract-free issuance',
+  ws4b:'On-chain memos', ws4:'Attestation per transaction',
+  oc_f_trust:'Open trustlines'
 });
 
 /* ================= real oracle — EPEX spot (aWATTar) + FX (CoinGecko) ================= */
@@ -1378,6 +1405,16 @@ document.querySelectorAll('#tfRow button').forEach(btn => btn.addEventListener('
   btn.disabled = false;
 }));
 ['langEs', 'langEn'].forEach(id => document.getElementById(id).addEventListener('click', () => setTimeout(setChartSub, 0)));
+
+/* ================= dato de red en vivo: trustlines del activo ================= */
+(async () => {
+  try {
+    const r = await (await fetch('https://horizon-testnet.stellar.org/assets?asset_code=QWATT&asset_issuer=GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46')).json();
+    const rec = r._embedded && r._embedded.records && r._embedded.records[0];
+    const el = document.getElementById('liveTrust');
+    if (rec && el) el.innerHTML = `${rec.accounts.authorized} <span style="color:#7fae5c;font-size:11px">&#9679; LIVE</span>`;
+  } catch (e) { /* la fila queda en — si Horizon no responde */ }
+})();
 ['langEs', 'langEn'].forEach(id => document.getElementById(id).addEventListener('click', () => {
   setTimeout(() => {
     document.querySelectorAll(TYPE_SELECTOR).forEach(el => {
