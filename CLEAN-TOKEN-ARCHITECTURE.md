@@ -62,6 +62,14 @@ Key contract invariants (Soroban):
 - One QWATT-C per verified renewable event — minting requires the oracle's signed event, no exceptions
 - Retirement is terminal: burned attributes emit a public retirement record naming the beneficiary
 - Metadata is immutable once minted; corrections happen by retire-and-reissue with an audit trail
+- **Vintage-pricing invariant (anti temporal arbitrage):** no redemption, buy-back, or settlement
+  logic may ever reference the *current* spot price. All valuation references the origin event's
+  attested price (frozen in the PoG memo) or a TWAP. Rationale: solar mints when energy is cheapest
+  (midday, often ~$0/MWh); spot-anytime redemption would let everyone mint at noon and redeem at
+  night prices — a structural treasury drain (a free option on the power price given away with every
+  token). Time-shifting value belongs to the physical layer (batteries), never to token rules.
+  Note: Chilean net billing (Ley 21.118, BT1) credits injections at flat precio de nudo in CLP,
+  so the physical grid interface cannot be gamed this way either.
 
 ### SCADA integration (industrial tier)
 For utility-scale plants, a single Modbus meter doesn't cut it — telemetry lives in SCADA. The
