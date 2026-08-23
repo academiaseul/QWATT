@@ -56,11 +56,28 @@ attestation fields — the exact primitives an energy-event ledger needs. Path: 
 preparation (Tranche 0: legal review · Tranche 2: 10–20 prosumers with real meters). First physical
 pilot (hybrid 4.4 kWp + storage, Lo Barnechea, Chile) is specified and costed.
 
+## The full stack — from generation to sale
+
+QWATT is not just a token layer; the same team covers the entire chain:
+
+```
+GENERATION                MONITORING & OPERATIONS         SALE & SETTLEMENT
+QWATT solar kits          Quorelia SCADA                  Net billing (CLP)
+on-grid 3–5 kWp           real-time telemetry             + on-chain QWATT records
+hybrid + storage    →     reporting & alarms        →     + future QWATT-C
+WattNode verification     operations dashboard            attribute marketplace
+```
+
+Generation hardware we install, an industrial-grade SCADA monitoring and reporting system we
+already build (Quorelia SCADA — critical-infrastructure software), and a settlement layer on
+Stellar. Install it, operate it, verify it, monetize it — one architecture, end to end.
+*(QWATT↔Quorelia SCADA integration: in design.)*
+
 ## Team
 
-**Jay** — product, engineering, protocol, web. **Diego** — commercial, clients, partnerships.
-Built from a Stellar × AI Studio Build Challenge project into the platform above in under two weeks,
-in public.
+**Jay & Diego — co-founders.** Shared roles across the whole company: both engineer, both design,
+both sell, both build the protocol. Built from a Stellar × AI Studio Build Challenge project into
+the platform above in under two weeks, in public.
 
 ## Status & honesty
 

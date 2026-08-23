@@ -113,7 +113,7 @@ Bodegas, talleres, clínicas, colegios: consumen de día, tarifas BT2/BT3, decid
 
 ## 5. Modelo de negocio
 
-- **Estructura:** SpA (Empresa en un Día), giro instalación + comercialización, seguro RC desde la primera obra. TE4 firmada por instalador autorizado SEC — Fase 1: socio instalador por obra ($400–700k); Fase 2: certificar a alguien del equipo. Roles: **Jay** → producto, dimensionamiento, monitoreo, QWATT, web/cotizador. **Diego** → comercial, clientes, aliados.
+- **Estructura:** SpA (Empresa en un Día), giro instalación + comercialización, seguro RC desde la primera obra. TE4 firmada por instalador autorizado SEC — Fase 1: socio instalador por obra ($400–700k); Fase 2: certificar a alguien del equipo. Roles: **Jay & Diego — co-fundadores con roles compartidos**: ambos ingeniería, diseño, comercial y construcción del protocolo (sin silos; la responsabilidad de cada obra/venta se asigna por proyecto).
 - **Ingresos:** (1) venta+instalación 20–30% (85% del total), (2) tramitación $250–350k, (3) monitoreo y mantención $60–120k/año (recurrente, fideliza), (4) ampliaciones, (5) capa QWATT — hoy diferenciación y pipeline SCF, no ingreso.
 - **Financiamiento cliente:** 50/50 contra TE4 · convenio 12–24 cuotas (5 kWp a 24 meses ≈ $200k/mes ≈ ahorro) · leasing "solar como servicio" solo en fase 2 ($50M+ de respaldo).
 
