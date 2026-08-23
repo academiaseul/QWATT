@@ -344,11 +344,12 @@
             <a class="drop-item" href="console.html"><span class="d-n">01</span><span><b>Consola Onchain</b><small data-i18n="ap_console"></small></span></a>
             <a class="drop-item" href="grid.html"><span class="d-n">02</span><span><b>QWATT Grid</b><small data-i18n="ap_grid"></small></span></a>
             <a class="drop-item" href="pay.html"><span class="d-n">03</span><span><b>QWATT Pay</b><small data-i18n="ap_pay"></small></span></a>
-            <a class="drop-item" href="respaldo.html"><span class="d-n">04</span><span><b>QWATT Proof</b><small data-i18n="ap_proof"></small></span></a>
-            <a class="drop-item" href="red.html"><span class="d-n">05</span><span><b>QWATT Pulse</b><small data-i18n="ap_pulse"></small></span></a>
-            <a class="drop-item" href="piloto.html"><span class="d-n">06</span><span><b>Piloto Solar</b><small data-i18n="ap_piloto"></small></span></a>
-            <a class="drop-item" href="whitepaper.html"><span class="d-n">07</span><span><b>Whitepaper</b><small data-i18n="ap_wp"></small></span></a>
-            <a class="drop-item" href="backup.html"><span class="d-n">08</span><span><b>Backup</b><small data-i18n="ap_backup"></small></span></a>
+            <a class="drop-item" href="proof.html"><span class="d-n">04</span><span><b>QWATT Explorer</b><small data-i18n="ap_explorer"></small></span></a>
+            <a class="drop-item" href="respaldo.html"><span class="d-n">05</span><span><b>QWATT Proof</b><small data-i18n="ap_proof"></small></span></a>
+            <a class="drop-item" href="red.html"><span class="d-n">06</span><span><b>QWATT Pulse</b><small data-i18n="ap_pulse"></small></span></a>
+            <a class="drop-item" href="piloto.html"><span class="d-n">07</span><span><b>Piloto Solar</b><small data-i18n="ap_piloto"></small></span></a>
+            <a class="drop-item" href="whitepaper.html"><span class="d-n">08</span><span><b>Whitepaper</b><small data-i18n="ap_wp"></small></span></a>
+            <a class="drop-item" href="backup.html"><span class="d-n">09</span><span><b>Backup</b><small data-i18n="ap_backup"></small></span></a>
           </div>
           <a class="drop-foot" href="#apps" data-i18n="drop_all"></a>
         </div>
@@ -626,28 +627,33 @@
         <span class="m-lead" data-i18n="ap_pay"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
+      <a class="mod" href="proof.html">
+        <span class="m-name"><span class="m-n">04</span>Explorer</span>
+        <span class="m-lead" data-i18n="ap_explorer"></span>
+        <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
+      </a>
       <a class="mod" href="respaldo.html">
-        <span class="m-name"><span class="m-n">04</span>Proof</span>
+        <span class="m-name"><span class="m-n">05</span>Proof</span>
         <span class="m-lead" data-i18n="ap_proof"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
       <a class="mod" href="red.html">
-        <span class="m-name"><span class="m-n">05</span>Pulse</span>
+        <span class="m-name"><span class="m-n">06</span>Pulse</span>
         <span class="m-lead" data-i18n="ap_pulse"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
       <a class="mod" href="piloto.html">
-        <span class="m-name"><span class="m-n">06</span>Piloto</span>
+        <span class="m-name"><span class="m-n">07</span>Piloto</span>
         <span class="m-lead" data-i18n="ap_piloto"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
       <a class="mod" href="whitepaper.html">
-        <span class="m-name"><span class="m-n">07</span>Whitepaper</span>
+        <span class="m-name"><span class="m-n">08</span>Whitepaper</span>
         <span class="m-lead" data-i18n="ap_wp"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
       <a class="mod" href="backup.html">
-        <span class="m-name"><span class="m-n">08</span>Backup</span>
+        <span class="m-name"><span class="m-n">09</span>Backup</span>
         <span class="m-lead" data-i18n="ap_backup"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
@@ -734,6 +740,7 @@
         <a href="console.html" data-i18n="fa_console"></a>
         <a href="grid.html">QWATT Grid</a>
         <a href="pay.html">QWATT Pay</a>
+        <a href="proof.html">QWATT Explorer</a>
         <a href="respaldo.html">QWATT Proof</a>
         <a href="red.html">QWATT Pulse</a>
         <a href="piloto.html" data-i18n="fa_piloto"></a>
@@ -1090,6 +1097,7 @@ Object.assign(I18N.es, {
   ap_console:'La sala de máquinas: despliega o restaura QWATT, financia billeteras de prueba y ejecuta compras atómicas al precio del oráculo.',
   ap_grid:'El ecosistema energético: generadores publican capacidad, tus paneles venden energía y la red paga en QWATT.',
   ap_pay:'Pagos sobre la testnet de Stellar: billeteras financiadas al instante y transferencias que liquidan en ~5 segundos.',
+  ap_explorer:'El explorador onchain: eventos energéticos, génesis y transacciones del activo, leídos en vivo desde Horizon.',
   ap_proof:'Prueba de reservas en vivo: lee las cuentas del protocolo directo de Horizon cada 15 segundos.',
   ap_pulse:'El pulso de la red: la actividad onchain del activo QWATT, en tiempo real.',
   ap_piloto:'Piloto Solar El Arrayán: el primer kit fotovoltaico que convierte kWh reales en QWATT.',
@@ -1153,6 +1161,7 @@ Object.assign(I18N.en, {
   ap_console:'The engine room: deploy or restore QWATT, fund test wallets and run atomic purchases at the oracle price.',
   ap_grid:'The energy ecosystem: generators publish capacity, your panels sell energy and the grid pays in QWATT.',
   ap_pay:'Payments on the Stellar testnet: instantly funded wallets and transfers that settle in ~5 seconds.',
+  ap_explorer:'The on-chain explorer: energy events, genesis and asset transactions, read live from Horizon.',
   ap_proof:'Live proof of reserves: reads the protocol accounts straight from Horizon every 15 seconds.',
   ap_pulse:'The network pulse: onchain activity of the QWATT asset, in real time.',
   ap_piloto:'El Arrayán Solar Pilot: the first photovoltaic kit turning real kWh into QWATT.',

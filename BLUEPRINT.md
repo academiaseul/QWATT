@@ -21,7 +21,7 @@ HERO (Energía, verificada onchain) → PROTOCOL (diagram + 6 stages w/ status c
 ## Next (priority order)
 1. ⚠ **You**: Vercel → Settings → Git → connect `academiaseul/QWATT` (auto-deploys on push)
 2. ⚠ **You**: set `home_domain=qwatt.org` on issuer (needs your key; steps in README)
-3. → **Event indexer + `/proof/QW-…` pages** — the prompt's "Explorer", the only new route worth building (real data only)
+3. ✓ **QWATT Explorer shipped (v1)** — proof.html + `/proof/QW-…` clean URLs (Vercel rewrite). Client-side, reads Horizon directly (no backend); genesis/purchases/PoG events classified from memos; evidence-chain detail view; honest empty state until the first real PoG payout. A server indexer can replace the data layer later without UI changes.
 4. → Pilot hardware (El Arrayán kit) — flips PROTOTIPO chips to PILOT
 5. → Analytics (pick: Vercel Analytics or Plausible), then Lighthouse run + fixes
 6. → Meter signing + Soroban verification contract; then QWATT-C mint/retire contract

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QWATT Explorer — eventos onchain</title>
+<meta name="description" content="El explorador de QWATT: eventos energéticos, génesis y transacciones del activo, leídos en vivo desde Horizon en la testnet de Stellar.">
+<link rel="canonical" href="https://qwatt.org/proof.html">
+<meta name="theme-color" content="#120c07">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/proof.html">
+<meta property="og:title" content="QWATT Explorer — eventos onchain">
+<meta property="og:description" content="Eventos energéticos y transacciones del activo QWATT, leídos en vivo desde Horizon (testnet de Stellar).">
+<meta property="og:locale" content="es_CL">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="QWATT Explorer — eventos onchain">
+<meta name="twitter:description" content="Eventos energéticos y transacciones del activo QWATT, leídos en vivo desde Horizon (testnet de Stellar).">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#16100a; --panel:#231a10; --panel2:#2b2015; --line:#3b2d1d;
+    --ink:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
+    --accent:#d08a57; --sand:#d9b26a; --good:#3cb87f; --bad:#e05c5c;
+    --display:'Chakra Petch','Segoe UI',sans-serif;
+    --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.6;padding:24px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1100px;margin:0 auto}
+  header.site{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:10px}
+  .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px}
+  .bolt{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:17px;background:linear-gradient(135deg,var(--accent),#a2602f);color:#1a1206}
+  .brand em{font-style:normal;color:var(--accent)}
+  .net-badge{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid rgba(208,138,87,.4);background:rgba(208,138,87,.07);padding:5px 12px;border-radius:99px}
+  h1{font-family:var(--display);font-size:clamp(24px,4vw,34px);margin-bottom:8px;text-wrap:balance}
+  .lead{color:var(--muted);max-width:52em;margin-bottom:26px}
+  .live-dot{color:var(--good);animation:blink 1.6s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  @media(prefers-reduced-motion:reduce){.live-dot{animation:none}}
+
+  .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+  @media(max-width:860px){.tiles{grid-template-columns:repeat(2,1fr)}}
+  .tile{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px}
+  .tile .t-l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
+  .tile .t-v{font-family:var(--mono);font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;margin-top:6px;white-space:nowrap}
+  .tile .t-s{font-family:var(--mono);font-size:12px;color:var(--faint);margin-top:2px}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:20px;margin-bottom:16px}
+  .panel h2{font-family:var(--display);font-size:17px;margin-bottom:4px}
+  .panel .sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  th{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:1.2px;color:var(--faint);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);font-weight:500}
+  td{padding:10px;border-bottom:1px solid rgba(59,45,29,.55);vertical-align:middle}
+  tr.row{cursor:pointer;transition:background .12s}
+  tr.row:hover{background:var(--panel2)}
+  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.1em;padding:3px 9px;border-radius:99px;border:1px solid;white-space:nowrap}
+  .c-gen{color:var(--accent);border-color:rgba(208,138,87,.45)}
+  .c-pog{color:var(--good);border-color:rgba(60,184,127,.45)}
+  .c-buy{color:var(--sand);border-color:rgba(217,178,106,.45)}
+  .c-otro{color:var(--faint);border-color:var(--line)}
+  .mono{font-family:var(--mono);font-size:12.5px}
+  .dim{color:var(--faint)}
+  a{color:var(--sand)}
+  .empty{border:1px dashed var(--line);border-radius:12px;padding:18px;color:var(--muted);font-size:13.5px;margin-top:12px}
+  .empty b{color:var(--accent)}
+  .stx{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;border:1px solid;border-radius:99px;padding:2px 9px;vertical-align:2px;margin-left:8px;white-space:nowrap}
+  .stx.p{color:var(--sand);border-color:rgba(217,178,106,.4)}
+  .stx.t{color:var(--accent);border-color:rgba(208,138,87,.45)}
+
+  /* detalle */
+  #detail{display:none}
+  .back{display:inline-block;font-family:var(--mono);font-size:12px;color:var(--muted);margin-bottom:14px;cursor:pointer;background:none;border:1px solid var(--line);border-radius:3px;padding:6px 12px}
+  .back:hover{color:var(--ink)}
+  .ev-flow{display:flex;align-items:stretch;gap:0;margin:16px 0 20px;flex-wrap:nowrap}
+  .ev-node{flex:1;background:var(--panel2);border:1px solid var(--line);padding:12px 10px;text-align:center;border-radius:8px}
+  .ev-node b{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--accent)}
+  .ev-node small{display:block;font-size:11px;color:var(--muted);margin-top:5px;line-height:1.4}
+  .ev-arrow{display:flex;align-items:center;padding:0 8px;color:var(--accent)}
+  @media(max-width:760px){.ev-flow{flex-direction:column}.ev-arrow{justify-content:center;padding:4px 0;transform:rotate(90deg)}}
+  .kv{display:grid;grid-template-columns:max-content 1fr;gap:8px 18px;font-size:13.5px;margin-top:6px}
+  .kv .k{color:var(--muted);font-family:var(--mono);font-size:12px;letter-spacing:.06em}
+  .kv .v{font-family:var(--mono);font-size:12.5px;word-break:break-all}
+  .loadmore{margin-top:14px;background:none;border:1px solid var(--line);border-radius:3px;color:var(--accent);font-family:var(--mono);font-size:12px;letter-spacing:.08em;padding:8px 16px;cursor:pointer}
+  .loadmore:hover{background:var(--panel2)}
+  footer.page{margin-top:22px;color:var(--faint);font-size:12px;text-align:center}
+</style>
+</head>
+<body>
+<!-- barra QWATT: navegacion entre apps -->
+<nav id="qwnav" aria-label="QWATT apps">
+<style>
+#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
+#qwnav a{text-decoration:none;white-space:nowrap}
+#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
+#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
+#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
+#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
+#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#qwnav .qw-links::-webkit-scrollbar{display:none}
+#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
+#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
+#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
+#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
+@keyframes qwblink{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
+#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
+@media(max-width:860px){
+#qwnav .qw-links{display:none}
+#qwnav .qw-chip{display:none}
+#qwnav .qw-sep{display:none}
+#qwnav .qw-burger{display:block}
+#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
+#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
+#qwnav.open .qw-links a:last-child{border-bottom:0}
+#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
+}
+</style>
+<div class="qw-in">
+<a class="qw-home" href="index.html"><span class="qw-bolt">&#9889;</span>QWATT</a>
+<span class="qw-sep"></span>
+<div class="qw-links">
+<a href="console.html">CONSOLA</a>
+<a href="grid.html">GRID</a>
+<a href="pay.html">PAY</a>
+<a href="proof.html">EXPLORER</a>
+<a href="respaldo.html">RESERVAS</a>
+<a href="red.html">PULSE</a>
+<a href="piloto.html">PILOTO</a>
+<a href="whitepaper.html">WHITEPAPER</a>
+<a href="backup.html">BACKUP</a>
+<a href="terminos.html">T&Eacute;RMINOS</a>
+</div>
+<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
+<button class="qw-burger" aria-label="Abrir men&uacute;" aria-expanded="false">MEN&Uacute; &#9776;</button>
+</div>
+<script>
+(function(){
+  var nav=document.getElementById('qwnav');
+  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
+  document.body.style.paddingTop=(pad+52)+'px';
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
+  if(location.pathname.indexOf('/proof')===0)page='proof';
+  nav.querySelectorAll('.qw-links a').forEach(function(a){
+    if(a.getAttribute('href').replace(/\.html$/,'')===page)a.classList.add('qw-on');
+  });
+  nav.querySelector('.qw-burger').addEventListener('click',function(){
+    var open=nav.classList.toggle('open');
+    this.setAttribute('aria-expanded',open);
+  });
+})();
+</script>
+</nav>
+
+<div class="wrap">
+  <header class="site">
+    <div class="brand"><a href="index.html" style="display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none"><span class="bolt">&#9889;</span><span>QWATT <em>Explorer</em></span></a></div>
+    <div class="net-badge">&#9679; STELLAR TESTNET</div>
+  </header>
+
+  <h1>&#128270; El explorador de eventos QWATT</h1>
+  <p class="lead">
+    Cada fila viene <b>directo de Horizon</b>, la API p&uacute;blica de Stellar — sin base de datos propia,
+    sin n&uacute;meros inventados. G&eacute;nesis, compras at&oacute;micas y eventos de prueba de generaci&oacute;n (PoG),
+    verificables uno a uno en el explorador p&uacute;blico.
+    <span class="live-dot">&#9679;</span> <span class="mono" style="font-size:12px">lectura en vivo</span>
+  </p>
+
+  <div class="tiles">
+    <div class="tile"><div class="t-l">Eventos PoG</div><div class="t-v" id="sEvents">&mdash;</div><div class="t-s">prueba de generaci&oacute;n</div></div>
+    <div class="tile"><div class="t-l">kWh verificados</div><div class="t-v" id="sKwh">&mdash;</div><div class="t-s">onchain, acumulado</div></div>
+    <div class="tile"><div class="t-l">Trustlines</div><div class="t-v" id="sTrust">&mdash;</div><div class="t-s">cuentas con QWATT</div></div>
+    <div class="tile"><div class="t-l">Supply emitido</div><div class="t-v" id="sSupply">&mdash;</div><div class="t-s">QWATT (testnet)</div></div>
+  </div>
+
+  <div class="panel" id="listPanel">
+    <h2>Registros onchain <span class="stx t">TESTNET</span></h2>
+    <div class="sub">Transacciones de la cuenta distribuidora del protocolo. Haz clic en una fila para ver la cadena de evidencia.</div>
+    <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Tipo</th><th>ID / memo</th><th>Detalle</th><th>Fecha (UTC)</th><th>Tx</th></tr></thead>
+        <tbody id="rows"><tr><td colspan="5" class="dim">Leyendo Horizon&hellip;</td></tr></tbody>
+      </table>
+    </div>
+    <div class="empty" id="emptyPog" style="display:none">
+      <b>A&uacute;n no hay eventos de prueba de generaci&oacute;n onchain.</b> <span class="stx p">PROTOTIPO</span><br>
+      El puente de minado funciona con hardware simulado y en modo de prueba. El primer evento PoG real
+      aparecer&aacute; aqu&iacute; autom&aacute;ticamente cuando el rig opere con la clave de la tesorer&iacute;a:
+      un pago de <span class="mono">0.001 QWATT</span> por kWh con memo <span class="mono">PoG#id:kWh@precio/MWh</span>.
+    </div>
+    <button class="loadmore" id="loadMore" style="display:none">CARGAR M&Aacute;S &#8595;</button>
+  </div>
+
+  <div class="panel" id="detail">
+    <button class="back" id="backBtn">&#8592; VOLVER AL LISTADO</button>
+    <h2 id="dTitle">Evento</h2>
+    <div class="sub" id="dSub"></div>
+    <div class="ev-flow" id="dFlow"></div>
+    <div class="kv" id="dKv"></div>
+  </div>
+
+  <footer class="page">
+    <a href="index.html" style="color:inherit">QWATT Explorer</a> &#183; datos en vivo de Horizon testnet &#183; sin backend propio &#183;
+    <a href="respaldo.html">reservas</a> &#183; <a href="whitepaper.html">whitepaper</a>
+  </footer>
+</div>
+
+<!-- pie QWATT unificado -->
+<footer id="qwfoot">
+<style>
+#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
+#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
+#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
+#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
+#qwfoot a:hover{color:#f0e8dc}
+#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
+#qwfoot .qf-brand .qf-bolt{color:#d08a57}
+#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
+#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
+#qwfoot h4{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
+#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
+#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
+#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#qwfoot .qf-bottom a{color:#d08a57}
+</style>
+<div class="qf-in">
+  <div class="qf-cols">
+    <div>
+      <a class="qf-brand" href="index.html"><span class="qf-bolt">&#9889;</span> QWATT</a>
+      <p class="qf-lead">The Clean Token: energ&iacute;a renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo.</p>
+      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+    </div>
+    <div class="qf-grp">
+      <h4>Apps</h4>
+      <a href="console.html">Consola Onchain</a>
+      <a href="grid.html">QWATT Grid</a>
+      <a href="pay.html">QWATT Pay</a>
+      <a href="proof.html">QWATT Explorer</a>
+      <a href="respaldo.html">QWATT Proof</a>
+      <a href="red.html">QWATT Pulse</a>
+      <a href="piloto.html">Piloto Solar</a>
+    </div>
+    <div class="qf-grp">
+      <h4>Recursos</h4>
+      <a href="index.html">Inicio</a>
+      <a href="index.html#clean">QWATT-Clean</a>
+      <a href="whitepaper.html">Whitepaper</a>
+      <a href="backup.html">Backup de claves</a>
+      <a href="terminos.html">T&eacute;rminos y seguridad</a>
+      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    </div>
+  </div>
+  <div class="qf-bottom">
+    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+  </div>
+</div>
+</footer>
+
+<script>
+const HORIZON = 'https://horizon-testnet.stellar.org';
+const EXPLORER = 'https://stellar.expert/explorer/testnet';
+const ISSUER = 'GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46';
+const DIST = 'GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW';
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 2) => Number(n).toLocaleString('es-CL', { minimumFractionDigits: d, maximumFractionDigits: d });
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+let records = [];          // {type, id?, kwh?, price?, memo, hash, ledger, date, raw}
+let nextCursor = null;
+
+function classify(tx) {
+  const memo = tx.memo || '';
+  let m;
+  if ((m = /^PoG#(\d+):([\d.]+)kWh(?:@(-?[\d.]+)\/MWh)?/.exec(memo)))
+    return { type: 'pog', id: parseInt(m[1], 10), kwh: parseFloat(m[2]), price: m[3] !== undefined ? parseFloat(m[3]) : null };
+  if (/^QWATT genesis/.test(memo)) return { type: 'gen' };
+  if (/^QWATT@/.test(memo)) return { type: 'buy' };
+  return { type: 'otro' };
+}
+
+const evCode = n => 'QW-' + String(n).padStart(6, '0');
+
+async function fetchPage(cursor) {
+  let url = `${HORIZON}/accounts/${DIST}/transactions?limit=200&order=desc`;
+  if (cursor) url += `&cursor=${cursor}`;
+  const j = await (await fetch(url)).json();
+  const recs = (j._embedded && j._embedded.records) || [];
+  for (const tx of recs) {
+    const c = classify(tx);
+    records.push({ ...c, memo: tx.memo || '', hash: tx.hash, ledger: tx.ledger, date: tx.created_at, feeXlm: tx.fee_charged });
+  }
+  nextCursor = recs.length === 200 ? recs[recs.length - 1].paging_token : null;
+}
+
+function typeChip(t) {
+  return t === 'pog' ? '<span class="chip c-pog">EVENTO PoG</span>'
+       : t === 'gen' ? '<span class="chip c-gen">G&Eacute;NESIS</span>'
+       : t === 'buy' ? '<span class="chip c-buy">COMPRA</span>'
+       : '<span class="chip c-otro">RED</span>';
+}
+
+function render() {
+  const rows = records.map((r, i) => {
+    const idCell = r.type === 'pog' ? `<b class="mono">${evCode(r.id)}</b>`
+                 : r.memo ? `<span class="mono">${esc(r.memo)}</span>` : '<span class="dim mono">&mdash;</span>';
+    const det = r.type === 'pog'
+      ? `${fmt(r.kwh, 3)} kWh &#8594; ${fmt(r.kwh / 1000, 6)} QWATT${r.price !== null ? ` <span class="dim">@ $${fmt(r.price)}/MWh</span>` : ''}`
+      : r.type === 'gen' ? '42,700,000 QWATT emitidos'
+      : r.type === 'buy' ? 'compra at&oacute;mica (3 operaciones)'
+      : '<span class="dim">operaci&oacute;n de red</span>';
+    return `<tr class="row" data-i="${i}">
+      <td>${typeChip(r.type)}</td><td>${idCell}</td><td>${det}</td>
+      <td class="mono dim">${r.date.replace('T', ' ').slice(0, 16)}</td>
+      <td><a target="_blank" rel="noopener" href="${EXPLORER}/tx/${r.hash}" onclick="event.stopPropagation()">${r.hash.slice(0, 8)}&hellip; &#8599;</a></td>
+    </tr>`;
+  }).join('');
+  $('rows').innerHTML = rows || '<tr><td colspan="5" class="dim">Sin registros.</td></tr>';
+  document.querySelectorAll('tr.row').forEach(tr => tr.addEventListener('click', () => openDetail(records[+tr.dataset.i], true)));
+  const pogs = records.filter(r => r.type === 'pog');
+  $('sEvents').textContent = pogs.length;
+  $('sKwh').textContent = fmt(pogs.reduce((a, r) => a + r.kwh, 0), 2);
+  $('emptyPog').style.display = pogs.length ? 'none' : 'block';
+  $('loadMore').style.display = nextCursor ? 'inline-block' : 'none';
+}
+
+function flowNode(b, s) { return `<div class="ev-node"><b>${b}</b><small>${s}</small></div>`; }
+const ARROW = '<div class="ev-arrow" aria-hidden="true">&#8594;</div>';
+
+function openDetail(r, push) {
+  $('listPanel').style.display = 'none';
+  $('detail').style.display = 'block';
+  const isPog = r.type === 'pog';
+  $('dTitle').innerHTML = isPog ? `Evento energ&eacute;tico ${evCode(r.id)}` :
+    r.type === 'gen' ? 'G&eacute;nesis del activo QWATT' :
+    r.type === 'buy' ? 'Compra at&oacute;mica' : 'Operaci&oacute;n de red';
+  $('dSub').innerHTML = 'La cadena de evidencia de este registro, verificable en el explorador p&uacute;blico. <span class="stx t">TESTNET</span>';
+  $('dFlow').innerHTML = isPog
+    ? flowNode('MEDICI&Oacute;N', `${fmt(r.kwh, 3)} kWh integrados por el puente Modbus (simulado)`) + ARROW +
+      flowNode('OR&Aacute;CULO', r.price !== null ? `spot EPEX $${fmt(r.price)}/MWh sellado en el memo` : 'atestaci&oacute;n de precio no disponible') + ARROW +
+      flowNode('EVENTO', `${evCode(r.id)} &#183; ${fmt(r.kwh / 1000, 6)} QWATT`) + ARROW +
+      flowNode('REGISTRO', `ledger ${r.ledger} &#183; inmutable`)
+    : r.type === 'gen'
+    ? flowNode('EMISI&Oacute;N', 'el emisor paga el supply completo') + ARROW +
+      flowNode('TRUSTLINE', 'la tesorer&iacute;a acepta QWATT') + ARROW +
+      flowNode('ATOMICIDAD', '1 transacci&oacute;n, 2 operaciones') + ARROW +
+      flowNode('REGISTRO', `ledger ${r.ledger} &#183; inmutable`)
+    : flowNode('OPERACI&Oacute;N', 'movimiento en la cuenta del protocolo') + ARROW +
+      flowNode('REGISTRO', `ledger ${r.ledger}`);
+  const kv = [];
+  if (isPog) kv.push(['evento', evCode(r.id)], ['energ&iacute;a', fmt(r.kwh, 3) + ' kWh'], ['pago', fmt(r.kwh / 1000, 6) + ' QWATT (0.001/kWh)']);
+  if (isPog && r.price !== null) kv.push(['precio atestado', '$' + fmt(r.price) + ' / MWh (EPEX day-ahead)']);
+  kv.push(['memo', r.memo || '—'], ['fecha (UTC)', r.date.replace('T', ' ').replace('Z', '')], ['ledger', String(r.ledger)],
+    ['transacci&oacute;n', `<a target="_blank" rel="noopener" href="${EXPLORER}/tx/${r.hash}">${r.hash} &#8599;</a>`],
+    ['estado', 'RECORDED &#183; auditable p&uacute;blicamente'], ['red', 'Stellar testnet']);
+  $('dKv').innerHTML = kv.map(([k, v]) => `<span class="k">${k}</span><span class="v">${v}</span>`).join('');
+  if (push) {
+    const slug = isPog ? '/proof/' + evCode(r.id) : '/proof/tx-' + r.hash.slice(0, 8);
+    try { history.pushState({ d: 1 }, '', location.hostname === 'localhost' ? '?e=' + slug.slice(7) : slug); } catch (e) {}
+  }
+  window.scrollTo({ top: 0 });
+}
+
+function closeDetail(push) {
+  $('detail').style.display = 'none';
+  $('listPanel').style.display = 'block';
+  if (push) { try { history.pushState({}, '', location.hostname === 'localhost' ? 'proof.html' : '/proof.html'); } catch (e) {} }
+}
+$('backBtn').addEventListener('click', () => closeDetail(true));
+window.addEventListener('popstate', () => { const t = targetFromUrl(); t ? openDetail(t, false) : closeDetail(false); });
+
+function targetFromUrl() {
+  const m = /\/proof\/(QW-\d+|tx-[0-9a-f]+)/.exec(location.pathname) || /[?&]e=(QW-\d+|tx-[0-9a-f]+)/.exec(location.search);
+  if (!m) return null;
+  const key = m[1];
+  if (key.startsWith('QW-')) { const n = parseInt(key.slice(3), 10); return records.find(r => r.type === 'pog' && r.id === n) || null; }
+  return records.find(r => r.hash.startsWith(key.slice(3))) || null;
+}
+
+$('loadMore').addEventListener('click', async () => { $('loadMore').disabled = true; await fetchPage(nextCursor); render(); $('loadMore').disabled = false; });
+
+(async () => {
+  try {
+    const a = await (await fetch(`${HORIZON}/assets?asset_code=QWATT&asset_issuer=${ISSUER}`)).json();
+    const rec = a._embedded && a._embedded.records && a._embedded.records[0];
+    if (rec) {
+      $('sTrust').textContent = rec.accounts.authorized;
+      const amt = rec.amount !== undefined ? rec.amount : (rec.balances && rec.balances.authorized);
+      if (amt) $('sSupply').textContent = fmt(parseFloat(amt) / 1e6, 1) + 'M';
+    }
+  } catch (e) {}
+  try {
+    await fetchPage(null);
+    render();
+    const t = targetFromUrl();
+    if (t) openDetail(t, false);
+    else if (/\/proof\/|[?&]e=/.test(location.href)) {
+      $('rows').insertAdjacentHTML('afterbegin', '<tr><td colspan="5" class="dim">El registro solicitado no est&aacute; en el historial reciente.</td></tr>');
+    }
+  } catch (e) {
+    $('rows').innerHTML = '<tr><td colspan="5" class="dim">No se pudo leer Horizon: ' + esc(e.message || e) + '</td></tr>';
+  }
+})();
+</script>
+</body>
+</html>

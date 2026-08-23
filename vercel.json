@@ -3,6 +3,9 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": null,
+  "rewrites": [
+    { "source": "/proof/:id", "destination": "/proof.html" }
+  ],
   "headers": [
     {
       "source": "/.well-known/stellar.toml",
