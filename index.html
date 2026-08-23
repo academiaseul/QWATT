@@ -276,13 +276,27 @@
   .disclaimer{max-width:70em;line-height:1.65;font-size:12px;color:#8b7a64;margin-top:36px;padding-top:20px;border-top:1px solid #2b2115}
 
   /* ── menú plegable (móvil) ── */
-  .burger{display:none;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:6px 10px;cursor:pointer}
-  .burger:focus-visible{outline:2px solid #d08a57;outline-offset:2px}
-  @media(max-width:900px){
-    .burger{display:block}
-    header.open nav.links{display:flex;flex-direction:column;position:absolute;top:100%;left:0;right:0;background:rgba(18,12,7,.97);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid #3b2d1d;padding:14px var(--gut) 18px;gap:4px;font-size:13px}
-    header.open nav.links > a,header.open nav.links .drop > a{padding:11px 10px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
-  }
+  /* ── menú lateral (drawer) ── */
+  .menu-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:7px 13px;cursor:pointer;transition:background .15s,color .15s;white-space:nowrap}
+  .menu-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+  .menu-btn:focus-visible{outline:2px solid #d08a57;outline-offset:2px}
+  .drawer-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
+  .drawer-overlay.open{opacity:1;visibility:visible}
+  .drawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;
+    transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto}
+  .drawer.open{transform:none}
+  @media(prefers-reduced-motion:reduce){.drawer{transition:none}.drawer-overlay{transition:none}}
+  .d-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
+  .d-brand{font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc}
+  .d-brand .bolt-sm{color:#d08a57}
+  .d-close{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px}
+  .d-close:hover{color:#f0e8dc}
+  .d-nav{padding:16px 14px;flex:1}
+  .d-title{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin-bottom:7px}
+  .d-link{display:block;font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-radius:3px;transition:color .15s,background .15s;margin-bottom:2px}
+  .d-link:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+  .d-link.on{color:#16100a;background:#d08a57;font-weight:600}
+  .d-foot{padding:14px 20px;border-top:1px solid #2b2115;font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
   .f-brand{display:block}
   a.f-brand:hover{color:var(--teal)}
 
@@ -328,44 +342,49 @@
 
 <header>
   <div class="wrap nav">
+    <button class="menu-btn" id="menuBtn" aria-label="Abrir men&uacute;" aria-expanded="false" aria-controls="drawer">&#9776;&nbsp; <span data-i18n="dm_menu"></span></button>
     <a class="brand" href="#"><span class="bolt">&#9889;</span>QWATT <small>THE CLEAN TOKEN</small></a>
-    <nav class="links">
-      <a href="#peg" data-i18n="nav_peg"></a>
-      <a href="#dash" data-i18n="nav_dash"></a>
-      <a href="#onchain" data-i18n="nav_onchain"></a>
-      <div class="drop">
-        <a href="#apps" data-i18n="nav_apps" aria-haspopup="true"></a>
-        <div class="drop-panel" aria-label="Apps QWATT">
-          <div class="drop-head">
-            <span class="tag t">ECOSISTEMA QWATT</span>
-            <span class="drop-live"><span class="live-dot">&#9679;</span> STELLAR TESTNET</span>
-          </div>
-          <div class="drop-grid">
-            <a class="drop-item" href="console.html"><span class="d-n">01</span><span><b>Consola Onchain</b><small data-i18n="ap_console"></small></span></a>
-            <a class="drop-item" href="grid.html"><span class="d-n">02</span><span><b>QWATT Grid</b><small data-i18n="ap_grid"></small></span></a>
-            <a class="drop-item" href="pay.html"><span class="d-n">03</span><span><b>QWATT Pay</b><small data-i18n="ap_pay"></small></span></a>
-            <a class="drop-item" href="proof.html"><span class="d-n">04</span><span><b>QWATT Explorer</b><small data-i18n="ap_explorer"></small></span></a>
-            <a class="drop-item" href="respaldo.html"><span class="d-n">05</span><span><b>QWATT Proof</b><small data-i18n="ap_proof"></small></span></a>
-            <a class="drop-item" href="red.html"><span class="d-n">06</span><span><b>QWATT Pulse</b><small data-i18n="ap_pulse"></small></span></a>
-            <a class="drop-item" href="piloto.html"><span class="d-n">07</span><span><b>Piloto Solar</b><small data-i18n="ap_piloto"></small></span></a>
-            <a class="drop-item" href="whitepaper.html"><span class="d-n">08</span><span><b>Whitepaper</b><small data-i18n="ap_wp"></small></span></a>
-            <a class="drop-item" href="backup.html"><span class="d-n">09</span><span><b>Backup</b><small data-i18n="ap_backup"></small></span></a>
-          </div>
-          <a class="drop-foot" href="#apps" data-i18n="drop_all"></a>
-        </div>
-      </div>
-      <a href="#clean" data-i18n="nav_clean"></a>
-      <a href="#tok" data-i18n="nav_tok"></a>
-      <a href="#security" data-i18n="nav_sec"></a>
-      <a href="terminos.html" data-i18n="nav_terms"></a>
-    </nav>
+    <span style="flex:1"></span>
+    <span class="hd-chip"><span class="live-dot">&#9679;</span> STELLAR TESTNET</span>
     <div class="lang-toggle" role="group" aria-label="Idioma / Language">
       <button id="langEs" class="active">ES</button><button id="langEn">EN</button>
     </div>
-    <span class="hd-chip"><span class="live-dot">&#9679;</span> STELLAR TESTNET</span>
-    <button class="burger" id="burger" aria-label="Abrir men&uacute;" aria-expanded="false">MEN&Uacute; &#9776;</button>
   </div>
 </header>
+
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<aside class="drawer" id="drawer" aria-label="Men&uacute; QWATT">
+  <div class="d-head">
+    <span class="d-brand"><span class="bolt-sm">&#9889;</span> QWATT</span>
+    <button class="d-close" id="drawerClose" aria-label="Cerrar men&uacute;">&#10005;</button>
+  </div>
+  <nav class="d-nav">
+    <div class="d-title" data-i18n="dm_sections"></div>
+    <a class="d-link d-sec" href="#peg" data-spy="peg" data-i18n="nav_peg"></a>
+    <a class="d-link d-sec" href="#dash" data-spy="dash" data-i18n="nav_dash"></a>
+    <a class="d-link d-sec" href="#onchain" data-spy="onchain" data-i18n="nav_onchain"></a>
+    <a class="d-link d-sec" href="#clean" data-spy="clean">QWATT-Clean</a>
+    <a class="d-link d-sec" href="#apps" data-spy="apps" data-i18n="nav_apps"></a>
+    <a class="d-link d-sec" href="#tok" data-spy="tok" data-i18n="nav_tok"></a>
+    <a class="d-link d-sec" href="#road" data-spy="road" data-i18n="nav_road"></a>
+    <a class="d-link d-sec" href="#security" data-spy="security" data-i18n="nav_sec"></a>
+    <div class="d-title" style="margin-top:20px">Apps</div>
+    <a class="d-link" href="console.html">Consola Onchain</a>
+    <a class="d-link" href="grid.html">QWATT Grid</a>
+    <a class="d-link" href="pay.html">QWATT Pay</a>
+    <a class="d-link" href="proof.html">QWATT Explorer</a>
+    <a class="d-link" href="respaldo.html">QWATT Proof</a>
+    <a class="d-link" href="red.html">QWATT Pulse</a>
+    <a class="d-link" href="piloto.html" data-i18n="fa_piloto"></a>
+    <a class="d-link" href="backup.html" data-i18n="fa_backup"></a>
+    <div class="d-title" style="margin-top:20px" data-i18n="ft_res"></div>
+    <a class="d-link" href="whitepaper.html">Whitepaper</a>
+    <a class="d-link" href="terminos.html" data-i18n="nav_terms"></a>
+    <a class="d-link" target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    <a class="d-link" target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
+  </nav>
+  <div class="d-foot"><span class="live-dot">&#9679;</span> STELLAR TESTNET</div>
+</aside>
 
 <div class="hero">
   <canvas id="wave"></canvas>
@@ -1116,6 +1135,7 @@ Object.assign(I18N.es, {
   ft_by:'The Clean Token · energía renovable verificada onchain',
   ft_res:'Recursos',
   fa_console:'Consola Onchain', fa_piloto:'Piloto Solar', fa_backup:'Backup de claves',
+  dm_menu:'MENÚ', dm_sections:'Secciones', nav_road:'Roadmap',
   stat_testnet:'TESTNET', stat_proto:'PROTOTIPO', stat_plan:'PLANIFICADO', stat_pilot:'PILOTO', stat_demo:'DEMO',
   stn1:'GENERAR', stn2:'MEDIR', stn3:'VERIFICAR', stn4:'REGISTRAR', stn5:'SEGUIR', stn6:'LIQUIDAR',
   st1_h:'La energía se produce',
@@ -1180,6 +1200,7 @@ Object.assign(I18N.en, {
   ft_by:'The Clean Token · renewable energy, verified onchain',
   ft_res:'Resources',
   fa_console:'Onchain Console', fa_piloto:'Solar Pilot', fa_backup:'Key backup',
+  dm_menu:'MENU', dm_sections:'Sections', nav_road:'Roadmap',
   stat_testnet:'TESTNET', stat_proto:'PROTOTYPE', stat_plan:'PLANNED', stat_pilot:'PILOT', stat_demo:'DEMO',
   stn1:'GENERATE', stn2:'MEASURE', stn3:'VERIFY', stn4:'RECORD', stn5:'TRACK', stn6:'SETTLE',
   st1_h:'Energy is produced',
@@ -1263,16 +1284,33 @@ setInterval(tick, 2500);
 loadRealOracle();
 setInterval(loadRealOracle, 300000); // refresh real market data every 5 min
 
-/* ================= menú plegable móvil ================= */
-const burgerBtn = document.getElementById('burger');
-burgerBtn.addEventListener('click', () => {
-  const open = document.querySelector('header').classList.toggle('open');
-  burgerBtn.setAttribute('aria-expanded', open);
-});
-document.querySelectorAll('nav.links a').forEach(a => a.addEventListener('click', () => {
-  document.querySelector('header').classList.remove('open');
-  burgerBtn.setAttribute('aria-expanded', 'false');
-}));
+/* ================= menú lateral (drawer) ================= */
+const drawer = document.getElementById('drawer');
+const drawerOverlay = document.getElementById('drawerOverlay');
+const menuBtn = document.getElementById('menuBtn');
+function setDrawer(open) {
+  drawer.classList.toggle('open', open);
+  drawerOverlay.classList.toggle('open', open);
+  menuBtn.setAttribute('aria-expanded', open);
+}
+menuBtn.addEventListener('click', () => setDrawer(!drawer.classList.contains('open')));
+document.getElementById('drawerClose').addEventListener('click', () => setDrawer(false));
+drawerOverlay.addEventListener('click', () => setDrawer(false));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') setDrawer(false); });
+drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setDrawer(false)));
+
+/* scroll-spy: resalta en el menú la sección visible */
+const spyLinks = new Map();
+drawer.querySelectorAll('[data-spy]').forEach(a => spyLinks.set(a.dataset.spy, a));
+const spyObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    drawer.querySelectorAll('.d-sec.on').forEach(x => x.classList.remove('on'));
+    const link = spyLinks.get(e.target.id);
+    if (link) link.classList.add('on');
+  });
+}, { rootMargin: '-25% 0px -60% 0px' });
+spyLinks.forEach((a, id) => { const sec = document.getElementById(id); if (sec) spyObs.observe(sec); });
 
 /* ================= efecto de tipeo en subtítulos ================= */
 /* Cada subtítulo se "escribe" al entrar en pantalla, con cursor de terminal.
