@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QWATT — The Clean Token</title>
 <meta name="description" content="QWATT, The Clean Token: energía renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo de verificación energética, en la testnet de Stellar.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="canonical" href="https://qwatt.org/">
 <meta name="theme-color" content="#120c07">
 <meta property="og:site_name" content="QWATT">
@@ -457,6 +457,9 @@ html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
 html[data-theme="light"] .d-link[href="console.html"]::after,html[data-theme="light"] .qd-nav a[href="console.html"]::after,html[data-theme="light"] .d-link[href="pay.html"]::after,html[data-theme="light"] .qd-nav a[href="pay.html"]::after,html[data-theme="light"] .d-link[href="proof.html"]::after,html[data-theme="light"] .qd-nav a[href="proof.html"]::after,html[data-theme="light"] .d-link[href="respaldo.html"]::after,html[data-theme="light"] .qd-nav a[href="respaldo.html"]::after,html[data-theme="light"] .d-link[href="red.html"]::after,html[data-theme="light"] .qd-nav a[href="red.html"]::after{background:#15803d;box-shadow:0 0 6px rgba(21,128,61,.3)}
 html[data-theme="light"] .d-link[href="grid.html"]::after,html[data-theme="light"] .qd-nav a[href="grid.html"]::after{background:#c4bca6}
 html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="light"] .qd-nav a[href="piloto.html"]::after{background:#a97b2f;box-shadow:0 0 6px rgba(169,123,47,.3)}
+:root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
+html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
+svg.qm{flex:none}
 .qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
 .qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
 </style>
@@ -497,7 +500,7 @@ html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="lig
 <header>
   <div class="wrap nav">
     <button class="menu-btn" id="menuBtn" aria-label="Abrir men&uacute;" aria-expanded="false" aria-controls="drawer">&#9776;&nbsp; <span data-i18n="dm_menu"></span></button>
-    <a class="brand" href="#"><span class="bolt">&#9889;</span>QWATT <small>THE CLEAN TOKEN</small></a>
+    <a class="brand" href="#"><span class="bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span>QWATT <small>THE CLEAN TOKEN</small></a>
     <span style="flex:1"></span>
     <span class="hd-chip"><span class="live-dot">&#9679;</span> STELLAR TESTNET</span>
     <div class="lang-toggle" role="group" aria-label="Idioma / Language">
@@ -509,7 +512,7 @@ html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="lig
 <div class="drawer-overlay" id="drawerOverlay"></div>
 <aside class="drawer" id="drawer" aria-label="Men&uacute; QWATT">
   <div class="d-head">
-    <span class="d-brand"><span class="bolt-sm">&#9889;</span> QWATT</span>
+    <span class="d-brand"><span class="bolt-sm"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</span>
     <button class="d-close" id="drawerClose" aria-label="Cerrar men&uacute;">&#10005;</button>
   </div>
   <nav class="d-nav">
@@ -900,11 +903,50 @@ html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="lig
   </div>
 </section>
 
+<section id="contact">
+  <div class="wrap">
+    <div class="sec-head">
+      <span class="tag t">CONTACTO</span>
+      <h2 data-i18n="ct_h2"></h2>
+      <p data-i18n="ct_sub"></p>
+    </div>
+    <form class="ct-form" id="ctForm">
+      <input type="email" id="ctEmail" required placeholder="tu@correo.com" autocomplete="email">
+      <button class="btn primary" type="submit" data-i18n="ct_btn"></button>
+    </form>
+    <p class="ct-note" data-i18n="ct_note"></p>
+    <p class="ct-ok" id="ctOk" hidden data-i18n="ct_ok"></p>
+  </div>
+  <style>
+  .ct-form{display:flex;gap:10px;max-width:560px;flex-wrap:wrap;margin-top:6px}
+  .ct-form input{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:13px 16px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .15s}
+  .ct-form input:focus{border-color:var(--accent)}
+  .ct-form input::placeholder{color:var(--faint)}
+  .ct-note{font-family:var(--mono);font-size:11px;color:var(--faint);margin-top:12px;letter-spacing:.04em}
+  .ct-ok{font-family:var(--mono);font-size:12px;color:var(--accent);margin-top:8px}
+  </style>
+  <script>
+  (function(){
+    var CONTACT_EMAIL='jayquorelia@org.com'; /* TODO: cambiar al correo real del equipo */
+    document.getElementById('ctForm').addEventListener('submit',function(e){
+      e.preventDefault();
+      var em=document.getElementById('ctEmail').value.trim();
+      var es=true;try{es=(localStorage.getItem('wc-lang')||'es')==='es'}catch(err){}
+      var sub=es?'QWATT — quiero saber más del token':'QWATT — I want to hear more about the token';
+      var body=es?('Hola equipo QWATT,\n\nQuiero recibir más información sobre el token.\nMi correo: '+em)
+                 :('Hi QWATT team,\n\nI want to hear more about the token.\nMy email: '+em);
+      location.href='mailto:'+CONTACT_EMAIL+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
+      document.getElementById('ctOk').hidden=false;
+    });
+  })();
+  </script>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="f-cols">
       <div>
-        <a class="f-brand" href="index.html">&#9889; QWATT<small data-i18n="ft_by"></small></a>
+        <a class="f-brand" href="index.html"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg> QWATT<small data-i18n="ft_by"></small></a>
         <p class="f-lead" data-i18n="ft_built"></p>
         <span class="f-chip"><span class="live-dot">&#9679;</span> STELLAR TESTNET</span>
       </div>
@@ -938,7 +980,7 @@ const I18N = {
     nav_peg:'Cómo funciona', nav_dash:'Dashboard', nav_onchain:'Onchain', nav_tok:'Tokenomics', nav_road:'Roadmap',
     oc_h2:'QWATT está onchain — en vivo en la testnet de Stellar',
     oc_sub:'No confíes en QWATT: verifícalo. El activo, la génesis y cada transacción son públicos en la testnet de Stellar.',
-    oc_asset_h:'El activo, verificable', oc_asset_sub:'Emitido el 22 de agosto de 2026 en la Stellar × AI Studio Build Challenge.',
+    oc_asset_h:'El activo, verificable', oc_asset_sub:'Construido el 20 de agosto de 2026 en la Stellar × AI Studio Build Challenge.',
     oc_f_asset:'Activo en stellar.expert', oc_f_genesis:'Transacción génesis', oc_f_ledger:'Ledger', oc_f_supply:'Supply emitido', oc_f_fee:'Costo total de emisión',
     oc_issuer:'Cuenta emisora:', oc_dist:'Cuenta distribuidora:',
     oc_how_h:'Compra atómica al precio del MW', oc_how_sub:'Sin smart contracts, sin intermediarios.',
@@ -981,7 +1023,7 @@ const I18N = {
     nav_peg:'How it works', nav_dash:'Dashboard', nav_onchain:'Onchain', nav_tok:'Tokenomics', nav_road:'Roadmap',
     oc_h2:'QWATT is onchain — live on the Stellar testnet',
     oc_sub:'Don&#39;t trust QWATT — verify it. The asset, its genesis and every transaction are public on the Stellar testnet.',
-    oc_asset_h:'The asset, verifiable', oc_asset_sub:'Issued August 22, 2026 at the Stellar × AI Studio Build Challenge.',
+    oc_asset_h:'The asset, verifiable', oc_asset_sub:'Built August 20, 2026 at the Stellar × AI Studio Build Challenge.',
     oc_f_asset:'Asset on stellar.expert', oc_f_genesis:'Genesis transaction', oc_f_ledger:'Ledger', oc_f_supply:'Issued supply', oc_f_fee:'Total issuance cost',
     oc_issuer:'Issuer account:', oc_dist:'Distributor account:',
     oc_how_h:'Atomic purchase at the MW price', oc_how_sub:'No smart contracts, no intermediaries.',
@@ -1293,6 +1335,11 @@ Object.assign(I18N.es, {
   fa_console:'Consola Onchain', fa_piloto:'Piloto Solar', fa_backup:'Backup de claves',
   dm_menu:'MENÚ', dm_sections:'Secciones', nav_road:'Roadmap',
   stat_testnet:'TESTNET', stat_proto:'PROTOTIPO', stat_plan:'PLANIFICADO', stat_pilot:'PILOTO', stat_demo:'DEMO',
+  ct_h2:'¿Quieres saber más de QWATT?',
+  ct_sub:'Sin newsletter y sin spam: déjanos tu correo y te contamos directamente cómo avanza el token.',
+  ct_btn:'Quiero saber más',
+  ct_note:'Se abrirá tu aplicación de correo para enviarnos el mensaje directo.',
+  ct_ok:'Listo — revisa tu aplicación de correo y pulsa enviar.',
   stn1:'GENERAR', stn2:'MEDIR', stn3:'VERIFICAR', stn4:'REGISTRAR', stn5:'SEGUIR', stn6:'LIQUIDAR',
   st1_h:'La energía se produce',
   st1_p:'Activos renovables físicos: solar, eólica, almacenamiento. El primer kit fotovoltaico del protocolo está en diseño — Piloto El Arrayán.',
@@ -1358,6 +1405,11 @@ Object.assign(I18N.en, {
   fa_console:'Onchain Console', fa_piloto:'Solar Pilot', fa_backup:'Key backup',
   dm_menu:'MENU', dm_sections:'Sections', nav_road:'Roadmap',
   stat_testnet:'TESTNET', stat_proto:'PROTOTYPE', stat_plan:'PLANNED', stat_pilot:'PILOT', stat_demo:'DEMO',
+  ct_h2:'Want to hear more about QWATT?',
+  ct_sub:'No newsletter, no spam: leave your email and we will tell you directly how the token is coming along.',
+  ct_btn:'Tell me more',
+  ct_note:'Your email app will open to send us the message directly.',
+  ct_ok:'Done — check your email app and hit send.',
   stn1:'GENERATE', stn2:'MEASURE', stn3:'VERIFY', stn4:'RECORD', stn5:'TRACK', stn6:'SETTLE',
   st1_h:'Energy is produced',
   st1_p:'Physical renewable assets: solar, wind, storage. The protocol&#39;s first photovoltaic kit is in design — the El Arrayán pilot.',
