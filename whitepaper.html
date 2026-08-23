@@ -413,9 +413,10 @@ CAPA DE APLICACI&Oacute;N    Grid &#183; Proof &#183; Pulse &#183; Pay</div>
 
   <section id="s13">
     <h2><span class="n">13.</span>Piloto: El Array&aacute;n <span class="stx p">EN DISE&Ntilde;O</span></h2>
-    <p>El primer circuito f&iacute;sico completo del protocolo: un kit fotovoltaico sin bater&iacute;as
-    en la precordillera de Santiago, cuyo medidor alimenta el puente de minado.</p>
-    <div class="flow">panel FV <b>&#8594;</b> microinversor grid-tie <b>&#8594;</b> medidor Modbus <b>&#8594;</b> puente PoG <b>&#8594;</b> pago QWATT en testnet</div>
+    <p>El primer circuito f&iacute;sico completo del protocolo: un kit h&iacute;brido con respaldo
+    (4,4 kWp + inversor h&iacute;brido 5 kW + 9,6 kWh LiFePO4) en la precordillera de Santiago,
+    cuyos medidores alimentan el nodo de verificaci&oacute;n (WattNode).</p>
+    <div class="flow">paneles FV <b>&#8594;</b> inversor h&iacute;brido + bater&iacute;a <b>&#8594;</b> medidores Modbus <b>&#8594;</b> WattNode (PoG) <b>&#8594;</b> pago QWATT en testnet</div>
     <p>Lo que el piloto demuestra: que un kWh real, medido por hardware real, puede convertirse en un
     registro onchain verificable <b>sin intervenci&oacute;n humana</b>. El puente de software ya existe y
     opera con generaci&oacute;n simulada; el hardware est&aacute; especificado en el
