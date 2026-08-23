@@ -117,19 +117,34 @@ html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,11
 html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
 html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
 html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
+html[data-theme="light"] .drawer,html[data-theme="light"] .qdrawer{background:#f1ecdf;border-right:1px solid #e6e2d6;scrollbar-color:#e6dfcd transparent}
+html[data-theme="light"] .drawer::-webkit-scrollbar-thumb,html[data-theme="light"] .qdrawer::-webkit-scrollbar-thumb{background:#e6dfcd}
+html[data-theme="light"] .d-head,html[data-theme="light"] .qd-head{border-bottom:1px solid #e6e2d6}
+html[data-theme="light"] .d-brand,html[data-theme="light"] .qd-brand{color:#1b1a14}
+html[data-theme="light"] .d-brand .bolt-sm,html[data-theme="light"] .qd-brand .qb{color:#b0582f}
+html[data-theme="light"] .d-close,html[data-theme="light"] .qd-x{color:#98937f}
+html[data-theme="light"] .d-close:hover,html[data-theme="light"] .qd-x:hover{color:#1b1a14}
+html[data-theme="light"] .d-title,html[data-theme="light"] .qd-t{color:#98937f}
+html[data-theme="light"] .d-link,html[data-theme="light"] .qd-nav a{color:#474334}
+html[data-theme="light"] .d-link:hover,html[data-theme="light"] .qd-nav a:hover{color:#1b1a14;background:rgba(176,88,47,.08)}
+html[data-theme="light"] .d-link.on,html[data-theme="light"] .qd-nav a.on{color:#fff;background:#b0582f}
+html[data-theme="light"] .d-foot,html[data-theme="light"] .qd-foot{border-top:1px solid #e6e2d6;color:#b0582f}
 .qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
 .qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
 </style>
 <script>
 (function(){
   var KEY='qwatt.theme';
-  var saved='dark';try{saved=localStorage.getItem(KEY)||'dark'}catch(e){}
+  var saved='light';try{saved=localStorage.getItem(KEY)||'light'}catch(e){}
   document.documentElement.setAttribute('data-theme',saved);
+  function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
+  syncMeta(saved);
   function label(t){return t==='light'?'\u263D':'\u2600'}
   function apply(t){
     document.documentElement.setAttribute('data-theme',t);
     var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
     try{localStorage.setItem(KEY,t)}catch(e){}
+    syncMeta(t);
     try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
   }
   function init(){
