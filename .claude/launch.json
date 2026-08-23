@@ -4,7 +4,7 @@
     {
       "name": "wattcoin-site",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["-y", "serve", "-l", "3000", "."],
+      "runtimeArgs": ["-y", "serve", "-l", "3000", "D:\\quorelia\\QWATT\\QWATT"],
       "port": 3000
     }
   ]
