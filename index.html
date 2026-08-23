@@ -23,11 +23,11 @@
 <style>
   /* ── Sistema de diseño QWATT — paleta tierra: energía renovable onchain ── */
   :root{
-    --ink:#1b1a14; --ink-2:#474334; --grey:#98937f; --line:#e6e2d6;
-    --paper:#faf8f2; --paper-2:#f1ecdf; --paper-3:#e6dfcd;
-    --navy:#291d13; --navy-2:#342619;
-    --teal:#b0582f; --teal-lt:#d08a63; --amber:#6b4a2e;
-    --good:#15803d; --bad:#b91c1c;
+    --ink:#f0e8dc; --ink-2:#b3a48f; --grey:#8b7a64; --line:#3b2d1d;
+    --paper:#16100a; --paper-2:#231a10; --paper-3:#2b2015;
+    --navy:#120c07; --navy-2:#1a130b;
+    --teal:#d08a57; --teal-lt:#d9b26a; --amber:#c9a15f;
+    --good:#3cb87f; --bad:#e05c5c;
     --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
     --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
     --fs-mega: clamp(2.3rem, 1.4rem + 3.4vw, 4.1rem);
@@ -94,9 +94,9 @@
   .hero p.lead{color:var(--ink-2);font-size:17px;line-height:1.62;max-width:58ch;margin:22px auto 0}
   .cta-row{display:flex;gap:12px;margin-top:34px;flex-wrap:wrap;justify-content:center}
   .btn{display:inline-block;cursor:pointer;font-family:var(--sans);font-weight:500;font-size:14px;padding:11px 22px;border:1px solid var(--ink);transition:background .18s,color .18s;background:none;color:var(--ink)}
-  .btn.primary{background:var(--ink);color:#fff}
-  .btn.primary:hover{background:var(--navy)}
-  .btn.ghost:hover{background:var(--ink);color:#fff}
+  .btn.primary{background:var(--teal);color:#16100a}
+  .btn.primary:hover{background:var(--teal-lt)}
+  .btn.ghost:hover{background:var(--paper-2);color:var(--teal)}
   .btn:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
 
   /* ── tarjeta de precio (navy) ── */
@@ -122,12 +122,12 @@
 
   /* ── chips de estado (§35: LIVE / TESTNET / DEMO / PILOTO / PLANIFICADO) ── */
   .st-chip{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.14em;padding:3px 9px;border-radius:99px;border:1px solid;display:inline-block;text-transform:uppercase;white-space:nowrap}
-  .st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
-  .st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
-  .st-plan{color:#98937f;border-color:#d9d3c4}
-  .st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
-  .st-demo{color:#98937f;border-color:#d9d3c4}
-  .st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
+  .st-testnet{color:#d08a57;border-color:rgba(208,138,87,.45)}
+  .st-proto{color:#c9a15f;border-color:rgba(201,161,95,.45)}
+  .st-plan{color:#8b7a64;border-color:#4a3a28}
+  .st-pilot{color:#4fb37a;border-color:rgba(62,112,50,.4)}
+  .st-demo{color:#8b7a64;border-color:#4a3a28}
+  .st-live{color:#3cb87f;border-color:rgba(60,184,127,.4)}
   .p-head{display:flex;align-items:center;gap:10px}
   .p-head h3{margin:0}
 
@@ -138,7 +138,7 @@
   .fm-node .fm-k{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;color:var(--grey);display:block;margin-bottom:8px}
   .fm-node b{display:block;font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.14em;color:var(--ink)}
   .fm-node small{display:block;font-size:11.5px;color:var(--grey);margin-top:7px;line-height:1.45}
-  .fm-node.hl{background:rgba(176,88,47,.07);border-color:rgba(176,88,47,.45)}
+  .fm-node.hl{background:rgba(208,138,87,.07);border-color:rgba(208,138,87,.45)}
   .fm-node.hl b{color:var(--teal)}
   .fm-node.dk{background:var(--navy);border-color:var(--navy)}
   .fm-node.dk b{color:#f0e8dc}
@@ -146,7 +146,7 @@
   .fm-node.dk .fm-k{color:#9a8871}
   .fm-arrow{display:flex;align-items:center;padding:0 12px;color:var(--teal);font-size:19px;flex:none}
   .cl-note{max-width:64ch;margin:30px auto 0;text-align:center;font-size:12.5px;line-height:1.65;color:var(--grey)}
-  .cl-note a{color:var(--teal);border-bottom:1px solid rgba(176,88,47,.4)}
+  .cl-note a{color:var(--teal);border-bottom:1px solid rgba(208,138,87,.4)}
   @media(max-width:760px){
     .flowmap{flex-direction:column;max-width:340px}
     .fm-arrow{justify-content:center;padding:8px 0;transform:rotate(90deg)}
@@ -172,7 +172,7 @@
   .tf{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
   .tf button{font-family:var(--mono);font-size:11px;letter-spacing:.08em;padding:5px 12px;border:1px solid var(--line);background:none;color:var(--grey);cursor:pointer;border-radius:3px;transition:color .15s,background .15s,border-color .15s}
   .tf button:hover{color:var(--ink);border-color:var(--grey)}
-  .tf button.on{background:var(--teal);border-color:var(--teal);color:#fff;font-weight:600}
+  .tf button.on{background:var(--teal);border-color:var(--teal);color:#16100a;font-weight:600}
   .tf button:disabled{opacity:.5;cursor:wait}
   .legend{display:flex;gap:18px;font-size:12.5px;color:var(--ink-2);margin-bottom:10px;flex-wrap:wrap}
   .legend span{display:inline-flex;align-items:center;gap:7px}
@@ -193,8 +193,8 @@
   .conv{font-family:var(--mono);font-size:12px;color:var(--grey);margin-top:6px;min-height:18px}
   .sim-row{display:flex;gap:10px;margin-top:12px}
   .sim-row .btn{flex:1;text-align:center}
-  .sim-row .buy{background:var(--teal);border-color:var(--teal);color:#fff}
-  .sim-row .buy:hover{background:#0f766a}
+  .sim-row .buy{background:var(--teal);border-color:var(--teal);color:#16100a}
+  .sim-row .buy:hover{background:var(--teal-lt)}
   .sim-row .sell{border-color:var(--line);color:var(--ink-2)}
   .sim-row .sell:hover{background:var(--paper-2);color:var(--ink)}
   .sim-msg{font-size:13px;margin-top:12px;min-height:20px}
@@ -209,7 +209,7 @@
   .dark-sec .panel p{color:#c2b29d}
   .dark-sec a{color:var(--teal-lt)}
   .why-st{max-width:880px;margin:0 auto 36px}
-  .ws-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:#d08a63;text-transform:uppercase;text-align:center;margin-bottom:14px}
+  .ws-tag{font-family:var(--mono);font-size:10.5px;letter-spacing:.18em;color:#d9b26a;text-transform:uppercase;text-align:center;margin-bottom:14px}
   .ws-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
   @media(max-width:760px){.ws-grid{grid-template-columns:1fr 1fr}}
   .ws{background:rgba(255,255,255,.055);padding:15px 14px 16px;text-align:center}
@@ -510,8 +510,8 @@
           <button data-tf="5Y">5Y</button>
         </div>
         <div class="legend">
-          <span><i class="swatch" style="background:#b0582f"></i><span data-i18n="leg_spot"></span></span>
-          <span><i class="swatch" style="background:#6b4a2e"></i><span data-i18n="leg_avg"></span></span>
+          <span><i class="swatch" style="background:#d08a57"></i><span data-i18n="leg_spot"></span></span>
+          <span><i class="swatch" style="background:#c9a15f"></i><span data-i18n="leg_avg"></span></span>
         </div>
         <div class="chart-box">
           <svg id="chart" viewBox="0 0 640 300" role="img" aria-label="QWATT price, last 24 hours"></svg>
@@ -968,29 +968,29 @@ function drawChart() {
   const ticks = 4;
   for (let k = 0; k <= ticks; k++) {
     const v = lo + (k / ticks) * (hi - lo), yy = y(v);
-    g += `<line x1="${M.l}" y1="${yy}" x2="${W - M.r}" y2="${yy}" stroke="#e6e2d6" stroke-width="1"/>`;
-    g += `<text x="${M.l - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="#98937f" font-family="IBM Plex Mono, monospace">${v.toFixed(0)}</text>`;
+    g += `<line x1="${M.l}" y1="${yy}" x2="${W - M.r}" y2="${yy}" stroke="#3b2d1d" stroke-width="1"/>`;
+    g += `<text x="${M.l - 8}" y="${yy + 4}" text-anchor="end" font-size="10" fill="#8b7a64" font-family="IBM Plex Mono, monospace">${v.toFixed(0)}</text>`;
   }
   // x labels: paso dinámico según el rango
   const spanMs = data[data.length - 1].t - data[0].t;
   const step = chartSeries ? Math.max(1, Math.round(data.length / 5)) : (realMode ? 6 : 72);
   for (let i = 0; i < data.length; i += step) {
-    g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#98937f" font-family="IBM Plex Mono, monospace">${chartTimeLabel(data[i].t, spanMs)}</text>`;
+    g += `<text x="${x(i)}" y="${H - 8}" text-anchor="middle" font-size="10" fill="#8b7a64" font-family="IBM Plex Mono, monospace">${chartTimeLabel(data[i].t, spanMs)}</text>`;
   }
   // area under main series (curvas suaves, trazos finos)
   const P = data.map((d, i) => ({ x: x(i), y: y(d.p) }));
   const line = smoothPath(P);
   const area = line + `L${x(data.length - 1).toFixed(1)},${y(lo)}L${x(0).toFixed(1)},${y(lo)}Z`;
-  g += `<path d="${area}" fill="rgba(176,88,47,.08)"/>`;
-  g += `<path d="${line}" fill="none" stroke="#b0582f" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<path d="${area}" fill="rgba(208,138,87,.08)"/>`;
+  g += `<path d="${line}" fill="none" stroke="#d08a57" stroke-width="1.4" stroke-linejoin="round" stroke-linecap="round"/>`;
   const AP = avg.map((v, i) => ({ x: x(i), y: y(v) }));
-  g += `<path d="${smoothPath(AP)}" fill="none" stroke="#6b4a2e" stroke-width="1.1" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>`;
+  g += `<path d="${smoothPath(AP)}" fill="none" stroke="#c9a15f" stroke-width="1.1" stroke-dasharray="4 4" stroke-linejoin="round" stroke-linecap="round"/>`;
   // emphasized endpoint
   const li = data.length - 1;
-  g += `<circle cx="${x(li)}" cy="${y(data[li].p)}" r="3.5" fill="#b0582f" stroke="#faf8f2" stroke-width="1.5"/>`;
+  g += `<circle cx="${x(li)}" cy="${y(data[li].p)}" r="3.5" fill="#d08a57" stroke="#f0e8dc" stroke-width="1.5"/>`;
   // crosshair placeholder
-  g += `<line id="xh" x1="0" y1="${M.t}" x2="0" y2="${H - M.b}" stroke="#98937f" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>`;
-  g += `<circle id="xhDot" r="3.5" fill="#b0582f" stroke="#faf8f2" stroke-width="1.5" opacity="0"/>`;
+  g += `<line id="xh" x1="0" y1="${M.t}" x2="0" y2="${H - M.b}" stroke="#8b7a64" stroke-width="1" stroke-dasharray="3 3" opacity="0"/>`;
+  g += `<circle id="xhDot" r="3.5" fill="#d08a57" stroke="#f0e8dc" stroke-width="1.5" opacity="0"/>`;
   chart.innerHTML = g;
   chart._scale = { x, y, lo, hi, avg, data, spanMs };
 }
@@ -1037,11 +1037,11 @@ function updateStats() {
   hd.textContent = `${sign}${fmt(delta)}% (24 h)`;
   document.getElementById('tPrice').textContent = '$' + fmt(p);
   document.getElementById('tPriceSub').textContent = lastShown === null ? '' : (p >= lastShown ? '▲' : '▼') + ' $' + fmt(Math.abs(p - lastShown), 3);
-  document.getElementById('tPriceSub').style.color = lastShown !== null && p < lastShown ? '#b91c1c' : '#15803d';
+  document.getElementById('tPriceSub').style.color = lastShown !== null && p < lastShown ? '#e05c5c' : '#3cb87f';
   document.getElementById('tMwh').textContent = '$' + fmt(p);
   const td = document.getElementById('tDelta');
   td.textContent = sign + fmt(delta) + '%';
-  td.style.color = delta >= 0 ? '#15803d' : '#b91c1c';
+  td.style.color = delta >= 0 ? '#3cb87f' : '#e05c5c';
   document.getElementById('tCap').textContent = '$' + fmt(p * CIRC / 1e6, 1) + 'M';
   lastShown = p;
   updateSimConv();
@@ -1073,7 +1073,7 @@ function updateSimConv() {
 $id('simAmt').addEventListener('input', updateSimConv);
 function msg(text, ok) {
   const el = $id('simMsg');
-  el.innerHTML = text; el.style.color = ok ? '#15803d' : '#b91c1c';
+  el.innerHTML = text; el.style.color = ok ? '#3cb87f' : '#e05c5c';
 }
 $id('btnBuy').addEventListener('click', () => {
   const v = parseFloat($id('simAmt').value);
@@ -1111,7 +1111,7 @@ function wave() {
       const y = yc + Math.sin(x * f + ph * (1 + l * 0.35)) * amp * Math.sin(x / w * Math.PI);
       x === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
     }
-    ctx.strokeStyle = l === 0 ? 'rgba(176,88,47,.20)' : l === 1 ? 'rgba(41,29,19,.12)' : 'rgba(176,88,47,.08)';
+    ctx.strokeStyle = l === 0 ? 'rgba(208,138,87,.20)' : l === 1 ? 'rgba(217,178,106,.10)' : 'rgba(208,138,87,.08)';
     ctx.lineWidth = 1.5 * devicePixelRatio;
     ctx.stroke();
   }
