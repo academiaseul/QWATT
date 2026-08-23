@@ -145,6 +145,65 @@
 </style>
 </head>
 <body>
+<!-- tema dia/noche QWATT -->
+<style id="qtheme">
+:root{--ch-grid:#3b2d1d;--ch-label:#8b7a64;--ch-line:#d08a57;--ch-avg:#c9a15f;--ch-area:rgba(208,138,87,.10);--ch-ring:#f0e8dc}
+html[data-theme="light"]{
+  --bg:#faf8f2;--bg2:#f5f0e6;
+  --paper:#faf8f2;--paper-2:#f1ecdf;--paper-3:#e6dfcd;
+  --panel:#f1ecdf;--panel2:#e6dfcd;
+  --line:#e6e2d6;
+  --ink:#1b1a14;--text:#1b1a14;--ink-2:#474334;
+  --muted:#5a5244;--grey:#98937f;--faint:#98937f;
+  --navy:#291d13;--navy-2:#342619;
+  --teal:#b0582f;--teal-lt:#d08a63;--amber:#6b4a2e;
+  --accent:#b0582f;--accent2:#8a672f;--cyan:#8a672f;--sand:#8a672f;
+  --good:#1a7f4e;--bad:#b91c1c;--warn:#8a6d1f;
+  --ch-grid:#e6e2d6;--ch-label:#98937f;--ch-line:#b0582f;--ch-avg:#6b4a2e;--ch-area:rgba(176,88,47,.10);--ch-ring:#faf8f2;
+}
+html[data-theme="light"] .btn.primary{color:#fff}
+html[data-theme="light"] .tf button.on{color:#fff}
+html[data-theme="light"] .sim-row .buy{color:#fff}
+html[data-theme="light"] .st-chip.st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
+html[data-theme="light"] .st-chip.st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
+html[data-theme="light"] .st-chip.st-plan,html[data-theme="light"] .st-chip.st-demo{color:#98937f;border-color:#d9d3c4}
+html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
+html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
+html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
+html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
+.qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+</style>
+<script>
+(function(){
+  var KEY='qwatt.theme';
+  var saved='dark';try{saved=localStorage.getItem(KEY)||'dark'}catch(e){}
+  document.documentElement.setAttribute('data-theme',saved);
+  function label(t){return t==='light'?'\u263D':'\u2600'}
+  function apply(t){
+    document.documentElement.setAttribute('data-theme',t);
+    var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
+    try{localStorage.setItem(KEY,t)}catch(e){}
+    try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
+  }
+  function init(){
+    if(document.getElementById('qthemeBtn'))return;
+    var host=document.querySelector('#qwnav .qw-in')||document.querySelector('header .nav');
+    if(!host)return;
+    var btn=document.createElement('button');
+    btn.id='qthemeBtn';btn.className='qtheme-btn';
+    btn.setAttribute('aria-label','Cambiar tema d\u00EDa/noche');
+    btn.title='D\u00EDa / noche';
+    btn.textContent=label(document.documentElement.getAttribute('data-theme'));
+    btn.addEventListener('click',function(){
+      apply(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
+    });
+    var anchor=host.querySelector('.qw-chip')||host.querySelector('.hd-chip');
+    host.insertBefore(btn,anchor||null);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
 <!-- menu lateral QWATT (compartido) -->
 <div class="qd-overlay" id="qdOverlay"></div>
 <aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
