@@ -199,21 +199,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
 <div class="qw-in">
 <button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
 <a class="qw-home" href="index.html"><span class="qw-bolt">&#9889;</span>QWATT</a>
-<span class="qw-sep"></span>
-<div class="qw-links">
-<a href="console.html">CONSOLA</a>
-<a href="grid.html">GRID</a>
-<a href="pay.html">PAY</a>
-<a href="proof.html">EXPLORER</a>
-<a href="respaldo.html">RESERVAS</a>
-<a href="red.html">PULSE</a>
-<a href="piloto.html">PILOTO</a>
-<a href="whitepaper.html">WHITEPAPER</a>
-<a href="backup.html">BACKUP</a>
-<a href="terminos.html">T&Eacute;RMINOS</a>
-</div>
 <span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
-<button class="qw-burger" aria-label="Abrir men&uacute;" aria-expanded="false">MEN&Uacute; &#9776;</button>
 </div>
 <script>
 (function(){
@@ -221,13 +207,6 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
   var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
   document.body.style.paddingTop=(pad+52)+'px';
   var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
-  nav.querySelectorAll('.qw-links a').forEach(function(a){
-    if(a.getAttribute('href').replace(/\.html$/,'')===page)a.classList.add('qw-on');
-  });
-  nav.querySelector('.qw-burger').addEventListener('click',function(){
-    var open=nav.classList.toggle('open');
-    this.setAttribute('aria-expanded',open);
-  });
 })();
 </script>
 </nav>
