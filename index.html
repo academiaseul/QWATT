@@ -916,9 +916,12 @@ svg.qm{flex:none}
     </form>
     <p class="ct-note" data-i18n="ct_note"></p>
     <p class="ct-ok" id="ctOk" hidden data-i18n="ct_ok"></p>
+    <p class="ct-err" id="ctErr" hidden data-i18n="ct_err"></p>
   </div>
   <style>
-  .ct-form{display:flex;gap:10px;max-width:560px;flex-wrap:wrap;margin-top:6px}
+  .ct-form{display:flex;gap:10px;max-width:560px;flex-wrap:wrap;margin:6px auto 0;justify-content:center}
+  .ct-note,.ct-ok,.ct-err{text-align:center}
+  .ct-err{font-family:var(--mono);font-size:12px;color:#c25b4a;margin-top:8px}
   .ct-form input{flex:1;min-width:220px;background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:13px 16px;color:var(--ink);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .15s}
   .ct-form input:focus{border-color:var(--accent)}
   .ct-form input::placeholder{color:var(--faint)}
@@ -927,16 +930,20 @@ svg.qm{flex:none}
   </style>
   <script>
   (function(){
-    var CONTACT_EMAIL='jay@quorelia.org';
-    document.getElementById('ctForm').addEventListener('submit',function(e){
+    var ENDPOINT='https://formspree.io/f/xljrkzbk';
+    var f=document.getElementById('ctForm');
+    f.addEventListener('submit',function(e){
       e.preventDefault();
       var em=document.getElementById('ctEmail').value.trim();
-      var es=true;try{es=(localStorage.getItem('wc-lang')||'es')==='es'}catch(err){}
-      var sub=es?'QWATT — quiero saber más del token':'QWATT — I want to hear more about the token';
-      var body=es?('Hola equipo QWATT,\n\nQuiero recibir más información sobre el token.\nMi correo: '+em)
-                 :('Hi QWATT team,\n\nI want to hear more about the token.\nMy email: '+em);
-      location.href='mailto:'+CONTACT_EMAIL+'?subject='+encodeURIComponent(sub)+'&body='+encodeURIComponent(body);
-      document.getElementById('ctOk').hidden=false;
+      var btn=f.querySelector('button');btn.disabled=true;
+      fetch(ENDPOINT,{method:'POST',headers:{'Accept':'application/json','Content-Type':'application/json'},
+        body:JSON.stringify({email:em,_subject:'QWATT — nuevo interesado',mensaje:'Quiere saber más del token QWATT'})})
+        .then(function(r){if(!r.ok)throw 0;
+          document.getElementById('ctOk').hidden=false;
+          document.getElementById('ctErr').hidden=true;
+          f.reset();})
+        .catch(function(){document.getElementById('ctErr').hidden=false;})
+        .finally(function(){btn.disabled=false;});
     });
   })();
   </script>
@@ -1338,8 +1345,9 @@ Object.assign(I18N.es, {
   ct_h2:'¿Quieres saber más de QWATT?',
   ct_sub:'Sin newsletter y sin spam: déjanos tu correo y te contamos directamente cómo avanza el token.',
   ct_btn:'Quiero saber más',
-  ct_note:'Se abrirá tu aplicación de correo para enviarnos el mensaje directo.',
-  ct_ok:'Listo — revisa tu aplicación de correo y pulsa enviar.',
+  ct_note:'Solo usaremos tu correo para contarte novedades de QWATT.',
+  ct_ok:'Listo — te escribiremos pronto.',
+  ct_err:'No se pudo enviar. Intenta de nuevo en unos segundos.',
   stn1:'GENERAR', stn2:'MEDIR', stn3:'VERIFICAR', stn4:'REGISTRAR', stn5:'SEGUIR', stn6:'LIQUIDAR',
   st1_h:'La energía se produce',
   st1_p:'Activos renovables físicos: solar, eólica, almacenamiento. El primer kit fotovoltaico del protocolo está en diseño — Piloto El Arrayán.',
@@ -1408,8 +1416,9 @@ Object.assign(I18N.en, {
   ct_h2:'Want to hear more about QWATT?',
   ct_sub:'No newsletter, no spam: leave your email and we will tell you directly how the token is coming along.',
   ct_btn:'Tell me more',
-  ct_note:'Your email app will open to send us the message directly.',
-  ct_ok:'Done — check your email app and hit send.',
+  ct_note:'We will only use your email to share QWATT news with you.',
+  ct_ok:'Done — we will be in touch soon.',
+  ct_err:'Could not send. Please try again in a few seconds.',
   stn1:'GENERATE', stn2:'MEASURE', stn3:'VERIFY', stn4:'RECORD', stn5:'TRACK', stn6:'SETTLE',
   st1_h:'Energy is produced',
   st1_p:'Physical renewable assets: solar, wind, storage. The protocol&#39;s first photovoltaic kit is in design — the El Arrayán pilot.',
