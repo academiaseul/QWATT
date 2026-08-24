@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: 'Inter', sans-serif; color: #1b1a14; background: #faf8f2; font-size: 10.5px; line-height: 1.5; }
+  .page { width: 210mm; min-height: 297mm; padding: 0 0 10mm; page-break-after: always; background: #faf8f2; }
+  .page:last-child { page-break-after: auto; }
+  .band { background: #120c07; color: #f0e8dc; padding: 11mm 14mm 9mm; display: flex; justify-content: space-between; align-items: center; }
+  .band .brand { display: flex; align-items: center; gap: 12px; }
+  .band .word { font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600; letter-spacing: .3em; }
+  .band .word small { display: block; font-size: 8px; letter-spacing: .26em; color: #d08a57; font-weight: 500; margin-top: 4px; }
+  .band .meta { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: .12em; color: #b3a48f; text-align: right; line-height: 1.9; }
+  .band .meta b { color: #d08a57; font-weight: 500; }
+  .in { padding: 8mm 14mm 0; }
+  h1 { font-size: 20px; font-weight: 600; letter-spacing: -.01em; margin: 2mm 0 2mm; }
+  h1 span { color: #b0582f; }
+  h2 { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #b0582f; margin: 6mm 0 2.5mm; }
+  p { color: #474334; margin-bottom: 2mm; }
+  b { color: #1b1a14; }
+  ul, ol { margin: 1mm 0 2mm 5mm; color: #474334; }
+  li { margin-bottom: 1.2mm; }
+  table { width: 100%; border-collapse: collapse; margin: 2mm 0 3mm; }
+  th { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .14em; text-transform: uppercase; color: #6f6957; text-align: left; padding: 1.6mm 2.5mm; border-bottom: 1.4px solid #1b1a14; }
+  td { padding: 1.7mm 2.5mm; border-bottom: 1px solid #e6e2d6; color: #474334; vertical-align: top; }
+  td:last-child.num, th:last-child.num { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  .total td { border-top: 1.4px solid #1b1a14; border-bottom: 0; font-weight: 600; color: #1b1a14; }
+  .chips { display: flex; gap: 6px; margin: 2.5mm 0; flex-wrap: wrap; }
+  .chip { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .14em; color: #b0582f; border: 1px solid rgba(176,88,47,.45); padding: 1.4mm 3mm; border-radius: 99px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .callout { background: #f1ecdf; border-left: 3px solid #b0582f; padding: 3mm 4mm; margin: 3mm 0; color: #474334; }
+  .foot { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .14em; color: #98937f; padding: 4mm 14mm 0; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="band">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" width="52" height="52" aria-hidden="true">
+        <circle cx="32" cy="32" r="21" fill="none" stroke="#f0e8dc" stroke-width="7" stroke-dasharray="5.5 22 104.4"/>
+        <path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#d08a57" transform="translate(46 46) rotate(-45) scale(.92)"/>
+      </svg>
+      <div class="word">QWATT<small>THE CLEAN TOKEN</small></div>
+    </div>
+    <div class="meta">PROPUESTA · STELLAR INSTAWARDS<br><b>SPRINT DE 4 SEMANAS</b><br>24 AGO 2026 · SANTIAGO, CHILE</div>
+  </div>
+  <div class="in">
+    <h1>WattNode v0: <span>el primer kWh solar real verificado on-chain</span></h1>
+    <div class="chips"><span class="chip">&#9679; EN VIVO &#183; STELLAR TESTNET</span><span class="chip">1 QWATT = 1 MWh</span><span class="chip">QWATT.ORG</span><span class="chip">GITHUB.COM/ACADEMIASEUL/QWATT</span></div>
+    <p><b>Equipo:</b> Jay Kim y Diego, co-fundadores (ingenier&iacute;a, dise&ntilde;o y comercial compartidos) &middot; jay@quorelia.org</p>
+
+    <h2>Qu&eacute; existe hoy (verificable)</h2>
+    <p>QWATT es un protocolo de verificaci&oacute;n energ&eacute;tica: producci&oacute;n renovable medible &rarr; eventos verificados &rarr; registros p&uacute;blicos en Stellar. Construido en 4 d&iacute;as desde la hackathon Stellar &times; AI Studio (20 de agosto). Todo etiquetado honestamente: TESTNET / PROTOTIPO / PLANIFICADO / DEMO.</p>
+    <ul>
+      <li><b>Activo real en testnet</b> — g&eacute;nesis, supply y compras at&oacute;micas auditables en stellar.expert</li>
+      <li><b>Or&aacute;culo en vivo</b> — precio spot EPEX day-ahead real en la portada, incluidos precios negativos</li>
+      <li><b>Proof-of-Generation funcionando</b> — rig Modbus que paga 0,001 QWATT/kWh con memo <b>PoG#id:kWh@precio/MWh</b></li>
+      <li><b>QWATT Explorer</b> — cualquiera re-verifica eventos y reservas leyendo Horizon directo, sin backend</li>
+      <li><b>8 apps + whitepaper v2.0</b> — Lighthouse 100 en accesibilidad, ES/EN</li>
+    </ul>
+    <div class="callout"><b>Lo que falta es exactamente una cosa: que el kWh venga de un medidor f&iacute;sico real.</b> Eso es este sprint: instalar el nodo de verificaci&oacute;n WattNode v0 sobre el sistema h&iacute;brido del piloto El Array&aacute;n (Lo Barnechea) y producir los primeros eventos PoG reales del protocolo.</div>
+
+    <h2>Prioridades, en orden</h2>
+    <ol>
+      <li><b>P1 — Primer PoG real on-chain.</b> Medidor real (Modbus RTU + Shelly 3EM) &rarr; gateway &rarr; memo PoG &rarr; visible como QW-000001 en qwatt.org/proof. <i>&Eacute;xito: cualquiera abre el link de stellar.expert y ve el evento.</i></li>
+      <li><b>P2 — Firma en el nodo.</b> Clave del panel en el gateway; minteo de dos firmas (nodo + tesorer&iacute;a): un nodo comprometido es un sensor roto, no una impresora de dinero.</li>
+      <li><b>P3 — Anti-fraude f&iacute;sico.</b> Testigo solar (celda 5 W + INA226) y validadores: tope f&iacute;sico, generaci&oacute;n nocturna, divergencia entre medidores, reloj, tamper.</li>
+      <li><b>P4 — Documentaci&oacute;n p&uacute;blica.</b> Write-up biling&uuml;e + video demo + c&oacute;digo en GitHub, presentado en Stellar Barrio.</li>
+    </ol>
+
+    <h2>Cronograma — 4 semanas</h2>
+    <table>
+      <tr><th>Semana</th><th>Entregable</th></tr>
+      <tr><td>1</td><td>Hardware armado y probado en banco: lecturas Modbus reales reemplazan al simulador</td></tr>
+      <tr><td>2</td><td>Instalaci&oacute;n retrofit en el sistema del piloto; medici&oacute;n continua 24/7</td></tr>
+      <tr><td>3</td><td><b>Primeros PoG reales on-chain</b> (P1) + firma en nodo (P2)</td></tr>
+      <tr><td>4</td><td>Validadores anti-fraude (P3) + write-up, video y demo a la comunidad (P4)</td></tr>
+    </table>
+  </div>
+</div>
+
+<div class="page">
+  <div class="band" style="padding: 8mm 14mm 7mm">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" width="38" height="38" aria-hidden="true">
+        <circle cx="32" cy="32" r="21" fill="none" stroke="#f0e8dc" stroke-width="7" stroke-dasharray="5.5 22 104.4"/>
+        <path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#d08a57" transform="translate(46 46) rotate(-45) scale(.92)"/>
+      </svg>
+      <div class="word" style="font-size:13px">QWATT</div>
+    </div>
+    <div class="meta">PROPUESTA INSTAWARDS &middot; 2/2</div>
+  </div>
+  <div class="in">
+    <h2 style="margin-top:3mm">Arquitectura WattNode v1 (resumen)</h2>
+    <table>
+      <tr><th>Capa</th><th>Componentes</th></tr>
+      <tr><td><b>F&iacute;sica</b> (existente, no financiada aqu&iacute;)</td><td>Arreglo FV 8&times;550 Wp &middot; inversor h&iacute;brido (Deye/Growatt) &middot; bater&iacute;a LiFePO4 2&times;4,8 kWh</td></tr>
+      <tr><td><b>Medici&oacute;n M1–M4</b> (este sprint)</td><td>M1 medidor DC por MPPT &middot; M2 Modbus del inversor &middot; M3 Shelly Pro 3EM + CTs &middot; M4 testigo solar</td></tr>
+      <tr><td><b>WattNode</b> (este sprint)</td><td>Raspberry Pi 4 &middot; RS485 aislado &middot; RTC &middot; elemento seguro SE050 &middot; watchdog &middot; 4G &middot; muestreo 10 s &rarr; lote 5 min &rarr; validadores &rarr; firma &rarr; outbox</td></tr>
+      <tr><td><b>Stellar</b> (existente)</td><td>Co-firma de tesorer&iacute;a (clave en Vault, nunca en el nodo) &middot; 1 tx at&oacute;mica: ancla + acumulado + pago &middot; Explorer p&uacute;blico</td></tr>
+    </table>
+    <p style="font-size:9px;color:#6f6957">Diagrama completo adjunto: wattnode-architecture.svg / .pdf</p>
+
+    <div class="grid2">
+      <div>
+        <h2>Presupuesto solicitado</h2>
+        <table>
+          <tr><th>&Iacute;tem</th><th class="num">USD</th></tr>
+          <tr><td>Raspberry Pi 4 + fuente DIN + SD + gabinete</td><td class="num">140</td></tr>
+          <tr><td>Shelly Pro 3EM + 3 CTs</td><td class="num">160</td></tr>
+          <tr><td>Medidor DC Modbus (&ge;600 V)</td><td class="num">120</td></tr>
+          <tr><td>RS485 aislado + terminaciones</td><td class="num">40</td></tr>
+          <tr><td>RTC DS3231 + SE050</td><td class="num">45</td></tr>
+          <tr><td>Testigo solar (celda 5 W + INA226)</td><td class="num">45</td></tr>
+          <tr><td>M&oacute;dem 4G + SIM (3 meses)</td><td class="num">70</td></tr>
+          <tr><td>Tablero DIN, protecciones, cableado</td><td class="num">130</td></tr>
+          <tr><td>Env&iacute;o a Chile + imprevistos (~20%)</td><td class="num">150</td></tr>
+          <tr class="total"><td>Total</td><td class="num">&asymp; 900</td></tr>
+        </table>
+        <p style="font-size:9px;color:#6f6957">El sistema solar (paneles, inversor, bater&iacute;a) ya existe y no se financia. Mano de obra e ingenier&iacute;a: aportadas por el equipo.</p>
+      </div>
+      <div>
+        <h2>Por qu&eacute; le sirve a Stellar</h2>
+        <ul>
+          <li><b>Caso de uso f&iacute;sico y auditable</b>: memos, tx at&oacute;micas y assets nativos haciendo lo que un smart contract caro no hace mejor — a $0.00001 por operaci&oacute;n.</li>
+          <li><b>Todo p&uacute;blico</b>: cada entregable es un link de stellar.expert, no una promesa.</li>
+          <li><b>Puerta LATAM</b>: net billing chileno (Ley 21.118) + generaci&oacute;n distribuida = terreno real para pagos y atestaci&oacute;n en Stellar. Despu&eacute;s de este sprint: aplicaci&oacute;n a SCF con tracci&oacute;n demostrada.</li>
+        </ul>
+        <h2>Riesgos y mitigaci&oacute;n</h2>
+        <ul>
+          <li><b>Importaci&oacute;n lenta</b> &rarr; Shelly y Pi con stock local; DC meter puede llegar sem. 2–3.</li>
+          <li><b>Reset de testnet</b> &rarr; recuperaci&oacute;n automatizada ya construida; write-ups archivan links.</li>
+          <li><b>Acceso al sitio</b> &rarr; banco de pruebas con inversor como plan B para P1.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><span>QWATT &middot; THE CLEAN TOKEN &middot; TESTNET</span><span>QWATT.ORG &middot; JAY@QUORELIA.ORG</span></div>
+</div>
+
+</body>
+</html>
