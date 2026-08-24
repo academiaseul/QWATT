@@ -1,0 +1,51 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  * { margin: 0; box-sizing: border-box; }
+  body { width: 1200px; height: 630px; background: #120c07; position: relative; overflow: hidden;
+         font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+  .glow { position: absolute; inset: 0; background: radial-gradient(660px 470px at 20% 52%, rgba(208,138,87,.13), transparent 70%); }
+  .mark { position: absolute; left: -74px; top: 96px; }
+  .col { position: absolute; left: 430px; top: 118px; width: 700px; display: flex; flex-direction: column; gap: 24px; }
+  .eyebrow { font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 14px; font-weight: 500;
+             letter-spacing: .27em; text-transform: uppercase; color: #d08a57; }
+  h1 { font-size: 58px; font-weight: 600; line-height: 1.12; letter-spacing: -.01em; color: #f0e8dc; }
+  h1 span { color: #d08a57; }
+  .sub { font-size: 20px; font-weight: 300; line-height: 1.5; color: #b3a48f; max-width: 590px; }
+  .chips { display: flex; gap: 12px; margin-top: 4px; }
+  .chip { font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 12px; letter-spacing: .16em;
+          color: #d08a57; border: 1px solid rgba(208,138,87,.35); padding: 8px 16px; border-radius: 99px;
+          display: inline-flex; align-items: center; gap: 8px; }
+  .dot { color: #3cb87f; font-size: 9px; }
+  .bar { position: absolute; left: 0; right: 0; bottom: 0; border-top: 1px solid #3b2d1d;
+         padding: 20px 48px; display: flex; justify-content: space-between; align-items: center; }
+  .bar .l { font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 12px; letter-spacing: .18em;
+            text-transform: uppercase; color: #8b7a64; }
+  .bar .r { font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 14px; font-weight: 500;
+            letter-spacing: .22em; color: #f0e8dc; }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <svg class="mark" viewBox="0 0 64 64" width="430" height="430" aria-hidden="true">
+    <circle cx="32" cy="32" r="21" fill="none" stroke="#f0e8dc" stroke-width="7" stroke-dasharray="5.5 22 104.4"/>
+    <path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#d08a57" transform="translate(46 46) rotate(-45) scale(.92)"/>
+  </svg>
+  <div class="col">
+    <div class="eyebrow">The Clean Token</div>
+    <h1>Energ&iacute;a solar,<br><span>verificada onchain.</span></h1>
+    <div class="sub">Cada kWh generado se atestigua en la blockchain de Stellar y se convierte en QWATT.</div>
+    <div class="chips">
+      <span class="chip"><span class="dot">&#9679;</span>EN VIVO &#183; STELLAR TESTNET</span>
+      <span class="chip">1 QWATT = 1 MWh</span>
+    </div>
+  </div>
+  <div class="bar">
+    <span class="l">Proof-of-Generation &#183; Or&aacute;culo EPEX</span>
+    <span class="r">QWATT.ORG</span>
+  </div>
+</body>
+</html>

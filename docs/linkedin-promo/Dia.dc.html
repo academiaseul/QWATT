@@ -1,0 +1,46 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=IBM+Plex+Mono:wght@400;500&amp;display=swap">
+  <style>
+    body { margin: 0; }
+    a { color: #b0582f; } a:hover { color: #1b1a14; }
+  </style>
+</helmet>
+<div style="width: 1080px; height: 1080px; background: #faf8f2; position: relative; overflow: hidden; font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif">
+  <div style="position: absolute; left: 56px; right: 56px; top: 56px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e6e2d6; padding-bottom: 22px">
+    <span style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 14px; font-weight: 600; letter-spacing: .3em; text-transform: uppercase; color: #1b1a14">QWATT</span>
+    <span style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 11px; letter-spacing: .16em; color: #b0582f; border: 1px solid rgba(176,88,47,.4); padding: 7px 15px; border-radius: 99px; display: inline-flex; align-items: center; gap: 8px"><span style="color: #15803d; font-size: 9px">&#9679;</span>EN VIVO &#183; STELLAR TESTNET</span>
+  </div>
+  <div style="position: absolute; left: 56px; top: 200px; width: 640px; display: flex; flex-direction: column; gap: 28px">
+    <div style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 13px; font-weight: 500; letter-spacing: .28em; text-transform: uppercase; color: #b0582f">The Clean Token</div>
+    <div style="font-size: 74px; font-weight: 600; line-height: 1.1; letter-spacing: -.015em; color: #1b1a14">Energía solar, <span style="color: #b0582f">verificada onchain.</span></div>
+    <div style="font-size: 22px; font-weight: 300; line-height: 1.6; color: #5a5244; max-width: 600px">Cada kWh generado se atestigua en la blockchain de Stellar y se convierte en QWATT: 1 token = 1 MWh de energía limpia real.</div>
+    <div style="display: flex; gap: 12px">
+      <span style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 12px; letter-spacing: .16em; color: #b0582f; border: 1px solid rgba(176,88,47,.4); padding: 9px 18px; border-radius: 99px">1 QWATT = 1 MWh</span>
+      <span style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 12px; letter-spacing: .16em; color: #b0582f; border: 1px solid rgba(176,88,47,.4); padding: 9px 18px; border-radius: 99px">PROOF-OF-GENERATION</span>
+    </div>
+  </div>
+  <svg viewBox="0 0 64 64" width="520" height="520" aria-hidden="true" style="position: absolute; right: -128px; bottom: -96px">
+    <circle cx="32" cy="32" r="21" fill="none" stroke="#1b1a14" stroke-width="7" stroke-dasharray="5.5 22 104.4"></circle>
+    <path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#b0582f" transform="translate(46 46) rotate(-45) scale(.92)"></path>
+  </svg>
+  <div style="position: absolute; left: 56px; bottom: 64px; display: flex; flex-direction: column; gap: 8px">
+    <span style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: #98937f">Energía, verificada onchain</span>
+    <span style="font-family: 'IBM Plex Mono', Consolas, monospace; font-size: 17px; font-weight: 500; letter-spacing: .24em; color: #1b1a14">QWATT.ORG</span>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":1080,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

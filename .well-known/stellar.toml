@@ -15,6 +15,7 @@ ACCOUNTS = [
 [DOCUMENTATION]
 ORG_NAME = "QWATT (demo)"
 ORG_URL = "https://qwatt.org"
+ORG_LOGO = "https://qwatt.org/logo.png"
 ORG_DESCRIPTION = "Demo project from the Stellar x AI Studio Build Challenge: QWATT tracks the spot price of one megawatt-hour of electricity. Testnet only."
 
 [[CURRENCIES]]
@@ -23,5 +24,6 @@ issuer = "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
 status = "test"
 display_decimals = 2
 name = "QWATT"
+image = "https://qwatt.org/logo.png"
 desc = "1 QWATT represents the spot price of 1 MWh of electricity. Demo asset issued on the Stellar testnet for the Stellar x AI Studio Build Challenge. Not an investment product."
 is_asset_anchored = false

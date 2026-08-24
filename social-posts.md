@@ -3,9 +3,12 @@
 > Founder-voice posts. Rules: honest testnet framing, no investment language,
 > no invented numbers/partners. If asked about buying: "testnet only, nothing is for sale."
 
+> Pairing tip: attach the promo image (1080×1080 square for feed reach; the
+> 1200×627 only when posting the bare link). Image + link-in-text beats link preview.
+
 ## LinkedIn — English
 
-Three weeks ago, QWATT was a hackathon project.
+Three days ago, QWATT was born at a Stellar hackathon.
 
 Today it's a working energy-verification protocol: qwatt.org — live electricity market data, a real digital asset on the Stellar testnet, and a mining prototype that pays for verified solar generation instead of hashpower.
 
@@ -24,13 +27,15 @@ Everything on the site is labeled exactly what it is — testnet, prototype, or 
 
 Built on Stellar. First physical pilot in design in Lo Barnechea, Chile.
 
-If you work in renewables, ESG reporting, or energy data — I'd genuinely love your skepticism: qwatt.org
+1 QWATT = 1 MWh of attested clean generation. One MWh, claimed once.
+
+If you work in renewables, ESG reporting, or energy data — I'd genuinely love your skepticism. And if you want to follow along, leave your email at qwatt.org — no newsletter, we write back directly.
 
 #RenewableEnergy #EnergyTransition #Blockchain #Stellar #CleanEnergy
 
 ## LinkedIn — Español
 
-Hace tres semanas, QWATT era un proyecto de hackathon.
+Hace tres días, QWATT nació en una hackathon de Stellar.
 
 Hoy es un protocolo de verificación energética funcionando: qwatt.org — datos reales del mercado eléctrico, un activo digital real en la testnet de Stellar, y un prototipo de minería que paga por generación solar verificada, no por hashpower.
 
@@ -49,34 +54,42 @@ Todo en el sitio está etiquetado como lo que es — testnet, prototipo o planif
 
 Construido sobre Stellar. Primer piloto físico en diseño en Lo Barnechea, Chile.
 
-Si trabajas en renovables, reportes ESG o datos de energía — me encantaría tu escepticismo: qwatt.org
+1 QWATT = 1 MWh de generación limpia atestiguada. Un MWh, una sola vez.
 
-## X — launch thread
+Si trabajas en renovables, reportes ESG o datos de energía — me encantaría tu escepticismo. Y si quieres seguir el avance, deja tu correo en qwatt.org: sin newsletter, te escribimos directo.
+
+#EnergíaRenovable #Blockchain #Stellar #CleanEnergy #Chile
+
+## X — launch thread (3 posts, each under 280 chars)
 
 1/ Energy has a proof problem.
+
 Green claims are cheap. Certificates are slow. Double counting is everywhere.
-So we built QWATT: energy, verified onchain. 🧵
 
-2/ The evidence that a clean MWh existed is already generated every second — by meters. It just dies inside private systems.
-QWATT's job: take that measurement, verify it, and anchor it to a public ledger anyone can audit.
+So we built QWATT — energy, verified onchain. Live on @StellarOrg testnet.
 
-3/ How it works:
-⚡ GENERATE → solar produces a kWh
-📊 MEASURE → a Modbus meter reads it
-✅ VERIFY → stamped with the real EPEX spot price
-🔗 RECORD → paid out on Stellar with a proof-of-generation memo
-Every stage on the site is labeled: testnet, prototype, or planned.
+qwatt.org 🧵
 
-4/ The philosophy: The Clean Token.
-An on-chain attribute that's *retired* (burned) when claimed — so one green MWh can never be counted twice.
-Evidence, not declarations.
+2/ ⚡ A panel generates a kWh
+📊 A meter measures it
+✅ It's stamped with the real market spot price
+🔗 The record lands on Stellar, auditable forever
 
-5/ What's real today: a live asset on Stellar testnet, real European power prices on the homepage (yes, including negative ones ☀️), and a mining rig that earns 0.001 QWATT per verified kWh.
-What's not real yet is labeled PLANNED. That's the whole point.
+1 QWATT = 1 MWh of attested clean generation. One MWh, claimed once.
 
-6/ Started as a Stellar hackathon project. First solar pilot in design in Chile 🇨🇱
-Don't trust it — verify it: qwatt.org
-Built on @StellarOrg
+3/ Real today: a live asset on testnet, real power prices on the homepage, a rig earning 0.001 QWATT per verified kWh. What isn't real is labeled PLANNED — that's the point.
+
+Born at a hackathon 3 days ago. Solar pilot in design in Chile 🇨🇱
+
+qwatt.org
+
+## X — single-post alternative
+
+Green claims are cheap. Proof isn't.
+
+QWATT turns metered solar kWh into on-chain records on @StellarOrg — 1 QWATT = 1 MWh, claimed once.
+
+Live on testnet, honestly labeled. Don't trust it — verify it: qwatt.org
 
 ## X — standalone posts
 

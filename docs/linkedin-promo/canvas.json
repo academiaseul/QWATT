@@ -1,0 +1,11 @@
+{
+  "artboards": [
+    { "file": "Main.dc.html", "x": 0, "y": 0, "w": 1200, "h": 627, "title": "Horizontal nocturno" },
+    { "file": "Cuadrado.dc.html", "x": 1280, "y": 0, "w": 1080, "h": 1080, "title": "Cuadrado nocturno" },
+    { "file": "Dia.dc.html", "x": 2440, "y": 0, "w": 1080, "h": 1080, "title": "Cuadrado día" }
+  ],
+  "annotations": [
+    { "id": "formatos", "x": 0, "y": -150, "w": 400, "text": "Tres formatos para el post de LinkedIn:\n1200×627 para posts con link · 1080×1080 para el feed (día o noche).\nExporta como PNG desde la barra superior." }
+  ],
+  "launch": { "view": "canvas" }
+}
