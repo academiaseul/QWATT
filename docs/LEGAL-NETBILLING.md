@@ -117,7 +117,42 @@ distribuidora, como la ley manda.**
 6. Momento en que la emisión del token en mainnet gatilla obligaciones Ley 21.521
    ante la CMF, si es que alguna.
 
-## 9. Fuentes consultadas (agosto 2026)
+## 9. Anexo 25-ago — ¿podemos ser broker/trader de energía?
+
+**Pregunta de Jay:** ¿actuar como puente para comprar y vender energía, usando QWATT para
+validar, o solo generar para mintear?
+
+**Respuesta corta: el broker puro de kWh no existe legalmente en Chile hoy.**
+(1) Minorista: los regulados solo compran a su distribuidora; el comercializador minorista
+sigue trabado en la reforma a la distribución. (2) Mayorista: el mercado spot del Coordinador
+admite generadores, transmisores, distribuidoras y clientes libres — actores con activos
+físicos o carga real; no hay asiento para un trader sin activos. (3) Net billing: soldado
+al par cliente↔distribuidora.
+
+**El reframe:** la volatilidad intradía no es argumento para ser broker — es el argumento
+de lo que sí podemos ser:
+- **Verificador (ahora):** el memo PoG registra kWh + precio spot del momento. La
+  volatilidad es el PRODUCTO: atestación horaria que los RECs planos no dan (24/7 CFE
+  matching corporativo).
+- **Arbitraje físico tras el medidor:** baterías + autoconsumo capturan ~$200/kWh evitado
+  vs ~$75 inyectado (2,5×) dentro de la propiedad del cliente, sin licencia. Es el único
+  "trading" legal a nuestra escala y es un servicio vendible (kit híbrido C + software).
+- **Generador (después):** PMGD vende a precio estabilizado por bloques horarios — el
+  régimen neutraliza justamente la volatilidad spot. Modelar con escenarios post-reforma.
+- **El "puente" legal es el atributo, no el kWh:** QWATT-C vendido bilateralmente a
+  empresas (mercado voluntario). Límite CMF: operar una PLATAFORMA donde terceros transan
+  tokens entre sí puede ser "sistema alternativo de transacción" (Ley 21.521) → registro.
+  Venta bilateral primaria de certificados/servicio: no.
+
+**Posición estratégica:** mintear ahora, arbitrar físicamente con baterías, corretear la
+PRUEBA y no la energía — y si la reforma crea el comercializador, QWATT ya tiene la
+infraestructura (medición + verificación + clientes) que ese rol exigirá.
+
+**Nota banco de pruebas (depto):** el rig QW-PRO-001 es CC aislado, nunca en paralelo con
+la red del depto → sin SEC/TE4/distribuidora. Mantenerlo isla; si algún día inyecta AC,
+cambia el régimen completo.
+
+## 10. Fuentes consultadas (agosto 2026)
 
 - Guías Ley 21.118 / net billing: Solarity, Solcor, Punto Solar, Tritec, Solar Store,
   Terralink (coinciden: el derecho de inyección y venta de excedentes es del cliente regulado,
