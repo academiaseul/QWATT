@@ -1,0 +1,510 @@
+<title>Bench Shopping Run</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#F7F4EE; --surface:#FFFFFF; --surface-2:#F1ECE3;
+    --ink:#211B14; --ink-2:#5A5044; --faint:#8B8072;
+    --line:#E2DACE; --line-soft:#EDE7DD;
+    --accent:#B4551F; --accent-soft:#F6E7DA;
+    --dc:#C2453B; --meter:#9A6410; --link:#1D6E93; --mount:#3E7A52;
+    --ok:#2F7A4E; --warn:#8A5A0F;
+    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+    --shadow:0 1px 2px rgba(33,27,20,.05), 0 8px 22px rgba(33,27,20,.05);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15100B; --surface:#1E1811; --surface-2:#262017;
+      --ink:#F1E9DE; --ink-2:#B9AC9C; --faint:#8A7D6D;
+      --line:#372E23; --line-soft:#2A2219;
+      --accent:#D9834B; --accent-soft:#33241a;
+      --dc:#E0705F; --meter:#D2A048; --link:#5FAAD0; --mount:#69B084;
+      --ok:#5CB182; --warn:#D2A048;
+      --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 22px rgba(0,0,0,.35);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15100B; --surface:#1E1811; --surface-2:#262017;
+    --ink:#F1E9DE; --ink-2:#B9AC9C; --faint:#8A7D6D;
+    --line:#372E23; --line-soft:#2A2219;
+    --accent:#D9834B; --accent-soft:#33241a;
+    --dc:#E0705F; --meter:#D2A048; --link:#5FAAD0; --mount:#69B084;
+    --ok:#5CB182; --warn:#D2A048;
+    --shadow:0 1px 2px rgba(0,0,0,.5), 0 8px 22px rgba(0,0,0,.35);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:var(--sans); font-size:15px; line-height:1.6;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:780px; margin:0 auto; padding:34px 18px 90px}
+  a{color:var(--accent)}
+  a:hover{color:var(--ink)}
+  :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:4px}
+
+  /* ---- masthead ---- */
+  .doc-id{
+    font-family:var(--mono); font-size:11px; font-weight:600; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--accent); margin:0 0 10px;
+    display:flex; flex-wrap:wrap; gap:10px; align-items:center;
+  }
+  .doc-id .sep{color:var(--faint); font-weight:400}
+  h1{
+    font-size:clamp(27px,6vw,38px); font-weight:600; letter-spacing:-.02em;
+    line-height:1.12; margin:0 0 12px; text-wrap:balance;
+  }
+  .standfirst{color:var(--ink-2); margin:0 0 26px; max-width:62ch}
+  .standfirst b{color:var(--ink); font-weight:600}
+
+  /* ---- running total bar ---- */
+  .tally{
+    position:sticky; top:0; z-index:20; margin:0 -18px 28px; padding:12px 18px;
+    background:var(--surface); border-bottom:1px solid var(--line);
+    display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+    box-shadow:var(--shadow);
+  }
+  .tally .lab{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
+  .tally .amt{font-family:var(--mono); font-size:20px; font-weight:600; color:var(--accent); font-variant-numeric:tabular-nums}
+  .tally .cnt{font-family:var(--mono); font-size:12px; color:var(--ink-2); font-variant-numeric:tabular-nums}
+  .tally button{
+    margin-left:auto; font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+    background:none; border:1px solid var(--line); color:var(--ink-2);
+    border-radius:5px; padding:6px 11px; cursor:pointer; min-height:34px;
+  }
+  .tally button:hover{border-color:var(--accent); color:var(--accent)}
+
+  /* ---- sections ---- */
+  section{margin:0 0 34px}
+  h2{
+    font-family:var(--mono); font-size:12px; font-weight:600; letter-spacing:.15em;
+    text-transform:uppercase; color:var(--ink-2); margin:0 0 4px;
+    display:flex; align-items:center; gap:10px;
+  }
+  h2 .n{color:var(--accent)}
+  .sec-note{color:var(--faint); font-size:13px; margin:0 0 14px; max-width:60ch}
+
+  /* ---- item rows ---- */
+  .items{display:flex; flex-direction:column; gap:9px}
+  .item{
+    background:var(--surface); border:1px solid var(--line); border-radius:9px;
+    padding:13px 15px; display:grid; gap:9px;
+    grid-template-columns:26px 1fr auto; align-items:start;
+    box-shadow:var(--shadow); transition:opacity .16s, border-color .16s;
+  }
+  .item.done{opacity:.5}
+  .item.done .name{text-decoration:line-through; text-decoration-color:var(--faint)}
+  .item input[type=checkbox]{
+    appearance:none; -webkit-appearance:none; margin:2px 0 0;
+    width:21px; height:21px; min-width:21px; border:1.6px solid var(--line);
+    border-radius:5px; background:var(--surface-2); cursor:pointer; position:relative;
+  }
+  .item input[type=checkbox]:checked{background:var(--accent); border-color:var(--accent)}
+  .item input[type=checkbox]:checked::after{
+    content:""; position:absolute; left:6.5px; top:2.5px; width:5px; height:10px;
+    border:solid #fff; border-width:0 2px 2px 0; transform:rotate(43deg);
+  }
+  .body{min-width:0}
+  .name{font-weight:600; display:block; margin-bottom:2px}
+  .name .ref{
+    font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.09em;
+    padding:2px 6px; border-radius:4px; margin-right:8px; vertical-align:1px;
+    border:1px solid currentColor;
+  }
+  .ref.dc{color:var(--dc)} .ref.meter{color:var(--meter)}
+  .ref.link{color:var(--link)} .ref.mount{color:var(--mount)} .ref.safe{color:var(--ink-2)}
+  .spec{color:var(--ink-2); font-size:13.5px; margin:0}
+  .check{
+    margin:7px 0 0; font-size:12.5px; color:var(--ink-2);
+    border-left:2px solid var(--accent); padding:1px 0 1px 10px;
+  }
+  .check b{color:var(--ink); font-weight:600}
+  .price{
+    font-family:var(--mono); font-size:13px; font-weight:600; color:var(--ink);
+    font-variant-numeric:tabular-nums; white-space:nowrap; text-align:right;
+  }
+  .price small{display:block; font-weight:400; font-size:10.5px; color:var(--faint); letter-spacing:.04em}
+
+  /* ---- callouts ---- */
+  .call{
+    background:var(--surface-2); border:1px solid var(--line);
+    border-radius:9px; padding:15px 17px; margin:16px 0;
+  }
+  .call h3{
+    font-family:var(--mono); font-size:11.5px; font-weight:600; letter-spacing:.13em;
+    text-transform:uppercase; margin:0 0 8px; color:var(--accent);
+  }
+  .call p{margin:0 0 8px; font-size:13.5px; color:var(--ink-2)}
+  .call p:last-child{margin-bottom:0}
+  .call b{color:var(--ink)}
+  .call.warn{background:var(--accent-soft); border-color:var(--accent)}
+  .call.warn h3{color:var(--accent)}
+
+  /* ---- ordered steps ---- */
+  ol.steps{margin:0; padding:0; list-style:none; counter-reset:s; display:flex; flex-direction:column; gap:8px}
+  ol.steps li{
+    counter-increment:s; display:grid; grid-template-columns:26px 1fr; gap:11px;
+    align-items:baseline; font-size:14px; color:var(--ink-2);
+  }
+  ol.steps li::before{
+    content:counter(s,decimal-leading-zero);
+    font-family:var(--mono); font-size:11px; font-weight:600; color:var(--accent);
+  }
+  ol.steps li b{color:var(--ink); font-weight:600}
+
+  code{
+    font-family:var(--mono); font-size:12.5px; background:var(--surface-2);
+    border:1px solid var(--line-soft); border-radius:4px; padding:1px 5px;
+  }
+  .legend{
+    display:flex; flex-wrap:wrap; gap:7px; margin:0 0 26px;
+  }
+  .legend span{
+    font-family:var(--mono); font-size:10.5px; font-weight:600; letter-spacing:.09em;
+    padding:3px 8px; border-radius:4px; border:1px solid currentColor;
+  }
+  footer{
+    margin-top:40px; padding-top:18px; border-top:1px solid var(--line);
+    font-family:var(--mono); font-size:11px; letter-spacing:.08em;
+    color:var(--faint); display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none !important}}
+  @media (max-width:520px){
+    .item{grid-template-columns:26px 1fr; }
+    .price{grid-column:2; text-align:left; margin-top:2px}
+  }
+</style>
+
+<div class="wrap">
+
+  <p class="doc-id">
+    <span>QW-PRO-001</span><span class="sep">·</span>
+    <span>Etapa 1</span><span class="sep">·</span>
+    <span>Balcón · Santiago</span>
+  </p>
+  <h1>Lista de compra del banco</h1>
+  <p class="standfirst">
+    Todo lo necesario para llevar el banco de pruebas de <b>cero a fotones reales</b>: panel → medidor Modbus →
+    <code>miner.js</code> → primer pago QWATT con memo PoG en testnet. Se compra <b>la etapa 1 completa</b>
+    (~$111.000 local + $30.000 en MercadoLibre) y se <b>encargan hoy</b> los módulos importados de la etapa 2,
+    porque demoran semanas. <b>El Raspberry Pi no se compra todavía</b>: las etapas 0 y 1 corren en tu notebook.
+    Todo queda en <b>corriente continua aislada</b>, nunca en paralelo con la red del departamento.
+  </p>
+
+  <div class="legend">
+    <span class="ref dc">CC POTENCIA</span>
+    <span class="ref meter">MEDICIÓN</span>
+    <span class="ref link">ENLACE</span>
+    <span class="ref safe">SEGURIDAD</span>
+    <span class="ref mount">MONTAJE</span>
+  </div>
+
+  <div class="tally">
+    <span class="lab">Falta comprar</span>
+    <span class="amt" id="amt">$0</span>
+    <span class="cnt" id="cnt">0 de 0</span>
+    <button id="reset" type="button">Reiniciar</button>
+  </div>
+
+  <section>
+    <h2><span class="n">01</span> Antes de salir de la casa</h2>
+    <p class="sec-note">Dos comprobaciones que cuestan cero pesos y evitan comprar hardware para un software que no corre.</p>
+    <div class="items" data-group="pre">
+      <label class="item">
+        <input type="checkbox" data-price="0">
+        <span class="body">
+          <span class="name">Correr la etapa 0 completa</span>
+          <p class="spec"><code>node miner.js --simulate --dry-run</code> — un día solar acelerado en ~2 minutos. Prueba wallet, trustline, umbral, memo y explorador sin tocar nada físico.</p>
+        </span>
+        <span class="price">$0<small>30 min</small></span>
+      </label>
+      <label class="item">
+        <input type="checkbox" data-price="0">
+        <span class="body">
+          <span class="name">Correr los validadores</span>
+          <p class="spec"><code>node validators.test.js</code> — 24 pruebas. Si pasan, la lógica de verificación ya está lista para recibir el primer dato real.</p>
+        </span>
+        <span class="price">$0<small>1 min</small></span>
+      </label>
+      <label class="item">
+        <input type="checkbox" data-price="0">
+        <span class="body">
+          <span class="name">Confirmar con la administración del edificio</span>
+          <p class="spec">Muchos edificios en Santiago tienen reglas de balcón. Un panel de 1 m × 0,5 m que no se puede caer, sin perforar y sin sobresalir de la baranda, normalmente pasa — pero pregunta antes de instalar, no después.</p>
+        </span>
+        <span class="price">$0<small>1 llamada</small></span>
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">02</span> Tienda física — mismo día</h2>
+    <p class="sec-note">Sodimac, Easy o Construmart cubren casi todo esto. Un distribuidor solar (Punto Solar, Natura Energy, EMAT, DMU) tiene mejor panel y cable, y te asesora el conector.</p>
+    <div class="items" data-group="local">
+
+      <label class="item">
+        <input type="checkbox" data-price="45000">
+        <span class="body">
+          <span class="name"><span class="ref dc">CC</span>Panel fotovoltaico 100 Wp · 12 V</span>
+          <p class="spec">Monocristalino, ~1020 × 510 mm. En Santiago entrega ~70 W reales a pleno sol.</p>
+          <p class="check"><b>Verificar en la etiqueta:</b> 36 celdas, Vmp ≈ 17–18 V, Voc ≈ 21–22 V. Si dice Voc 45 V o 72 celdas es un panel de 24 V y <b>no sirve</b> con un PWM de 12 V.</p>
+        </span>
+        <span class="price">$45.000<small>ref.</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="8000">
+        <span class="body">
+          <span class="name"><span class="ref dc">CC</span>Controlador de carga PWM 10 A</span>
+          <p class="spec">12/24 V automático. Es el que protege la batería de sobrecarga y sobredescarga.</p>
+          <p class="check"><b>Verificar:</b> que tenga <b>tres pares de bornes</b> — PV, BAT y <b>LOAD</b>. Sin salida LOAD no puedes conectar el consumo y la batería se llena en horas.</p>
+        </span>
+        <span class="price">$8.000<small>ref.</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="18000">
+        <span class="body">
+          <span class="name"><span class="ref dc">CC</span>Batería 12 V 7 Ah AGM</span>
+          <p class="spec">La típica de UPS. No es respaldo: son 0,084 kWh. Está para dar referencia de tensión al PWM y amortiguar.</p>
+          <p class="check"><b>Verificar:</b> sellada / AGM / VRLA. Nada de líquida — va adentro del departamento.</p>
+        </span>
+        <span class="price">$18.000<small>ref.</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="8000">
+        <span class="body">
+          <span class="name"><span class="ref dc">CC</span>Carga 12 V — foco 20 W + ventilador</span>
+          <p class="spec">El consumo que mantiene la corriente circulando. Sin carga no hay kWh que mintear — y además se <em>ve</em> la energía trabajando.</p>
+          <p class="check"><b>Verificar:</b> ambos de 12 V CC, no de 220 V.</p>
+        </span>
+        <span class="price">$8.000<small>ref.</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="12000">
+        <span class="body">
+          <span class="name"><span class="ref safe">SEG</span>Fusibles, cable solar y conectores</span>
+          <p class="spec">Cable solar 2,5 mm² rojo y negro (resiste UV), portafusible inline MC4 con fusible 10 A, portafusible de cuchilla 10 A para la batería, bornes y amarras.</p>
+          <p class="check"><b>Verificar:</b> si no tienes crimpeadora, compra los <b>MC4 ya crimpeados</b> al cable.</p>
+        </span>
+        <span class="price">$12.000<small>ref.</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="20000">
+        <span class="body">
+          <span class="name"><span class="ref mount">MON</span>Soporte inclinable + lastre</span>
+          <p class="spec">Un soporte ajustable de 30–45°, o un marco de aluminio/madera apoyado. Va sobre el piso del balcón, nunca colgado de la baranda.</p>
+          <p class="check"><b>Regla:</b> lastre en las patas <b>y</b> una amarra a un punto firme. El viento importa más que el peso — un panel suelto en un balcón es un proyectil.</p>
+        </span>
+        <span class="price">$20.000<small>agregado</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="0">
+        <span class="body">
+          <span class="name"><span class="ref safe">SEG</span>Multímetro — si no tienes uno</span>
+          <p class="spec">Para confirmar polaridad antes de energizar. La polaridad invertida es el error número uno del armado.</p>
+          <p class="check">Uno básico bordea los $12.000. Márcalo si ya tienes.</p>
+        </span>
+        <span class="price">$0<small>si falta: 12k</small></span>
+      </label>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">03</span> MercadoLibre — 24 a 48 horas</h2>
+    <p class="sec-note">Los módulos electrónicos no están en retail. Filtra por <b>Full</b> o <b>Envío en 24 h</b> y que el vendedor esté en la RM.</p>
+    <div class="items" data-group="ml">
+
+      <label class="item">
+        <input type="checkbox" data-price="12000">
+        <span class="body">
+          <span class="name"><span class="ref meter">MED</span>PZEM-017 + shunt 50 A</span>
+          <p class="spec">El medidor oficial del banco: tensión, corriente, potencia y <b>Wh acumulados</b> por Modbus RTU. Que sea acumulado es clave — un corte de WiFi no pierde ni duplica energía.</p>
+          <p class="check"><b>Cuidado:</b> el <b>PZEM-017 es el de corriente continua</b>. El PZEM-004T es de alterna y no sirve. Pide el shunt de <b>50 A</b>: con 100 W el panel da ~6 A, y un shunt de 300 A perdería resolución.</p>
+        </span>
+        <span class="price">$12.000<small>ref.</small></span>
+      </label>
+
+      <label class="item">
+        <input type="checkbox" data-price="18000">
+        <span class="body">
+          <span class="name"><span class="ref link">ENL</span>Gateway Elfin EW11 · RS485 → WiFi</span>
+          <p class="spec">Le da IP al medidor y traduce Modbus RTU a <b>Modbus TCP</b> — el idioma que <code>miner.js</code> ya habla. Cero drivers, cero código nuevo.</p>
+          <p class="check"><b>Configurar como</b> TCP Server, puerto 8899, 9600 8N1 para calzar con el PZEM. Luego apuntas <code>source.host</code> del config a su IP.</p>
+        </span>
+        <span class="price">$18.000<small>ref.</small></span>
+      </label>
+    </div>
+
+    <div class="call">
+      <h3>La alternativa barata, y por qué no la tomaría hoy</h3>
+      <p>Un adaptador USB–RS485 cuesta ~$6.000 en vez de $18.000. Pero entrega Modbus <b>RTU por puerto serial</b>, y
+      <code>miner.js</code> habla Modbus <b>TCP</b>: tendrías que escribir un puente o modificar el minero antes de ver
+      el primer watt.</p>
+      <p>El EW11 compra <b>una tarde de no depurar</b> por doce mil pesos. En la etapa 1, donde el objetivo es
+      llegar rápido al primer dato real, eso vale la pena.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">04</span> AliExpress — pedir hoy, llega para la etapa 2</h2>
+    <p class="sec-note">Estos mismos módulos cuestan 3–4× menos importados, pero demoran 2–4 semanas. Como no los necesitas hasta la etapa 2, <b>pedirlos hoy los hace llegar justo a tiempo</b> — y salen casi gratis comparados con MercadoLibre.</p>
+    <div class="items" data-group="ali">
+      <label class="item">
+        <input type="checkbox" data-price="14000">
+        <span class="body">
+          <span class="name"><span class="ref meter">MED</span>Celda 5 Wp + 2× INA226 + resistencia 10 Ω 10 W</span>
+          <p class="spec">El testigo solar: el detector de mentiras del validador V4. No alimenta nada — su corriente sobre una carga fija es proporcional al sol real.</p>
+          <p class="check">Pide <b>dos</b> INA226: uno para el testigo, otro como medidor de respaldo. Direcciones I2C 0x40 y 0x44 (puente A0).</p>
+        </span>
+        <span class="price">$14.000<small>ref.</small></span>
+      </label>
+      <label class="item">
+        <input type="checkbox" data-price="3000">
+        <span class="body">
+          <span class="name"><span class="ref meter">MED</span>RTC DS3231 + pila CR2032</span>
+          <p class="spec">El reloj que no miente sin internet. Es lo que hace cumplible el control V6 contra quien atrase el sistema para "generar de noche".</p>
+        </span>
+        <span class="price">$3.000<small>ref.</small></span>
+      </label>
+      <label class="item">
+        <input type="checkbox" data-price="2000">
+        <span class="body">
+          <span class="name"><span class="ref safe">SEG</span>Reed switch + imán</span>
+          <p class="spec">El tamper del validador V7: tapa abierta → se detiene el minteo hasta rearme manual.</p>
+        </span>
+        <span class="price">$2.000<small>ref.</small></span>
+      </label>
+    </div>
+    <div class="call">
+      <h3>El Raspberry Pi puede esperar</h3>
+      <p>Las etapas 0 y 1 corren en tu notebook. El Pi recién se necesita cuando el banco tiene que quedar
+      encendido solo, en la etapa 2 — así que no lo compres hoy. Cuando toque: un Pi 4 desde ~$47.000, o un
+      <b>Pi Zero 2 W</b> (~$25–40.000) que sobra para este banco.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">05</span> Tu balcón mira al oriente — y está bien</h2>
+    <div class="call">
+      <p>En Santiago el sol de mediodía está al <b>norte</b>, así que un balcón oriente genera principalmente
+      <b>de mañana</b>: unas 3 a 3,5 horas equivalentes, aproximadamente entre las 08:00 y las 14:00. La jardinera
+      de la oficina rendiría ~5 h. Para producción, la oficina gana.</p>
+      <p><b>Para un banco de pruebas, el oriente tiene una ventaja real:</b> te entrega una rampa de amanecer
+      limpia todos los días. Eso es exactamente lo que estresa dos validadores que necesitas ver funcionando —
+      <b>V2</b> (compuerta nocturna: energía reportada con el sol bajo el horizonte) y <b>V5</b> (rampa y
+      suavidad implausible). En la oficina, con sol parejo todo el día, esas transiciones se ven peor.</p>
+      <p>Gira el soporte hacia el <b>nororiente</b> (azimut ~45°) para recuperar algo de la tarde, e inclínalo
+      entre 30 y 40°.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">06</span> Cuando llegues a la casa</h2>
+    <p class="sec-note">El orden de encendido no es una sugerencia: un PWM sin batería de referencia se daña, y la polaridad invertida es el error clásico.</p>
+    <ol class="steps">
+      <li><b>Todo montado y muerto.</b> Ningún fusible puesto todavía.</li>
+      <li><b>Batería al PWM</b> — recién ahí pones el fusible de la batería. Siempre primero.</li>
+      <li><b>Panel al PWM</b>, con el shunt del PZEM ya intercalado en el negativo. El fusible MC4 va al final.</li>
+      <li><b>Carga a la salida LOAD.</b></li>
+      <li><b>Gateway y notebook</b> por USB / WiFi.</li>
+      <li><b>Recién ahora, software:</b> apuntar <code>source.host</code> a la IP del EW11, correr <code>miner.js</code> sin <code>--simulate</code>, y mirar stellar.expert.</li>
+    </ol>
+    <div class="call warn">
+      <h3>Para apagar: el orden inverso</h3>
+      <p>Panel primero, batería al final. Y todo el electrónico —PWM, batería, medidor, gateway— vive
+      <b>adentro</b>: al balcón solo salen el panel, el testigo y el cable, con un <b>drip loop</b> antes de
+      cada entrada.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">07</span> Cómo se ve "listo"</h2>
+    <p class="sec-note">La etapa 1 termina cuando esta cadena corre sola durante 72 horas seguidas.</p>
+    <ol class="steps">
+      <li>El PZEM entrega watts por Modbus TCP al notebook.</li>
+      <li><code>miner.js</code> integra Wh reales, no simulados.</li>
+      <li>Los validadores marcan el lote como <b>A1 · MEDIDO</b> — un solo instrumento, sin corroborar.</li>
+      <li>Se emite un pago con memo <code>PoG#1:0.05kWh@…/MWh</code> y aparece en el Explorer.</li>
+    </ol>
+    <div class="call">
+      <h3>Eso es QW-000001</h3>
+      <p>El primer kWh solar real verificado onchain del protocolo — y el entregable P1 del sprint de Instawards,
+      construido antes de que llegue el grant.</p>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">08</span> Nota legal</h2>
+    <div class="call">
+      <p>El banco es una <b>isla de corriente continua</b>: jamás se conecta en paralelo con la red del
+      departamento. Por eso no requiere instalador SEC, ni TE4, ni aviso a la distribuidora — legalmente es
+      una batería con un medidor.</p>
+      <p>Si algún día llegara a inyectar corriente alterna a la red, <b>cambia el régimen completo</b>. Mantenerlo
+      isla no es un detalle: es lo que permite construirlo esta semana.</p>
+    </div>
+  </section>
+
+  <footer>
+    <span>QW-PRO-001 · REV A</span>
+    <span>QWATT · THE CLEAN TOKEN</span>
+  </footer>
+</div>
+
+<script>
+(function(){
+  var KEY = 'qwatt.bench.shopping.v1';
+  var boxes = Array.prototype.slice.call(document.querySelectorAll('.item input[type=checkbox]'));
+  var amtEl = document.getElementById('amt');
+  var cntEl = document.getElementById('cnt');
+
+  function fmt(n){ return '$' + n.toLocaleString('es-CL'); }
+
+  function save(){
+    try {
+      localStorage.setItem(KEY, JSON.stringify(boxes.map(function(b){ return b.checked; })));
+    } catch (e) { /* private mode, blocked storage — the page still works */ }
+  }
+
+  function load(){
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (!raw) return;
+      var saved = JSON.parse(raw);
+      if (!Array.isArray(saved)) return;
+      boxes.forEach(function(b, i){ if (typeof saved[i] === 'boolean') b.checked = saved[i]; });
+    } catch (e) { /* ignore malformed or unavailable storage */ }
+  }
+
+  function render(){
+    var remaining = 0, done = 0;
+    boxes.forEach(function(b){
+      var price = parseInt(b.getAttribute('data-price'), 10) || 0;
+      var row = b.closest('.item');
+      if (b.checked) { done++; row.classList.add('done'); }
+      else { remaining += price; row.classList.remove('done'); }
+    });
+    amtEl.textContent = fmt(remaining);
+    cntEl.textContent = done + ' de ' + boxes.length + ' listo' + (done === 1 ? '' : 's');
+  }
+
+  boxes.forEach(function(b){
+    b.addEventListener('change', function(){ save(); render(); });
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    boxes.forEach(function(b){ b.checked = false; });
+    save(); render();
+  });
+
+  load();
+  render();
+})();
+</script>
