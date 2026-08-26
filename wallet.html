@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QWATT · Wallet test bench</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ground:#120c07; --surface:#1b130b; --line:#33261a; --line-soft:#241a10;
+    --text:#f2e9df; --muted:#a08e7c; --amber:#d98a24; --amber-deep:#8a5411;
+    --ok:#4fb37a; --err:#e06252; --cyan:#3aa7cc;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--text);
+    font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif;
+    padding:32px 16px 80px;display:flex;justify-content:center}
+  main{width:100%;max-width:680px}
+  a{color:var(--cyan);text-decoration:none} a:hover{text-decoration:underline}
+  :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
+
+  header{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
+  .wordmark{font:700 26px "Chakra Petch",sans-serif;letter-spacing:.04em}
+  .wordmark span{color:var(--amber)}
+  .badge{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;
+    color:var(--amber);border:1px solid var(--amber-deep);border-radius:3px;
+    padding:4px 7px;text-transform:uppercase}
+  .sub{color:var(--muted);margin:0 0 20px;font-size:13.5px}
+
+  .keynote{border:1px solid var(--amber-deep);background:rgba(217,138,36,.06);
+    border-radius:8px;padding:12px 16px;margin:0 0 22px;font-size:13px;color:var(--muted)}
+  .keynote strong{color:var(--amber)}
+
+  section{background:var(--surface);border:1px solid var(--line);border-radius:8px;
+    padding:18px 20px;margin-bottom:14px}
+  h2{font:600 12px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 14px}
+  .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+  .grow{flex:1 1 220px}
+
+  button{font:600 14px "IBM Plex Sans",sans-serif;color:#160e05;background:var(--amber);
+    border:0;border-radius:6px;padding:10px 16px;cursor:pointer}
+  button:hover{filter:brightness(1.08)}
+  button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;filter:none}
+  button.ghost{background:transparent;color:var(--amber);border:1px solid var(--amber-deep)}
+  button.ghost:hover{background:rgba(217,138,36,.08)}
+
+  input{font:14px "IBM Plex Mono",monospace;color:var(--text);background:var(--ground);
+    border:1px solid var(--line);border-radius:6px;padding:10px 12px;width:100%}
+  input::placeholder{color:#6b5a48}
+  label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
+
+  .kv{display:grid;grid-template-columns:110px 1fr;row-gap:6px;font-size:14px}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-family:"IBM Plex Mono",monospace;word-break:break-all}
+  .qwatt-balance{font:600 22px "Chakra Petch",sans-serif;color:var(--amber)}
+
+  .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:8px}
+  .dot.on{background:var(--ok);animation:pulse 2s infinite}
+  @keyframes pulse{50%{opacity:.4}}
+  @media (prefers-reduced-motion: reduce){.dot.on{animation:none}}
+
+  #log{background:var(--ground);border:1px solid var(--line-soft);border-radius:6px;
+    font:13px/1.6 "IBM Plex Mono",monospace;padding:12px 14px;min-height:90px;
+    max-height:260px;overflow-y:auto}
+  #log p{margin:0 0 6px;word-break:break-word}
+  #log .t{color:#6b5a48;margin-right:8px}
+  #log .ok{color:var(--ok)} #log .err{color:var(--err)} #log .info{color:var(--text)}
+  .hidden{display:none}
+  footer{margin-top:20px;font-size:12px;color:var(--muted);text-align:center}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="wordmark">Q<span>WATT</span></div>
+    <div class="badge">Wallet · Testnet</div>
+  </header>
+  <p class="sub">Test bench for the non-custodial wallet flow. Signing happens inside your wallet (Freighter, xBull, Lobstr, Albedo…).</p>
+
+  <div class="keynote">
+    <strong>This page never asks for a secret key.</strong> If any QWATT page ever shows you a
+    field asking to paste an <code>S…</code> key, close it — that is the legacy console flow
+    being retired. Your keys stay in your wallet.
+  </div>
+
+  <section id="s-connect">
+    <h2>Connection</h2>
+    <div class="row">
+      <div class="grow"><span class="dot" id="dot"></span><span id="conn-state">Not connected</span></div>
+      <button id="btn-connect">Connect wallet</button>
+      <button id="btn-disconnect" class="ghost hidden">Disconnect</button>
+    </div>
+  </section>
+
+  <section id="s-account" class="hidden">
+    <h2>Account</h2>
+    <dl class="kv">
+      <dt>Address</dt><dd id="acc-address">—</dd>
+      <dt>XLM</dt><dd id="acc-xlm">—</dd>
+      <dt>QWATT</dt><dd><span class="qwatt-balance" id="acc-qwatt">—</span></dd>
+    </dl>
+    <div class="row" style="margin-top:14px">
+      <button id="btn-refresh" class="ghost">Refresh</button>
+      <button id="btn-fund" class="ghost hidden">Fund with Friendbot</button>
+      <button id="btn-trust" class="hidden">Add QWATT trustline</button>
+      <a id="lnk-account" href="#" target="_blank" rel="noopener" style="font-size:13px">view account ↗</a>
+    </div>
+  </section>
+
+  <section id="s-pay" class="hidden">
+    <h2>Send QWATT</h2>
+    <label for="pay-dest">Destination (G…)</label>
+    <input id="pay-dest" placeholder="GBXX…" autocomplete="off" spellcheck="false">
+    <div class="row">
+      <div class="grow">
+        <label for="pay-amount">Amount</label>
+        <input id="pay-amount" placeholder="10.00" inputmode="decimal">
+      </div>
+      <div class="grow">
+        <label for="pay-memo">Memo (optional, ≤28 chars)</label>
+        <input id="pay-memo" placeholder="FACTURA-0001" maxlength="28">
+      </div>
+    </div>
+    <div class="row" style="margin-top:14px">
+      <button id="btn-pay">Sign &amp; send</button>
+    </div>
+  </section>
+
+  <section>
+    <h2>Log</h2>
+    <div id="log" aria-live="polite"></div>
+  </section>
+
+  <footer>
+    QWATT asset on <a id="lnk-asset" href="#" target="_blank" rel="noopener">stellar.expert ↗</a>
+    · testnet demonstration only
+  </footer>
+</main>
+
+<script type="module">
+  import * as Wallet from './qwatt-wallet.js';
+
+  const $ = (id) => document.getElementById(id);
+  const show = (id, on = true) => $(id).classList.toggle('hidden', !on);
+
+  $('lnk-asset').href = Wallet.assetLink();
+
+  function log(msg, cls = 'info', href = null) {
+    const p = document.createElement('p');
+    const t = new Date().toTimeString().slice(0, 8);
+    p.innerHTML = `<span class="t">${t}</span><span class="${cls}"></span>`;
+    p.lastChild.textContent = msg + (href ? ' ' : '');
+    if (href) {
+      const a = document.createElement('a');
+      a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'view tx ↗';
+      p.appendChild(a);
+    }
+    $('log').prepend(p);
+  }
+
+  async function refresh() {
+    const address = Wallet.getAddress();
+    if (!address) return;
+    $('acc-address').textContent = address;
+    $('lnk-account').href = Wallet.accountLink(address);
+    try {
+      const info = await Wallet.loadAccount();
+      $('acc-xlm').textContent = info.exists ? Number(info.xlm).toFixed(2) : 'account not funded';
+      $('acc-qwatt').textContent = info.hasTrustline ? Number(info.qwatt).toFixed(2) : 'no trustline';
+      show('btn-fund', !info.exists);
+      show('btn-trust', info.exists && !info.hasTrustline);
+      show('s-pay', info.hasTrustline);
+    } catch (e) { log(e.message, 'err'); }
+  }
+
+  $('btn-connect').onclick = async () => {
+    try {
+      const address = await Wallet.connect();
+      $('dot').classList.add('on');
+      $('conn-state').textContent = 'Connected';
+      show('btn-connect', false); show('btn-disconnect'); show('s-account');
+      log(`Connected: ${address.slice(0, 8)}…${address.slice(-6)}`, 'ok');
+      await refresh();
+    } catch (e) { log(e.message, 'err'); }
+  };
+
+  $('btn-disconnect').onclick = () => {
+    Wallet.disconnect();
+    $('dot').classList.remove('on');
+    $('conn-state').textContent = 'Not connected';
+    show('btn-connect'); show('btn-disconnect', false);
+    show('s-account', false); show('s-pay', false);
+    log('Disconnected.', 'info');
+  };
+
+  $('btn-refresh').onclick = refresh;
+
+  $('btn-fund').onclick = async () => {
+    try {
+      log('Requesting test XLM from Friendbot…');
+      const r = await Wallet.fundWithFriendbot();
+      log(r.alreadyFunded ? 'Account already funded.' : 'Account funded with test XLM.', 'ok');
+      await refresh();
+    } catch (e) { log(e.message, 'err'); }
+  };
+
+  $('btn-trust').onclick = async () => {
+    try {
+      log('Opening QWATT trustline — approve in your wallet…');
+      const res = await Wallet.ensureQwattTrustline();
+      if (res) log('Trustline created.', 'ok', res.link); else log('Trustline already present.', 'ok');
+      await refresh();
+    } catch (e) { log(e.message, 'err'); }
+  };
+
+  $('btn-pay').onclick = async () => {
+    const dest = $('pay-dest').value.trim();
+    const amount = $('pay-amount').value.trim();
+    const memo = $('pay-memo').value.trim();
+    if (!dest || !amount) { log('Destination and amount are required.', 'err'); return; }
+    try {
+      $('btn-pay').disabled = true;
+      log(`Sending ${amount} QWATT — approve in your wallet…`);
+      const res = await Wallet.payQwatt(dest, amount, memo);
+      log(`Sent ${amount} QWATT.`, 'ok', res.link);
+      $('pay-amount').value = '';
+      await refresh();
+    } catch (e) { log(e.message, 'err'); }
+    finally { $('btn-pay').disabled = false; }
+  };
+
+  // Restore a previous session without reopening the wallet picker.
+  if (Wallet.getAddress()) {
+    $('dot').classList.add('on');
+    $('conn-state').textContent = 'Connected (saved)';
+    show('btn-connect', false); show('btn-disconnect'); show('s-account');
+    refresh();
+    log('Restored saved connection. Click Refresh to re-read balances.');
+  } else {
+    log('Ready. Connect a wallet to begin. This page never asks for a secret key.');
+  }
+</script>
+</body>
+</html>

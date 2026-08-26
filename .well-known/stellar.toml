@@ -1,29 +1,89 @@
-# QWATT — SEP-1 asset metadata
-# Must be reachable at https://<your-domain>/.well-known/stellar.toml with
-# CORS enabled (see the _headers file for Netlify; GitHub Pages sends it by default).
-# After the site is live, set home_domain = <your-domain> on the issuer account
-# so stellar.expert and wallets display this metadata (see README).
+# stellar.toml — QWATT / Quorelia SpA · SEP-1 asset metadata
+# Served at https://qwatt.org/.well-known/stellar.toml with Access-Control-Allow-Origin: *
+# (vercel.json sets the header). Discovery only works once the ISSUER account has
+# home_domain = qwatt.org — run set-home-domain.js. As of 2026-08-25 it is NOT set,
+# so wallets and stellar.expert still show QWATT as an unknown asset.
+#
+# ┌──────────────────────────────────────────────────────────────────────────┐
+# │ BEFORE PUBLISHING THIS VERSION                                           │
+# │  1. Fill every [COMPLETAR] field. Placeholder text published to a SEP-1  │
+# │     reviewer reads worse than the shorter v2.6.0 this replaces.          │
+# │  2. Confirm the MODEL NOTE below matches the site. index.html says       │
+# │     "1 QWATT = 1 MWh" in 14 places; this file must never contradict it.  │
+# └──────────────────────────────────────────────────────────────────────────┘
+#
+# MODEL NOTE (2026-08-25)
+#   Two incompatible definitions of QWATT are in play:
+#     (a) LIVE / BLUEPRINT:  1 QWATT = 1 MWh under the protocol. 42,700,000 units
+#         pre-minted at genesis 2026-08-22, held in treasury, tracking the EPEX
+#         spot price. Demonstration asset — not anchored, nothing redeemable.
+#     (b) PROPOSED (draft toml v2.7.0, 2026-08-25):  1 QWATT = 1 kWh delivered,
+#         elastic supply, issued only on dual-meter verified generation, burned
+#         on redemption against an energy invoice.
+#   (b) is the stronger product and is what the WattNode proof-of-generation
+#   hardware actually measures — but it is not what is on-chain today, and the
+#   42.7M legacy units contradict it. Until those units are burned or quarantined
+#   AND a supply contract exists, this file describes (a) truthfully and records
+#   (b) as roadmap. Editing this text is not what makes (b) true.
 
-VERSION = "2.6.0"
+VERSION = "2.7.0"
+
+# TODO-MAINNET: delete this line on mainnet (public network is the default).
 NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 
+# Accounts this domain claims control of. Wallets and explorers use this to link
+# domain and accounts in both directions.
 ACCOUNTS = [
   "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
   "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW"
 ]
 
 [DOCUMENTATION]
-ORG_NAME = "QWATT (demo)"
+ORG_NAME = "Quorelia SpA"
+ORG_DBA = "QWATT"
 ORG_URL = "https://qwatt.org"
 ORG_LOGO = "https://qwatt.org/logo.png"
-ORG_DESCRIPTION = "Demo project from the Stellar x AI Studio Build Challenge: QWATT tracks the spot price of one megawatt-hour of electricity. Testnet only."
+ORG_DESCRIPTION = "QWATT is an energy-verification protocol for distributed solar: metered production is checked against physics by an independent second instrument, and the verified event is recorded publicly on Stellar. Testnet demonstration — see https://qwatt.org/whitepaper.html for the model and its current limits."
+ORG_PHYSICAL_ADDRESS = "[COMPLETAR — domicilio de la sociedad], Santiago, Chile"
+ORG_OFFICIAL_EMAIL = "[COMPLETAR — p.ej. hola@qwatt.org]"
+ORG_SUPPORT_EMAIL = "[COMPLETAR]"
+ORG_GITHUB = "https://github.com/academiaseul/QWATT"
+# ORG_TWITTER — omit the key entirely rather than publish an empty value.
+
+# One block per founder. SEP-1 reviewers and wallet directories weight this section.
+[[PRINCIPALS]]
+name = "[COMPLETAR — nombre completo, Jay]"
+email = "[COMPLETAR]"
+github = "[COMPLETAR]"
+
+[[PRINCIPALS]]
+name = "[COMPLETAR — nombre completo, Diego]"
+email = "[COMPLETAR]"
 
 [[CURRENCIES]]
 code = "QWATT"
 issuer = "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
-status = "test"
-display_decimals = 2
 name = "QWATT"
+display_decimals = 2
 image = "https://qwatt.org/logo.png"
-desc = "1 QWATT represents the spot price of 1 MWh of electricity. Demo asset issued on the Stellar testnet for the Stellar x AI Studio Build Challenge. Not an investment product."
+
+# TODO-MAINNET: change to "live" at mainnet genesis.
+status = "test"
+
+desc = "Testnet demonstration asset for the QWATT energy-verification protocol, where 1 QWATT = 1 MWh under the protocol. The current on-chain supply (42,700,000 units, minted in a single genesis transaction on 2026-08-22) is a demonstration supply: it was not produced by verified generation and is not redeemable for energy, money, or anything else."
+
+conditions = "Demonstration only, Stellar testnet. No outstanding unit represents delivered energy, a claim on energy, a security, an investment, or a debt of the issuer. The protocol's verification design — dual independent metering, nameplate-capacity ceiling, solar-elevation gate, meter-divergence check, and the evidence hash anchored in the recording transaction — is implemented for demonstration and has not yet issued a unit against a physically verified event. Any move to verified issuance, redemption, or mainnet requires burning or quarantining the legacy supply, a written supply contract, and Chilean legal review; none has occurred as of 2026-08-25."
+
+# Anchoring is a factual claim about redeemability, not a marketing field. It stays
+# false until (1) the legacy supply is retired, (2) a supply contract exists that a
+# holder could actually enforce, and (3) counsel has signed off. Flipping this to
+# true — and adding anchor_asset_type / anchor_asset / redemption_instructions —
+# is a legal decision, not a text edit.
 is_asset_anchored = false
+
+# TODO-MAINNET checklist for this file:
+#   1. Replace both ACCOUNTS with the mainnet issuer + treasury.
+#   2. Delete NETWORK_PASSPHRASE, set status = "live".
+#   3. Re-run set-home-domain.js against the mainnet issuer.
+#   4. Complete every [COMPLETAR] field — empty fields read worse than absent ones.
+#   5. Re-evaluate is_asset_anchored with counsel, per the note above.
