@@ -3,6 +3,11 @@
 mining-rig
 .claude
 .env*
+# Wallet dependency build: sources and npm tree stay local. The BUILT bundles in
+# assets/vendor/ must ship — wallet.html imports them at runtime.
+node_modules
+vendor-src
+package-lock.json
 *.local.txt
 PROGRESS.md
 CLEAN-TOKEN-ARCHITECTURE.md

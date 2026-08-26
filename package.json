@@ -1,0 +1,14 @@
+{
+  "name": "qwatt-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "QWATT — static site. No build step for the site itself; npm is used only to vendor the wallet dependencies into assets/vendor/ (see scripts/build-wallet-vendor.md).",
+  "scripts": {
+    "vendor:wallet": "esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-sdk.entry.js --outfile=assets/vendor/stellar-sdk.js && esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-wallets-kit.entry.js --outfile=assets/vendor/stellar-wallets-kit.js"
+  },
+  "devDependencies": {
+    "@creit.tech/stellar-wallets-kit": "1.7.0",
+    "@stellar/stellar-sdk": "13.1.0",
+    "esbuild": "^0.24.0"
+  }
+}

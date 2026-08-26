@@ -3,20 +3,62 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>QWATT · Wallet test bench</title>
-<meta name="robots" content="noindex">
+<title>QWATT Wallet — firma no custodial en Stellar</title>
+<meta name="description" content="Conecta tu billetera Stellar (Freighter, xBull, Lobstr, Albedo) para abrir la trustline de QWATT y enviar pagos. Las claves nunca salen de tu billetera.">
+<link rel="canonical" href="https://qwatt.org/wallet.html">
+<meta name="theme-color" content="#120c07">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/wallet.html">
+<meta property="og:title" content="QWATT Wallet — firma no custodial en Stellar">
+<meta property="og:description" content="Conecta tu billetera Stellar para abrir la trustline de QWATT y enviar pagos. Las claves nunca salen de tu billetera.">
+<meta property="og:image" content="https://qwatt.org/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://qwatt.org/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ESWGGQ9742"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ESWGGQ9742');
+</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ground:#120c07; --surface:#1b130b; --line:#33261a; --line-soft:#241a10;
-    --text:#f2e9df; --muted:#a08e7c; --amber:#d98a24; --amber-deep:#8a5411;
-    --ok:#4fb37a; --err:#e06252; --cyan:#3aa7cc;
+    --ground:#16100a; --surface:#231a10; --line:#3b2d1d; --line-soft:#2b2015;
+    --text:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
+    --amber:#d08a57; --amber-deep:rgba(208,138,87,.45);
+    --ok:#3cb87f; --err:#e05c5c; --cyan:#c9a15f;
+    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
   }
+  /* wallet page under the day theme */
+  html[data-theme="light"] body{background:#faf8f2;color:#1b1a14}
+  html[data-theme="light"] main section{background:#f1ecdf;border-color:#e6e2d6}
+  html[data-theme="light"] h2{color:#6f6957}
+  html[data-theme="light"] .sub,html[data-theme="light"] .kv dt{color:#5a5244}
+  html[data-theme="light"] .wordmark{color:#1b1a14}
+  html[data-theme="light"] .wordmark span,html[data-theme="light"] .qwatt-balance{color:#b0582f}
+  html[data-theme="light"] .badge{color:#b0582f;border-color:rgba(176,88,47,.4)}
+  html[data-theme="light"] button{background:#b0582f;color:#fff}
+  html[data-theme="light"] button.ghost{background:transparent;color:#b0582f;border-color:rgba(176,88,47,.45)}
+  html[data-theme="light"] button:disabled{background:#e6dfcd;color:#98937f}
+  html[data-theme="light"] input{background:#faf8f2;color:#1b1a14;border-color:#e6e2d6}
+  html[data-theme="light"] #log{background:#faf8f2;border-color:#e6e2d6}
+  html[data-theme="light"] #log .info{color:#1b1a14}
+  html[data-theme="light"] #log .t{color:#98937f}
+  html[data-theme="light"] #log .ok{color:#15803d}
+  html[data-theme="light"] a{color:#b0582f}
   *{box-sizing:border-box}
   body{margin:0;background:var(--ground);color:var(--text);
-    font:15px/1.55 "IBM Plex Sans",system-ui,sans-serif;
-    padding:32px 16px 80px;display:flex;justify-content:center}
+    font:15px/1.55 var(--sans);
+    padding:88px 16px 60px;display:flex;justify-content:center}
   main{width:100%;max-width:680px}
   a{color:var(--cyan);text-decoration:none} a:hover{text-decoration:underline}
   :focus-visible{outline:2px solid var(--amber);outline-offset:2px;border-radius:4px}
@@ -24,7 +66,7 @@
   header{display:flex;align-items:baseline;gap:12px;margin-bottom:6px;flex-wrap:wrap}
   .wordmark{font:700 26px "Chakra Petch",sans-serif;letter-spacing:.04em}
   .wordmark span{color:var(--amber)}
-  .badge{font:500 11px/1 "IBM Plex Mono",monospace;letter-spacing:.12em;
+  .badge{font:500 11px/1 var(--mono);letter-spacing:.12em;
     color:var(--amber);border:1px solid var(--amber-deep);border-radius:3px;
     padding:4px 7px;text-transform:uppercase}
   .sub{color:var(--muted);margin:0 0 20px;font-size:13.5px}
@@ -35,25 +77,25 @@
 
   section{background:var(--surface);border:1px solid var(--line);border-radius:8px;
     padding:18px 20px;margin-bottom:14px}
-  h2{font:600 12px "IBM Plex Mono",monospace;letter-spacing:.14em;text-transform:uppercase;
+  h2{font:600 12px var(--mono);letter-spacing:.14em;text-transform:uppercase;
     color:var(--muted);margin:0 0 14px}
   .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
   .grow{flex:1 1 220px}
 
-  button{font:600 14px "IBM Plex Sans",sans-serif;color:#160e05;background:var(--amber);
+  button{font:500 14px var(--sans);color:#160e05;background:var(--amber);
     border:0;border-radius:6px;padding:10px 16px;cursor:pointer}
   button:hover{filter:brightness(1.08)}
   button:disabled{background:var(--line);color:var(--muted);cursor:not-allowed;filter:none}
   button.ghost{background:transparent;color:var(--amber);border:1px solid var(--amber-deep)}
   button.ghost:hover{background:rgba(217,138,36,.08)}
 
-  input{font:14px "IBM Plex Mono",monospace;color:var(--text);background:var(--ground);
+  input{font:14px var(--mono);color:var(--text);background:var(--ground);
     border:1px solid var(--line);border-radius:6px;padding:10px 12px;width:100%}
   input::placeholder{color:#6b5a48}
   label{display:block;font-size:12px;color:var(--muted);margin:10px 0 4px}
 
   .kv{display:grid;grid-template-columns:110px 1fr;row-gap:6px;font-size:14px}
-  .kv dt{color:var(--muted)} .kv dd{margin:0;font-family:"IBM Plex Mono",monospace;word-break:break-all}
+  .kv dt{color:var(--muted)} .kv dd{margin:0;font-family:var(--mono);word-break:break-all}
   .qwatt-balance{font:600 22px "Chakra Petch",sans-serif;color:var(--amber)}
 
   .dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--muted);margin-right:8px}
@@ -62,7 +104,7 @@
   @media (prefers-reduced-motion: reduce){.dot.on{animation:none}}
 
   #log{background:var(--ground);border:1px solid var(--line-soft);border-radius:6px;
-    font:13px/1.6 "IBM Plex Mono",monospace;padding:12px 14px;min-height:90px;
+    font:13px/1.6 var(--mono);padding:12px 14px;min-height:90px;
     max-height:260px;overflow-y:auto}
   #log p{margin:0 0 6px;word-break:break-word}
   #log .t{color:#6b5a48;margin-right:8px}
@@ -72,10 +114,295 @@
 </style>
 </head>
 <body>
+<style id="qtheme">
+:root{--ch-grid:#3b2d1d;--ch-label:#8b7a64;--ch-line:#d08a57;--ch-avg:#c9a15f;--ch-area:rgba(208,138,87,.10);--ch-ring:#f0e8dc}
+html[data-theme="light"]{
+  --bg:#faf8f2;--bg2:#f5f0e6;
+  --paper:#faf8f2;--paper-2:#f1ecdf;--paper-3:#e6dfcd;
+  --panel:#f1ecdf;--panel2:#e6dfcd;
+  --line:#e6e2d6;
+  --ink:#1b1a14;--text:#1b1a14;--ink-2:#474334;
+  --muted:#5a5244;--grey:#6f6957;--faint:#6f6957;
+  --navy:#291d13;--navy-2:#342619;
+  --teal:#b0582f;--teal-lt:#d08a63;--amber:#6b4a2e;
+  --accent:#b0582f;--accent2:#8a672f;--cyan:#8a672f;--sand:#8a672f;--sun:#b0582f;
+  --good:#1a7f4e;--bad:#b91c1c;--warn:#8a6d1f;
+  --ch-grid:#e6e2d6;--ch-label:#6f6957;--ch-line:#b0582f;--ch-avg:#6b4a2e;--ch-area:rgba(176,88,47,.10);--ch-ring:#faf8f2;
+}
+html[data-theme="light"] .btn.primary{color:#fff}
+html[data-theme="light"] .tf button.on{color:#fff}
+html[data-theme="light"] .sim-row .buy{color:#fff}
+html[data-theme="light"] .st-chip.st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
+html[data-theme="light"] .st-chip.st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
+html[data-theme="light"] .st-chip.st-plan,html[data-theme="light"] .st-chip.st-demo{color:#6f6957;border-color:#d9d3c4}
+html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
+html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
+html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
+html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
+html[data-theme="light"] .drawer,html[data-theme="light"] .qdrawer{background:#f1ecdf;border-right:1px solid #e6e2d6;scrollbar-color:#e6dfcd transparent}
+html[data-theme="light"] .drawer::-webkit-scrollbar-thumb,html[data-theme="light"] .qdrawer::-webkit-scrollbar-thumb{background:#e6dfcd}
+html[data-theme="light"] .d-head,html[data-theme="light"] .qd-head{border-bottom:1px solid #e6e2d6}
+html[data-theme="light"] .d-brand,html[data-theme="light"] .qd-brand{color:#1b1a14}
+html[data-theme="light"] .d-brand .bolt-sm,html[data-theme="light"] .qd-brand .qb{color:#b0582f}
+html[data-theme="light"] .d-close,html[data-theme="light"] .qd-x{color:#6f6957}
+html[data-theme="light"] .d-close:hover,html[data-theme="light"] .qd-x:hover{color:#1b1a14}
+html[data-theme="light"] .d-title,html[data-theme="light"] .qd-t{color:#6f6957}
+html[data-theme="light"] .d-link,html[data-theme="light"] .qd-nav a{color:#474334}
+html[data-theme="light"] .d-link::before,html[data-theme="light"] .qd-nav a::before{color:#b0997f}
+html[data-theme="light"] .d-link:hover,html[data-theme="light"] .qd-nav a:hover{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.10),rgba(176,88,47,0) 70%);border-left-color:rgba(176,88,47,.55)}
+html[data-theme="light"] .d-link.on,html[data-theme="light"] .qd-nav a.on{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.15),rgba(176,88,47,0) 75%);border-left-color:#b0582f}
+html[data-theme="light"] .d-link:hover::before,html[data-theme="light"] .qd-nav a:hover::before,html[data-theme="light"] .d-link.on::before,html[data-theme="light"] .qd-nav a.on::before{color:#b0582f}
+html[data-theme="light"] .d-nav .d-title:not(:first-child),html[data-theme="light"] .qd-t.mt{border-top-color:#e6e2d6}
+html[data-theme="light"] .d-foot,html[data-theme="light"] .qd-foot{border-top:1px solid #e6e2d6;color:#b0582f}
+html[data-theme="light"] body > header,html[data-theme="light"] #qwnav{background:rgba(250,248,242,.92);border-bottom:1px solid #e6e2d6}
+html[data-theme="light"] body > header .brand,html[data-theme="light"] #qwnav .qw-home{color:#1b1a14}
+html[data-theme="light"] body > header .brand .bolt,html[data-theme="light"] #qwnav .qw-home .qw-bolt{color:#b0582f}
+html[data-theme="light"] body > header .brand small{color:#6f6957;border-left-color:#e6e2d6}
+html[data-theme="light"] .menu-btn,html[data-theme="light"] #qwnav .qw-menu,html[data-theme="light"] .qd-trig,html[data-theme="light"] .qtheme-btn{border-color:rgba(176,88,47,.45);color:#b0582f}
+html[data-theme="light"] .menu-btn:hover,html[data-theme="light"] #qwnav .qw-menu:hover,html[data-theme="light"] .qd-trig:hover,html[data-theme="light"] .qtheme-btn:hover{background:rgba(176,88,47,.08);color:#1b1a14}
+html[data-theme="light"] .hd-chip,html[data-theme="light"] #qwnav .qw-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
+html[data-theme="light"] .hd-chip .live-dot,html[data-theme="light"] #qwnav .qw-chip .qw-dot{color:#b0582f}
+html[data-theme="light"] .lang-toggle{border-color:#e6e2d6}
+html[data-theme="light"] .lang-toggle button{color:#6f6957}
+html[data-theme="light"] .lang-toggle button.active{background:#b0582f;color:#fff}
+html[data-theme="light"] body > header .back{color:#474334}
+html[data-theme="light"] body > header .back:hover{color:#1b1a14}
+html[data-theme="light"] body > footer,html[data-theme="light"] #qwfoot{background:#f1ecdf;border-top:1px solid #e6e2d6;color:#474334}
+html[data-theme="light"] body > footer .f-brand,html[data-theme="light"] #qwfoot .qf-brand{color:#1b1a14}
+html[data-theme="light"] body > footer .f-brand small{color:#6f6957}
+html[data-theme="light"] #qwfoot .qf-brand .qf-bolt{color:#b0582f}
+html[data-theme="light"] body > footer .f-lead,html[data-theme="light"] #qwfoot .qf-lead{color:#474334}
+html[data-theme="light"] body > footer .f-chip,html[data-theme="light"] #qwfoot .qf-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
+html[data-theme="light"] body > footer .f-chip .live-dot{color:#b0582f}
+html[data-theme="light"] body > footer .grp h3,html[data-theme="light"] #qwfoot h3{color:#6f6957}
+html[data-theme="light"] body > footer .grp a,html[data-theme="light"] #qwfoot a{color:#474334}
+html[data-theme="light"] body > footer .grp a::before,html[data-theme="light"] #qwfoot .qf-grp a::before{color:#b0997f}
+html[data-theme="light"] body > footer .grp a:hover,html[data-theme="light"] #qwfoot a:hover{color:#1b1a14}
+html[data-theme="light"] body > footer .disclaimer,html[data-theme="light"] #qwfoot .qf-bottom{color:#6f6957;border-top-color:#e0dac9}
+html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
+.d-link::after,.qd-nav a::after{margin-left:auto;flex:none}
+.d-link[href="wallet.html"]::after,.qd-nav a[href="wallet.html"]::after,.d-link[href="console.html"]::after,.qd-nav a[href="console.html"]::after,.d-link[href="pay.html"]::after,.qd-nav a[href="pay.html"]::after,.d-link[href="proof.html"]::after,.qd-nav a[href="proof.html"]::after,.d-link[href="respaldo.html"]::after,.qd-nav a[href="respaldo.html"]::after,.d-link[href="red.html"]::after,.qd-nav a[href="red.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#3cb87f;box-shadow:0 0 6px rgba(60,184,127,.5)}
+.d-link[href="grid.html"]::after,.qd-nav a[href="grid.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#6e5c49}
+.d-link[href="piloto.html"]::after,.qd-nav a[href="piloto.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#c9a15f;box-shadow:0 0 6px rgba(201,161,95,.35)}
+html[data-theme="light"] .d-link[href="wallet.html"]::after,html[data-theme="light"] .qd-nav a[href="wallet.html"]::after,html[data-theme="light"] .d-link[href="console.html"]::after,html[data-theme="light"] .qd-nav a[href="console.html"]::after,html[data-theme="light"] .d-link[href="pay.html"]::after,html[data-theme="light"] .qd-nav a[href="pay.html"]::after,html[data-theme="light"] .d-link[href="proof.html"]::after,html[data-theme="light"] .qd-nav a[href="proof.html"]::after,html[data-theme="light"] .d-link[href="respaldo.html"]::after,html[data-theme="light"] .qd-nav a[href="respaldo.html"]::after,html[data-theme="light"] .d-link[href="red.html"]::after,html[data-theme="light"] .qd-nav a[href="red.html"]::after{background:#15803d;box-shadow:0 0 6px rgba(21,128,61,.3)}
+html[data-theme="light"] .d-link[href="grid.html"]::after,html[data-theme="light"] .qd-nav a[href="grid.html"]::after{background:#c4bca6}
+html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="light"] .qd-nav a[href="piloto.html"]::after{background:#a97b2f;box-shadow:0 0 6px rgba(169,123,47,.3)}
+:root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
+html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
+svg.qm{flex:none}
+html[data-theme="light"] .tag.t,html[data-theme="light"] .s-hero .tag{color:#8f4522}
+html[data-theme="light"] #onchain .tag.t{color:#d08a57}
+.qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+</style>
+<script>
+(function(){
+  var KEY='qwatt.theme';
+  var saved='light';try{saved=localStorage.getItem(KEY)||'light'}catch(e){}
+  document.documentElement.setAttribute('data-theme',saved);
+  function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
+  syncMeta(saved);
+  function label(t){return t==='light'?'\u263D':'\u2600'}
+  function apply(t){
+    document.documentElement.setAttribute('data-theme',t);
+    var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
+    try{localStorage.setItem(KEY,t)}catch(e){}
+    syncMeta(t);
+    try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
+  }
+  function init(){
+    if(document.getElementById('qthemeBtn'))return;
+    var host=document.querySelector('#qwnav .qw-in')||document.querySelector('header .nav');
+    if(!host)return;
+    var btn=document.createElement('button');
+    btn.id='qthemeBtn';btn.className='qtheme-btn';
+    btn.setAttribute('aria-label','Cambiar tema d\u00EDa/noche');
+    btn.title='D\u00EDa / noche';
+    btn.textContent=label(document.documentElement.getAttribute('data-theme'));
+    btn.addEventListener('click',function(){
+      apply(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
+    });
+    var anchor=host.querySelector('.qw-chip')||host.querySelector('.hd-chip');
+    host.insertBefore(btn,anchor||null);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<div class="qd-overlay" id="qdOverlay"></div>
+<aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
+<style>
+body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
+@media(min-width:1000px){html.qd-docked body{margin-left:300px}.qd-overlay{display:none !important}}
+.qd-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
+.qd-overlay.open{opacity:1;visibility:visible}
+.qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.qdrawer.open{transform:none}
+.qdrawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
+.qdrawer::-webkit-scrollbar{width:6px}
+.qdrawer::-webkit-scrollbar-track{background:transparent}
+.qdrawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
+.qdrawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
+@media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
+.qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
+.qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
+.qd-brand .qb{color:#d08a57}
+.qd-x{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px;font-family:inherit}
+.qd-x:hover{color:#f0e8dc}
+.qd-nav{padding:16px 14px;flex:1}
+.qd-t{counter-reset:qd;font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin:0 0 8px}
+.qd-t.mt{margin-top:22px;padding-top:16px;border-top:1px solid #2b2115}
+.qd-nav a{display:flex;align-items:center;gap:11px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-left:2px solid transparent;border-radius:0 3px 3px 0;text-decoration:none;transition:color .15s,background .15s,border-color .15s,padding .18s;margin-bottom:1px}
+.qd-nav a::before{counter-increment:qd;content:counter(qd,decimal-leading-zero);font-size:9px;color:#6e5c49;min-width:15px;transition:color .15s}
+.qd-nav a:hover{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.10),rgba(208,138,87,0) 70%);border-left-color:rgba(208,138,87,.5);padding-left:14px}
+.qd-nav a:hover::before{color:#d08a57}
+.qd-nav a.on{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.16),rgba(208,138,87,0) 75%);border-left-color:#d08a57;font-weight:600}
+.qd-nav a.on::before{color:#d08a57}
+.qdrawer.open .qd-nav>*{animation:qdIn .34s cubic-bezier(.22,1,.36,1) both}
+@keyframes qdIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
+.qdrawer.open .qd-nav>:nth-child(2){animation-delay:.012s}
+.qdrawer.open .qd-nav>:nth-child(3){animation-delay:.024s}
+.qdrawer.open .qd-nav>:nth-child(4){animation-delay:.036s}
+.qdrawer.open .qd-nav>:nth-child(5){animation-delay:.048s}
+.qdrawer.open .qd-nav>:nth-child(6){animation-delay:.060s}
+.qdrawer.open .qd-nav>:nth-child(7){animation-delay:.072s}
+.qdrawer.open .qd-nav>:nth-child(8){animation-delay:.084s}
+.qdrawer.open .qd-nav>:nth-child(9){animation-delay:.096s}
+.qdrawer.open .qd-nav>:nth-child(10){animation-delay:.108s}
+.qdrawer.open .qd-nav>:nth-child(11){animation-delay:.120s}
+.qdrawer.open .qd-nav>:nth-child(12){animation-delay:.132s}
+.qdrawer.open .qd-nav>:nth-child(13){animation-delay:.144s}
+.qdrawer.open .qd-nav>:nth-child(14){animation-delay:.156s}
+.qdrawer.open .qd-nav>:nth-child(15){animation-delay:.168s}
+.qdrawer.open .qd-nav>:nth-child(16){animation-delay:.180s}
+.qdrawer.open .qd-nav>:nth-child(17){animation-delay:.192s}
+.qdrawer.open .qd-nav>:nth-child(18){animation-delay:.204s}
+.qdrawer.open .qd-nav>:nth-child(19){animation-delay:.216s}
+.qdrawer.open .qd-nav>:nth-child(20){animation-delay:.228s}
+.qdrawer.open .qd-nav>:nth-child(21){animation-delay:.240s}
+.qdrawer.open .qd-nav>:nth-child(22){animation-delay:.252s}
+.qdrawer.open .qd-nav>:nth-child(23){animation-delay:.264s}
+.qdrawer.open .qd-nav>:nth-child(24){animation-delay:.276s}
+.qdrawer.open .qd-nav>:nth-child(25){animation-delay:.288s}
+.qdrawer.open .qd-nav>:nth-child(26){animation-delay:.300s}
+@media(prefers-reduced-motion:reduce){.qdrawer.open .qd-nav>*{animation:none}}
+.qd-foot{padding:14px 20px;border-top:1px solid #2b2115;font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
+#qwnav .qw-menu{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:13px;line-height:1;padding:6px 11px;cursor:pointer;flex:none}
+#qwnav .qw-menu:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+.qd-trig{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.08em;padding:7px 12px;cursor:pointer}
+.qd-trig:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+</style>
+<div class="qd-head">
+<a class="qd-brand" href="index.html"><span class="qb"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
+<button class="qd-x" id="qdClose" aria-label="Cerrar menu">&#10005;</button>
+</div>
+<nav class="qd-nav">
+<div class="qd-t">Explorar QWATT</div>
+<a href="index.html">Inicio</a>
+<a href="index.html#peg">C&oacute;mo funciona</a>
+<a href="index.html#dash">Dashboard</a>
+<a href="index.html#onchain">Onchain</a>
+<a href="index.html#clean">QWATT-Clean</a>
+<a href="index.html#tok">Tokenomics</a>
+<a href="index.html#road">Roadmap</a>
+<a href="index.html#security">Seguridad</a>
+<div class="qd-t mt">Apps</div>
+<a title="Testnet — transacciones reales" href="console.html">Consola Onchain</a>
+<a title="Demo — datos simulados" href="grid.html">QWATT Grid</a>
+<a title="Testnet — transacciones reales" href="pay.html">QWATT Pay</a>
+<a title="Testnet — transacciones reales" href="wallet.html">QWATT Wallet</a>
+<a title="Testnet — datos onchain en vivo" href="proof.html">QWATT Explorer</a>
+<a title="Testnet — datos onchain en vivo" href="respaldo.html">QWATT Proof</a>
+<a title="Testnet — datos onchain en vivo" href="red.html">QWATT Pulse</a>
+<a title="Prototipo — hardware en construcción" href="piloto.html">Piloto Solar</a>
+<a href="backup.html">Backup</a>
+<div class="qd-t mt">Recursos</div>
+<a href="whitepaper.html">Whitepaper</a>
+<a href="terminos.html">T&eacute;rminos</a>
+<a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+<a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
+</nav>
+<div class="qd-foot">&#9679; STELLAR TESTNET</div>
+</aside>
+<script>
+(function(){
+  var d=document.getElementById('qdrawer'),o=document.getElementById('qdOverlay');
+  var MQ=window.matchMedia('(min-width:1000px)');
+  function set(open){
+    d.classList.toggle('open',open);
+    o.classList.toggle('open',open);
+    document.documentElement.classList.toggle('qd-docked',open&&MQ.matches);
+    var b=document.getElementById('qdOpen');
+    if(b)b.setAttribute('aria-expanded',open);
+    try{localStorage.setItem('qwatt.drawer',open?'1':'0')}catch(e){}
+  }
+  document.addEventListener('click',function(e){
+    if(e.target.closest&&e.target.closest('#qdOpen'))set(!d.classList.contains('open'));
+  });
+  document.getElementById('qdClose').addEventListener('click',function(){set(false)});
+  o.addEventListener('click',function(){set(false)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
+  d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(!MQ.matches)set(false)})});
+  if(MQ.addEventListener)MQ.addEventListener('change',function(){set(d.classList.contains('open'))});
+  try{if(localStorage.getItem('qwatt.drawer')==='1'&&MQ.matches)set(true)}catch(e){}
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
+  if(location.pathname.indexOf('/proof')===0)page='proof';
+  d.querySelectorAll('a[href]').forEach(function(a){
+    var h=a.getAttribute('href');
+    if(h.indexOf('#')<0&&h.indexOf('http')!==0&&h.replace(/\.html$/,'')===page)a.classList.add('on');
+  });
+})();
+</script>
+<nav id="qwnav" aria-label="QWATT apps">
+<style>
+#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
+#qwnav a{text-decoration:none;white-space:nowrap}
+#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
+#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
+#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
+#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
+#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#qwnav .qw-links::-webkit-scrollbar{display:none}
+#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
+#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
+#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
+#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
+@keyframes qwblink{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
+#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
+@media(max-width:860px){
+#qwnav .qw-links{display:none}
+#qwnav .qw-chip{display:none}
+#qwnav .qw-sep{display:none}
+#qwnav .qw-burger{display:block}
+#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
+#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
+#qwnav.open .qw-links a:last-child{border-bottom:0}
+#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
+}
+</style>
+<div class="qw-in">
+<button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
+<a class="qw-home" href="index.html"><span class="qw-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span>QWATT</a>
+<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
+</div>
+<script>
+(function(){
+  var nav=document.getElementById('qwnav');
+  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
+  document.body.style.paddingTop=(pad+52)+'px';
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
+})();
+</script>
+</nav>
 <main>
   <header>
-    <div class="wordmark">Q<span>WATT</span></div>
-    <div class="badge">Wallet · Testnet</div>
+    <a href="index.html" style="display:flex;align-items:center;gap:9px;color:inherit;text-decoration:none">
+      <svg viewBox="0 0 64 64" width="26" height="26" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg>
+      <span class="wordmark">Q<span>WATT</span></span>
+    </a>
+    <div class="badge">Billetera &#183; Testnet</div>
   </header>
   <p class="sub">Test bench for the non-custodial wallet flow. Signing happens inside your wallet (Freighter, xBull, Lobstr, Albedo…).</p>
 
@@ -138,6 +465,58 @@
     · testnet demonstration only
   </footer>
 </main>
+<footer id="qwfoot">
+<style>
+#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
+#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
+#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
+#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
+#qwfoot a:hover{color:#f0e8dc}
+#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
+#qwfoot .qf-brand .qf-bolt{color:#d08a57}
+#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
+#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
+#qwfoot h3{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
+#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
+#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
+#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#qwfoot .qf-bottom a{color:#d08a57}
+</style>
+<div class="qf-in">
+  <div class="qf-cols">
+    <div>
+      <a class="qf-brand" href="index.html"><span class="qf-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
+      <p class="qf-lead">The Clean Token: energ&iacute;a renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo.</p>
+      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+    </div>
+    <div class="qf-grp">
+      <h3>Apps</h3>
+      <a href="console.html">Consola Onchain</a>
+      <a href="grid.html">QWATT Grid</a>
+      <a href="pay.html">QWATT Pay</a>
+      <a href="wallet.html">QWATT Wallet</a>
+      <a href="proof.html">QWATT Explorer</a>
+      <a href="respaldo.html">QWATT Proof</a>
+      <a href="red.html">QWATT Pulse</a>
+      <a href="piloto.html">Piloto Solar</a>
+    </div>
+    <div class="qf-grp">
+      <h3>Recursos</h3>
+      <a href="index.html">Inicio</a>
+      <a href="index.html#clean">QWATT-Clean</a>
+      <a href="whitepaper.html">Whitepaper</a>
+      <a href="backup.html">Backup de claves</a>
+      <a href="terminos.html">T&eacute;rminos y seguridad</a>
+      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    </div>
+  </div>
+  <div class="qf-bottom">
+    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+  </div>
+</div>
+</footer>
 
 <script type="module">
   import * as Wallet from './qwatt-wallet.js';

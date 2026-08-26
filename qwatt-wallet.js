@@ -34,9 +34,17 @@ export const CONFIG = {
   TIMEOUT_SECONDS: 180,
 };
 
+// Dependencies are VENDORED, not pulled from a CDN. Two reasons, both real:
+//   1. esm.sh serves a broken stellar-wallets-kit build (its tweetnacl-util
+//      dependency fails to resolve) — "Connect wallet" simply died. Verified
+//      2026-08-25 against @creit.tech/stellar-wallets-kit@1.7.0.
+//   2. A page that brokers wallet signatures should not load third-party code
+//      at runtime. Self-hosting removes the supply-chain path and lets the CSP
+//      stay strict.
+// Rebuild after a version bump:  npm install && npm run vendor:wallet
 const CDN = {
-  sdk: 'https://esm.sh/@stellar/stellar-sdk@13.1.0',
-  kit: 'https://esm.sh/@creit.tech/stellar-wallets-kit@1.7.0',
+  sdk: './assets/vendor/stellar-sdk.js',
+  kit: './assets/vendor/stellar-wallets-kit.js',
 };
 
 /* ───────────────────────── module-local state ──────────────────────── */

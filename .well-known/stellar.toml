@@ -44,21 +44,28 @@ ORG_DBA = "QWATT"
 ORG_URL = "https://qwatt.org"
 ORG_LOGO = "https://qwatt.org/logo.png"
 ORG_DESCRIPTION = "QWATT is an energy-verification protocol for distributed solar: metered production is checked against physics by an independent second instrument, and the verified event is recorded publicly on Stellar. Testnet demonstration — see https://qwatt.org/whitepaper.html for the model and its current limits."
-ORG_PHYSICAL_ADDRESS = "[COMPLETAR — domicilio de la sociedad], Santiago, Chile"
-ORG_OFFICIAL_EMAIL = "[COMPLETAR — p.ej. hola@qwatt.org]"
-ORG_SUPPORT_EMAIL = "[COMPLETAR]"
+ORG_OFFICIAL_EMAIL = "jay@quorelia.org"
+ORG_SUPPORT_EMAIL = "jay@quorelia.org"
 ORG_GITHUB = "https://github.com/academiaseul/QWATT"
+# ORG_PHYSICAL_ADDRESS — deliberately absent until the SpA's registered domicile
+#   is confirmed. SEP-1 treats it as optional; a placeholder address published
+#   here would be a false statement about a legal entity. Add it as one line:
+#   ORG_PHYSICAL_ADDRESS = "<calle numero, comuna>, Santiago, Chile"
 # ORG_TWITTER — omit the key entirely rather than publish an empty value.
 
 # One block per founder. SEP-1 reviewers and wallet directories weight this section.
+# NOTE: `name` is a public identity claim — verify the spelling matches the ID
+# document before this file is treated as authoritative at mainnet.
 [[PRINCIPALS]]
-name = "[COMPLETAR — nombre completo, Jay]"
-email = "[COMPLETAR]"
-github = "[COMPLETAR]"
+name = "Jay Kim"
+email = "jay@quorelia.org"
+github = "https://github.com/academiaseul"
 
-[[PRINCIPALS]]
-name = "[COMPLETAR — nombre completo, Diego]"
-email = "[COMPLETAR]"
+# Second founder (Diego) — block intentionally omitted rather than published with
+# placeholder text. Restore it with the confirmed legal name and email:
+#   [[PRINCIPALS]]
+#   name = "<nombre completo>"
+#   email = "<correo>"
 
 [[CURRENCIES]]
 code = "QWATT"
