@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>QWATT — Verificación</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-ESWGGQ9742"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+
+  gtag('config', 'G-ESWGGQ9742');
+</script>
+<meta name="description" content="Cómo QWATT prueba que un kWh existió: dos medidores independientes, compuertas que fallan cerradas, y una cadena de evidencia que cualquiera puede volver a verificar sin confiar en nosotros.">
+<link rel="canonical" href="https://qwatt.org/verificacion.html">
+<meta name="theme-color" content="#120c07">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/verificacion.html">
+<meta property="og:title" content="QWATT — Verificación">
+<meta property="og:description" content="Compuertas de física entre un medidor y la blockchain. Prueba tú mismo a falsificar un evento energético.">
+<meta property="og:locale" content="es_CL">
+<meta property="og:image" content="https://qwatt.org/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://qwatt.org/og-image.png">
+<meta name="twitter:title" content="QWATT — Verificación">
+<meta name="twitter:description" content="Compuertas de física entre un medidor y la blockchain. Prueba tú mismo a falsificar un evento energético.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root{
+    --ink:#f0e8dc; --ink-2:#b3a48f; --grey:#8b7a64; --line:#3b2d1d;
+    --paper:#16100a; --paper-2:#231a10; --paper-3:#2b2015; --navy:#120c07;
+    --teal:#d08a57; --teal-lt:#d9b26a; --amber:#c9a15f;
+    --good:#3cb87f; --bad:#e05c5c; --warn:#d9b26a;
+    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
+    --gut:28px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
+  a{color:inherit;text-decoration:none}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 var(--gut)}
+  :focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:3px}
+
+  header.site{padding:88px 0 0}
+  .brand{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.22em;text-transform:uppercase;display:inline-flex;align-items:center;gap:10px;color:var(--ink)}
+  .brand em{font-style:normal;color:var(--teal)}
+  .brand small{font-family:var(--mono);font-size:11px;color:var(--grey);font-weight:400;margin-left:8px;letter-spacing:.14em}
+
+  .s-hero{padding:44px 0 46px;border-bottom:1px solid var(--line)}
+  .tag{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:16px}
+  h1{font-size:clamp(1.9rem,1.2rem+2.6vw,3rem);font-weight:300;letter-spacing:-.022em;line-height:1.1;max-width:20ch}
+  h1 b{font-weight:600;color:var(--teal)}
+  .lede{font-size:16.5px;line-height:1.65;color:var(--ink-2);max-width:62ch;margin:20px 0 0}
+  .claim{background:var(--paper-2);border-left:3px solid var(--teal);padding:20px 24px;margin:26px 0 0;max-width:68ch}
+  .claim p{font-size:15px;line-height:1.6;color:var(--ink-2)}
+  .claim b{color:var(--ink);font-weight:600}
+
+  section{padding:52px 0;border-bottom:1px solid var(--line)}
+  h2{font-size:24px;font-weight:400;letter-spacing:-.02em;margin-bottom:8px}
+  h2 .n{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.18em;display:block;margin-bottom:10px;text-transform:uppercase}
+  .sub{font-size:15px;line-height:1.65;color:var(--ink-2);max-width:64ch;margin-bottom:26px}
+  p{font-size:15px;line-height:1.65;color:var(--ink-2)}
+  b{color:var(--ink);font-weight:600}
+  code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);border:1px solid var(--line);border-radius:3px;padding:1px 6px}
+
+  .rigline{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
+  .rigline span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--teal);border:1px solid rgba(208,138,87,.4);border-radius:99px;padding:5px 12px}
+
+  /* ---------- interactive lab ---------- */
+  .lab{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
+  @media(max-width:860px){.lab{grid-template-columns:1fr}}
+  .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:20px 22px}
+  .panel h3{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--grey);margin-bottom:16px}
+
+  .presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
+  .presets button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:none;border:1px solid var(--line);color:var(--ink-2);border-radius:99px;padding:7px 13px;cursor:pointer;transition:border-color .15s,color .15s,background .15s;min-height:34px}
+  .presets button:hover{border-color:var(--teal);color:var(--teal)}
+  .presets button.on{background:var(--teal);border-color:var(--teal);color:#16100a;font-weight:600}
+
+  .ctl{margin-bottom:16px}
+  .ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--ink-2);margin-bottom:7px}
+  .ctl label .v{color:var(--teal);font-weight:500;font-variant-numeric:tabular-nums}
+  .ctl input[type=range]{width:100%;accent-color:var(--teal);height:22px;cursor:pointer}
+  .toggles{display:flex;flex-wrap:wrap;gap:8px}
+  .toggles label{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);border:1px solid var(--line);border-radius:6px;padding:9px 12px;cursor:pointer;min-height:38px}
+  .toggles input{accent-color:var(--teal);width:15px;height:15px;cursor:pointer}
+
+  .verdict{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:7px;margin-bottom:16px;border:1px solid}
+  .verdict.ok{background:rgba(60,184,127,.09);border-color:rgba(60,184,127,.45)}
+  .verdict.no{background:rgba(224,92,92,.09);border-color:rgba(224,92,92,.45)}
+  .verdict .big{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.14em}
+  .verdict.ok .big{color:var(--good)} .verdict.no .big{color:var(--bad)}
+  .verdict .mint{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);margin-left:auto;font-variant-numeric:tabular-nums;text-align:right}
+
+  .checks{display:flex;flex-direction:column;gap:6px}
+  .chk{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:baseline;padding:9px 11px;border-radius:6px;background:var(--paper);border:1px solid var(--line)}
+  .chk .id{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--grey);white-space:nowrap}
+  .chk .st{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;border:1px solid currentColor;border-radius:99px;padding:2px 8px}
+  .chk.pass .st{color:var(--good)} .chk.fail .st{color:var(--bad)}
+  .chk.fail{border-color:rgba(224,92,92,.4)}
+  .chk .txt{font-size:12.5px;color:var(--ink-2);line-height:1.5}
+  .chk.fail .txt{color:var(--ink)}
+
+  .vlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:14px}
+  .vcard{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
+  .vcard.soon{opacity:.72;border-style:dashed}
+  .vcard .vid{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--teal);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
+  .vcard .vid .ph{color:var(--grey);font-weight:400;letter-spacing:.1em}
+  .vcard h4{font-size:15px;font-weight:600;margin-bottom:7px}
+  .vcard p{font-size:13.5px;line-height:1.55}
+  .vcard .adv{display:block;margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--grey);border-top:1px solid var(--line);padding-top:9px}
+
+  .drills{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
+  .drills th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);text-align:left;padding:9px 12px;border-bottom:1.4px solid var(--ink)}
+  .drills td{padding:11px 12px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
+  .drills td b{color:var(--ink)}
+  .drills .out{font-family:var(--mono);font-size:11.5px;color:var(--bad)}
+  .drills .out.ok{color:var(--good)}
+  .tscroll{overflow-x:auto}
+
+  .ladder{display:flex;flex-direction:column;gap:2px;margin-top:6px}
+  .rung{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;padding:14px 16px;background:var(--paper-2);border:1px solid var(--line)}
+  .rung:first-child{border-radius:8px 8px 0 0} .rung:last-child{border-radius:0 0 8px 8px}
+  .rung .lv{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--teal)}
+  .rung .nm{font-size:14px} .rung .nm small{display:block;color:var(--ink-2);font-size:12.5px;margin-top:2px}
+  .rung .where{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--grey);white-space:nowrap}
+  .rung.now{border-color:var(--teal);background:var(--paper-3)}
+  .rung.now .where{color:var(--teal)}
+
+  .ops{display:flex;flex-direction:column;gap:10px;margin-top:6px}
+  .op{display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:baseline;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:15px 18px}
+  .op .k{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--teal);letter-spacing:.1em}
+  .op p{font-size:13.5px;line-height:1.55}
+
+  .princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:22px}
+  .princ div{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
+  .princ h4{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--teal-lt)}
+  .princ p{font-size:13px;line-height:1.55}
+
+  ul.lines{list-style:none}
+  ul.lines li{font-size:14.5px;line-height:1.6;color:var(--ink-2);padding:11px 0 11px 26px;position:relative;border-top:1px solid var(--line)}
+  ul.lines li:first-child{border-top:0}
+  ul.lines li::before{content:'\2717';position:absolute;left:0;color:var(--bad);font-family:var(--mono)}
+  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:9px}
+  ol.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:baseline;font-size:14.5px;line-height:1.6;color:var(--ink-2)}
+  ol.steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:11px;font-weight:600;color:var(--teal)}
+
+  .foot-note{font-size:13.5px;color:var(--grey);margin-top:22px;max-width:66ch}
+  .foot-note a{color:var(--teal);border-bottom:1px solid rgba(208,138,87,.4)}
+  @media(prefers-reduced-motion:reduce){*{transition:none !important}}
+</style>
+</head>
+<body>
+<style id="qtheme">
+:root{--ch-grid:#3b2d1d;--ch-label:#8b7a64;--ch-line:#d08a57;--ch-avg:#c9a15f;--ch-area:rgba(208,138,87,.10);--ch-ring:#f0e8dc}
+html[data-theme="light"]{
+  --bg:#faf8f2;--bg2:#f5f0e6;
+  --paper:#faf8f2;--paper-2:#f1ecdf;--paper-3:#e6dfcd;
+  --panel:#f1ecdf;--panel2:#e6dfcd;
+  --line:#e6e2d6;
+  --ink:#1b1a14;--text:#1b1a14;--ink-2:#474334;
+  --muted:#5a5244;--grey:#6f6957;--faint:#6f6957;
+  --navy:#291d13;--navy-2:#342619;
+  --teal:#b0582f;--teal-lt:#d08a63;--amber:#6b4a2e;
+  --accent:#b0582f;--accent2:#8a672f;--cyan:#8a672f;--sand:#8a672f;--sun:#b0582f;
+  --good:#1a7f4e;--bad:#b91c1c;--warn:#8a6d1f;
+  --ch-grid:#e6e2d6;--ch-label:#6f6957;--ch-line:#b0582f;--ch-avg:#6b4a2e;--ch-area:rgba(176,88,47,.10);--ch-ring:#faf8f2;
+}
+html[data-theme="light"] .btn.primary{color:#fff}
+html[data-theme="light"] .tf button.on{color:#fff}
+html[data-theme="light"] .sim-row .buy{color:#fff}
+html[data-theme="light"] .st-chip.st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
+html[data-theme="light"] .st-chip.st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
+html[data-theme="light"] .st-chip.st-plan,html[data-theme="light"] .st-chip.st-demo{color:#6f6957;border-color:#d9d3c4}
+html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
+html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
+html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
+html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
+html[data-theme="light"] .drawer,html[data-theme="light"] .qdrawer{background:#f1ecdf;border-right:1px solid #e6e2d6;scrollbar-color:#e6dfcd transparent}
+html[data-theme="light"] .drawer::-webkit-scrollbar-thumb,html[data-theme="light"] .qdrawer::-webkit-scrollbar-thumb{background:#e6dfcd}
+html[data-theme="light"] .d-head,html[data-theme="light"] .qd-head{border-bottom:1px solid #e6e2d6}
+html[data-theme="light"] .d-brand,html[data-theme="light"] .qd-brand{color:#1b1a14}
+html[data-theme="light"] .d-brand .bolt-sm,html[data-theme="light"] .qd-brand .qb{color:#b0582f}
+html[data-theme="light"] .d-close,html[data-theme="light"] .qd-x{color:#6f6957}
+html[data-theme="light"] .d-close:hover,html[data-theme="light"] .qd-x:hover{color:#1b1a14}
+html[data-theme="light"] .d-title,html[data-theme="light"] .qd-t{color:#6f6957}
+html[data-theme="light"] .d-link,html[data-theme="light"] .qd-nav a{color:#474334}
+html[data-theme="light"] .d-link::before,html[data-theme="light"] .qd-nav a::before{color:#b0997f}
+html[data-theme="light"] .d-link:hover,html[data-theme="light"] .qd-nav a:hover{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.10),rgba(176,88,47,0) 70%);border-left-color:rgba(176,88,47,.55)}
+html[data-theme="light"] .d-link.on,html[data-theme="light"] .qd-nav a.on{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.15),rgba(176,88,47,0) 75%);border-left-color:#b0582f}
+html[data-theme="light"] .d-link:hover::before,html[data-theme="light"] .qd-nav a:hover::before,html[data-theme="light"] .d-link.on::before,html[data-theme="light"] .qd-nav a.on::before{color:#b0582f}
+html[data-theme="light"] .d-nav .d-title:not(:first-child),html[data-theme="light"] .qd-t.mt{border-top-color:#e6e2d6}
+html[data-theme="light"] .d-foot,html[data-theme="light"] .qd-foot{border-top:1px solid #e6e2d6;color:#b0582f}
+html[data-theme="light"] body > header,html[data-theme="light"] #qwnav{background:rgba(250,248,242,.92);border-bottom:1px solid #e6e2d6}
+html[data-theme="light"] body > header .brand,html[data-theme="light"] #qwnav .qw-home{color:#1b1a14}
+html[data-theme="light"] body > header .brand .bolt,html[data-theme="light"] #qwnav .qw-home .qw-bolt{color:#b0582f}
+html[data-theme="light"] body > header .brand small{color:#6f6957;border-left-color:#e6e2d6}
+html[data-theme="light"] .menu-btn,html[data-theme="light"] #qwnav .qw-menu,html[data-theme="light"] .qd-trig,html[data-theme="light"] .qtheme-btn{border-color:rgba(176,88,47,.45);color:#b0582f}
+html[data-theme="light"] .menu-btn:hover,html[data-theme="light"] #qwnav .qw-menu:hover,html[data-theme="light"] .qd-trig:hover,html[data-theme="light"] .qtheme-btn:hover{background:rgba(176,88,47,.08);color:#1b1a14}
+html[data-theme="light"] .hd-chip,html[data-theme="light"] #qwnav .qw-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
+html[data-theme="light"] .hd-chip .live-dot,html[data-theme="light"] #qwnav .qw-chip .qw-dot{color:#b0582f}
+html[data-theme="light"] .lang-toggle{border-color:#e6e2d6}
+html[data-theme="light"] .lang-toggle button{color:#6f6957}
+html[data-theme="light"] .lang-toggle button.active{background:#b0582f;color:#fff}
+html[data-theme="light"] body > header .back{color:#474334}
+html[data-theme="light"] body > header .back:hover{color:#1b1a14}
+html[data-theme="light"] body > footer,html[data-theme="light"] #qwfoot{background:#f1ecdf;border-top:1px solid #e6e2d6;color:#474334}
+html[data-theme="light"] body > footer .f-brand,html[data-theme="light"] #qwfoot .qf-brand{color:#1b1a14}
+html[data-theme="light"] body > footer .f-brand small{color:#6f6957}
+html[data-theme="light"] #qwfoot .qf-brand .qf-bolt{color:#b0582f}
+html[data-theme="light"] body > footer .f-lead,html[data-theme="light"] #qwfoot .qf-lead{color:#474334}
+html[data-theme="light"] body > footer .f-chip,html[data-theme="light"] #qwfoot .qf-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
+html[data-theme="light"] body > footer .f-chip .live-dot{color:#b0582f}
+html[data-theme="light"] body > footer .grp h3,html[data-theme="light"] #qwfoot h3{color:#6f6957}
+html[data-theme="light"] body > footer .grp a,html[data-theme="light"] #qwfoot a{color:#474334}
+html[data-theme="light"] body > footer .grp a::before,html[data-theme="light"] #qwfoot .qf-grp a::before{color:#b0997f}
+html[data-theme="light"] body > footer .grp a:hover,html[data-theme="light"] #qwfoot a:hover{color:#1b1a14}
+html[data-theme="light"] body > footer .disclaimer,html[data-theme="light"] #qwfoot .qf-bottom{color:#6f6957;border-top-color:#e0dac9}
+html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
+.d-link::after,.qd-nav a::after{margin-left:auto;flex:none}
+.d-link[href="wallet.html"]::after,.qd-nav a[href="wallet.html"]::after,.d-link[href="console.html"]::after,.qd-nav a[href="console.html"]::after,.d-link[href="pay.html"]::after,.qd-nav a[href="pay.html"]::after,.d-link[href="proof.html"]::after,.qd-nav a[href="proof.html"]::after,.d-link[href="respaldo.html"]::after,.qd-nav a[href="respaldo.html"]::after,.d-link[href="red.html"]::after,.qd-nav a[href="red.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#3cb87f;box-shadow:0 0 6px rgba(60,184,127,.5)}
+.d-link[href="grid.html"]::after,.qd-nav a[href="grid.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#6e5c49}
+.d-link[href="piloto.html"]::after,.qd-nav a[href="piloto.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#c9a15f;box-shadow:0 0 6px rgba(201,161,95,.35)}
+html[data-theme="light"] .d-link[href="wallet.html"]::after,html[data-theme="light"] .qd-nav a[href="wallet.html"]::after,html[data-theme="light"] .d-link[href="console.html"]::after,html[data-theme="light"] .qd-nav a[href="console.html"]::after,html[data-theme="light"] .d-link[href="pay.html"]::after,html[data-theme="light"] .qd-nav a[href="pay.html"]::after,html[data-theme="light"] .d-link[href="proof.html"]::after,html[data-theme="light"] .qd-nav a[href="proof.html"]::after,html[data-theme="light"] .d-link[href="respaldo.html"]::after,html[data-theme="light"] .qd-nav a[href="respaldo.html"]::after,html[data-theme="light"] .d-link[href="red.html"]::after,html[data-theme="light"] .qd-nav a[href="red.html"]::after{background:#15803d;box-shadow:0 0 6px rgba(21,128,61,.3)}
+html[data-theme="light"] .d-link[href="grid.html"]::after,html[data-theme="light"] .qd-nav a[href="grid.html"]::after{background:#c4bca6}
+html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="light"] .qd-nav a[href="piloto.html"]::after{background:#a97b2f;box-shadow:0 0 6px rgba(169,123,47,.3)}
+:root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
+html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
+svg.qm{flex:none}
+html[data-theme="light"] .tag.t,html[data-theme="light"] .s-hero .tag{color:#8f4522}
+html[data-theme="light"] #onchain .tag.t{color:#d08a57}
+.qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+</style>
+<script>
+(function(){
+  var KEY='qwatt.theme';
+  var saved='light';try{saved=localStorage.getItem(KEY)||'light'}catch(e){}
+  document.documentElement.setAttribute('data-theme',saved);
+  function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
+  syncMeta(saved);
+  function label(t){return t==='light'?'\u263D':'\u2600'}
+  function apply(t){
+    document.documentElement.setAttribute('data-theme',t);
+    var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
+    try{localStorage.setItem(KEY,t)}catch(e){}
+    syncMeta(t);
+    try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
+  }
+  function init(){
+    if(document.getElementById('qthemeBtn'))return;
+    var host=document.querySelector('#qwnav .qw-in')||document.querySelector('header .nav');
+    if(!host)return;
+    var btn=document.createElement('button');
+    btn.id='qthemeBtn';btn.className='qtheme-btn';
+    btn.setAttribute('aria-label','Cambiar tema d\u00EDa/noche');
+    btn.title='D\u00EDa / noche';
+    btn.textContent=label(document.documentElement.getAttribute('data-theme'));
+    btn.addEventListener('click',function(){
+      apply(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
+    });
+    var anchor=host.querySelector('.qw-chip')||host.querySelector('.hd-chip');
+    host.insertBefore(btn,anchor||null);
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+})();
+</script>
+<div class="qd-overlay" id="qdOverlay"></div>
+<aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
+<style>
+body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
+@media(min-width:1000px){html.qd-docked body{margin-left:300px}.qd-overlay{display:none !important}}
+.qd-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
+.qd-overlay.open{opacity:1;visibility:visible}
+.qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+.qdrawer.open{transform:none}
+.qdrawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
+.qdrawer::-webkit-scrollbar{width:6px}
+.qdrawer::-webkit-scrollbar-track{background:transparent}
+.qdrawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
+.qdrawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
+@media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
+.qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
+.qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
+.qd-brand .qb{color:#d08a57}
+.qd-x{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px;font-family:inherit}
+.qd-x:hover{color:#f0e8dc}
+.qd-nav{padding:16px 14px;flex:1}
+.qd-t{counter-reset:qd;font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin:0 0 8px}
+.qd-t.mt{margin-top:22px;padding-top:16px;border-top:1px solid #2b2115}
+.qd-nav a{display:flex;align-items:center;gap:11px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-left:2px solid transparent;border-radius:0 3px 3px 0;text-decoration:none;transition:color .15s,background .15s,border-color .15s,padding .18s;margin-bottom:1px}
+.qd-nav a::before{counter-increment:qd;content:counter(qd,decimal-leading-zero);font-size:9px;color:#6e5c49;min-width:15px;transition:color .15s}
+.qd-nav a:hover{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.10),rgba(208,138,87,0) 70%);border-left-color:rgba(208,138,87,.5);padding-left:14px}
+.qd-nav a:hover::before{color:#d08a57}
+.qd-nav a.on{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.16),rgba(208,138,87,0) 75%);border-left-color:#d08a57;font-weight:600}
+.qd-nav a.on::before{color:#d08a57}
+.qdrawer.open .qd-nav>*{animation:qdIn .34s cubic-bezier(.22,1,.36,1) both}
+@keyframes qdIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
+.qdrawer.open .qd-nav>:nth-child(2){animation-delay:.012s}
+.qdrawer.open .qd-nav>:nth-child(3){animation-delay:.024s}
+.qdrawer.open .qd-nav>:nth-child(4){animation-delay:.036s}
+.qdrawer.open .qd-nav>:nth-child(5){animation-delay:.048s}
+.qdrawer.open .qd-nav>:nth-child(6){animation-delay:.060s}
+.qdrawer.open .qd-nav>:nth-child(7){animation-delay:.072s}
+.qdrawer.open .qd-nav>:nth-child(8){animation-delay:.084s}
+.qdrawer.open .qd-nav>:nth-child(9){animation-delay:.096s}
+.qdrawer.open .qd-nav>:nth-child(10){animation-delay:.108s}
+.qdrawer.open .qd-nav>:nth-child(11){animation-delay:.120s}
+.qdrawer.open .qd-nav>:nth-child(12){animation-delay:.132s}
+.qdrawer.open .qd-nav>:nth-child(13){animation-delay:.144s}
+.qdrawer.open .qd-nav>:nth-child(14){animation-delay:.156s}
+.qdrawer.open .qd-nav>:nth-child(15){animation-delay:.168s}
+.qdrawer.open .qd-nav>:nth-child(16){animation-delay:.180s}
+.qdrawer.open .qd-nav>:nth-child(17){animation-delay:.192s}
+.qdrawer.open .qd-nav>:nth-child(18){animation-delay:.204s}
+.qdrawer.open .qd-nav>:nth-child(19){animation-delay:.216s}
+.qdrawer.open .qd-nav>:nth-child(20){animation-delay:.228s}
+.qdrawer.open .qd-nav>:nth-child(21){animation-delay:.240s}
+.qdrawer.open .qd-nav>:nth-child(22){animation-delay:.252s}
+.qdrawer.open .qd-nav>:nth-child(23){animation-delay:.264s}
+.qdrawer.open .qd-nav>:nth-child(24){animation-delay:.276s}
+.qdrawer.open .qd-nav>:nth-child(25){animation-delay:.288s}
+.qdrawer.open .qd-nav>:nth-child(26){animation-delay:.300s}
+@media(prefers-reduced-motion:reduce){.qdrawer.open .qd-nav>*{animation:none}}
+.qd-foot{padding:14px 20px;border-top:1px solid #2b2115;font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
+#qwnav .qw-menu{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:13px;line-height:1;padding:6px 11px;cursor:pointer;flex:none}
+#qwnav .qw-menu:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+.qd-trig{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.08em;padding:7px 12px;cursor:pointer}
+.qd-trig:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
+</style>
+<div class="qd-head">
+<a class="qd-brand" href="index.html"><span class="qb"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
+<button class="qd-x" id="qdClose" aria-label="Cerrar menu">&#10005;</button>
+</div>
+<nav class="qd-nav">
+<div class="qd-t">Explorar QWATT</div>
+<a href="index.html">Inicio</a>
+<a href="index.html#peg">C&oacute;mo funciona</a>
+<a href="index.html#dash">Dashboard</a>
+<a href="index.html#onchain">Onchain</a>
+<a href="index.html#clean">QWATT-Clean</a>
+<a href="index.html#tok">Tokenomics</a>
+<a href="index.html#road">Roadmap</a>
+<a href="index.html#security">Seguridad</a>
+<div class="qd-t mt">Plataforma</div>
+<a href="verificacion.html">Verificaci&oacute;n</a>
+<a title="Demo — datos simulados" href="grid.html">QWATT Grid</a>
+<a title="Testnet — transacciones reales" href="proof.html">QWATT Explorer</a>
+<a title="Testnet — transacciones reales" href="respaldo.html">Reservas</a>
+<a title="Testnet — transacciones reales" href="wallet.html">QWATT Wallet</a>
+<a title="Testnet — transacciones reales" href="pay.html">QWATT Pay</a>
+<div class="qd-t mt">Herramientas</div>
+<a title="Testnet — transacciones reales" href="console.html">Consola Onchain</a>
+<a title="Testnet — transacciones reales" href="red.html">QWATT Pulse</a>
+<a title="Prototipo — hardware en construcción" href="piloto.html">Piloto Solar</a>
+<a href="backup.html">Backup de claves</a>
+<div class="qd-t mt">Recursos</div>
+<a href="whitepaper.html">Whitepaper</a>
+<a href="terminos.html">T&eacute;rminos</a>
+<a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+<a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
+</nav>
+<div class="qd-foot">&#9679; STELLAR TESTNET</div>
+</aside>
+<script>
+(function(){
+  var d=document.getElementById('qdrawer'),o=document.getElementById('qdOverlay');
+  var MQ=window.matchMedia('(min-width:1000px)');
+  function set(open){
+    d.classList.toggle('open',open);
+    o.classList.toggle('open',open);
+    document.documentElement.classList.toggle('qd-docked',open&&MQ.matches);
+    var b=document.getElementById('qdOpen');
+    if(b)b.setAttribute('aria-expanded',open);
+    try{localStorage.setItem('qwatt.drawer',open?'1':'0')}catch(e){}
+  }
+  document.addEventListener('click',function(e){
+    if(e.target.closest&&e.target.closest('#qdOpen'))set(!d.classList.contains('open'));
+  });
+  document.getElementById('qdClose').addEventListener('click',function(){set(false)});
+  o.addEventListener('click',function(){set(false)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
+  d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(!MQ.matches)set(false)})});
+  if(MQ.addEventListener)MQ.addEventListener('change',function(){set(d.classList.contains('open'))});
+  try{if(localStorage.getItem('qwatt.drawer')==='1'&&MQ.matches)set(true)}catch(e){}
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
+  if(location.pathname.indexOf('/proof')===0)page='proof';
+  d.querySelectorAll('a[href]').forEach(function(a){
+    var h=a.getAttribute('href');
+    if(h.indexOf('#')<0&&h.indexOf('http')!==0&&h.replace(/\.html$/,'')===page)a.classList.add('on');
+  });
+})();
+</script>
+<nav id="qwnav" aria-label="QWATT apps">
+<style>
+#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
+#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
+#qwnav a{text-decoration:none;white-space:nowrap}
+#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
+#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
+#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
+#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
+#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
+#qwnav .qw-links::-webkit-scrollbar{display:none}
+#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
+#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
+#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
+#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
+#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
+@keyframes qwblink{50%{opacity:.25}}
+@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
+#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
+@media(max-width:860px){
+#qwnav .qw-links{display:none}
+#qwnav .qw-chip{display:none}
+#qwnav .qw-sep{display:none}
+#qwnav .qw-burger{display:block}
+#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
+#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
+#qwnav.open .qw-links a:last-child{border-bottom:0}
+#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
+}
+</style>
+<div class="qw-in">
+<button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
+<a class="qw-home" href="index.html"><span class="qw-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span>QWATT</a>
+<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
+</div>
+<script>
+(function(){
+  var nav=document.getElementById('qwnav');
+  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
+  document.body.style.paddingTop=(pad+52)+'px';
+  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
+})();
+</script>
+</nav>
+
+<div class="wrap">
+  <header class="site">
+    <div class="brand"><a href="index.html" style="display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none"><span class="bolt" style="background:none"><svg class="qm" viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span><span><em>QWATT</em></span></a><small>VERIFICACI&Oacute;N</small></div>
+  </header>
+
+  <div class="s-hero">
+    <span class="tag">La capa de confianza</span>
+    <h1>&iquest;C&oacute;mo sabemos que <b>un kWh existi&oacute;</b>?</h1>
+    <p class="lede">
+      Cualquiera puede declarar que gener&oacute; energ&iacute;a limpia. La diferencia entre una declaraci&oacute;n y una
+      prueba son dos medidores independientes, compuertas que <b>fallan cerradas</b>, y una cadena de evidencia
+      que un desconocido puede recalcular sin confiar en nosotros.
+    </p>
+    <div class="claim">
+      <p><b>Lo que afirma una atestaci&oacute;n QWATT, exactamente:</b> entre <code>t&#8320;</code> y <code>t&#8321;</code>,
+      una instalaci&oacute;n registrada produjo <code>E</code> watts-hora, medidos por dos instrumentos independientes
+      cuyas lecturas concuerdan entre s&iacute; y con la f&iacute;sica de ese lugar a esa hora — y este registro no ha
+      sido alterado desde entonces. <b>Nada m&aacute;s.</b> Todo lo dem&aacute;s es una capa contractual encima.</p>
+    </div>
+  </div>
+
+  <section>
+    <h2><span class="n">01 &middot; Pru&eacute;balo</span>Intenta falsificar un evento</h2>
+    <p class="sub">
+      Abajo corren las <b>mismas cuatro compuertas</b> que el gateway ejecuta antes de emitir, con los par&aacute;metros
+      reales del equipo Fase&nbsp;1. Mueve los controles o elige un ataque: el veredicto se recalcula al instante.
+      Un intervalo rechazado <b>no emite nada</b>, y queda escrito en el registro de rechazos.
+    </p>
+    <div class="rigline">
+      <span>150 Wp &middot; 12 V</span><span>&minus;33,45 &middot; &minus;70,65 &middot; norte 30&deg;</span>
+      <span>intervalo 5 min</span><span>techo 14,4 Wh</span><span>PZEM-017 + EPEver Tracer1210AN</span>
+    </div>
+
+    <div class="lab">
+      <div class="panel">
+        <h3>Intervalo de 5 minutos</h3>
+        <div class="presets" id="presets">
+          <button type="button" data-p="honest" class="on">Intervalo honesto</button>
+          <button type="button" data-p="shade">Sombra honesta</button>
+          <button type="button" data-p="cap">Exceder el techo</button>
+          <button type="button" data-p="night">Generar de noche</button>
+          <button type="button" data-p="diverge">Sensor tapado</button>
+          <button type="button" data-p="dead">Bus RS485 ca&iacute;do</button>
+          <button type="button" data-p="gap">Intervalo inv&aacute;lido</button>
+        </div>
+
+        <div class="ctl">
+          <label for="cHour">Hora local <span class="v" id="vHour">12:00</span></label>
+          <input type="range" id="cHour" min="0" max="23" step="1" value="12">
+        </div>
+        <div class="ctl">
+          <label for="cA">Medidor A &middot; PZEM-017 <span class="v" id="vA">11,8 Wh</span></label>
+          <input type="range" id="cA" min="0" max="30" step="0.1" value="11.8">
+        </div>
+        <div class="ctl">
+          <label for="cB">Medidor B &middot; EPEver <span class="v" id="vB">11,6 Wh</span></label>
+          <input type="range" id="cB" min="0" max="30" step="0.1" value="11.6">
+        </div>
+        <div class="ctl">
+          <label for="cDt">&Delta;t del intervalo <span class="v" id="vDt">300 s</span></label>
+          <input type="range" id="cDt" min="60" max="1200" step="30" value="300">
+        </div>
+        <div class="toggles">
+          <label><input type="checkbox" id="cSkew"> Reloj desfasado &gt; 2 h</label>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Veredicto del gateway</h3>
+        <div class="verdict ok" id="verdict">
+          <span class="big" id="vTitle">ACEPTADO</span>
+          <span class="mint" id="vMint">emite 0,0000116 QWATT</span>
+        </div>
+        <div class="checks" id="checks"></div>
+        <p class="foot-note" style="margin-top:14px">
+          Se tokeniza siempre <b>el menor de los dos medidores</b>: una falla puede subestimar, nunca sobreestimar.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">02 &middot; Las compuertas</span>Cada control atrapa a alguien concreto</h2>
+    <p class="sub">
+      Cuatro compuertas corren hoy en el equipo Fase&nbsp;1. Tres m&aacute;s entran cuando el hardware las soporta —
+      y las marcamos como pendientes en vez de insinuar que ya existen.
+    </p>
+    <div class="vlist">
+      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h4>Verosimilitud</h4><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Los timestamps son datos del cliente y escalan a las dem&aacute;s compuertas: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
+      <div class="vcard"><div class="vid"><span>G1</span><span class="ph">FASE 1</span></div><h4>Techo de placa</h4><p>Un panel de 150 Wp no puede superar <code>0,150 kW &times; h &times; 1,15 &asymp; 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><span class="adv">Detiene: alimentar el medidor desde una fuente de banco</span></div>
+      <div class="vcard"><div class="vid"><span>G2</span><span class="ph">FASE 1</span></div><h4>Elevaci&oacute;n solar</h4><p>Posici&oacute;n solar NOAA para &minus;33,45 / &minus;70,65: si hay generaci&oacute;n, el sol debe estar sobre &minus;2&deg;. La energ&iacute;a nocturna es imposible; los ceros nocturnos son honestos.</p><span class="adv">Detiene: inyectar corriente despu&eacute;s del atardecer</span></div>
+      <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h4>Acuerdo entre medidores</h4><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara la compuerta.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
+      <div class="vcard soon"><div class="vid"><span>G4</span><span class="ph">FASE 2</span></div><h4>Testigo solar</h4><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energ&iacute;a y el testigo est&aacute; a oscuras, el lote cae.</p><span class="adv">Pendiente: requiere celda de 5 Wp + INA226</span></div>
+      <div class="vcard soon"><div class="vid"><span>G5</span><span class="ph">FASE 2</span></div><h4>Rampa y verosimilitud de serie</h4><p>Saltos f&iacute;sicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido, una constante perfecta es sint&eacute;tica.</p><span class="adv">Pendiente: requiere muestreo intra-intervalo</span></div>
+      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h4>Tamper</h4><p>Un reed en la tapa del gabinete: caja abierta &rarr; emisi&oacute;n detenida hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
+      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">FASE 2</span></div><h4>Firma de dos partes</h4><p>El nodo firma; la tesorer&iacute;a <b>vuelve a correr las compuertas</b> y reci&eacute;n entonces co-firma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una impresora de dinero</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">03 &middot; La prueba</span>El registro de rechazos es el entregable</h2>
+    <p class="sub">
+      Un verificador que solo publica lo que pas&oacute; est&aacute; haciendo marketing. Estas cuatro fallas se inducen
+      f&iacute;sicamente en el equipo y deben aparecer en <code>rejected.jsonl</code> con su raz&oacute;n.
+    </p>
+    <div class="tscroll">
+      <table class="drills">
+        <thead><tr><th>Prueba</th><th>Acci&oacute;n f&iacute;sica</th><th>Resultado esperado</th></tr></thead>
+        <tbody>
+          <tr><td><b>Control &middot; sombra honesta</b></td><td>Cubrir el panel completo durante un intervalo</td><td class="out ok">aceptado &asymp; 0 Wh — las compuertas rechazan fraude, no clima</td></tr>
+          <tr><td><b>Sensor tapado</b></td><td>Levantar una punta de sensado del shunt en el PZEM</td><td class="out">rechazado: divergencia entre medidores</td></tr>
+          <tr><td><b>Medidor desconectado</b></td><td>Desenchufar el bus RS485 A durante un intervalo</td><td class="out">rechazado: divergencia (el medidor A colapsa a 0)</td></tr>
+          <tr><td><b>Generar de noche</b></td><td>Inyectar desde fuente de laboratorio aguas arriba del shunt, de noche</td><td class="out">rechazado: generaci&oacute;n con el sol bajo &minus;2&deg;</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="foot-note">
+      El primer resultado es el m&aacute;s importante: un panel tapado produce cero, y ese cero se <b>acepta</b>.
+      Un sistema que castigara el mal tiempo estar&iacute;a midiendo otra cosa.
+    </p>
+  </section>
+
+  <section>
+    <h2><span class="n">04 &middot; Honestidad</span>No toda prueba vale lo mismo</h2>
+    <p class="sub">
+      Cada evento carga su nivel de garant&iacute;a, y el nivel depende de <b>qu&eacute; instrumentos hay</b>, nunca de si
+      el resultado convino. Hoy el protocolo no tiene ning&uacute;n evento real — y lo decimos aqu&iacute; en vez de esconderlo.
+    </p>
+    <div class="ladder">
+      <div class="rung now"><span class="lv">A0</span><span class="nm">Simulado<small>Sin hardware. Nunca se ancla como generaci&oacute;n: el c&oacute;digo lo impide.</small></span><span class="where">AQU&Iacute; ESTAMOS</span></div>
+      <div class="rung"><span class="lv">A1</span><span class="nm">Medido<small>Un instrumento real. Fotones de verdad, sin corroborar.</small></span><span class="where">BANCO</span></div>
+      <div class="rung"><span class="lv">A2</span><span class="nm">Corroborado<small>Dos medidores independientes, compuertas G0&ndash;G3 activas.</small></span><span class="where">FASE 1 &middot; ESTE SPRINT</span></div>
+      <div class="rung"><span class="lv">A3</span><span class="nm">Co-firmado<small>Testigo solar y tamper, m&aacute;s tesorer&iacute;a con clave en b&oacute;veda. Ninguna parte sola emite.</small></span><span class="where">FASE 2</span></div>
+      <div class="rung"><span class="lv">A4</span><span class="nm">Auditado<small>Medidores calibrados y sellados, puesta en marcha por un tercero.</small></span><span class="where">COMERCIAL</span></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">05 &middot; Onchain</span>Una transacci&oacute;n at&oacute;mica por emisi&oacute;n</h2>
+    <p class="sub">
+      El manifiesto del lote es JSON can&oacute;nico y se publica <b>antes</b> de emitir; su SHA-256 viaja dentro de la
+      transacci&oacute;n que emite. Un revisor recalcula el hash desde el archivo p&uacute;blico y no necesita nada de nosotros.
+    </p>
+    <div class="ops">
+      <div class="op"><span class="k">op 1</span><p><code>manageData qwatt.anchor.sha256</code> — digest de 64 hex del manifiesto can&oacute;nico del lote.</p></div>
+      <div class="op"><span class="k">op 2</span><p><code>manageData qwatt.cumulative_kwh</code> — total acumulado; siempre la suma exacta de cada pago truncado anterior.</p></div>
+      <div class="op"><span class="k">op 3</span><p><code>payment</code> — el QWATT del lote desde el emisor a la cuenta de distribuci&oacute;n. El pago de vuelta al emisor quema en la redenci&oacute;n.</p></div>
+    </div>
+    <div class="princ">
+      <div><h4>El menor de dos medidores</h4><p>Cada intervalo tokeniza <code>min(A,B)</code>. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
+      <div><h4>Truncar, nunca redondear</h4><p>Los montos se truncan a los 7 decimales de Stellar en <code>Decimal</code>. El resto simplemente no se tokeniza.</p></div>
+      <div><h4>Protecci&oacute;n contra doble emisi&oacute;n</h4><p>Un registro de intenci&oacute;n precede a cada env&iacute;o; un timeout de Horizon se recupera buscando el hash del ancla.</p></div>
+      <div><h4>Reconciliaci&oacute;n sin nosotros</h4><p><code>emitido &minus; redimido = circulante</code>, recalculado en vivo desde Horizon en el navegador del revisor.</p></div>
+    </div>
+  </section>
+
+  <section>
+    <h2><span class="n">06 &middot; L&iacute;mites</span>Lo que una atestaci&oacute;n <em>no</em> prueba</h2>
+    <p class="sub">La credibilidad de todo lo anterior depende de no venderlo de m&aacute;s.</p>
+    <ul class="lines">
+      <li><b>No prueba que la energ&iacute;a fue renovable.</b> Prueba que el perfil de generaci&oacute;n coincide con la f&iacute;sica solar de ese lugar y esa hora. Es evidencia fuerte, no un certificado de combustible.</li>
+      <li><b>No prueba que el medidor est&eacute; conectado a ese arreglo.</b> Amarrar instrumento e instalaci&oacute;n es un acto f&iacute;sico de puesta en marcha — gabinete sellado, fotos, firma del instalador — no algo criptogr&aacute;fico. Eso es el nivel A4.</li>
+      <li><b>No prueba entrega, propiedad ni derecho.</b> Qui&eacute;n es due&ntilde;o de la energ&iacute;a y qui&eacute;n puede reclamarla son preguntas de contrato.</li>
+      <li><b>No es un REC, ni un bono de carbono, ni un t&iacute;tulo de subsidio.</b> QWATT-Clean es un instrumento de transparencia voluntaria mientras no est&eacute; homologado.</li>
+      <li><b>No es infalsificable por alguien con acceso f&iacute;sico.</b> El modelo sube el costo de una falsificaci&oacute;n cre&iacute;ble por encima del valor de la energ&iacute;a falsificada, y hace detectables las baratas. Esa es la afirmaci&oacute;n honesta; quien promete m&aacute;s est&aacute; vendiendo algo.</li>
+    </ul>
+  </section>
+
+  <section style="border-bottom:0">
+    <h2><span class="n">07 &middot; Sin confiar en nosotros</span>C&oacute;mo lo verificas t&uacute;</h2>
+    <p class="sub">El procedimiento completo, con herramientas p&uacute;blicas. El paso 6 es el que nos audita a nosotros.</p>
+    <ol class="steps">
+      <li>Abre la transacci&oacute;n de emisi&oacute;n en stellar.expert.</li>
+      <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacci&oacute;n: ah&iacute; est&aacute; el hash de la evidencia.</li>
+      <li>Descarga el manifiesto del lote desde el feed p&uacute;blico y recalcula su <code>SHA-256</code>. Debe coincidir.</li>
+      <li>Vuelve a correr las compuertas con los n&uacute;meros del propio lote — todos los umbrales son p&uacute;blicos.</li>
+      <li>Comprueba que <code>qwatt.cumulative_kwh</code> sea la suma exacta de todos los pagos anteriores.</li>
+      <li><b>Reconciliaci&oacute;n:</b> suma lo atestiguado y comp&aacute;ralo con lo emitido desde la g&eacute;nesis. Si no cuadran, el emisor est&aacute; emitiendo sin respaldo.</li>
+    </ol>
+    <p class="foot-note">
+      El <a href="proof.html">Explorer</a> muestra hoy un estado vac&iacute;o honesto: todav&iacute;a no existe ning&uacute;n evento
+      real. Cuando exista, aparecer&aacute; ah&iacute;. El modelo completo est&aacute; en el
+      <a href="whitepaper.html">whitepaper</a>, y el c&oacute;digo de los validadores en
+      <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener">GitHub &#8599;</a>.
+    </p>
+  </section>
+</div>
+<footer id="qwfoot">
+<style>
+#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
+#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
+#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
+@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
+#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
+#qwfoot a:hover{color:#f0e8dc}
+#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
+#qwfoot .qf-brand .qf-bolt{color:#d08a57}
+#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
+#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
+#qwfoot h3{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
+#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
+#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
+#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+#qwfoot .qf-bottom a{color:#d08a57}
+</style>
+<div class="qf-in">
+  <div class="qf-cols">
+    <div>
+      <a class="qf-brand" href="index.html"><span class="qf-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
+      <p class="qf-lead">The Clean Token: energ&iacute;a renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo.</p>
+      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+    </div>
+    <div class="qf-grp">
+      <h3>Apps</h3>
+      <a href="console.html">Consola Onchain</a>
+      <a href="verificacion.html">Verificaci&oacute;n</a>
+      <a href="grid.html">QWATT Grid</a>
+      <a href="pay.html">QWATT Pay</a>
+      <a href="wallet.html">QWATT Wallet</a>
+      <a href="proof.html">QWATT Explorer</a>
+      <a href="respaldo.html">Reservas</a>
+      <a href="red.html">QWATT Pulse</a>
+      <a href="piloto.html">Piloto Solar</a>
+    </div>
+    <div class="qf-grp">
+      <h3>Recursos</h3>
+      <a href="index.html">Inicio</a>
+      <a href="index.html#clean">QWATT-Clean</a>
+      <a href="whitepaper.html">Whitepaper</a>
+      <a href="backup.html">Backup de claves</a>
+      <a href="terminos.html">T&eacute;rminos y seguridad</a>
+      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    </div>
+  </div>
+  <div class="qf-bottom">
+    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+  </div>
+</div>
+</footer>
+
+<script>
+(function(){
+  /* Phase 1 rig: 150 Wp, 5-minute intervals, Santiago balcony (-33.45, -70.65).
+     Mirrors the gateway's four gates exactly. */
+  var NAMEPLATE_KW = 0.150, CEIL_K = 1.15, ELEV_MIN = -2.0;
+  var AGREE_FRAC = 0.05, DEADBAND_W = 2.0, MAX_DT = 900, MAX_SKEW_S = 7500;
+  var LAT = -33.45, LON = -70.65;
+  var QWATT_PER_KWH = 0.001; /* 1 QWATT = 1 MWh — fixed by the genesis memo */
+
+  function solarElevation(hourLocal){
+    var d = new Date(Date.UTC(2026, 8, 20, (hourLocal + 4) % 24, 0, 0));
+    var julian = d.getTime()/86400000 + 2440587.5, n = julian - 2451545.0;
+    var L = (280.46 + 0.9856474*n) % 360, g = (357.528 + 0.9856003*n) % 360 * Math.PI/180;
+    var lambda = (L + 1.915*Math.sin(g) + 0.020*Math.sin(2*g)) * Math.PI/180;
+    var eps = (23.439 - 0.0000004*n) * Math.PI/180;
+    var dec = Math.asin(Math.sin(eps)*Math.sin(lambda));
+    var utc = d.getUTCHours() + d.getUTCMinutes()/60;
+    var ha = ((utc + LON/15) - 12) * 15 * Math.PI/180;
+    var lat = LAT * Math.PI/180;
+    var s = Math.sin(lat)*Math.sin(dec) + Math.cos(lat)*Math.cos(dec)*Math.cos(ha);
+    return Math.asin(Math.max(-1, Math.min(1, s))) * 180/Math.PI;
+  }
+
+  var $ = function(id){ return document.getElementById(id); };
+  var els = { hour:$('cHour'), a:$('cA'), b:$('cB'), dt:$('cDt'), skew:$('cSkew') };
+  var n1 = function(x, d){ return x.toFixed(d === undefined ? 1 : d).replace('.', ','); };
+
+  var PRESETS = {
+    honest: {hour:12, a:11.8, b:11.6, dt:300, skew:false},
+    shade:  {hour:12, a:0.2,  b:0.2,  dt:300, skew:false},
+    cap:    {hour:12, a:22.0, b:21.6, dt:300, skew:false},
+    night:  {hour:23, a:8.0,  b:7.9,  dt:300, skew:false},
+    diverge:{hour:12, a:11.8, b:6.0,  dt:300, skew:false},
+    dead:   {hour:12, a:11.8, b:0,    dt:300, skew:false},
+    gap:    {hour:12, a:11.8, b:11.6, dt:1200, skew:false}
+  };
+
+  function evaluate(){
+    var hour = +els.hour.value, A = +els.a.value, B = +els.b.value, dt = +els.dt.value;
+    var hours = dt/3600;
+    var ceiling = NAMEPLATE_KW * 1000 * hours * CEIL_K;   // Wh
+    var el = solarElevation(hour);
+    var generating = Math.max(A, B) > 0.05;
+    var r = [];
+
+    // G0 plausibility
+    if (dt > MAX_DT) {
+      r.push({id:'G0', s:'fail', t:'Δt de ' + dt + ' s supera el máximo de ' + MAX_DT + ' s: el intervalo no es utilizable.'});
+    } else if (els.skew.checked) {
+      r.push({id:'G0', s:'fail', t:'Desfase de reloj sobre 2 h 05 m — sin tiempo confiable no hay reporte, por diseño.'});
+    } else {
+      r.push({id:'G0', s:'pass', t:'Valores finitos, Δt ' + dt + ' s dentro de rango, reloj sincronizado.'});
+    }
+
+    // G1 nameplate ceiling
+    var over = Math.max(A, B);
+    r.push(over <= ceiling
+      ? {id:'G1', s:'pass', t:'Bajo el techo de placa (' + n1(ceiling) + ' Wh para 150 Wp en ' + Math.round(dt/60) + ' min).'}
+      : {id:'G1', s:'fail', t:n1(over) + ' Wh supera el techo físico de ' + n1(ceiling) + ' Wh — un panel de 150 Wp no puede producir eso.'});
+
+    // G2 solar elevation
+    if (!generating) {
+      r.push({id:'G2', s:'pass', t:'Sin generación que justificar (sol a ' + n1(el) + '°).'});
+    } else {
+      r.push(el >= ELEV_MIN
+        ? {id:'G2', s:'pass', t:'Sol a ' + n1(el) + '° — sobre el umbral de −2°.'}
+        : {id:'G2', s:'fail', t:'Generación reportada con el sol a ' + n1(el) + '°, bajo el umbral de −2°.'});
+    }
+
+    // G3 meter agreement
+    var diff = Math.abs(A - B);
+    var deadbandWh = DEADBAND_W * hours;
+    var tol = Math.max(AGREE_FRAC * Math.max(A, B), deadbandWh);
+    r.push(diff <= tol
+      ? {id:'G3', s:'pass', t:'Los medidores concuerdan: |A−B| = ' + n1(diff, 2) + ' Wh, tolerancia ' + n1(tol, 2) + ' Wh.'}
+      : {id:'G3', s:'fail', t:'Divergencia de ' + n1(diff, 2) + ' Wh entre medidores (tolerancia ' + n1(tol, 2) + ' Wh) — uno de los dos miente o está ciego.'});
+
+    return {checks:r, minted: Math.min(A, B)};
+  }
+
+  function render(){
+    $('vHour').textContent = String(els.hour.value).padStart(2,'0') + ':00';
+    $('vA').textContent = n1(+els.a.value) + ' Wh';
+    $('vB').textContent = n1(+els.b.value) + ' Wh';
+    $('vDt').textContent = els.dt.value + ' s';
+
+    var res = evaluate();
+    var failed = res.checks.filter(function(x){ return x.s === 'fail'; });
+    var box = $('checks');
+    box.textContent = '';
+    res.checks.forEach(function(c){
+      var d = document.createElement('div');
+      d.className = 'chk ' + c.s;
+      var id = document.createElement('span'); id.className='id'; id.textContent = c.id;
+      var st = document.createElement('span'); st.className='st'; st.textContent = c.s === 'pass' ? 'OK' : 'FALLA';
+      var tx = document.createElement('span'); tx.className='txt'; tx.textContent = c.t;
+      d.appendChild(id); d.appendChild(st); d.appendChild(tx);
+      box.appendChild(d);
+    });
+
+    var v = $('verdict'), ok = failed.length === 0;
+    v.className = 'verdict ' + (ok ? 'ok' : 'no');
+    $('vTitle').textContent = ok ? 'ACEPTADO' : 'RECHAZADO';
+    if (ok) {
+      var kwh = res.minted / 1000;
+      var q = Math.floor(kwh * QWATT_PER_KWH * 1e7) / 1e7;
+      $('vMint').textContent = 'emite ' + q.toFixed(7).replace('.', ',') + ' QWATT'
+        + '  ·  min(A,B) = ' + n1(res.minted) + ' Wh';
+    } else {
+      $('vMint').textContent = failed.length + (failed.length === 1 ? ' compuerta cerrada' : ' compuertas cerradas') + ' · no emite';
+    }
+  }
+
+  Object.keys(els).forEach(function(k){
+    els[k].addEventListener('input', function(){
+      document.querySelectorAll('#presets button').forEach(function(b){ b.classList.remove('on'); });
+      render();
+    });
+  });
+  document.querySelectorAll('#presets button').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var p = PRESETS[btn.getAttribute('data-p')];
+      els.hour.value = p.hour; els.a.value = p.a; els.b.value = p.b; els.dt.value = p.dt; els.skew.checked = p.skew;
+      document.querySelectorAll('#presets button').forEach(function(b){ b.classList.remove('on'); });
+      btn.classList.add('on');
+      render();
+    });
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
