@@ -115,7 +115,7 @@
   .vcard.soon{opacity:.72;border-style:dashed}
   .vcard .vid{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--teal);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
   .vcard .vid .ph{color:var(--grey);font-weight:400;letter-spacing:.1em}
-  .vcard h4{font-size:15px;font-weight:600;margin-bottom:7px}
+  .vcard .sub-h{font-size:15px;font-weight:600;margin-bottom:7px}
   .vcard p{font-size:13.5px;line-height:1.55}
   .vcard .adv{display:block;margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--grey);border-top:1px solid var(--line);padding-top:9px}
 
@@ -143,7 +143,7 @@
 
   .princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:22px}
   .princ div{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
-  .princ h4{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--teal-lt)}
+  .princ .sub-h{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--teal-lt)}
   .princ p{font-size:13px;line-height:1.55}
 
   ul.lines{list-style:none}
@@ -238,6 +238,11 @@ html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
 svg.qm{flex:none}
 html[data-theme="light"] .tag.t,html[data-theme="light"] .s-hero .tag{color:#8f4522}
 html[data-theme="light"] #onchain .tag.t{color:#d08a57}
+html[data-theme="light"] input,html[data-theme="light"] textarea,html[data-theme="light"] select{background:#faf8f2;color:#1b1a14;border-color:#e6e2d6}
+html[data-theme="light"] input::placeholder,html[data-theme="light"] textarea::placeholder{color:#8b8578}
+html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus{border-color:#b0582f}
+html[data-theme="light"] .presets button.on,.presets button.on{background:#a44e26;color:#fff;border-color:#a44e26}
+html[data-theme="light"] .ctl label .v{color:#8f4522}
 .qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
 .qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
 </style>
@@ -533,14 +538,14 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       y las marcamos como pendientes en vez de insinuar que ya existen.
     </p>
     <div class="vlist">
-      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h4>Verosimilitud</h4><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Los timestamps son datos del cliente y escalan a las dem&aacute;s compuertas: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
-      <div class="vcard"><div class="vid"><span>G1</span><span class="ph">FASE 1</span></div><h4>Techo de placa</h4><p>Un panel de 150 Wp no puede superar <code>0,150 kW &times; h &times; 1,15 &asymp; 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><span class="adv">Detiene: alimentar el medidor desde una fuente de banco</span></div>
-      <div class="vcard"><div class="vid"><span>G2</span><span class="ph">FASE 1</span></div><h4>Elevaci&oacute;n solar</h4><p>Posici&oacute;n solar NOAA para &minus;33,45 / &minus;70,65: si hay generaci&oacute;n, el sol debe estar sobre &minus;2&deg;. La energ&iacute;a nocturna es imposible; los ceros nocturnos son honestos.</p><span class="adv">Detiene: inyectar corriente despu&eacute;s del atardecer</span></div>
-      <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h4>Acuerdo entre medidores</h4><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara la compuerta.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
-      <div class="vcard soon"><div class="vid"><span>G4</span><span class="ph">FASE 2</span></div><h4>Testigo solar</h4><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energ&iacute;a y el testigo est&aacute; a oscuras, el lote cae.</p><span class="adv">Pendiente: requiere celda de 5 Wp + INA226</span></div>
-      <div class="vcard soon"><div class="vid"><span>G5</span><span class="ph">FASE 2</span></div><h4>Rampa y verosimilitud de serie</h4><p>Saltos f&iacute;sicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido, una constante perfecta es sint&eacute;tica.</p><span class="adv">Pendiente: requiere muestreo intra-intervalo</span></div>
-      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h4>Tamper</h4><p>Un reed en la tapa del gabinete: caja abierta &rarr; emisi&oacute;n detenida hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
-      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">FASE 2</span></div><h4>Firma de dos partes</h4><p>El nodo firma; la tesorer&iacute;a <b>vuelve a correr las compuertas</b> y reci&eacute;n entonces co-firma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una impresora de dinero</span></div>
+      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Verosimilitud</h3><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Los timestamps son datos del cliente y escalan a las dem&aacute;s compuertas: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
+      <div class="vcard"><div class="vid"><span>G1</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Techo de placa</h3><p>Un panel de 150 Wp no puede superar <code>0,150 kW &times; h &times; 1,15 &asymp; 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><span class="adv">Detiene: alimentar el medidor desde una fuente de banco</span></div>
+      <div class="vcard"><div class="vid"><span>G2</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Elevaci&oacute;n solar</h3><p>Posici&oacute;n solar NOAA para &minus;33,45 / &minus;70,65: si hay generaci&oacute;n, el sol debe estar sobre &minus;2&deg;. La energ&iacute;a nocturna es imposible; los ceros nocturnos son honestos.</p><span class="adv">Detiene: inyectar corriente despu&eacute;s del atardecer</span></div>
+      <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Acuerdo entre medidores</h3><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara la compuerta.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
+      <div class="vcard soon"><div class="vid"><span>G4</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Testigo solar</h3><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energ&iacute;a y el testigo est&aacute; a oscuras, el lote cae.</p><span class="adv">Pendiente: requiere celda de 5 Wp + INA226</span></div>
+      <div class="vcard soon"><div class="vid"><span>G5</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Rampa y verosimilitud de serie</h3><p>Saltos f&iacute;sicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido, una constante perfecta es sint&eacute;tica.</p><span class="adv">Pendiente: requiere muestreo intra-intervalo</span></div>
+      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Tamper</h3><p>Un reed en la tapa del gabinete: caja abierta &rarr; emisi&oacute;n detenida hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
+      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Firma de dos partes</h3><p>El nodo firma; la tesorer&iacute;a <b>vuelve a correr las compuertas</b> y reci&eacute;n entonces co-firma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una impresora de dinero</span></div>
     </div>
   </section>
 
@@ -594,10 +599,10 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       <div class="op"><span class="k">op 3</span><p><code>payment</code> — el QWATT del lote desde el emisor a la cuenta de distribuci&oacute;n. El pago de vuelta al emisor quema en la redenci&oacute;n.</p></div>
     </div>
     <div class="princ">
-      <div><h4>El menor de dos medidores</h4><p>Cada intervalo tokeniza <code>min(A,B)</code>. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
-      <div><h4>Truncar, nunca redondear</h4><p>Los montos se truncan a los 7 decimales de Stellar en <code>Decimal</code>. El resto simplemente no se tokeniza.</p></div>
-      <div><h4>Protecci&oacute;n contra doble emisi&oacute;n</h4><p>Un registro de intenci&oacute;n precede a cada env&iacute;o; un timeout de Horizon se recupera buscando el hash del ancla.</p></div>
-      <div><h4>Reconciliaci&oacute;n sin nosotros</h4><p><code>emitido &minus; redimido = circulante</code>, recalculado en vivo desde Horizon en el navegador del revisor.</p></div>
+      <div><h3 class="sub-h">El menor de dos medidores</h3><p>Cada intervalo tokeniza <code>min(A,B)</code>. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
+      <div><h3 class="sub-h">Truncar, nunca redondear</h3><p>Los montos se truncan a los 7 decimales de Stellar en <code>Decimal</code>. El resto simplemente no se tokeniza.</p></div>
+      <div><h3 class="sub-h">Protecci&oacute;n contra doble emisi&oacute;n</h3><p>Un registro de intenci&oacute;n precede a cada env&iacute;o; un timeout de Horizon se recupera buscando el hash del ancla.</p></div>
+      <div><h3 class="sub-h">Reconciliaci&oacute;n sin nosotros</h3><p><code>emitido &minus; redimido = circulante</code>, recalculado en vivo desde Horizon en el navegador del revisor.</p></div>
     </div>
   </section>
 
