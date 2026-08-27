@@ -540,14 +540,15 @@ html[data-theme="light"] #onchain .tag.t{color:#d08a57}
     <a class="d-link d-sec" href="#tok" data-spy="tok" data-i18n="nav_tok"></a>
     <a class="d-link d-sec" href="#road" data-spy="road" data-i18n="nav_road"></a>
     <a class="d-link d-sec" href="#security" data-spy="security" data-i18n="nav_sec"></a>
-    <div class="d-title" style="margin-top:20px">Apps</div>
-    <a title="Testnet — transacciones reales" class="d-link" href="console.html">Consola Onchain</a>
+    <div class="d-title" style="margin-top:20px">Plataforma</div>
     <a title="Demo — datos simulados" class="d-link" href="grid.html">QWATT Grid</a>
-    <a title="Testnet — transacciones reales" class="d-link" href="pay.html">QWATT Pay</a>
+    <a title="Testnet — transacciones reales" class="d-link" href="proof.html">QWATT Explorer</a>
+    <a title="Testnet — transacciones reales" class="d-link" href="respaldo.html">Reservas</a>
     <a title="Testnet — transacciones reales" class="d-link" href="wallet.html">QWATT Wallet</a>
-    <a title="Testnet — datos onchain en vivo" class="d-link" href="proof.html">QWATT Explorer</a>
-    <a title="Testnet — datos onchain en vivo" class="d-link" href="respaldo.html">QWATT Proof</a>
-    <a title="Testnet — datos onchain en vivo" class="d-link" href="red.html">QWATT Pulse</a>
+    <a title="Testnet — transacciones reales" class="d-link" href="pay.html">QWATT Pay</a>
+    <div class="d-title" style="margin-top:20px">Herramientas</div>
+    <a title="Testnet — transacciones reales" class="d-link" href="console.html">Consola Onchain</a>
+    <a title="Testnet — transacciones reales" class="d-link" href="red.html">QWATT Pulse</a>
     <a title="Prototipo — hardware en construcción" class="d-link" href="piloto.html" data-i18n="fa_piloto"></a>
     <a class="d-link" href="backup.html" data-i18n="fa_backup"></a>
     <div class="d-title" style="margin-top:20px" data-i18n="ft_res"></div>
@@ -571,10 +572,10 @@ html[data-theme="light"] #onchain .tag.t{color:#d08a57}
     </div>
     <div class="ticker-card">
       <div class="ticker-label">
-        <span>QWATT / USD</span>
+        <span data-i18n="tick_lab"></span>
         <span><span class="live-dot">&#9679;</span> <span data-i18n="live"></span></span>
       </div>
-      <div class="ticker-price"><span id="heroPrice">—</span> <small>USD</small></div>
+      <div class="ticker-price"><span id="heroPrice">—</span> <small>USD / MWh</small></div>
       <div class="ticker-delta" id="heroDelta">&nbsp;</div>
       <div class="peg-note">
         <span class="peg-badge">1 QWATT = 1 MWh</span>
@@ -980,7 +981,7 @@ html[data-theme="light"] #onchain .tag.t{color:#d08a57}
         <a href="pay.html">QWATT Pay</a>
       <a href="wallet.html">QWATT Wallet</a>
         <a href="proof.html">QWATT Explorer</a>
-        <a href="respaldo.html">QWATT Proof</a>
+        <a href="respaldo.html">Reservas</a>
         <a href="red.html">QWATT Pulse</a>
         <a href="piloto.html" data-i18n="fa_piloto"></a>
       </div>
@@ -1015,7 +1016,8 @@ const I18N = {
     hero_h1a:'Energía,', hero_h1b:'verificada onchain.',
     hero_lead:'QWATT conecta la producción renovable medible con una infraestructura transparente de verificación, registro y seguimiento digital. 1 QWATT representa 1 MWh bajo el protocolo — hoy como prototipo en la testnet de Stellar.',
     cta_dash:'Explorar el protocolo', cta_how:'Ver el piloto solar', live:'EN VIVO',
-    peg_note:'Referencia del protocolo: el precio spot real del MWh (EPEX day-ahead).',
+    peg_note:'Referencia del protocolo. QWATT no se transa: no tiene precio de mercado.',
+    tick_lab:'MERCADO EL\u00c9CTRICO \u00b7 EPEX DAY-AHEAD',
     peg_h2:'De la energía física al registro onchain',
     peg_sub:'Seis etapas conectan un kWh medido con un registro verificable en Stellar. Cada etapa muestra su estado real: testnet, prototipo o planificado.',
     s1_h:'El oráculo lee el mercado', s1_p:'Cada 5 minutos, un oráculo descentralizado publica en cadena el precio spot del MWh a partir de los mercados eléctricos mayoristas.',
@@ -1058,7 +1060,8 @@ const I18N = {
     hero_h1a:'Energy,', hero_h1b:'verified onchain.',
     hero_lead:'QWATT connects measurable renewable-energy production with transparent digital verification, recording and tracking infrastructure. 1 QWATT represents 1 MWh under the protocol — today as a prototype on the Stellar testnet.',
     cta_dash:'Explore the protocol', cta_how:'View the solar pilot', live:'LIVE',
-    peg_note:'Protocol reference: the real MWh spot price (EPEX day-ahead).',
+    peg_note:'Protocol reference. QWATT is not traded and has no market price.',
+    tick_lab:'ELECTRICITY MARKET \u00b7 EPEX DAY-AHEAD',
     peg_h2:'From physical energy to an on-chain record',
     peg_sub:'Six stages connect a measured kWh to a verifiable record on Stellar. Each stage shows its real status: testnet, prototype or planned.',
     s1_h:'The oracle reads the market', s1_p:'Every 5 minutes, a decentralized oracle publishes the wholesale spot price of one MWh on-chain.',
