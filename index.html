@@ -126,6 +126,9 @@
   .peg-note{margin-top:16px;padding-top:14px;border-top:1px solid rgba(255,255,255,.14);font-size:12.5px;color:#cfc1ae;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .peg-badge{font-family:var(--mono);font-size:11px;color:var(--teal-lt);border:1px solid rgba(208,138,99,.5);padding:3px 10px;white-space:nowrap}
 
+  .tools-line{margin-top:26px;font-family:var(--mono);font-size:12px;color:var(--faint);display:flex;flex-wrap:wrap;gap:10px 16px;align-items:baseline}
+  .tools-line a{color:var(--muted);border-bottom:1px solid transparent;transition:color .15s,border-color .15s}
+  .tools-line a:hover{color:var(--accent);border-bottom-color:var(--accent)}
   /* ── pasos (tarjetas con esquina recortada) ── */
   .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
   @media(max-width:760px){.steps{grid-template-columns:1fr}}
@@ -540,11 +543,8 @@ html[data-theme="light"] .ctl label .v{color:#8f4522}
     <a class="d-link d-sec" href="#peg" data-spy="peg" data-i18n="nav_peg"></a>
     <a class="d-link d-sec" href="#dash" data-spy="dash" data-i18n="nav_dash"></a>
     <a class="d-link d-sec" href="#onchain" data-spy="onchain" data-i18n="nav_onchain"></a>
-    <a class="d-link d-sec" href="#clean" data-spy="clean">QWATT-Clean</a>
     <a class="d-link d-sec" href="#apps" data-spy="apps" data-i18n="nav_apps"></a>
-    <a class="d-link d-sec" href="#tok" data-spy="tok" data-i18n="nav_tok"></a>
     <a class="d-link d-sec" href="#road" data-spy="road" data-i18n="nav_road"></a>
-    <a class="d-link d-sec" href="#security" data-spy="security" data-i18n="nav_sec"></a>
     <div class="d-title" style="margin-top:20px">Plataforma</div>
     <a class="d-link" href="verificacion.html">Verificaci&oacute;n</a>
     <a title="Demo — datos simulados" class="d-link" href="grid.html">QWATT Grid</a>
@@ -753,142 +753,39 @@ html[data-theme="light"] .ctl label .v{color:#8f4522}
   </div>
 </section>
 
-<section id="clean">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="tag t">QWATT-CLEAN</span>
-      <h2><span data-i18n="cl_h2"></span> <span class="st-chip st-plan" data-i18n="stat_plan"></span></h2>
-      <p data-i18n="cl_sub"></p>
-    </div>
-    <div class="flowmap">
-      <div class="fm-node">
-        <span class="fm-k">01</span>
-        <b data-i18n="cf1_h"></b>
-        <small data-i18n="cf1_s"></small>
-      </div>
-      <div class="fm-arrow" aria-hidden="true">&#8594;</div>
-      <div class="fm-node hl">
-        <span class="fm-k">02</span>
-        <b>QWATT + QWATT-C</b>
-        <small data-i18n="cf2_s"></small>
-      </div>
-      <div class="fm-arrow" aria-hidden="true">&#8594;</div>
-      <div class="fm-node">
-        <span class="fm-k">03</span>
-        <b data-i18n="cf3_h"></b>
-        <small data-i18n="cf3_s"></small>
-      </div>
-      <div class="fm-arrow" aria-hidden="true">&#8594;</div>
-      <div class="fm-node dk">
-        <span class="fm-k">04</span>
-        <b data-i18n="cf4_h"></b>
-        <small data-i18n="cf4_s"></small>
-      </div>
-    </div>
-    <div class="steps">
-      <div class="step">
-        <div class="k"><span>&#9670;</span></div>
-        <h3 data-i18n="cl1_h"></h3><p data-i18n="cl1_p"></p>
-      </div>
-      <div class="step">
-        <div class="k"><span>&#9670;</span></div>
-        <h3 data-i18n="cl2_h"></h3><p data-i18n="cl2_p"></p>
-      </div>
-      <div class="step">
-        <div class="k"><span>&#9670;</span></div>
-        <h3 data-i18n="cl3_h"></h3><p data-i18n="cl3_p"></p>
-      </div>
-    </div>
-    <p class="cl-note" data-i18n="cl_note"></p>
-  </div>
-</section>
-
 <section id="apps">
   <div class="wrap">
     <div class="sec-head">
-      <span class="tag t">ECOSISTEMA</span>
+      <span class="tag t">LA PLATAFORMA</span>
       <h2 data-i18n="apps_h2"></h2>
       <p data-i18n="apps_sub"></p>
     </div>
     <div class="mods">
-      <a class="mod" href="console.html">
-        <span class="m-name"><span class="m-n">01</span>Consola</span>
-        <span class="m-lead" data-i18n="ap_console"></span>
-        <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
-      </a>
-      <a class="mod" href="grid.html">
-        <span class="m-name"><span class="m-n">02</span>Grid</span>
-        <span class="m-lead" data-i18n="ap_grid"></span>
-        <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
-      </a>
-      <a class="mod" href="pay.html">
-        <span class="m-name"><span class="m-n">03</span>Pay</span>
-        <span class="m-lead" data-i18n="ap_pay"></span>
+      <a class="mod" href="verificacion.html">
+        <span class="m-name"><span class="m-n">01</span>Verificaci&oacute;n</span>
+        <span class="m-lead" data-i18n="ap_verif"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
       <a class="mod" href="proof.html">
-        <span class="m-name"><span class="m-n">04</span>Explorer</span>
+        <span class="m-name"><span class="m-n">02</span>Explorer</span>
         <span class="m-lead" data-i18n="ap_explorer"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
-      <a class="mod" href="respaldo.html">
-        <span class="m-name"><span class="m-n">05</span>Proof</span>
-        <span class="m-lead" data-i18n="ap_proof"></span>
-        <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
-      </a>
-      <a class="mod" href="red.html">
-        <span class="m-name"><span class="m-n">06</span>Pulse</span>
-        <span class="m-lead" data-i18n="ap_pulse"></span>
+      <a class="mod" href="wallet.html">
+        <span class="m-name"><span class="m-n">03</span>Wallet</span>
+        <span class="m-lead" data-i18n="ap_wallet"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
       <a class="mod" href="piloto.html">
-        <span class="m-name"><span class="m-n">07</span>Piloto</span>
+        <span class="m-name"><span class="m-n">04</span>Piloto Solar</span>
         <span class="m-lead" data-i18n="ap_piloto"></span>
         <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
       </a>
-      <a class="mod" href="whitepaper.html">
-        <span class="m-name"><span class="m-n">08</span>Whitepaper</span>
-        <span class="m-lead" data-i18n="ap_wp"></span>
-        <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
-      </a>
-      <a class="mod" href="backup.html">
-        <span class="m-name"><span class="m-n">09</span>Backup</span>
-        <span class="m-lead" data-i18n="ap_backup"></span>
-        <span class="m-open"><span data-i18n="ap_open"></span> &#8627;</span>
-      </a>
     </div>
-  </div>
-</section>
-
-<section id="tok">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="tag t">TOKENOMICS</span>
-      <h2 data-i18n="tok_h2"></h2>
-      <p data-i18n="tok_sub"></p>
-    </div>
-    <div class="tok-grid">
-      <div class="panel">
-        <div class="p-head"><h3 data-i18n="tok_dist"></h3><span class="st-chip st-plan" data-i18n="stat_plan"></span></div>
-        <div class="sub">&nbsp;</div>
-        <div class="dist-row"><div class="dist-top"><b data-i18n="d1"></b><span>40%</span></div><div class="dist-bar"><div class="dist-fill" style="width:40%"></div></div></div>
-        <div class="dist-row"><div class="dist-top"><b data-i18n="d2"></b><span>25%</span></div><div class="dist-bar"><div class="dist-fill" style="width:25%"></div></div></div>
-        <div class="dist-row"><div class="dist-top"><b data-i18n="d3"></b><span>15%</span></div><div class="dist-bar"><div class="dist-fill" style="width:15%"></div></div></div>
-        <div class="dist-row"><div class="dist-top"><b data-i18n="d4"></b><span>12%</span></div><div class="dist-bar"><div class="dist-fill" style="width:12%"></div></div></div>
-        <div class="dist-row"><div class="dist-top"><b data-i18n="d5"></b><span>8%</span></div><div class="dist-bar"><div class="dist-fill" style="width:8%"></div></div></div>
-      </div>
-      <div class="panel">
-        <h3 data-i18n="tok_facts"></h3>
-        <div class="sub">&nbsp;</div>
-        <ul class="facts">
-          <li><span data-i18n="f1"></span><span>100,000,000 QWATT</span></li>
-          <li><span data-i18n="f2"></span><span>42,700,000 QWATT</span></li>
-          <li><span data-i18n="f3"></span><span>1 QWATT = 1 MWh</span></li>
-          <li><span data-i18n="f4"></span><span>Stellar (testnet)</span></li>
-          <li><span data-i18n="f5"></span><span data-i18n="f5v"></span></li>
-        </ul>
-      </div>
-    </div>
+    <p class="tools-line">
+      <span data-i18n="tools_lab"></span>
+      <a href="console.html">Consola</a><a href="grid.html">Grid</a><a href="pay.html">Pay</a><a href="respaldo.html">Reservas</a><a href="red.html">Pulse</a><a href="backup.html">Backup</a><a href="whitepaper.html">Whitepaper</a>
+    </p>
   </div>
 </section>
 
@@ -905,24 +802,6 @@ html[data-theme="light"] .ctl label .v{color:#8f4522}
       <div class="mile"><div class="q">Q1 2027</div><h3 data-i18n="r3_h"></h3><p data-i18n="r3_p"></p></div>
       <div class="mile"><div class="q">Q2 2027</div><h3 data-i18n="r4_h"></h3><p data-i18n="r4_p"></p></div>
     </div>
-  </div>
-</section>
-
-<section id="security">
-  <div class="wrap">
-    <div class="sec-head">
-      <span class="tag t">SEGURIDAD</span>
-      <h2 data-i18n="sec_h2"></h2>
-      <p data-i18n="sec_sub"></p>
-    </div>
-    <ul class="sec-lines">
-      <li data-i18n="sl1"></li>
-      <li data-i18n="sl2"></li>
-      <li data-i18n="sl3"></li>
-      <li data-i18n="sl4"></li>
-      <li data-i18n="sl5"></li>
-    </ul>
-    <div class="sec-more"><a href="terminos.html" data-i18n="sec_more"></a></div>
   </div>
 </section>
 
@@ -1343,8 +1222,8 @@ wave();
 /* ================= i18n adicional: apps, seguridad, pie ================= */
 Object.assign(I18N.es, {
   nav_apps:'Apps', nav_sec:'Seguridad', nav_terms:'Términos',
-  apps_h2:'Un ecosistema navegable, app por app',
-  apps_sub:'Ocho aplicaciones sobre el mismo activo QWATT en la testnet de Stellar: emisión, mercado energético, pagos, prueba de reservas y el piloto solar.',
+  apps_h2:'Cuatro superficies, una sola historia',
+  apps_sub:'C\u00f3mo se prueba un kWh, d\u00f3nde se inspecciona, c\u00f3mo se usa y d\u00f3nde se despliega. El resto son herramientas.',
   ap_console:'La sala de máquinas: despliega o restaura QWATT, financia billeteras de prueba y ejecuta compras atómicas al precio del oráculo.',
   ap_grid:'El ecosistema energético: generadores publican capacidad, tus paneles venden energía y la red paga en QWATT.',
   ap_pay:'Pagos sobre la testnet de Stellar: billeteras financiadas al instante y transferencias que liquidan en ~5 segundos.',
@@ -1414,8 +1293,8 @@ Object.assign(I18N.es, {
 });
 Object.assign(I18N.en, {
   nav_apps:'Apps', nav_sec:'Security', nav_terms:'Terms',
-  apps_h2:'A navigable ecosystem, app by app',
-  apps_sub:'Eight applications on the same QWATT asset on the Stellar testnet: issuance, the energy market, payments, proof of reserves and the solar pilot.',
+  apps_h2:'Four surfaces, one story',
+  apps_sub:'How a kWh is proven, where it is inspected, how it is used and where it is deployed. The rest are tools.',
   ap_console:'The engine room: deploy or restore QWATT, fund test wallets and run atomic purchases at the oracle price.',
   ap_grid:'The energy ecosystem: generators publish capacity, your panels sell energy and the grid pays in QWATT.',
   ap_pay:'Payments on the Stellar testnet: instantly funded wallets and transfers that settle in ~5 seconds.',
