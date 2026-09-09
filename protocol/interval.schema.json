@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwatt.org/protocol/interval.schema.json",
+  "title": "QWATT normalized interval record",
+  "description": "What every ingestion adapter (Modbus RTU/TCP, HTTP/JSON push, CSV replay) emits, and the only shape the gate engine accepts. A meter is supported by writing a register map that produces this record — never by editing the engine.",
+  "type": "object",
+  "required": ["spec_version", "site_id", "node_id", "seq", "ts_start", "ts_end", "dt_s", "meters", "source"],
+  "additionalProperties": false,
+  "properties": {
+    "spec_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "gates.spec.json version the node was configured with." },
+    "site_id": { "type": "string", "minLength": 1, "description": "Registered site identifier (hash or slug)." },
+    "node_id": { "type": "string", "minLength": 1, "description": "Node identity — the public key of the node's signing key once nodes sign." },
+    "seq": { "type": "integer", "minimum": 0, "description": "Strictly increasing per node. Replay protection." },
+    "ts_start": { "type": "string", "format": "date-time", "description": "Interval start, RFC 3339 UTC." },
+    "ts_end": { "type": "string", "format": "date-time", "description": "Interval end, RFC 3339 UTC. Must be after ts_start." },
+    "dt_s": { "type": "number", "minimum": 1, "description": "Interval length in seconds. Must equal ts_end − ts_start within 1 s." },
+    "clock_skew_s": { "type": "number", "description": "Gateway receive time − ts_end, seconds. Filled in by the gateway, absent at the node." },
+    "meters": {
+      "type": "object",
+      "required": ["a"],
+      "additionalProperties": false,
+      "properties": {
+        "a": { "$ref": "#/$defs/meter" },
+        "b": { "oneOf": [ { "$ref": "#/$defs/meter" }, { "type": "null" } ] }
+      },
+      "description": "Two independent instruments. In symmetric profiles both measure the same DC quantity. In ac_dc_ratio profiles `a` is DC before the inverter and `b` is AC after it."
+    },
+    "source": {
+      "type": "object",
+      "required": ["adapter"],
+      "additionalProperties": false,
+      "properties": {
+        "adapter": { "type": "string", "enum": ["modbus-rtu", "modbus-tcp", "http-json", "csv", "replay", "simulator", "demo"] },
+        "register_map": { "type": "string", "description": "Name of the register-map config that produced this record, e.g. `pzem-017@1`." },
+        "raw_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Hash of the raw adapter payload, kept so the normalization itself is auditable." }
+      }
+    }
+  },
+  "$defs": {
+    "meter": {
+      "type": "object",
+      "required": ["id", "class", "wh"],
+      "additionalProperties": false,
+      "properties": {
+        "id": { "type": "string", "minLength": 1, "description": "Instrument identity, e.g. `pzem-017:0x01`." },
+        "class": { "type": "string", "enum": ["dc", "ac"] },
+        "wh": { "type": "number", "minimum": 0, "description": "Energy over the interval, watt-hours." },
+        "w_mean": { "type": "number", "minimum": 0, "description": "Mean power over the interval, watts. Optional; enables the energy/power consistency check." },
+        "samples": { "type": "integer", "minimum": 0, "description": "Number of raw samples integrated into wh." }
+      }
+    }
+  }
+}

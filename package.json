@@ -2,8 +2,12 @@
   "name": "qwatt-site",
   "version": "1.0.0",
   "private": true,
-  "description": "QWATT — static site. No build step for the site itself; npm is used only to vendor the wallet dependencies into assets/vendor/ (see scripts/build-wallet-vendor.md).",
+  "description": "QWATT — static site plus the verification protocol (protocol/). No build step for the site; `npm run gen:gates` regenerates the gate bindings from protocol/gates.spec.json, `npm test` runs the conformance and validator suites with no install. npm install is only needed to vendor the wallet dependencies (see scripts/build-wallet-vendor.md).",
   "scripts": {
+    "gen:gates": "node protocol/gen.js",
+    "test": "node protocol/gen.js --check && node protocol/conformance.test.js && node mining-rig/validators.test.js",
+    "test:conformance": "node protocol/conformance.test.js",
+    "test:validators": "node mining-rig/validators.test.js",
     "vendor:wallet": "esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-sdk.entry.js --outfile=assets/vendor/stellar-sdk.js && esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-wallets-kit.entry.js --outfile=assets/vendor/stellar-wallets-kit.js"
   },
   "devDependencies": {

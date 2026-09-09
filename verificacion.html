@@ -479,7 +479,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       Un intervalo rechazado <b>no emite nada</b>, y queda escrito en el registro de rechazos.
     </p>
     <div class="rigline">
-      <span>150 Wp &middot; 12 V</span><span>&minus;33,45 &middot; &minus;70,65 &middot; norte 30&deg;</span>
+      <span>150 Wp &middot; 12 V</span><span>&minus;33,45 &middot; &minus;70,65 &middot; norte 30&deg;</span><span id="specv" title="Versi&oacute;n y huella de protocol/gates.spec.json que corre esta p&aacute;gina">spec &mdash;</span>
       <span>intervalo 5 min</span><span>techo 14,4 Wh</span><span>PZEM-017 + EPEver Tracer1210AN</span>
     </div>
 
@@ -625,7 +625,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       <li>Abre la transacci&oacute;n de emisi&oacute;n en stellar.expert.</li>
       <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacci&oacute;n: ah&iacute; est&aacute; el hash de la evidencia.</li>
       <li>Descarga el manifiesto del lote desde el feed p&uacute;blico y recalcula su <code>SHA-256</code>. Debe coincidir.</li>
-      <li>Vuelve a correr las compuertas con los n&uacute;meros del propio lote — todos los umbrales son p&uacute;blicos.</li>
+      <li>Vuelve a correr las compuertas con los n&uacute;meros del propio lote — todos los umbrales est&aacute;n en <a href="protocol/gates.spec.json">gates.spec.json</a> y los casos de conformidad en <a href="protocol/conformance/cases.json">cases.json</a>. Esta p&aacute;gina corre el mismo motor que la suite.</li>
       <li>Comprueba que <code>qwatt.cumulative_kwh</code> sea la suma exacta de todos los pagos anteriores.</li>
       <li><b>Reconciliaci&oacute;n:</b> suma lo atestiguado y comp&aacute;ralo con lo emitido desde la g&eacute;nesis. Si no cuadran, el emisor est&aacute; emitiendo sin respaldo.</li>
     </ol>
@@ -691,32 +691,33 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
 </div>
 </footer>
 
+<script src="assets/gates.generated.js"></script>
+<script src="assets/qwatt-gates.js"></script>
 <script>
 (function(){
-  /* Phase 1 rig: 150 Wp, 5-minute intervals, Santiago balcony (-33.45, -70.65).
-     Mirrors the gateway's four gates exactly. */
-  var NAMEPLATE_KW = 0.150, CEIL_K = 1.15, ELEV_MIN = -2.0;
-  var AGREE_FRAC = 0.05, DEADBAND_W = 2.0, MAX_DT = 900, MAX_SKEW_S = 7500;
-  var LAT = -33.45, LON = -70.65;
-  var QWATT_PER_KWH = 0.001; /* 1 QWATT = 1 MWh — fixed by the genesis memo */
-
-  function solarElevation(hourLocal){
-    var d = new Date(Date.UTC(2026, 8, 20, (hourLocal + 4) % 24, 0, 0));
-    var julian = d.getTime()/86400000 + 2440587.5, n = julian - 2451545.0;
-    var L = (280.46 + 0.9856474*n) % 360, g = (357.528 + 0.9856003*n) % 360 * Math.PI/180;
-    var lambda = (L + 1.915*Math.sin(g) + 0.020*Math.sin(2*g)) * Math.PI/180;
-    var eps = (23.439 - 0.0000004*n) * Math.PI/180;
-    var dec = Math.asin(Math.sin(eps)*Math.sin(lambda));
-    var utc = d.getUTCHours() + d.getUTCMinutes()/60;
-    var ha = ((utc + LON/15) - 12) * 15 * Math.PI/180;
-    var lat = LAT * Math.PI/180;
-    var s = Math.sin(lat)*Math.sin(dec) + Math.cos(lat)*Math.cos(dec)*Math.cos(ha);
-    return Math.asin(Math.max(-1, Math.min(1, s))) * 180/Math.PI;
-  }
+  /* This page holds no thresholds and no gate logic. Both come from
+     assets/gates.generated.js (built from protocol/gates.spec.json) and
+     assets/qwatt-gates.js — the same two files the conformance suite runs
+     in CI. Mirroring the gateway is no longer a promise; it is the same code. */
+  var SPEC = window.QWATT_GATES_SPEC, G = window.QWATT_GATES;
+  var P = SPEC.profiles.bench, MSG = SPEC.messages.es;
 
   var $ = function(id){ return document.getElementById(id); };
   var els = { hour:$('cHour'), a:$('cA'), b:$('cB'), dt:$('cDt'), skew:$('cSkew') };
   var n1 = function(x, d){ return x.toFixed(d === undefined ? 1 : d).replace('.', ','); };
+
+  /* Presentation only: how each placeholder in a spec message is printed. */
+  var INT = { dt:1, dt_ts:1, max_dt:1, max_skew:1, skew:1, minutes:1, nameplate:1 };
+  function fmt(v, k){
+    if (typeof v !== 'number') return String(v);
+    if (INT[k]) return String(Math.round(v));
+    if (k === 'diff' || k === 'tol') return n1(v, 2);
+    if (k === 'ratio') return n1(v, 3);
+    return n1(v);
+  }
+
+  var specv = $('specv');
+  if (specv) specv.textContent = 'spec ' + SPEC.spec_version + ' \u00b7 ' + SPEC.digest.slice(0, 8);
 
   var PRESETS = {
     honest: {hour:12, a:11.8, b:11.6, dt:300, skew:false},
@@ -728,47 +729,25 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     gap:    {hour:12, a:11.8, b:11.6, dt:1200, skew:false}
   };
 
+  /* Builds a normalized interval (protocol/interval.schema.json) from the
+     controls and hands it to the engine. Santiago runs UTC−3 on 2026-09-20. */
   function evaluate(){
     var hour = +els.hour.value, A = +els.a.value, B = +els.b.value, dt = +els.dt.value;
-    var hours = dt/3600;
-    var ceiling = NAMEPLATE_KW * 1000 * hours * CEIL_K;   // Wh
-    var el = solarElevation(hour);
-    var generating = Math.max(A, B) > 0.05;
-    var r = [];
-
-    // G0 plausibility
-    if (dt > MAX_DT) {
-      r.push({id:'G0', s:'fail', t:'Δt de ' + dt + ' s supera el máximo de ' + MAX_DT + ' s: el intervalo no es utilizable.'});
-    } else if (els.skew.checked) {
-      r.push({id:'G0', s:'fail', t:'Desfase de reloj sobre 2 h 05 m — sin tiempo confiable no hay reporte, por diseño.'});
-    } else {
-      r.push({id:'G0', s:'pass', t:'Valores finitos, Δt ' + dt + ' s dentro de rango, reloj sincronizado.'});
-    }
-
-    // G1 nameplate ceiling
-    var over = Math.max(A, B);
-    r.push(over <= ceiling
-      ? {id:'G1', s:'pass', t:'Bajo el techo de placa (' + n1(ceiling) + ' Wh para 150 Wp en ' + Math.round(dt/60) + ' min).'}
-      : {id:'G1', s:'fail', t:n1(over) + ' Wh supera el techo físico de ' + n1(ceiling) + ' Wh — un panel de 150 Wp no puede producir eso.'});
-
-    // G2 solar elevation
-    if (!generating) {
-      r.push({id:'G2', s:'pass', t:'Sin generación que justificar (sol a ' + n1(el) + '°).'});
-    } else {
-      r.push(el >= ELEV_MIN
-        ? {id:'G2', s:'pass', t:'Sol a ' + n1(el) + '° — sobre el umbral de −2°.'}
-        : {id:'G2', s:'fail', t:'Generación reportada con el sol a ' + n1(el) + '°, bajo el umbral de −2°.'});
-    }
-
-    // G3 meter agreement
-    var diff = Math.abs(A - B);
-    var deadbandWh = DEADBAND_W * hours;
-    var tol = Math.max(AGREE_FRAC * Math.max(A, B), deadbandWh);
-    r.push(diff <= tol
-      ? {id:'G3', s:'pass', t:'Los medidores concuerdan: |A−B| = ' + n1(diff, 2) + ' Wh, tolerancia ' + n1(tol, 2) + ' Wh.'}
-      : {id:'G3', s:'fail', t:'Divergencia de ' + n1(diff, 2) + ' Wh entre medidores (tolerancia ' + n1(tol, 2) + ' Wh) — uno de los dos miente o está ciego.'});
-
-    return {checks:r, minted: Math.min(A, B)};
+    var start = new Date(Date.UTC(2026, 8, 20, hour + 3, 0, 0));
+    var rec = {
+      spec_version: SPEC.spec_version, site_id: 'bench-santiago', node_id: 'demo', seq: 1,
+      ts_start: start.toISOString(),
+      ts_end: new Date(start.getTime() + dt * 1000).toISOString(),
+      dt_s: dt,
+      meters: { a: { id: 'pzem-017', class: 'dc', wh: A }, b: { id: 'epever', class: 'dc', wh: B } },
+      clock_skew_s: els.skew.checked ? P.clock_max_skew_s + 1 : 0,
+      source: { adapter: 'demo' }
+    };
+    var res = G.evaluateInterval(rec, P, SPEC);
+    var checks = res.checks.map(function(c){
+      return { id: c.label, s: c.status === 'pass' ? 'pass' : 'fail', t: G.format(MSG[c.code] || c.code, c.detail, fmt) };
+    });
+    return { checks: checks, minted: Math.min(A, B), mint: res.mint };
   }
 
   function render(){
@@ -795,9 +774,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     v.className = 'verdict ' + (ok ? 'ok' : 'no');
     $('vTitle').textContent = ok ? 'ACEPTADO' : 'RECHAZADO';
     if (ok) {
-      var kwh = res.minted / 1000;
-      var q = Math.floor(kwh * QWATT_PER_KWH * 1e7) / 1e7;
-      $('vMint').textContent = 'emite ' + q.toFixed(7).replace('.', ',') + ' QWATT'
+      $('vMint').textContent = 'emite ' + res.mint.qwatt_str.replace('.', ',') + ' QWATT'
         + '  ·  min(A,B) = ' + n1(res.minted) + ' Wh';
     } else {
       $('vMint').textContent = failed.length + (failed.length === 1 ? ' compuerta cerrada' : ' compuertas cerradas') + ' · no emite';

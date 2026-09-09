@@ -1,0 +1,24 @@
+name: conformance
+
+# Every binding of protocol/gates.spec.json is held to protocol/conformance/cases.json.
+# No install step: the engine, the validators and the runner have zero dependencies.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Generated bindings are current
+        run: node protocol/gen.js --check
+      - name: Conformance suite (shared engine, schema, bindings)
+        run: node protocol/conformance.test.js
+      - name: Validator adversary tests (V1–V7)
+        run: node mining-rig/validators.test.js

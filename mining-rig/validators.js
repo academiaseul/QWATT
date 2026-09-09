@@ -3,6 +3,9 @@
  * ---------------------------------------------------------------------------
  * The executable form of docs/VERIFICATION-MODEL.md §5.
  *
+ * Thresholds come from protocol/gates.spec.json (generated binding), never
+ * from literals in this file.
+ *
  * Runs in two places against the SAME site thresholds:
  *   1. on the node, before it signs a batch
  *   2. on the treasury co-signer, before it counter-signs
@@ -20,25 +23,32 @@ const crypto = require('crypto');
 /* ─────────────────────────── site thresholds ─────────────────────────── */
 
 /**
- * Per-site, not universal — a Santiago rooftop and a Patagonian one have
- * different plausible envelopes. Stored with the site record in the panel
- * registry so node and treasury validate against identical numbers.
+ * Thresholds are NOT defined here. They come from protocol/gates.spec.json via
+ * the generated binding, so the node, the treasury co-signer, the browser demo
+ * and the conformance suite all judge against identical numbers. Per-site
+ * overrides still apply through site.thresholds (same camelCase keys).
+ *
+ * Key mapping (spec → validators): rooftop profile = the El Arrayán geometry.
  */
+const SPEC = require('./gates.generated.js');
+const SPEC_VERSION = SPEC.spec_version;
+const _p = SPEC.profiles.rooftop;
 const DEFAULT_THRESHOLDS = {
-  nameplateW: 4400,          // array nameplate (bench: 100)
-  overIrradianceK: 1.15,     // V1 — cold clear-sky / cloud-edge margin
-  nightElevationDeg: -0.833, // V2 — sun below horizon, incl. refraction
-  nightToleranceFrac: 0.005, // V2 — meter noise allowance, fraction of nameplate
-  inverterEffMin: 0.88,      // V3 — AC/DC ratio floor
-  inverterEffMax: 1.0,       // V3 — AC can never exceed DC
-  witnessRatioMin: 0.5,      // V4
-  witnessRatioMax: 1.6,      // V4
-  witnessDerate: 0.80,       // V4 — soiling, temperature, mismatch
-  rampMaxWPerSample: null,   // V5 — defaults to nameplateW (100%/10 s)
-  varianceFloor: 0.005,      // V5 — real irradiance is noisy; σ/μ below this is synthetic
-  varianceMinSamples: 30,    // V5 — below this, skip the smoothness test
-  rtcMaxDriftS: 60,          // V6
-  maxGaps: 2,                // V7
+  nameplateW: _p.nameplate_w,                        // array nameplate (bench: 150)
+  overIrradianceK: _p.ceiling_k,                     // V1 — cold clear-sky / cloud-edge margin
+  nightElevationDeg: _p.elevation_min_deg,           // V2 — sun below horizon, incl. refraction
+  nightToleranceFrac: _p.night_tolerance_frac,       // V2 — meter noise allowance, fraction of nameplate
+  inverterEffMin: _p.agreement.ac_dc_min,            // V3 — AC/DC ratio floor
+  inverterEffMax: _p.agreement.ac_dc_max,            // V3 — AC can never exceed DC
+  witnessRatioMin: _p.phase2.witness_ratio_min,      // V4
+  witnessRatioMax: _p.phase2.witness_ratio_max,      // V4
+  witnessDerate: _p.phase2.witness_derate,           // V4 — soiling, temperature, mismatch
+  rampMaxWPerSample: _p.phase2.ramp_max_w_per_sample,// V5 — null → nameplateW (100 %/sample)
+  varianceFloor: _p.phase2.variance_floor,           // V5 — σ/μ below this is synthetic
+  varianceMinSamples: _p.phase2.variance_min_samples,// V5 — below this, skip the smoothness test
+  rtcMaxDriftS: _p.phase2.rtc_max_drift_s,           // V6
+  maxGaps: _p.phase2.max_gaps,                       // V7
+  boundaryRelEps: SPEC.numerics.boundary_rel_eps,    // spec numerics — "at the limit" passes in every language
 };
 
 /* ───────────────────────────── solar position ────────────────────────── */
@@ -101,9 +111,10 @@ function stats(values) {
 function v1Capacity(batch, t) {
   const hours = windowHours(batch);
   const maxWh = t.nameplateW * hours * t.overIrradianceK;
-  const wh = batch.energy_wh.m1_dc;
+  // Spec rule: if ANY meter exceeds the ceiling the batch fails.
+  const wh = Math.max(batch.energy_wh.m1_dc, batch.energy_wh.m2_ac ?? -Infinity);
   const detail = { wh, maxWh: +maxWh.toFixed(1), hours: +hours.toFixed(4) };
-  return wh <= maxWh
+  return wh <= maxWh * (1 + t.boundaryRelEps)
     ? ok('v1', detail)
     : fail('v1', `energy ${wh} Wh exceeds physical maximum ${maxWh.toFixed(1)} Wh`, detail);
 }
@@ -140,10 +151,10 @@ function v3Divergence(batch, t) {
   }
   const ratio = ac / dc;
   const detail = { dc, ac, ratio: +ratio.toFixed(4), band: [t.inverterEffMin, t.inverterEffMax] };
-  if (ratio > t.inverterEffMax) {
+  if (ratio > t.inverterEffMax * (1 + t.boundaryRelEps)) {
     return fail('v3', `AC/DC ratio ${ratio.toFixed(3)} exceeds 1.0 — an inverter cannot create energy`, detail);
   }
-  return ratio >= t.inverterEffMin
+  return ratio >= t.inverterEffMin * (1 - t.boundaryRelEps)
     ? ok('v3', detail)
     : fail('v3', `AC/DC ratio ${ratio.toFixed(3)} below the inverter efficiency floor ${t.inverterEffMin}`, detail);
 }
@@ -308,6 +319,7 @@ function verifyBatch(batch, site = {}, ctx = {}) {
   else if (hasSecondMeter && hasWitness) level = ctx.coSigned ? 'A3' : 'A2';
 
   return {
+    spec_version: SPEC_VERSION,
     accepted: failures.length === 0 && level !== 'A0',
     level,
     checks,
@@ -317,6 +329,7 @@ function verifyBatch(batch, site = {}, ctx = {}) {
 }
 
 module.exports = {
+  SPEC_VERSION,
   DEFAULT_THRESHOLDS,
   solarElevationDeg,
   canonical,
