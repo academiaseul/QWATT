@@ -6,13 +6,13 @@
 
 | Field | Value |
 |---|---|
-| **Project Name** | QWATT — The Clean Token |
+| **Project Name** | QWATT (formerly WattCoin) — a DeFi energy meter |
 | **Builder / Team** | Jae Hee (Jay) Kim, Diego Ostertag |
 | **Primary Contact** | Jae Hee (Jay) Kim — jay@quorelia.org |
 | **Ambassador Chapter** | Chile |
 | **Ambassador Chapter Lead** | Bastian Koh |
 | **Date Submitted** | September 2026 |
-| **Suggested Sprint Start Date** | TBD |
+| **Suggested Sprint Start Date** | September 14, 2026 |
 | **Duration** | 30 days (4-week sprint) |
 
 ---
@@ -21,7 +21,7 @@
 
 ### 2.1 Purpose
 
-This Instaward focuses on delivering a meter-agnostic verification engine for renewable energy generation, with multi-party authorization on Stellar Testnet.
+QWATT, formerly WattCoin, is a DeFi energy meter: a verification layer that turns metered renewable generation into independently verifiable records on Stellar. This Instaward focuses on delivering a meter-agnostic verification engine for that layer, with multi-party authorization on Stellar Testnet.
 
 Rather than building around one specific device, this sprint delivers a software layer that accepts the output of any standard energy meter — Modbus, HTTP/JSON or CSV — normalizes it to one record, runs it through open, versioned physics gates, and anchors the accepted evidence on Stellar through a 2-of-3 multisig in which an independent verifier re-runs every check from published data.
 
