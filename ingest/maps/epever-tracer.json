@@ -1,0 +1,24 @@
+{
+  "name": "epever-tracer",
+  "version": 1,
+  "description": "EPEver Tracer A/AN/BN series MPPT charge controller, RS-485 Modbus RTU (RJ45 port). Phase 1 bench meter B: PV-side measurements before the controller. Input registers, function 4. Serial 115200 8N1, default unit id 1.",
+  "class": "dc",
+  "protocol": {
+    "unit_id": 1,
+    "function": 4,
+    "serial": { "baud": 115200, "data_bits": 8, "parity": "N", "stop_bits": 1 }
+  },
+  "fields": {
+    "voltage_v":         { "address": 12544, "words": 1, "type": "u16", "scale": 0.01 },
+    "current_a":         { "address": 12545, "words": 1, "type": "u16", "scale": 0.01 },
+    "power_w":           { "address": 12546, "words": 2, "type": "u32", "word_order": "lo_hi", "scale": 0.01 },
+    "battery_voltage_v": { "address": 12548, "words": 1, "type": "u16", "scale": 0.01 },
+    "battery_current_a": { "address": 12549, "words": 1, "type": "u16", "scale": 0.01 },
+    "energy_today_wh":   { "address": 13068, "words": 2, "type": "u32", "word_order": "lo_hi", "scale": 10 },
+    "energy_total_wh":   { "address": 13074, "words": 2, "type": "u32", "word_order": "lo_hi", "scale": 10 }
+  },
+  "energy": "integrate",
+  "power_field": "power_w",
+  "counter_field": "energy_total_wh",
+  "notes": "Addresses in decimal: 0x3100 PV voltage, 0x3101 PV current, 0x3102/0x3103 PV power (low word first), 0x3104 battery voltage, 0x3105 battery current, 0x330C/0x330D generated energy today (0.01 kWh), 0x3312/0x3313 generated energy total (0.01 kWh). The energy counters have 10 Wh resolution — useless for 5-minute intervals — so energy is integrated from the 0.01 W power register. Confirm register addresses against the controller's own manual before the first live read; series differ."
+}

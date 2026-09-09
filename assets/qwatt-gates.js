@@ -20,7 +20,12 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var ENGINE_VERSION = '1.0.0';
+  var ENGINE_VERSION = '1.1.0';
+  /* Input shape: interval.schema.json. Energies arrive as INTEGER milliwatt-hours and
+     powers as integer milliwatts (docs/ARCHITECTURE-FREEZE.md §1); the engine works in
+     watt-hours internally so the spec's thresholds keep their stated units. The
+     conformance suite checks this constant against the schema file. */
+  var INTERVAL_SCHEMA_VERSION = '1.1.0';
 
   /* ───────────────────────── solar position ───────────────────────── */
 
@@ -55,6 +60,7 @@
   /* ───────────────────────────── helpers ──────────────────────────── */
 
   var isNum = function (v) { return typeof v === 'number' && isFinite(v); };
+  var isInt = function (v) { return isNum(v) && Math.floor(v) === v; };
   var round = function (v, dp) { var k = Math.pow(10, dp); return Math.round(v * k) / k; };
   /* Comparisons against a computed bound allow the spec's relative tolerance
      (numerics.boundary_rel_eps) so "exactly at the limit" gets one verdict in
@@ -108,11 +114,11 @@
     var bad = null;
     if (!isNum(t0)) bad = 'ts_start';
     else if (!isNum(t1)) bad = 'ts_end';
-    else if (!a || !isNum(a.wh) || a.wh < 0) bad = 'meters.a.wh';
-    else if (b && (!isNum(b.wh) || b.wh < 0)) bad = 'meters.b.wh';
-    else if (a.w_mean != null && (!isNum(a.w_mean) || a.w_mean < 0)) bad = 'meters.a.w_mean';
-    else if (b && b.w_mean != null && (!isNum(b.w_mean) || b.w_mean < 0)) bad = 'meters.b.w_mean';
-    else if (!isNum(rec.dt_s) || rec.dt_s <= 0) bad = 'dt_s';
+    else if (!a || !isInt(a.mwh) || a.mwh < 0) bad = 'meters.a.mwh';
+    else if (b && (!isInt(b.mwh) || b.mwh < 0)) bad = 'meters.b.mwh';
+    else if (a.mw_mean != null && (!isInt(a.mw_mean) || a.mw_mean < 0)) bad = 'meters.a.mw_mean';
+    else if (b && b.mw_mean != null && (!isInt(b.mw_mean) || b.mw_mean < 0)) bad = 'meters.b.mw_mean';
+    else if (!isInt(rec.dt_s) || rec.dt_s <= 0) bad = 'dt_s';
     else if (rec.clock_skew_s != null && !isNum(rec.clock_skew_s)) bad = 'clock_skew_s';
 
     if (bad) {
@@ -139,17 +145,17 @@
     } else {
       var ep = null;
       [a, b].forEach(function (m, i) {
-        if (ep || !m || m.w_mean == null) return;
-        var expected = m.w_mean * hours;
-        var tol = p.energy_power_consistency_frac * Math.max(m.wh, expected);
-        if (Math.abs(m.wh - expected) > tol) ep = { meter: i === 0 ? 'a' : 'b', wh: m.wh, expected: round(expected, 3), tol: round(tol, 3) };
+        if (ep || !m || m.mw_mean == null) return;
+        var whM = m.mwh / 1000, expected = (m.mw_mean / 1000) * hours;
+        var tol = p.energy_power_consistency_frac * Math.max(whM, expected);
+        if (Math.abs(whM - expected) > tol) ep = { meter: i === 0 ? 'a' : 'b', wh: whM, expected: round(expected, 3), tol: round(tol, 3) };
       });
       checks.push(ep
         ? check('plausibility', L('plausibility'), 'fail', 'plausibility.energy_power', ep)
         : check('plausibility', L('plausibility'), 'pass', 'plausibility.ok', { dt: dt, skew: skew }));
     }
 
-    var A = a.wh, B = b ? b.wh : null;
+    var A = a.mwh / 1000, B = b ? b.mwh / 1000 : null;   // Wh for the gates; evidence keeps integer mWh
     var top = B == null ? A : Math.max(A, B);
 
     /* ── G1 nameplate ceiling ────────────────────────────────────── */
@@ -223,6 +229,7 @@
 
   return {
     ENGINE_VERSION: ENGINE_VERSION,
+    INTERVAL_SCHEMA_VERSION: INTERVAL_SCHEMA_VERSION,
     solarElevationDeg: solarElevationDeg,
     evaluateInterval: evaluateInterval,
     mintFor: mintFor,

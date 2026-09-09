@@ -1,0 +1,23 @@
+{
+  "name": "pzem-017",
+  "version": 1,
+  "description": "Peacefair PZEM-017 DC energy meter, RS-485 Modbus RTU. Phase 1 bench meter A. Input registers, function 4. Serial 9600 8N2 (two stop bits — a common wiring mistake is 8N1).",
+  "class": "dc",
+  "protocol": {
+    "unit_id": 1,
+    "function": 4,
+    "serial": { "baud": 9600, "data_bits": 8, "parity": "N", "stop_bits": 2 }
+  },
+  "fields": {
+    "voltage_v":  { "address": 0, "words": 1, "type": "u16", "scale": 0.01 },
+    "current_a":  { "address": 1, "words": 1, "type": "u16", "scale": 0.01 },
+    "power_w":    { "address": 2, "words": 2, "type": "u32", "word_order": "lo_hi", "scale": 0.1 },
+    "energy_wh":  { "address": 4, "words": 2, "type": "u32", "word_order": "lo_hi", "scale": 1 },
+    "alarm_high": { "address": 6, "words": 1, "type": "u16" },
+    "alarm_low":  { "address": 7, "words": 1, "type": "u16" }
+  },
+  "energy": "integrate",
+  "power_field": "power_w",
+  "counter_field": "energy_wh",
+  "notes": "The energy counter has 1 Wh resolution. At 150 Wp a five-minute interval is ~12 Wh, so counter deltas would carry ±8 % quantization and fail the 5 % agreement gate on honest data. Energy is therefore integrated from the 0.1 W power register; the counter is decoded and kept in the raw payload as a cross-check."
+}

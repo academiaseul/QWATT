@@ -735,11 +735,12 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     var hour = +els.hour.value, A = +els.a.value, B = +els.b.value, dt = +els.dt.value;
     var start = new Date(Date.UTC(2026, 8, 20, hour + 3, 0, 0));
     var rec = {
-      spec_version: SPEC.spec_version, site_id: 'bench-santiago', node_id: 'demo', seq: 1,
+      spec_version: SPEC.spec_version, schema_version: G.INTERVAL_SCHEMA_VERSION,
+      site_id: 'bench-santiago', node_id: 'demo', seq: 1,
       ts_start: start.toISOString(),
       ts_end: new Date(start.getTime() + dt * 1000).toISOString(),
       dt_s: dt,
-      meters: { a: { id: 'pzem-017', class: 'dc', wh: A }, b: { id: 'epever', class: 'dc', wh: B } },
+      meters: { a: { id: 'pzem-017', class: 'dc', mwh: Math.round(A * 1000) }, b: { id: 'epever', class: 'dc', mwh: Math.round(B * 1000) } },
       clock_skew_s: els.skew.checked ? P.clock_max_skew_s + 1 : 0,
       source: { adapter: 'demo' }
     };

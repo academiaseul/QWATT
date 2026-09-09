@@ -22,3 +22,5 @@ jobs:
         run: node protocol/conformance.test.js
       - name: Validator adversary tests (V1–V7)
         run: node mining-rig/validators.test.js
+      - name: Ingestion tests + Deliverable 1 acceptance harness
+        run: node ingest/ingest.test.js

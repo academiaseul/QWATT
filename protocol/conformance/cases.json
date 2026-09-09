@@ -3,11 +3,11 @@
   "description": "Conformance suite for the QWATT interval gates. Every implementation of gates.spec.json must produce, for each case, the stated verdict and EXACTLY the stated set of failing gates. `codes` pins the specific reason; `mint` pins issuance arithmetic (floor, 7 dp); `details` pins numeric internals within ±0.05 so the solar-position algorithm cannot drift between languages. `schema_valid:false` marks inputs that interval.schema.json must reject — the schema is under test too. Inputs are merged over `defaults[profile]`.",
   "defaults": {
     "bench": {
-      "spec_version": "1.0.0", "site_id": "bench-santiago", "node_id": "conformance", "seq": 1,
+      "spec_version": "1.0.0", "schema_version": "1.1.0", "site_id": "bench-santiago", "node_id": "conformance", "seq": 1,
       "source": { "adapter": "replay", "register_map": "conformance" }
     },
     "rooftop": {
-      "spec_version": "1.0.0", "site_id": "rooftop-arrayan", "node_id": "conformance", "seq": 1,
+      "spec_version": "1.0.0", "schema_version": "1.1.0", "site_id": "rooftop-arrayan", "node_id": "conformance", "seq": 1,
       "source": { "adapter": "replay", "register_map": "conformance" }
     }
   },
@@ -16,7 +16,7 @@
       "id": "bench-honest-noon", "profile": "bench",
       "description": "Two DC meters agree at midday; the lower reading is the mint basis",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "plausibility": "plausibility.ok", "nameplate": "nameplate.ok", "elevation": "elevation.ok", "agreement": "agreement.ok" },
                   "mint": "0.0000116", "details": { "elevation": { "el": 49.61 }, "nameplate": { "ceiling": 14.375 } } }
     },
@@ -24,140 +24,140 @@
       "id": "bench-honest-shade", "profile": "bench",
       "description": "Honest near-zero output under shade is accepted, not punished",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 0.2 }, "b": { "id": "epever", "class": "dc", "wh": 0.2 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 200 }, "b": { "id": "epever", "class": "dc", "mwh": 200 } } },
       "expect": { "verdict": "accept", "fail": [], "mint": "0.0000002" }
     },
     {
       "id": "bench-deadband-saves-small-diff", "profile": "bench",
       "description": "A 0.15 Wh difference exceeds 5 % of 1 Wh but sits inside the 2 W deadband; floor rounding drops 8.5e-7 to 8e-7",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 1.0 }, "b": { "id": "epever", "class": "dc", "wh": 0.85 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 1000 }, "b": { "id": "epever", "class": "dc", "mwh": 850 } } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "agreement": "agreement.ok" }, "mint": "0.0000008", "details": { "agreement": { "diff": 0.15, "tol": 0.1667 } } }
     },
     {
       "id": "bench-exactly-at-ceiling", "profile": "bench",
       "description": "Energy exactly equal to the nameplate ceiling is allowed (≤, not <)",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 14.375 }, "b": { "id": "epever", "class": "dc", "wh": 14.3 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 14375 }, "b": { "id": "epever", "class": "dc", "mwh": 14300 } } },
       "expect": { "verdict": "accept", "fail": [], "mint": "0.0000143" }
     },
     {
       "id": "bench-night-idle", "profile": "bench",
       "description": "Meter noise at night is below the generating floor: accepted, mints zero",
       "input": { "ts_start": "2026-09-21T02:00:00Z", "ts_end": "2026-09-21T02:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 0.03 }, "b": { "id": "epever", "class": "dc", "wh": 0.02 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 30 }, "b": { "id": "epever", "class": "dc", "mwh": 20 } } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "elevation": "elevation.idle" }, "mint": "0.0000000", "details": { "elevation": { "el": -41.11, "floor_wh": 0.0625 } } }
     },
     {
       "id": "bench-twilight-accepted", "profile": "bench",
       "description": "Sun at −1.04°: below geometric sunset but above this profile's −2° margin — accepted",
       "input": { "ts_start": "2026-09-20T22:38:00Z", "ts_end": "2026-09-20T22:43:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 0.5 }, "b": { "id": "epever", "class": "dc", "wh": 0.48 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 500 }, "b": { "id": "epever", "class": "dc", "mwh": 480 } } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "elevation": "elevation.ok" }, "details": { "elevation": { "el": -1.04 } } }
     },
     {
       "id": "bench-over-nameplate", "profile": "bench",
       "description": "Bench-supply attack: both meters agree but exceed what 150 Wp can physically produce",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 22.0 }, "b": { "id": "epever", "class": "dc", "wh": 21.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 22000 }, "b": { "id": "epever", "class": "dc", "mwh": 21600 } } },
       "expect": { "verdict": "reject", "fail": ["nameplate"], "codes": { "nameplate": "nameplate.over" } }
     },
     {
       "id": "bench-night-generation", "profile": "bench",
       "description": "Energy reported at 23:00 local with the sun 41° below the horizon",
       "input": { "ts_start": "2026-09-21T02:00:00Z", "ts_end": "2026-09-21T02:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 8.0 }, "b": { "id": "epever", "class": "dc", "wh": 7.9 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 8000 }, "b": { "id": "epever", "class": "dc", "mwh": 7900 } } },
       "expect": { "verdict": "reject", "fail": ["elevation"], "codes": { "elevation": "elevation.night" } }
     },
     {
       "id": "bench-meter-divergence", "profile": "bench",
       "description": "One instrument tampered: readings differ by far more than 5 %",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 6.0 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 6000 } } },
       "expect": { "verdict": "reject", "fail": ["agreement"], "codes": { "agreement": "agreement.diverge" } }
     },
     {
       "id": "bench-dead-meter", "profile": "bench",
       "description": "Second meter reads zero while the first reports energy",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 0 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 0 } } },
       "expect": { "verdict": "reject", "fail": ["agreement"], "codes": { "agreement": "agreement.diverge" } }
     },
     {
       "id": "bench-missing-second-meter", "profile": "bench",
       "description": "This profile requires two instruments; a single-meter interval is rejected rather than downgraded",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 } } },
       "expect": { "verdict": "reject", "fail": ["agreement"], "codes": { "agreement": "agreement.missing_meter" } }
     },
     {
       "id": "bench-interval-too-long", "profile": "bench",
       "description": "A 20-minute interval exceeds the 900 s maximum; the other gates still run and pass",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:20:00Z", "dt_s": 1200,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.dt", "nameplate": "nameplate.ok" } }
     },
     {
       "id": "bench-clock-skew", "profile": "bench",
       "description": "Report arrives 2 h 05 m 01 s after its own end timestamp",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300, "clock_skew_s": 7501,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.skew" } }
     },
     {
       "id": "bench-dt-mismatch", "profile": "bench",
       "description": "Declared dt_s disagrees with the timestamps — a node lying about interval length",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:10:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.dt_mismatch" } }
     },
     {
       "id": "bench-time-runs-backwards", "profile": "bench",
       "description": "ts_end before ts_start",
       "input": { "ts_start": "2026-09-20T15:05:00Z", "ts_end": "2026-09-20T15:00:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.order" } }
     },
     {
       "id": "bench-energy-power-inconsistent", "profile": "bench",
       "description": "Reported Wh cannot come from the reported mean W over the interval",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8, "w_mean": 100 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800, "mw_mean": 100000 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.energy_power" } }
     },
     {
       "id": "bench-energy-power-consistent", "profile": "bench",
       "description": "Wh ≈ W × t within tolerance",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8, "w_mean": 141.6 }, "b": { "id": "epever", "class": "dc", "wh": 11.6, "w_mean": 139.2 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800, "mw_mean": 141600 }, "b": { "id": "epever", "class": "dc", "mwh": 11600, "mw_mean": 139200 } } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "plausibility": "plausibility.ok" } }
     },
     {
       "id": "bench-null-energy", "profile": "bench",
       "description": "Non-numeric energy is rejected at the door and downstream gates are skipped — a NaN never reaches a comparison",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": null }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": null }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "schema_valid": false, "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.nonfinite", "nameplate": "skipped.upstream", "elevation": "skipped.upstream", "agreement": "skipped.upstream" } }
     },
     {
       "id": "bench-negative-energy", "profile": "bench",
       "description": "Negative energy from a generation meter is not a number we judge",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": -5 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": -5000 } } },
       "expect": { "schema_valid": false, "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.nonfinite" } }
     },
     {
       "id": "bench-everything-wrong", "profile": "bench",
       "description": "Night, over ceiling and divergent at once: every failing gate is reported, not just the first",
       "input": { "ts_start": "2026-09-21T02:00:00Z", "ts_end": "2026-09-21T02:05:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 30 }, "b": { "id": "epever", "class": "dc", "wh": 5 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 30000 }, "b": { "id": "epever", "class": "dc", "mwh": 5000 } } },
       "expect": { "verdict": "reject", "fail": ["nameplate", "elevation", "agreement"] }
     },
     {
       "id": "bench-unknown-field", "profile": "bench",
       "description": "The schema is closed: an adapter that emits an unknown field is misconfigured, not creative",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300, "bonus": 1,
-                 "meters": { "a": { "id": "pzem-017", "class": "dc", "wh": 11.8 }, "b": { "id": "epever", "class": "dc", "wh": 11.6 } } },
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
       "expect": { "schema_valid": false, "verdict": "accept", "fail": [] }
     },
 
@@ -165,56 +165,56 @@
       "id": "rooftop-honest-hour", "profile": "rooftop",
       "description": "DC before the inverter, AC after it, ratio 0.958 inside the efficiency band; mint basis is the AC side",
       "input": { "ts_start": "2026-08-25T16:00:00Z", "ts_end": "2026-08-25T17:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 2400 }, "b": { "id": "m2-ac", "class": "ac", "wh": 2300 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 2400000 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 2300000 } } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "agreement": "agreement.ratio_ok" }, "mint": "0.0023000", "details": { "agreement": { "ratio": 0.9583 }, "nameplate": { "ceiling": 5060 } } }
     },
     {
       "id": "rooftop-single-meter-a1", "profile": "rooftop",
       "description": "This profile allows one meter: accepted at assurance A1 with the single reading as basis",
       "input": { "ts_start": "2026-08-25T16:00:00Z", "ts_end": "2026-08-25T17:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 2400 }, "b": null } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 2400000 }, "b": null } },
       "expect": { "verdict": "accept", "fail": [], "codes": { "agreement": "agreement.single_meter" }, "mint": "0.0024000" }
     },
     {
       "id": "rooftop-ac-exceeds-dc", "profile": "rooftop",
       "description": "An inverter cannot create energy: AC/DC above 1.0",
       "input": { "ts_start": "2026-08-25T16:00:00Z", "ts_end": "2026-08-25T17:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 2400 }, "b": { "id": "m2-ac", "class": "ac", "wh": 2500 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 2400000 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 2500000 } } },
       "expect": { "verdict": "reject", "fail": ["agreement"], "codes": { "agreement": "agreement.ac_over_dc" } }
     },
     {
       "id": "rooftop-efficiency-floor", "profile": "rooftop",
       "description": "AC/DC = 0.83 is below any real inverter: one of the meters is wrong",
       "input": { "ts_start": "2026-08-25T16:00:00Z", "ts_end": "2026-08-25T17:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 2400 }, "b": { "id": "m2-ac", "class": "ac", "wh": 2000 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 2400000 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 2000000 } } },
       "expect": { "verdict": "reject", "fail": ["agreement"], "codes": { "agreement": "agreement.eff_floor" } }
     },
     {
       "id": "rooftop-ac-without-dc", "profile": "rooftop",
       "description": "AC energy with zero DC behind it",
       "input": { "ts_start": "2026-08-25T16:00:00Z", "ts_end": "2026-08-25T17:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 0 }, "b": { "id": "m2-ac", "class": "ac", "wh": 50 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 0 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 50000 } } },
       "expect": { "verdict": "reject", "fail": ["agreement"], "codes": { "agreement": "agreement.ac_without_dc" } }
     },
     {
       "id": "rooftop-night-generation", "profile": "rooftop",
       "description": "Energy at midnight local on a 4.4 kWp roof",
       "input": { "ts_start": "2026-08-26T03:00:00Z", "ts_end": "2026-08-26T04:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 800 }, "b": { "id": "m2-ac", "class": "ac", "wh": 760 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 800000 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 760000 } } },
       "expect": { "verdict": "reject", "fail": ["elevation"], "codes": { "elevation": "elevation.night" } }
     },
     {
       "id": "rooftop-over-nameplate", "profile": "rooftop",
       "description": "5.2 kWh in one hour from 4.4 kWp exceeds the 1.15× ceiling",
       "input": { "ts_start": "2026-08-25T16:00:00Z", "ts_end": "2026-08-25T17:00:00Z", "dt_s": 3600,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 5200 }, "b": { "id": "m2-ac", "class": "ac", "wh": 5000 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 5200000 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 5000000 } } },
       "expect": { "verdict": "reject", "fail": ["nameplate"], "codes": { "nameplate": "nameplate.over" } }
     },
     {
       "id": "rooftop-twilight-rejected", "profile": "rooftop",
       "description": "Same instant the bench profile accepts (sun ≈ −1°): this profile's −0.833° threshold rejects it — thresholds are per profile, the rule is shared",
       "input": { "ts_start": "2026-09-20T22:38:00Z", "ts_end": "2026-09-20T22:43:00Z", "dt_s": 300,
-                 "meters": { "a": { "id": "m1-dc", "class": "dc", "wh": 20 }, "b": { "id": "m2-ac", "class": "ac", "wh": 19 } } },
+                 "meters": { "a": { "id": "m1-dc", "class": "dc", "mwh": 20000 }, "b": { "id": "m2-ac", "class": "ac", "mwh": 19000 } } },
       "expect": { "verdict": "reject", "fail": ["elevation"], "codes": { "elevation": "elevation.night" } }
     }
   ]

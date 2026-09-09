@@ -99,6 +99,16 @@ test('every gate id referenced by the engine exists in the spec', () => {
   for (const id of ['plausibility', 'nameplate', 'elevation', 'agreement']) assert(ids.has(id), `spec lacks gate "${id}"`);
 });
 
+test('engine, schema file and fixtures agree on the interval schema version', () => {
+  eq(G.INTERVAL_SCHEMA_VERSION, schema['x-schema-version'], 'engine INTERVAL_SCHEMA_VERSION');
+  for (const name of Object.keys(suite.defaults)) eq(suite.defaults[name].schema_version, schema['x-schema-version'], `defaults.${name}.schema_version`);
+});
+
+test('no floating-point field survives in the interval schema', () => {
+  const src = JSON.stringify(schema);
+  assert(!/"type":\s*"number"/.test(src), 'interval.schema.json still declares a "number" field — evidence must be integer-only (freeze §1)');
+});
+
 console.log('\nConformance cases (' + suite.cases.length + ')');
 
 const TOL = 0.05;

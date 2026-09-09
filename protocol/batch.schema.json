@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://qwatt.org/protocol/batch.schema.json",
+  "x-schema-version": "1.0.0",
+  "title": "QWATT evidence batch",
+  "description": "The unit of evidence that gets published and, when accepted, anchored on Stellar. Contains the accepted interval records it vouches for. `sha256` is computed over the canonical JSON of the batch with `sha256` removed. All energies are integers in milliwatt-hours so the canonical bytes are identical in every language. Defined in docs/ARCHITECTURE-FREEZE.md §2.",
+  "type": "object",
+  "required": ["batch_id", "site_id", "node_id", "seq", "ts_start", "ts_end", "spec_version", "schema_version", "interval_count", "accepted_count", "rejected_count", "intervals", "intervals_root", "energy_mwh", "cumulative_mwh", "prev_hash", "sha256"],
+  "additionalProperties": false,
+  "properties": {
+    "batch_id": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+-[0-9]{6}$", "description": "`<site_id>-<seq zero-padded to 6>`." },
+    "site_id": { "type": "string", "minLength": 1 },
+    "node_id": { "type": "string", "minLength": 1 },
+    "seq": { "type": "integer", "minimum": 0, "description": "Batch sequence per site, strictly increasing." },
+    "ts_start": { "type": "string", "format": "date-time" },
+    "ts_end": { "type": "string", "format": "date-time" },
+    "spec_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "gates.spec.json version that judged every interval in this batch." },
+    "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$", "description": "interval.schema.json version of the contained records." },
+    "interval_count": { "type": "integer", "minimum": 0, "description": "Intervals judged in this window, accepted + rejected." },
+    "accepted_count": { "type": "integer", "minimum": 0 },
+    "rejected_count": { "type": "integer", "minimum": 0 },
+    "intervals": { "type": "array", "items": { "$ref": "interval.schema.json" }, "description": "The accepted interval records, in sequence order. Rejected intervals are in the rejected ledger, never here." },
+    "intervals_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Merkle root (SHA-256, odd node duplicated) over the canonical JSON of each interval." },
+    "samples_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional Merkle root over raw power samples, when the node retains them." },
+    "energy_mwh": { "type": "integer", "minimum": 0, "description": "Sum over accepted intervals of the mint basis (min of the two meters, or the single meter), milliwatt-hours." },
+    "cumulative_mwh": { "type": "integer", "minimum": 0, "description": "Site total since genesis, after this batch." },
+    "prev_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the previous batch, or 64 zeros for the first." },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+  }
+}

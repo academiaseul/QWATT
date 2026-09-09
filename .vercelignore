@@ -14,3 +14,6 @@ CLEAN-TOKEN-ARCHITECTURE.md
 social-posts.md
 BLUEPRINT.md
 docs
+# Sprint tooling — not part of the site
+ingest
+.github
