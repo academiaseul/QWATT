@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  @page { size: A4; margin: 0; }
+  * { margin: 0; box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { font-family: 'Inter', sans-serif; color: #1b1a14; background: #faf8f2; font-size: 10.2px; line-height: 1.5; }
+  .page { width: 210mm; min-height: 297mm; padding: 0 0 10mm; page-break-after: always; background: #faf8f2; }
+  .page:last-child { page-break-after: auto; }
+  .band { background: #120c07; color: #f0e8dc; padding: 10mm 14mm 8mm; display: flex; justify-content: space-between; align-items: center; }
+  .band .brand { display: flex; align-items: center; gap: 12px; }
+  .band .word { font-family: 'IBM Plex Mono', monospace; font-size: 17px; font-weight: 600; letter-spacing: .3em; }
+  .band .word small { display: block; font-size: 8px; letter-spacing: .26em; color: #d08a57; font-weight: 500; margin-top: 4px; }
+  .band .meta { font-family: 'IBM Plex Mono', monospace; font-size: 8.5px; letter-spacing: .12em; color: #b3a48f; text-align: right; line-height: 1.9; }
+  .band .meta b { color: #d08a57; font-weight: 500; }
+  .in { padding: 7mm 14mm 0; }
+  h1 { font-size: 19px; font-weight: 600; letter-spacing: -.01em; margin: 1mm 0 2mm; }
+  h1 span { color: #b0582f; }
+  h2 { font-family: 'IBM Plex Mono', monospace; font-size: 9.5px; font-weight: 600; letter-spacing: .2em; text-transform: uppercase; color: #b0582f; margin: 5.5mm 0 2.2mm; }
+  p { color: #474334; margin-bottom: 2mm; }
+  b { color: #1b1a14; }
+  ul { margin: 1mm 0 2mm 5mm; color: #474334; }
+  li { margin-bottom: 1mm; }
+  table { width: 100%; border-collapse: collapse; margin: 1.5mm 0 3mm; }
+  th { font-family: 'IBM Plex Mono', monospace; font-size: 7.8px; letter-spacing: .14em; text-transform: uppercase; color: #6f6957; text-align: left; padding: 1.5mm 2.5mm; border-bottom: 1.4px solid #1b1a14; }
+  td { padding: 1.6mm 2.5mm; border-bottom: 1px solid #e6e2d6; color: #474334; vertical-align: top; }
+  td.num, th.num { text-align: right; font-family: 'IBM Plex Mono', monospace; }
+  .total td { border-top: 1.4px solid #1b1a14; border-bottom: 0; font-weight: 600; color: #1b1a14; }
+  .chips { display: flex; gap: 6px; margin: 2mm 0; flex-wrap: wrap; }
+  .chip { font-family: 'IBM Plex Mono', monospace; font-size: 7.8px; letter-spacing: .14em; color: #b0582f; border: 1px solid rgba(176,88,47,.45); padding: 1.3mm 3mm; border-radius: 99px; }
+  .callout { background: #f1ecdf; border-left: 3px solid #b0582f; padding: 3mm 4mm; margin: 2.5mm 0; color: #474334; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+  .flow { font-family: 'IBM Plex Mono', monospace; font-size: 8.2px; background: #1b1a14; color: #f0e8dc; padding: 4mm 5mm; border-radius: 3px; white-space: pre; line-height: 1.55; margin: 2mm 0 3mm; }
+  .flow .a { color: #d08a57; }
+  .dl { margin: 0 0 3mm; }
+  .dl h3 { font-size: 10.5px; font-weight: 600; margin: 3.2mm 0 1mm; display: flex; justify-content: space-between; align-items: baseline; }
+  .dl h3 .h { font-family: 'IBM Plex Mono', monospace; font-size: 8px; color: #b0582f; letter-spacing: .1em; }
+  .dl .acc { font-size: 9.4px; color: #1b1a14; margin-top: 1mm; }
+  .dl .acc b { color: #b0582f; }
+  .foot { font-family: 'IBM Plex Mono', monospace; font-size: 8px; letter-spacing: .14em; color: #98937f; padding: 4mm 14mm 0; display: flex; justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <div class="band">
+    <div class="brand">
+      <svg viewBox="0 0 64 64" width="50" height="50" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="#f0e8dc" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#d08a57" transform="translate(46 46) rotate(-45) scale(.92)"/></svg>
+      <div class="word">QWATT<small>THE CLEAN TOKEN</small></div>
+    </div>
+    <div class="meta">STATEMENT OF WORK &middot; STELLAR INSTAWARDS<br><b>v2 &middot; 30 DAYS &middot; USD 5,000 &middot; SOFTWARE ONLY</b><br>SEPTEMBER 2026 &middot; SANTIAGO, CHILE</div>
+  </div>
+  <div class="in">
+    <h1>Meter-agnostic verification engine with <span>multi-party authorization</span> on Stellar Testnet</h1>
+    <div class="chips"><span class="chip">JAE HEE KIM &middot; DIEGO OSTERTAG</span><span class="chip">GITHUB.COM/ACADEMIASEUL/QWATT &middot; APACHE-2.0</span><span class="chip">QWATT.ORG/VERIFICACION</span><span class="chip">NO HARDWARE</span></div>
+
+    <h2>1 &middot; What changed since v1</h2>
+    <p>v1 was rejected for hardware in the budget, an unverified cost line, an offtake contract, a 30-day RWA-token scope, and a single-operator verification risk. Each is addressed, not reworded.</p>
+    <table>
+      <tr><th style="width:36%">Reviewer concern</th><th>v2 response</th></tr>
+      <tr><td>30% of budget on hardware</td><td><b>Zero hardware.</b> Budget is 100% engineering hours. Testing uses a solar simulator, replay of public PV generation data, and recorded fault fixtures.</td></tr>
+      <tr><td>Hardware line &ldquo;to be confirmed against a local quote&rdquo;</td><td>No external quotes in this budget. Every line is hours &times; rate per deliverable.</td></tr>
+      <tr><td>RWA token issued and validated in 30 days</td><td><b>Token issuance is out of scope.</b> This sprint delivers the verification layer. The existing testnet asset is only a demonstration vehicle for anchoring; issuance, redemption and any RWA claim move to a follow-on grant (&sect;8).</td></tr>
+      <tr><td>Offtake contract = business development</td><td>Removed. No commercial deliverables of any kind.</td></tr>
+      <tr><td>Centralization of the oracle operator</td><td>Single-signer anchoring is replaced with <b>Stellar-native 2-of-3 multisig</b>: a proposer, an independent verifier that re-runs every check from <i>published</i> data, and an off-team third signer. A record the verifier rejects cannot be anchored even if the team signs it. Every check is open-source and reproducible by anyone.</td></tr>
+    </table>
+
+    <h2>2 &middot; Problem</h2>
+    <p>Energy meters speak dozens of dialects &mdash; Modbus register maps differ per vendor, some devices only export CSV, others push JSON. Every &ldquo;verified generation&rdquo; project re-implements ingestion for its own hardware, keeps verification logic private, and lets one operator decide what gets recorded. The result is data nobody outside the team can check.</p>
+
+    <h2>3 &middot; What this sprint builds</h2>
+    <p>A software layer that turns <b>any standard meter&rsquo;s output</b> into <b>independently verifiable, multi-party-authorized records on Stellar</b> &mdash; with the checks published, the rejections published, and no single key able to write.</p>
+<div class="flow">any meter ──adapter──▶ interval.schema.json ──▶ gates (versioned spec) ──▶ batch + hash
+     <span class="a">▲</span>  Modbus RTU/TCP · HTTP/JSON · CSV replay                                <span class="a">│</span>
+     <span class="a">│</span>                                                                        <span class="a">▼</span>
+     <span class="a">└──</span> anyone re-runs the same gates on the published batch <span class="a">◀──</span> Stellar Testnet
+                                                    <span class="a">2-of-3 multisig:</span> proposer + independent verifier + third signer</div>
+    <p>Built on shipped, open-source work: the V1&ndash;V7 validator suite with 24 adversarial tests, the verification model, the public gate demo at qwatt.org/verificacion, and the live testnet asset.</p>
+  </div>
+</div>
+
+<div class="page">
+  <div class="band" style="padding:7mm 14mm 6mm">
+    <div class="brand"><svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="#f0e8dc" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#d08a57" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><div class="word" style="font-size:13px">QWATT</div></div>
+    <div class="meta">SOW v2 &middot; 2/3</div>
+  </div>
+  <div class="in">
+    <h2 style="margin-top:2mm">4 &middot; Deliverables</h2>
+
+    <div class="dl"><h3><span>D1 &middot; Meter-agnostic ingestion layer</span><span class="h">25 H</span></h3>
+      <ul><li>Modbus RTU/TCP adapter where the <b>register map is configuration, not code</b> &mdash; a new meter is supported by adding a JSON file, never by editing the engine.</li>
+      <li>HTTP/JSON push adapter and CSV/file replay adapter. All normalize to a versioned <b>interval.schema.json</b>.</li>
+      <li>Ships with three example register maps as configs: PZEM-017, EPEver Tracer series, a generic single-phase AC meter.</li></ul>
+      <p class="acc"><b>Acceptance:</b> the same input, delivered through all three adapters, produces byte-identical verification output.</p></div>
+
+    <div class="dl"><h3><span>D2 &middot; Single-source gate specification + conformance suite</span><span class="h">20 H</span></h3>
+      <ul><li><b>gates.spec.json</b>: every threshold and rule (nameplate ceiling, solar-elevation gate, meter agreement, plausibility bounds) in one versioned file.</li>
+      <li>Generated bindings for the engine and for the public browser demo &mdash; the demo runs generated code, not a hand-written copy.</li>
+      <li>Conformance suite of <code>{input, verdict, reason}</code> fixtures executed against every binding in CI; divergence fails the build. Spec version written into every anchored batch.</li></ul>
+      <p class="acc"><b>Acceptance:</b> 100% conformance across bindings; the existing 24 adversarial tests pass unchanged against the generated engine.</p></div>
+
+    <div class="dl"><h3><span>D3 &middot; Multi-party authorization on Stellar</span><span class="h">25 H</span></h3>
+      <ul><li>Anchoring account with native multisig, medium threshold <b>2-of-3</b>: <b>proposer</b> (the engine) &middot; <b>independent verifier</b> (separate service and key; downloads the <i>published</i> batch, recomputes the hash, re-runs the gates, signs only on agreement, never receives data from the proposer directly) &middot; <b>third signer</b> held off-team, designated at kickoff.</li>
+      <li>One atomic transaction per batch: <code>manageData</code> evidence hash + <code>manageData</code> cumulative total + a payment op against the existing testnet asset as anchoring vehicle only.</li></ul>
+      <p class="acc"><b>Acceptance:</b> with the proposer alone, nothing anchors. With a batch altered after the verifier&rsquo;s read, nothing anchors. Both demonstrated with fixtures and linked transactions.</p></div>
+
+    <div class="dl"><h3><span>D4 &middot; Public evidence feed + browser reconciliation</span><span class="h">15 H</span></h3>
+      <ul><li>Every batch &mdash; <b>accepted and rejected</b> &mdash; published as canonical JSON with hash and rejection reason.</li>
+      <li>Reconciliation page recomputes in the visitor&rsquo;s browser from Horizon: anchored hashes &harr; published batches, cumulative totals, sequence gaps.</li></ul>
+      <p class="acc"><b>Acceptance:</b> a reviewer with no access to the team verifies any anchored batch end-to-end from public artifacts alone.</p></div>
+
+    <div class="dl"><h3><span>D5 &middot; Real-data validation without hardware</span><span class="h">15 H</span></h3>
+      <ul><li>Replay &ge;30 days of a public PV generation dataset through D1&rarr;D4 on testnet.</li>
+      <li>Replay the induced-fault fixtures &mdash; shaded sensor, disconnected meter, night injection, implausible ramp &mdash; every one must be rejected and logged. Public write-up linking every transaction.</li></ul>
+      <p class="acc"><b>Acceptance:</b> non-empty rejection log with reasons; every accepted interval traceable to an anchored transaction; solar-elevation gate pinned in tests to Santiago&rsquo;s real values.</p></div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="band" style="padding:7mm 14mm 6mm">
+    <div class="brand"><svg viewBox="0 0 64 64" width="36" height="36" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="#f0e8dc" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="#d08a57" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><div class="word" style="font-size:13px">QWATT</div></div>
+    <div class="meta">SOW v2 &middot; 3/3</div>
+  </div>
+  <div class="in">
+    <div class="grid2">
+      <div>
+        <h2 style="margin-top:2mm">5 &middot; Budget &mdash; USD 5,000</h2>
+        <table>
+          <tr><th>Deliverable</th><th class="num">Hours</th></tr>
+          <tr><td>D1 &middot; Ingestion layer</td><td class="num">25</td></tr>
+          <tr><td>D2 &middot; Gate spec + conformance</td><td class="num">20</td></tr>
+          <tr><td>D3 &middot; Multisig + independent verifier</td><td class="num">25</td></tr>
+          <tr><td>D4 &middot; Evidence feed + reconciliation</td><td class="num">15</td></tr>
+          <tr><td>D5 &middot; Validation + write-up</td><td class="num">15</td></tr>
+          <tr class="total"><td>Total</td><td class="num">100 h &times; USD 50</td></tr>
+        </table>
+        <p style="font-size:9px;color:#6f6957">No hardware, hosting beyond free tiers, marketing, legal, audit, or prior work. Testnet fees are zero. Hours are those funded; the team contributes additional time at its own cost.</p>
+
+        <h2>7 &middot; Out of scope</h2>
+        <p>Hardware of any kind &middot; token issuance, redemption or any RWA claim &middot; Soroban contracts &middot; commercial agreements &middot; mainnet &middot; marketing.</p>
+      </div>
+      <div>
+        <h2 style="margin-top:2mm">6 &middot; Security posture</h2>
+        <ul>
+          <li><b>No single key can write.</b> Enforced by Stellar multisig, not by policy.</li>
+          <li><b>No hidden logic.</b> Gates are open-source, versioned, reproducible; the version is on-chain.</li>
+          <li><b>Rejections are public.</b> A verifier that shows only successes has demonstrated nothing.</li>
+          <li><b>Adversarial coverage.</b> One test per attack in the trust model; drill fixtures become permanent regressions.</li>
+          <li><b>Honest limits.</b> The team operates the proposer and verifier services. This design does not claim decentralization; it claims every record is independently verifiable and that authorization requires a party outside the team. Removing the team from operations entirely is the on-chain verifier of the follow-on grant.</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2>8 &middot; Next steps &mdash; the grant path</h2>
+    <table>
+      <tr><th style="width:18%">Stage</th><th>Scope</th><th style="width:16%">Funding</th></tr>
+      <tr><td><b>This sprint</b></td><td>Verification engine, multisig anchoring, public evidence</td><td>Instaward 1</td></tr>
+      <tr><td><b>Instaward 2</b></td><td>Issuance semantics on testnet: <code>min(A,B)</code> tokenization, floor-never-round, cumulative accounting, double-mint protection, burn on redemption</td><td>Instaward</td></tr>
+      <tr><td><b>Instaward 3</b></td><td>Soroban verification contract: the independent verifier becomes an on-chain contract rather than a service; QWATT-C retire semantics</td><td>Instaward</td></tr>
+      <tr><td><b>SCF Build</b></td><td>Physical pilot (dual-metered rooftop), assurance-level audit, legal structure, mainnet readiness</td><td>SCF</td></tr>
+    </table>
+    <p style="font-size:9px;color:#6f6957">Each stage is a separate submission with its own acceptance criteria; none depends on approval of the next.</p>
+
+    <h2>9 &middot; Milestones</h2>
+    <table>
+      <tr><th style="width:12%">Day</th><th>Checkpoint</th></tr>
+      <tr><td>7</td><td>D1 adapters + schema; three register-map configs merged</td></tr>
+      <tr><td>14</td><td>D2 spec, generated bindings, conformance green in CI</td></tr>
+      <tr><td>21</td><td>D3 multisig live on testnet; first 2-of-3 anchored batch; negative tests linked</td></tr>
+      <tr><td>28</td><td>D4 feed + reconciliation page live; D5 replay complete</td></tr>
+      <tr><td>30</td><td>Write-up published; all links in the final report</td></tr>
+    </table>
+  </div>
+  <div class="foot"><span>QWATT &middot; THE CLEAN TOKEN &middot; TESTNET</span><span>QWATT.ORG &middot; JAY@QUORELIA.ORG</span></div>
+</div>
+
+</body>
+</html>

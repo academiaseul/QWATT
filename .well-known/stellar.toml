@@ -61,11 +61,9 @@ name = "Jay Kim"
 email = "jay@quorelia.org"
 github = "https://github.com/academiaseul"
 
-# Second founder (Diego) — block intentionally omitted rather than published with
-# placeholder text. Restore it with the confirmed legal name and email:
-#   [[PRINCIPALS]]
-#   name = "<nombre completo>"
-#   email = "<correo>"
+[[PRINCIPALS]]
+name = "Diego Ostertag"
+# email = "<correo confirmado>"   # add once Diego confirms the address he wants published
 
 [[CURRENCIES]]
 code = "QWATT"
