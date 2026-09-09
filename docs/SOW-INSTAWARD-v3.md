@@ -55,7 +55,7 @@ Without this, QWATT cannot demonstrate that Stellar can carry independently veri
 
 Within 30 days QWATT will deliver a reviewer-verifiable, meter-agnostic verification pipeline on Stellar Testnet.
 
-Any Modbus, HTTP or CSV meter source will be able to feed the engine through configuration alone; every batch — accepted or rejected — will be published with its hash and reason; accepted batches will be anchored only when a proposer, an independent verifier and an off-team third signer agree; and the pipeline will run unattended for the final seven days of the sprint, with a public reconciliation page that lets anyone confirm the chain end-to-end from Horizon and the evidence feed.
+Any Modbus, HTTP or CSV meter source will be able to feed the engine through configuration alone; every batch — accepted or rejected — will be published with its hash and reason; rejected batches are never anchored; accepted batches are anchored on Stellar only when a proposer, an independent verifier and an off-team third signer agree; and the pipeline will run unattended for the final seven days of the sprint, with a public reconciliation page that lets anyone confirm the chain end-to-end from Horizon and the evidence feed.
 
 ---
 
@@ -87,8 +87,9 @@ This is what makes the engine usable by any renewable installation: a new meter 
 
 Build:
 
-- Batch assembly from accepted intervals: canonical JSON, SHA-256, prev_hash chain, Merkle root over raw samples
-- Gate specification version stamped into every batch
+- Batch definition (batch.schema.json): batch id, start and end timestamps, interval count, accepted and rejected interval counts, schema version, gate specification version, previous batch hash, Merkle root over raw samples, cumulative energy, and the SHA-256 of the canonical JSON
+- Batch assembly: intervals → canonical JSON → SHA-256 → prev_hash chain; energies stored as integers so no floating-point value ever reaches a hash
+- Publication and anchoring are distinct: every batch, accepted or rejected, is published; only accepted batches are anchored on Stellar
 - Accepted and rejected ledgers with reason codes (append-only JSONL)
 - Evidence manifest format for public download
 - Batch-level conformance cases added to the existing suite
@@ -111,7 +112,8 @@ Build:
 - Independent verifier service on a separate host with a separate key: downloads the published batch, recomputes the hash, re-runs the gates and signs only on agreement — it never receives data from the proposer directly
 - Third signer key held off-team, designated at kickoff
 - One atomic transaction per batch: manageData evidence hash + manageData cumulative total + payment op, using the existing testnet asset as the anchoring vehicle only
-- Negative tests: the proposer alone cannot anchor; a batch altered after the verifier’s read cannot anchor
+- Four published test transactions: (A) proposer signs alone — rejected by the network; (B) verifier signs alone — rejected; (C) proposer and verifier sign — anchored; (D) evidence altered after the verifier’s read — the verifier refuses and nothing anchors
+- Independence acceptance test: the verifier’s only input path is the public evidence feed — a batch the proposer holds but has not published cannot be signed
 - Live run starts as soon as the first multisig batch anchors (target day 21, latest day 23)
 
 #### Why this matters
@@ -126,8 +128,9 @@ Enforcement moves from policy to the ledger. No single key — including the tea
 
 Build:
 
-- Public evidence feed: every batch, accepted and rejected, with hash and reason
+- Public evidence feed: every batch, accepted and rejected, with hash and reason — published, while anchoring stays accepted-only
 - Browser reconciliation page reading Horizon: anchored hashes ↔ published batches, cumulative totals, sequence gaps
+- Recovery logic in place before day 21: restart-safe state, Horizon timeouts and transaction retries, duplicate-interval rejection, clock checks, and safe behaviour when the verifier or a signer is unavailable
 - Seven-day unattended live run (days 23–30): the full pipeline anchoring every interval through the multisig at real-time pace, fed by the solar simulator and the CSV replay adapter
 - Fault injections during the live run (shaded sensor, disconnected meter, night injection, implausible ramp) — each must appear in the public rejection log with its reason
 - End-to-end QA
@@ -162,7 +165,7 @@ To maintain an achievable 30-day scope, the following items are explicitly exclu
 
 **Requested Budget: USD $3,500**
 
-The request is deliberately below the Instawards maximum. Both founders develop full time for the sprint, the gate specification and conformance suite are already shipped, and no hardware is needed. The award funds approximately 70 engineering hours at USD 35/h plus the operating items below; the remaining founder time is contributed.
+The request is deliberately below the Instawards maximum. Both founders develop full time for the sprint, the gate specification and conformance suite are already shipped, and no hardware is needed. The team has planned the sprint at roughly 200 founder engineering hours; the award funds approximately 70 of them at USD 35/h plus the operating items below. The remaining hours are contributed.
 
 #### Operational & Core Team (70%)
 
@@ -188,7 +191,8 @@ The request is deliberately below the Instawards maximum. Both founders develop 
 
 ### Week 1
 
-Modbus adapter with register-map configs  
+Days 1–3: architecture freeze — schemas, batch definition, hash rules, adapter and verifier interfaces, transaction format  
+Days 4–7: Modbus adapter with register-map configs  
 HTTP/JSON and CSV adapters  
 Schema normalization  
 Two reference register maps  
@@ -221,8 +225,9 @@ Proposer service
 Independent verifier service  
 Third signer onboarding  
 Atomic anchoring transaction  
-Negative tests  
+Test transactions A–D  
 Live run starts (target day 21)  
+Days 21–22: integration freeze — no new features; reliability, recovery, documentation  
 
 **Expected Output**
 
@@ -234,7 +239,7 @@ The first 2-of-3 anchored batch on Stellar Testnet, with linked transactions pro
 
 Evidence feed  
 Reconciliation page  
-Seven-day live run (days 23–30)  
+Seven-day live run (days 23–30) — architecture untouched; monitor, record, collect evidence  
 Fault injections into the live run  
 QA  
 Write-up and demo video  
@@ -275,7 +280,8 @@ Seven consecutive days of unattended anchoring on Stellar Testnet, a non-empty r
 
 - Multisig account on stellar.expert showing the three signers and thresholds
 - Stellar Testnet transaction hashes of anchored batches
-- Transaction attempts demonstrating single-signer rejection
+- The four test transactions A–D, each linked
+- Independence test log: an unpublished batch the verifier refused to sign
 - Independent verifier logs
 
 ---
