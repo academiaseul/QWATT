@@ -25,6 +25,8 @@ QWATT, formerly WattCoin, is a DeFi energy meter: a verification layer that turn
 
 Rather than building around one specific device, this sprint delivers a software layer that accepts the output of any standard energy meter — Modbus, HTTP/JSON or CSV — normalizes it to one record, runs it through open, versioned physics gates, and anchors the accepted evidence on Stellar through a 2-of-3 multisig in which an independent verifier re-runs every check from published data.
 
+The value this creates is simple: the cost of trusting a small generator’s claim falls to almost nothing. Today a building that shares one rooftop array, a client billed under a behind-the-meter PPA, or a registry issuing renewable attributes can only trust a small installation by sending a person or taking the owner’s word. A record anyone can check in a browser makes thousands of small roofs claimable and auditable as a class. The token stays what it is: a receipt for one verified megawatt-hour, minted only by physics and multi-party agreement, and consumed only when someone retires it to make a true claim.
+
 The result will be a fully demonstrable pilot: seven consecutive days of unattended operation on Stellar Testnet, where a reviewer with no access to the team can take any anchored batch, download its evidence, re-run the gates and confirm the on-chain hash — and where no single key, including the team’s, can write a record on its own.
 
 This is a resubmission. Compared with the previous proposal it removes all hardware, the offtake agreement and token issuance from scope, and replaces single-operator anchoring with multi-party authorization.
@@ -305,5 +307,7 @@ Seven consecutive days of unattended anchoring on Stellar Testnet, a non-empty r
 ## 7. Next-Step Alignment
 
 Following this Instaward, QWATT will be positioned to pursue the remaining layers in separate, independently scoped grants: a second Instaward for issuance semantics on testnet (min(A,B) tokenization, floor-never-round accounting, double-mint protection, burn on redemption); a third Instaward moving the independent verifier into a Soroban contract, so the team is no longer an operator in the authorization path; and an SCF Build Award for the physical pilot (dual-metered rooftop), assurance audit, legal structure and mainnet readiness. Each stage has its own acceptance criteria and none depends on approval of the next.
+
+On the adoption side, and outside the scope of any grant, the verified record is what the team will take to its first users: a building that shares a rooftop array and pays a small monthly fee because the record ends a dispute it already has; a first redeemer that retires QWATT for a real, checkable claim; and one renewable-attribute registry or audit firm asked what a QWATT record must look like to be accepted. Those conversations, not the token, decide the next year of engineering.
 
 ---
