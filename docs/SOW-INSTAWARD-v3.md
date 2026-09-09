@@ -25,7 +25,7 @@ QWATT, formerly WattCoin, is a DeFi energy meter: a verification layer that turn
 
 Rather than building around one specific device, this sprint delivers a software layer that accepts the output of any standard energy meter — Modbus, HTTP/JSON or CSV — normalizes it to one record, runs it through open, versioned physics gates, and anchors the accepted evidence on Stellar through a 2-of-3 multisig in which an independent verifier re-runs every check from published data.
 
-The result will be a fully demonstrable pilot where a reviewer with no access to the team can take any anchored batch, download its evidence, re-run the gates and confirm the on-chain hash — and where no single key, including the team’s, can write a record on its own.
+The result will be a fully demonstrable pilot: seven consecutive days of unattended operation on Stellar Testnet, where a reviewer with no access to the team can take any anchored batch, download its evidence, re-run the gates and confirm the on-chain hash — and where no single key, including the team’s, can write a record on its own.
 
 This is a resubmission. Compared with the previous proposal it removes all hardware, the offtake agreement and token issuance from scope, and replaces single-operator anchoring with multi-party authorization.
 
@@ -53,7 +53,7 @@ Without this, QWATT cannot demonstrate that Stellar can carry independently veri
 
 Within 30 days QWATT will deliver a reviewer-verifiable, meter-agnostic verification pipeline on Stellar Testnet.
 
-Any Modbus, HTTP or CSV meter source will be able to feed the engine through configuration alone; every batch — accepted or rejected — will be published with its hash and reason; accepted batches will be anchored only when a proposer, an independent verifier and an off-team third signer agree; and a public reconciliation page will let anyone confirm the chain end-to-end from Horizon and the evidence feed.
+Any Modbus, HTTP or CSV meter source will be able to feed the engine through configuration alone; every batch — accepted or rejected — will be published with its hash and reason; accepted batches will be anchored only when a proposer, an independent verifier and an off-team third signer agree; and the pipeline will run unattended for the final seven days of the sprint, with a public reconciliation page that lets anyone confirm the chain end-to-end from Horizon and the evidence feed.
 
 ---
 
@@ -69,7 +69,7 @@ Build:
 - HTTP/JSON push adapter
 - CSV / file replay adapter
 - Normalization to the versioned interval schema (interval.schema.json)
-- Three reference register maps: PZEM-017, EPEver Tracer series, generic single-phase AC meter
+- Two reference register maps: PZEM-017 and EPEver Tracer — the Phase 1 bench instruments
 - Raw-payload hashing so the normalization itself is auditable
 - Adapter test harness: the same input through all three adapters yields byte-identical output
 
@@ -90,7 +90,7 @@ Build:
 - Accepted and rejected ledgers with reason codes (append-only JSONL)
 - Evidence manifest format for public download
 - Batch-level conformance cases added to the existing suite
-- Phase-2 batch gates (sun witness, ramp, chain, integrity) wired to the generated spec bindings
+- Scale test: one month of a public PV dataset (historical data — the replay runs in minutes) pushed through the batch pipeline to exercise chaining across thousands of intervals
 
 #### Why this matters
 
@@ -110,6 +110,7 @@ Build:
 - Third signer key held off-team, designated at kickoff
 - One atomic transaction per batch: manageData evidence hash + manageData cumulative total + payment op, using the existing testnet asset as the anchoring vehicle only
 - Negative tests: the proposer alone cannot anchor; a batch altered after the verifier’s read cannot anchor
+- Live run starts as soon as the first multisig batch anchors (target day 21, latest day 23)
 
 #### Why this matters
 
@@ -119,21 +120,21 @@ Enforcement moves from policy to the ledger. No single key — including the tea
 
 ### Deliverable 4 (Week 4)
 
-#### Public Evidence Feed, Reconciliation & Real-Data Validation
+#### Public Evidence Feed, Reconciliation & Seven-Day Live Run
 
 Build:
 
 - Public evidence feed: every batch, accepted and rejected, with hash and reason
 - Browser reconciliation page reading Horizon: anchored hashes ↔ published batches, cumulative totals, sequence gaps
-- Replay of at least 30 days of a public PV generation dataset through the full pipeline on testnet
-- Replay of induced-fault fixtures (shaded sensor, disconnected meter, night injection, implausible ramp) — each must be rejected and logged
+- Seven-day unattended live run (days 23–30): the full pipeline anchoring every interval through the multisig at real-time pace, fed by the solar simulator and the CSV replay adapter
+- Fault injections during the live run (shaded sensor, disconnected meter, night injection, implausible ramp) — each must appear in the public rejection log with its reason
 - End-to-end QA
 - Public write-up linking every transaction
-- Demo video
+- Short demo video
 
 #### Why this matters
 
-Rather than asking reviewers to trust screenshots, the sprint ends with a page that recomputes the truth in the visitor’s browser and a rejection log that proves the gates bite.
+Seven consecutive days of timestamped transactions cannot be staged after the fact. Rather than asking reviewers to trust screenshots, the sprint ends with a live record, a page that recomputes the truth in the visitor’s browser, and a rejection log that proves the gates bite.
 
 ---
 
@@ -151,6 +152,7 @@ To maintain an achievable 30-day scope, the following items are explicitly exclu
 - SCADA or monitoring-platform integrations
 - Marketing and community campaigns
 - KYC or identity verification
+- Wiring the Phase-2 batch gates (sun witness, ramp, integrity) into the spec bindings — already implemented and tested; deferred to the next Instaward
 
 ---
 
@@ -187,7 +189,7 @@ The request is deliberately below the Instawards maximum. Both founders develop 
 Modbus adapter with register-map configs  
 HTTP/JSON and CSV adapters  
 Schema normalization  
-Three reference register maps  
+Two reference register maps  
 Adapter harness  
 
 **Expected Output**
@@ -202,7 +204,7 @@ Batch assembly and hash chain
 Accepted and rejected ledgers  
 Evidence manifest  
 Batch-level conformance  
-Phase-2 gates on the spec  
+Historical scale test (runs in minutes)  
 
 **Expected Output**
 
@@ -218,10 +220,11 @@ Independent verifier service
 Third signer onboarding  
 Atomic anchoring transaction  
 Negative tests  
+Live run starts (target day 21)  
 
 **Expected Output**
 
-The first 2-of-3 anchored batch on Stellar Testnet, with linked transactions proving a single signer cannot anchor.
+The first 2-of-3 anchored batch on Stellar Testnet, with linked transactions proving a single signer cannot anchor, and the pipeline left running.
 
 ---
 
@@ -229,14 +232,14 @@ The first 2-of-3 anchored batch on Stellar Testnet, with linked transactions pro
 
 Evidence feed  
 Reconciliation page  
-30-day public dataset replay  
-Fault-fixture replay  
+Seven-day live run (days 23–30)  
+Fault injections into the live run  
 QA  
 Write-up and demo video  
 
 **Expected Output**
 
-Complete public verification pipeline with a non-empty rejection log and a reconciliation page anyone can run.
+Seven consecutive days of unattended anchoring on Stellar Testnet, a non-empty rejection log, and a reconciliation page anyone can run.
 
 ---
 
@@ -247,7 +250,7 @@ Complete public verification pipeline with a non-empty rejection log and a recon
 **Evidence**
 
 - Public GitHub repository
-- Three register-map configuration files
+- Two register-map configuration files
 - Adapter harness output showing identical results across adapters
 - CI run
 
@@ -259,6 +262,7 @@ Complete public verification pipeline with a non-empty rejection log and a recon
 
 - Sample evidence batches and manifests
 - Accepted and rejected ledgers with reason codes
+- Scale-test output: an unbroken hash chain over one month of historical intervals
 - Conformance suite run (CI link)
 
 ---
@@ -280,9 +284,10 @@ Complete public verification pipeline with a non-empty rejection log and a recon
 
 - Live reconciliation page URL
 - Public evidence feed URL
-- Replay write-up linking every transaction
-- Rejection log from fault fixtures
-- End-to-end demonstration video
+- Seven consecutive days of anchored testnet transactions (stellar.expert links)
+- Public rejection log showing the injected faults with reasons
+- Write-up linking every transaction
+- Short demonstration video
 
 ---
 
@@ -293,7 +298,7 @@ Complete public verification pipeline with a non-empty rejection log and a recon
 | Meter-Agnostic Ingestion | ☐ | ☐ | ☐ |
 | Evidence Batches & Hash Chain | ☐ | ☐ | ☐ |
 | Multi-Party Authorization | ☐ | ☐ | ☐ |
-| Evidence Feed & Validation | ☐ | ☐ | ☐ |
+| Evidence Feed & Seven-Day Live Run | ☐ | ☐ | ☐ |
 
 ---
 
