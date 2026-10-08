@@ -1,0 +1,16 @@
+# Proposer host — the seven-day live run: simulator → CSV replay → gates → batches → feed/
+[Unit]
+Description=QWATT live run (simulator + CSV replay at real-time pace)
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+User=qwatt
+WorkingDirectory=/opt/qwatt
+ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days 7 --start ${QWATT_RUN_START}
+EnvironmentFile=/etc/qwatt/live.env
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

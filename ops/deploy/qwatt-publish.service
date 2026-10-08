@@ -1,0 +1,16 @@
+# Proposer host — mirrors feed/ to the GitHub Pages branch (two-phase, append-only)
+[Unit]
+Description=QWATT feed publisher
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=qwatt
+WorkingDirectory=/opt/qwatt
+# the deploy key for the feed branch is in ~qwatt/.ssh, used by git
+ExecStart=/usr/bin/node ops/publish-feed.js --feed /var/lib/qwatt/feed --remote git@github.com:academiaseul/qwatt.git --branch feed --work /var/lib/qwatt/feed-worktree --interval 120
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,17 @@
+# Proposer host — signs published, self-verified batches; writes feed/pending/<id>.xdr. Never submits.
+[Unit]
+Description=QWATT proposer
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+User=qwatt
+WorkingDirectory=/opt/qwatt
+ExecStart=/usr/bin/node anchor/proposer.js --feed /var/lib/qwatt/feed --config /etc/qwatt/anchor.json --interval 30
+# QWATT_PROPOSER_SECRET=S… lives only here (chmod 600, owner root)
+EnvironmentFile=/etc/qwatt/proposer.env
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
