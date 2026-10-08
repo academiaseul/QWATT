@@ -92,5 +92,5 @@ Nothing below blocks work before Day 15. Until each is resolved the build runs o
 | **Third signer** named, public key received | open | **Day 15**, latest Day 19 | throwaway key. The real account must not be created without it: with high threshold 3, adding a signer later needs all three existing keys |
 | **Evidence-feed host** | open — recommended: a `feed` branch of this repository on GitHub Pages (free, public, no new account) | Day 18 | `anchor/static-server.js` serving the feed locally |
 | **Verifier host and operator** | open — any always-on machine that does not run the proposer, operated by the other founder | Day 18 | verifier runs locally against the local feed URL |
-| **Public PV dataset** | open | Day 14 (D2 evidence) | deterministic synthetic month (`batch/scale.js`) |
+| Public PV dataset | **decided: NREL PVDAQ system 4902 (NIST Ground), Sept 2017, CC BY 4.0** — see `datasets/README.md` | — | — |
 | Day 1 date | open | — | the plan's day numbers stay relative |

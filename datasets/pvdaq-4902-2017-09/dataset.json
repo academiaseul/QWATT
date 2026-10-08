@@ -1,0 +1,51 @@
+{
+  "title": "NREL PVDAQ system 4902 (NIST_Ground_1), 2017-09",
+  "licence": "CC BY 4.0 — NREL, Photovoltaic Data Acquisition (PVDAQ) Public Datasets, DOI 10.25984/1846021",
+  "csv": "pvdaq-4902-2017-09.csv",
+  "ts_column": "ts",
+  "site_id": "pvdaq-4902",
+  "meters": {
+    "a": {
+      "column": "a_w",
+      "id": "pvdaq-4902:dc_power_inv_14538",
+      "class": "dc"
+    },
+    "b": {
+      "column": "b_w",
+      "id": "pvdaq-4902:ac_power_meter_1864_5",
+      "class": "ac"
+    }
+  },
+  "profile": {
+    "name": "PVDAQ 4902 NIST_Ground_1 (derived from spec 1.0.0 profile \"rooftop\")",
+    "description": "270.7 kWp · inverter DC (a) vs AC revenue meter (b) · scale-test profile, not part of the frozen spec",
+    "site": {
+      "lat": 39.1319,
+      "lon": -77.2141,
+      "tz": "UTC-5"
+    },
+    "nameplate_w": 270700,
+    "ceiling_k": 1.15,
+    "interval_max_dt_s": 3600,
+    "clock_max_skew_s": 7500,
+    "elevation_min_deg": -0.833,
+    "night_tolerance_frac": 0.005,
+    "energy_power_consistency_frac": 0.1,
+    "agreement": {
+      "mode": "ac_dc_ratio",
+      "require_second_meter": false,
+      "ac_dc_min": 0.88,
+      "ac_dc_max": 1
+    },
+    "phase2": {
+      "witness_ratio_min": 0.5,
+      "witness_ratio_max": 1.6,
+      "witness_derate": 0.8,
+      "ramp_max_w_per_sample": null,
+      "variance_floor": 0.005,
+      "variance_min_samples": 30,
+      "rtc_max_drift_s": 60,
+      "max_gaps": 2
+    }
+  }
+}

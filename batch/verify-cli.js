@@ -2,7 +2,7 @@
 /**
  * QWATT — verify a published evidence feed from its files alone
  * ---------------------------------------------------------------------------
- *   node batch/verify-cli.js <feed-dir> [--profile bench] [--json]
+ *   node batch/verify-cli.js <feed-dir> [--profile bench | --dataset <dataset.json>] [--json]
  *
  * Walks ledger/batches.jsonl in order, loads each batch file, and re-derives
  * it with verifyBatch against the previous batch and the rejected ledger. It
@@ -24,7 +24,8 @@ const E = require('../protocol/evidence');
 function verifyFeed(dir, { profile } = {}) {
   const feed = new Feed(dir);
   const spec = V.SPEC;
-  const prof = profile ? spec.profiles[profile] : spec.profiles.bench;
+  /* a profile is a spec profile name, or a full profile object (a dataset's derived profile) */
+  const prof = profile && typeof profile === 'object' ? profile : (profile ? spec.profiles[profile] : spec.profiles.bench);
   if (!prof) throw new Error(`unknown profile ${profile}`);
   const listed = feed.readLedger('batches');
   const rejected = feed.readLedger('rejected');
@@ -72,8 +73,9 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   const dir = args.find((a) => !a.startsWith('--'));
   if (!dir) { console.error('usage: node batch/verify-cli.js <feed-dir> [--profile bench] [--json]'); process.exit(2); }
-  const pi = args.indexOf('--profile');
-  const out = verifyFeed(path.resolve(dir), { profile: pi >= 0 ? args[pi + 1] : undefined });
+  const pi = args.indexOf('--profile'), di = args.indexOf('--dataset');
+  const profile = di >= 0 ? JSON.parse(require('fs').readFileSync(args[di + 1], 'utf8')).profile : (pi >= 0 ? args[pi + 1] : undefined);
+  const out = verifyFeed(path.resolve(dir), { profile });
   if (args.includes('--json')) console.log(JSON.stringify(out, null, 2));
   else {
     console.log(`${out.batches} batches (${out.accepted_batches} accepted, ${out.rejected_batches} rejected) · cumulative ${out.cumulative_mwh} mWh · head ${out.head_sha256 || '—'}`);

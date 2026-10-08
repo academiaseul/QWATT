@@ -13,10 +13,11 @@
     "test:ingest": "node ingest/ingest.test.js",
     "harness": "node ingest/harness.js",
     "test:batch": "node batch/batch.test.js",
-    "scale": "node batch/scale.js",
+    "scale": "node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json",
     "verify:feed": "node batch/verify-cli.js",
     "test:anchor": "node anchor/tx.test.js && node anchor/recovery.test.js",
-    "reconcile": "node anchor/reconcile-cli.js"
+    "reconcile": "node anchor/reconcile-cli.js",
+    "dataset:fetch": "node batch/datasets/pvdaq.js"
   },
   "devDependencies": {
     "@creit.tech/stellar-wallets-kit": "1.7.0",

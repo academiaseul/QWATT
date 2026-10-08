@@ -7,6 +7,7 @@
  * scratch, the head hash must be identical (determinism).
  *
  *   node batch/scale.js                               synthetic month (default)
+ *   node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json   a public dataset (batch/datasets/pvdaq.js)
  *   node batch/scale.js --csv month.csv --a a_w --b b_w [--ts ts]
  *   node batch/scale.js --out out/scale --json
  *
@@ -60,18 +61,24 @@ function writeSyntheticMonth(file, { days = 30, stepS = 60 } = {}) {
   return new Promise((resolve) => out.end(resolve));
 }
 
-async function runOnce(csvFile, cols, feedDir) {
+const BENCH_RUN = {
+  site_id: 'bench-santiago',
+  profile: undefined,                                   // spec profile "bench"
+  meters: { a: { id: 'pzem-017:1', class: 'dc' }, b: { id: 'epever-tracer:2', class: 'dc' } },
+};
+
+async function runOnce(csvFile, cols, feedDir, run = BENCH_RUN) {
   fs.rmSync(feedDir, { recursive: true, force: true });
-  const pipe = new Pipeline({ dir: feedDir, site_id: 'bench-santiago', node_id: 'scale' });
+  const pipe = new Pipeline({ dir: feedDir, site_id: run.site_id, node_id: 'scale', profile: run.profile });
   const builder = new IntervalBuilder({
-    site_id: 'bench-santiago', node_id: 'scale', adapter: 'csv', dt_s: 300,
-    meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } },
+    site_id: run.site_id, node_id: 'scale', adapter: 'csv', dt_s: 300,
+    meters: { a: { ...run.meters.a, energy: 'integrate' }, b: { ...run.meters.b, energy: 'integrate' } },
     onInterval: (rec) => pipe.push(rec),
   });
   const t = Date.now();
   const { rows, intervals } = await csv.replay({ file: csvFile, ts_column: cols.ts, meters: { a: { power_w: cols.a }, b: { power_w: cols.b } }, pace: 'fast' }, builder);
   pipe.close();
-  return { rows, intervals, ms: Date.now() - t, verify: verifyFeed(feedDir) };
+  return { rows, intervals, ms: Date.now() - t, verify: verifyFeed(feedDir, { profile: run.profile }) };
 }
 
 async function main() {
@@ -81,12 +88,21 @@ async function main() {
   fs.mkdirSync(out, { recursive: true });
 
   let csvFile = opt('--csv', null);
-  const cols = { ts: opt('--ts', 'ts'), a: opt('--a', 'a_w'), b: opt('--b', 'b_w') };
+  let cols = { ts: opt('--ts', 'ts'), a: opt('--a', 'a_w'), b: opt('--b', 'b_w') };
   let source = csvFile ? path.basename(csvFile) : 'synthetic month (Santiago clear sky + clouds, 60 s)';
+  let run = BENCH_RUN;
+  const dsFile = opt('--dataset', null);
+  if (dsFile) {
+    const ds = JSON.parse(fs.readFileSync(dsFile, 'utf8'));
+    csvFile = path.join(path.dirname(path.resolve(dsFile)), ds.csv);
+    cols = { ts: ds.ts_column, a: ds.meters.a.column, b: ds.meters.b.column };
+    run = { site_id: ds.site_id, profile: ds.profile, meters: { a: { id: ds.meters.a.id, class: ds.meters.a.class }, b: { id: ds.meters.b.id, class: ds.meters.b.class } } };
+    source = `${ds.title} · ${ds.licence}`;
+  }
   if (!csvFile) { csvFile = path.join(out, 'synthetic-month.csv'); await writeSyntheticMonth(csvFile); }
 
-  const r1 = await runOnce(csvFile, cols, path.join(out, 'feed-run1'));
-  const r2 = await runOnce(csvFile, cols, path.join(out, 'feed-run2'));
+  const r1 = await runOnce(csvFile, cols, path.join(out, 'feed-run1'), run);
+  const r2 = await runOnce(csvFile, cols, path.join(out, 'feed-run2'), run);
   const v = r1.verify;
   const summary = {
     source,
