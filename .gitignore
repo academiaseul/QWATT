@@ -9,3 +9,7 @@ mining-rig/node_modules/
 
 .vercel
 .env*
+
+# anchoring services: local config and verifier state (public keys only, but host-specific)
+anchor/config.json
+verifier-state/

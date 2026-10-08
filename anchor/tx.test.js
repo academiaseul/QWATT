@@ -137,6 +137,24 @@ test('config is validated before anything is built', () => {
   }
 });
 
+test('anchored prefix: the on-chain head pins exactly which batches are anchored', () => {
+  const C = require('./chain');
+  const L = [
+    { batch_id: 'b-000000', seq: 0, sha256: 'a'.repeat(64), status: 'accepted' },
+    { batch_id: 'b-000001', seq: 1, sha256: 'b'.repeat(64), status: 'rejected' },
+    { batch_id: 'b-000002', seq: 2, sha256: 'c'.repeat(64), status: 'accepted' },
+  ];
+  eq(C.anchoredPrefix(L, null), 0, 'nothing anchored');
+  eq(C.nextToAnchor(L, 0).batch_id, 'b-000000', 'first accepted');
+  eq(C.anchoredPrefix(L, 'a'.repeat(64)), 1, 'head at batch 0');
+  eq(C.nextToAnchor(L, 1).batch_id, 'b-000002', 'a rejected batch is skipped, never anchored');
+  eq(C.nextToAnchor(L, 3), null, 'idle at the end');
+  let threw = false; try { C.anchoredPrefix(L, 'f'.repeat(64)); } catch (e) { threw = true; }
+  assert(threw, 'an on-chain anchor that is not a published batch is an alarm');
+  threw = false; try { C.anchoredPrefix(L, 'b'.repeat(64)); } catch (e) { threw = true; }
+  assert(threw, 'an anchor pointing at a rejected batch is an alarm');
+});
+
 (async () => {
   console.log('\nanchor tx');
   for (const t of tests) {
