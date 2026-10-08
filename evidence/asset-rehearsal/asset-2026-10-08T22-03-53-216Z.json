@@ -1,0 +1,103 @@
+{
+  "started_at": "2026-10-08T22:03:53.216Z",
+  "network": "testnet",
+  "public_keys": {
+    "issuer": "GB7SYT6XSO256MZZRM7C6BBPN4QQ3DLUQVRIWCI2OQQJQLDQEPCYWNJZ",
+    "treasury": "GBCPINZ4URAGHFHJ7KGOSMCXPAQTX3RSNI7CFYCCOPMOFEVHNVYOG534",
+    "proposer": "GDU2M733RAVKWYUR3FP5YO26UEF5T5PRQWLME5IOGU5KMIY66RSO5TDO",
+    "verifier": "GBZVM7ZG47GW4VUDL55KMLCY6E26PU6II4ZO3N4UHCPIXDJPY4U5VYJE",
+    "third": "GDHYNF4BJH2IDFV4IW3DJZSMZKBT7JRHC3337IP7J22GCVRKOCSAPPAI"
+  },
+  "steps": {
+    "mint": "b97252094fd4af9008f7b655ecfa52d9bdf60df82a9936101d69765be7c9a49e",
+    "setup": "c4a35b3e773e46153e727d22690aa562a73a9ed47127af2290035b6a11d0164d",
+    "verify_before_funding": [
+      {
+        "name": "thresholds 1/2/3",
+        "ok": true
+      },
+      {
+        "name": "master weight 0",
+        "ok": true
+      },
+      {
+        "name": "exactly three signers of weight 1",
+        "ok": true
+      },
+      {
+        "name": "proposer is a signer",
+        "ok": true
+      },
+      {
+        "name": "verifier is a signer",
+        "ok": true
+      },
+      {
+        "name": "third signer is a signer",
+        "ok": true
+      },
+      {
+        "name": "QWATT trustline",
+        "ok": true
+      },
+      {
+        "name": "QWATT balance covers payments",
+        "ok": false
+      }
+    ],
+    "funding": "beaeb45d6aaac004573947e30b614e2a70aa262af075b57335dace8f51157b83",
+    "verify_after_funding": [
+      {
+        "name": "thresholds 1/2/3",
+        "ok": true
+      },
+      {
+        "name": "master weight 0",
+        "ok": true
+      },
+      {
+        "name": "exactly three signers of weight 1",
+        "ok": true
+      },
+      {
+        "name": "proposer is a signer",
+        "ok": true
+      },
+      {
+        "name": "verifier is a signer",
+        "ok": true
+      },
+      {
+        "name": "third signer is a signer",
+        "ok": true
+      },
+      {
+        "name": "QWATT trustline",
+        "ok": true
+      },
+      {
+        "name": "QWATT balance covers payments",
+        "ok": true
+      }
+    ]
+  },
+  "anchoring_account": "GCBKRNIPS4IVV2X7ZWR6DBMDNNTRQ53HXNRIQIIVNORCBMTSPK52L5AB",
+  "anchoring": {
+    "batches": 3,
+    "anchored": 3,
+    "txs": [
+      "62762350477ff46c4ca4fe86b3618b50b37c9e38c65fc68a37ee0f7033416dbf",
+      "279c2bc1183115d297afaec35bdd75f8fdc5c6d0221969602df55e9e2814e7b3",
+      "a542a1155327916adee501e7242facdb7eaa502b1d7916a400d5160777b2c832"
+    ],
+    "treasury_before": "999.0000000",
+    "treasury_after": "999.0000003",
+    "treasury_delta_stroops": 3
+  },
+  "reconciliation": {
+    "verdict": "RECONCILED",
+    "problems": []
+  },
+  "verdict": "PASS",
+  "finished_at": "2026-10-08T22:04:39.678Z"
+}
