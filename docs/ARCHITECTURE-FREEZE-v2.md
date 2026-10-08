@@ -1,7 +1,8 @@
 # Architecture freeze v2 — Instawards sprint (SOW final v4)
 
-**Status: DRAFT — pending sign-off by both founders.** Items marked **[DECIDE]** need a founder
-decision before Day 3; until then the recommended default below is what the code assumes.
+**Status: DRAFT — pending sign-off by both founders.** Decisions marked **[ADOPTED]** are working
+decisions taken 2026-10-08 so the build could proceed; they stay reversible until sign-off. The
+few items still open are in the decisions log at the end, each with a deadline and a stand-in.
 **Supersedes:** `docs/ARCHITECTURE-FREEZE.md` (written for SOW v3), which stays in the repo
 unchanged as the record of what v3 froze. Everything in v1 not mentioned here still holds.
 **Plan:** `docs/PHASE-0-BUILD-PLAN.md`.
@@ -13,17 +14,17 @@ documented deviation in the write-up, never a silent edit.
 
 | # | v1 said | v2 says | Why |
 |---|---|---|---|
-| D-1 | Payment = `floor(energy_mwh / 1e9)` QWATT per batch (§1, §7) | **[DECIDE]** Fixed nominal payment of `0.0000001` QWATT per batch to a fixed team account | SOW v4 removes token issuance from scope and uses the asset as "the anchoring vehicle only". An energy-proportional payment reads as issuance. |
-| D-2 | Source account = the existing distributor (treasury) | **[DECIDE]** A new dedicated anchoring account with a QWATT trustline and a small balance | Keeps the 42.7M treasury out of an off-team quorum; limits blast radius; matches "anchoring vehicle only". |
+| D-1 | Payment = `floor(energy_mwh / 1e9)` QWATT per batch (§1, §7) | **[ADOPTED]** Fixed nominal payment of `0.0000001` QWATT per batch to a fixed team account | SOW v4 removes token issuance from scope and uses the asset as "the anchoring vehicle only". An energy-proportional payment reads as issuance. |
+| D-2 | Source account = the existing distributor (treasury) | **[ADOPTED]** A new dedicated anchoring account with a QWATT trustline and a small balance | Keeps the 42.7M treasury out of an off-team quorum; limits blast radius; matches "anchoring vehicle only". |
 | D-3 | Rejected intervals go to the rejected ledger; nothing said about rejected batches | Every closed batch is **published** with a status. `accepted` batches may be anchored; `rejected` batches are published with reason codes and **never anchored** | SOW v4: "every batch, accepted or rejected, is published; only accepted batches are anchored". |
 | D-4 | — | A batch is `rejected` when the proposer's own `verifyBatch` (the same function the verifier runs) fails on it. The chain advances through it so the defect stays visible in sequence | One verification implementation for both sides; a batch-level rejection is a defect signal, not a silent gap. |
 | D-5 | — | A batch whose intervals were all rejected is still a valid `accepted` batch: `intervals: []`, `energy_mwh: 0`, `intervals_root` = SHA-256 of the empty string | Keeps the chain gapless through nights and faults, and anchors the fact that the gates refused something. |
-| D-6 | `samples_root` optional | **[DECIDE]** Recommended: keep optional in schema 1.0.0 for this sprint, populate it from the CSV/simulator raw samples in the live run, and make it required in batch schema 1.1.0 at Instaward #2 | The SOW lists "Merkle root over raw samples" as a batch field; `raw_sha256` per interval already makes normalization auditable today. |
+| D-6 | `samples_root` optional | **[ADOPTED]** Keep optional in schema 1.0.0 for this sprint, populate it from the CSV/simulator raw samples in the live run, and make it required in batch schema 1.1.0 at Instaward #2 | The SOW lists "Merkle root over raw samples" as a batch field; `raw_sha256` per interval already makes normalization auditable today. |
 | D-7 | — | Reason codes outside the gate spec are registered in `protocol/reasons.json`; an unregistered code fails CI | The proposer, the verifier and the reconciliation page must agree on what every rejection means. |
 | D-8 | Feed layout §5 | Adds `ledger/batches.jsonl` (one line per published batch: `batch_id`, `seq`, `sha256`, `status`, `reasons`) and `index.json.last_ts_start` | The batch ledger is how a reader lists the chain in order without directory listings; `last_ts_start` makes duplicate rejection survive restarts. |
 | D-9 | Canonical JSON: integers only (policy) | `protocol/evidence.js` **enforces** it: any non-safe-integer number throws | `JSON.stringify(Infinity)` is `"null"`; a permissive serializer lets an overflow reach a hash. |
-| D-10 | — | **[DECIDE]** The live run's "implausible ramp" fault is designed to trip G1 nameplate or G0 `plausibility.energy_power`, and is logged under that code | The dedicated ramp gate is deferred by SOW v4; the active engine runs G0–G3 only. Do not wire Phase-2 gates mid-sprint. |
-| D-11 | License Apache-2.0 | **[DECIDE]** MIT (as the SOW states) or amend the SOW reference | The evidence links must not contradict the SOW. |
+| D-10 | — | **[ADOPTED]** The live run's "implausible ramp" fault is designed to trip G1 nameplate or G0 `plausibility.energy_power`, and is logged under that code | The dedicated ramp gate is deferred by SOW v4; the active engine runs G0–G3 only. Do not wire Phase-2 gates mid-sprint. |
+| D-11 | License Apache-2.0 | **Decided 2026-10-08: MIT**, as the SOW states. `LICENSE` and every `package.json` updated; dependencies keep their own licences (the Stellar SDK is Apache-2.0, compatible) | The evidence links must not contradict the SOW. Only the two founders have committed to the repo, so relicensing is theirs to make. |
 
 ## Batch rules as implemented (`batch/`)
 
@@ -59,7 +60,7 @@ pending XDR's.
 ## Keys and thresholds (v1 §8, unchanged except the account)
 
 Three signers, weight 1 each: proposer (gateway host), independent verifier (separate provider and
-account, key generated on its host), third signer (off-team, **[DECIDE]** named at kickoff).
+account, key generated on its host), third signer (off-team, named before the real account is created — see the decisions log).
 Thresholds low 1, medium 2, high 3; master weight 0 once the signers are set. Rehearsed on a
 throwaway testnet account first (plan unit 1.6).
 
@@ -78,15 +79,18 @@ throwaway account, verdict PASS). Two facts the write-up must reflect:
   result codes, and the comparison is itself the demonstration: the identical transaction refused
   with one signature, accepted with two.
 
-## Kickoff decisions log
+## Decisions log
 
-| Decision | Owner | Status |
-|---|---|---|
-| Third signer named, public key received | Founders | open |
-| Anchoring account (D-2) | Founders | open — default: new account |
-| Payment amount (D-1) | Founders | open — default: 0.0000001 QWATT |
-| Evidence-feed host | Founders | open |
-| Verifier host and operator | Founders | open |
-| License (D-11) | Founders | open |
-| Day 1 date | Founders | open |
-| Public PV dataset | Founders | open — scale test currently uses a deterministic synthetic month |
+Nothing below blocks work before Day 15. Until each is resolved the build runs on the stand-in.
+
+| Decision | Status | Needed by | Stand-in until then |
+|---|---|---|---|
+| License (D-11) | **decided: MIT** | — | — |
+| Payment amount (D-1) | adopted: 0.0000001 QWATT | sign-off | — |
+| Anchoring account (D-2) | adopted: new dedicated account | Day 15 (plan 3.1) | throwaway testnet accounts (rehearsal, e2e) |
+| Ramp fault (D-10), `samples_root` (D-6) | adopted as above | sign-off | — |
+| **Third signer** named, public key received | open | **Day 15**, latest Day 19 | throwaway key. The real account must not be created without it: with high threshold 3, adding a signer later needs all three existing keys |
+| **Evidence-feed host** | open — recommended: a `feed` branch of this repository on GitHub Pages (free, public, no new account) | Day 18 | `anchor/static-server.js` serving the feed locally |
+| **Verifier host and operator** | open — any always-on machine that does not run the proposer, operated by the other founder | Day 18 | verifier runs locally against the local feed URL |
+| **Public PV dataset** | open | Day 14 (D2 evidence) | deterministic synthetic month (`batch/scale.js`) |
+| Day 1 date | open | — | the plan's day numbers stay relative |

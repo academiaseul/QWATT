@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "QWATT — static site plus the verification protocol (protocol/). No build step for the site; `npm run gen:gates` regenerates the gate bindings from protocol/gates.spec.json, `npm test` runs the conformance and validator suites with no install. npm install is only needed to vendor the wallet dependencies (see scripts/build-wallet-vendor.md).",
+  "license": "MIT",
   "scripts": {
     "gen:gates": "node protocol/gen.js",
     "test": "node protocol/gen.js --check && node protocol/conformance.test.js && node mining-rig/validators.test.js && node ingest/ingest.test.js && node batch/batch.test.js",
