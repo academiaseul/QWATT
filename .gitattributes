@@ -1,2 +1,6 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Datasets and evidence are hashed: keep their bytes exactly as written (no EOL conversion)
+datasets/** -text
+evidence/** -text
