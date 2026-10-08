@@ -24,3 +24,7 @@ jobs:
         run: node mining-rig/validators.test.js
       - name: Ingestion tests + Deliverable 1 acceptance harness
         run: node ingest/ingest.test.js
+      - name: Batch conformance (Deliverable 2) — hash chain, tamper suite, restart safety
+        run: node batch/batch.test.js
+      - name: Scale test (Deliverable 2) — one month through the batch pipeline, chain verified, deterministic
+        run: node batch/scale.js

@@ -1,0 +1,31 @@
+{
+  "registry_version": "1.0.0",
+  "description": "Every reason code that can appear in a published ledger, other than the gate codes (plausibility.*, nameplate.*, elevation.*, agreement.*), which are registered with their messages in gates.spec.json. A code that is emitted but not listed here fails the test suite, so the proposer, the verifier and the reconciliation page can never disagree on what a rejection means.",
+  "codes": {
+    "ingest.duplicate_interval": "An interval for this window was already judged; the repeat is recorded and never counted twice.",
+    "ingest.out_of_order": "The interval starts before the last judged interval; late data is recorded, never inserted into a closed window.",
+    "ingest.spec_mismatch": "The node judged this interval under a different gate-spec version than the engine running here.",
+    "ingest.schema_invalid": "The record does not validate against interval.schema.json.",
+    "ingest.not_integer": "A numeric field is not a safe integer; evidence is integers only.",
+
+    "batch.schema_invalid": "The batch does not validate against batch.schema.json.",
+    "batch.id_mismatch": "batch_id is not <site_id>-<seq padded to 6>.",
+    "batch.hash_mismatch": "sha256 does not equal the hash of the canonical batch.",
+    "batch.root_mismatch": "intervals_root does not equal the Merkle root of the contained intervals.",
+    "batch.chain_break": "prev_hash or seq does not continue the previous published batch.",
+    "batch.genesis_invalid": "The first batch must have seq 0 and prev_hash of 64 zeros.",
+    "batch.energy_mismatch": "energy_mwh is not the sum of the intervals' basis energy.",
+    "batch.cumulative_mismatch": "cumulative_mwh is not the previous total plus energy_mwh.",
+    "batch.count_mismatch": "accepted_count, rejected_count and interval_count do not agree with the batch and the rejected ledger.",
+    "batch.window_mismatch": "An interval lies outside [ts_start, ts_end] or intervals are not strictly ordered.",
+    "batch.interval_rejected": "An interval inside the batch fails the gates when re-run.",
+    "batch.rejection_unproven": "A rejected-ledger line for this batch passes the gates when re-run and carries no ingest reason.",
+    "batch.unregistered_reason": "A ledger line carries a reason code that is not registered.",
+    "batch.spec_mismatch": "The batch or a contained interval names a different spec or schema version.",
+
+    "verifier.feed_unavailable": "The verifier could not read the published batch from the public feed.",
+    "verifier.not_published": "The pending transaction refers to a batch that is not in the public feed.",
+    "verifier.tx_mismatch": "The pending transaction is not byte-identical to the one the verifier rebuilt from the published batch.",
+    "verifier.hash_mismatch": "The published batch no longer hashes to the value in the pending transaction."
+  }
+}
