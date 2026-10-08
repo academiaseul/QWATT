@@ -36,3 +36,5 @@ jobs:
         run: node live/live.test.js
       - name: Watchdog decisions (plan 3.9)
         run: node ops/watch.test.js
+      - name: Feed publisher (two-phase, append-only) against a local bare remote
+        run: node ops/publish-feed.test.js
