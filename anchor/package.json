@@ -1,0 +1,14 @@
+{
+  "name": "qwatt-anchor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "QWATT Deliverable 3: deterministic anchoring transactions, 2-of-3 multisig rehearsal, proposer and verifier services. The only part of the protocol that needs a dependency (the Stellar SDK).",
+  "scripts": {
+    "test": "node tx.test.js",
+    "rehearse": "node rehearse.js"
+  },
+  "dependencies": {
+    "@stellar/stellar-sdk": "13.1.0"
+  },
+  "engines": { "node": ">=18" }
+}

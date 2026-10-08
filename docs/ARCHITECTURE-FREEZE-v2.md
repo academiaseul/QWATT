@@ -63,6 +63,21 @@ account, key generated on its host), third signer (off-team, **[DECIDE]** named 
 Thresholds low 1, medium 2, high 3; master weight 0 once the signers are set. Rehearsed on a
 throwaway testnet account first (plan unit 1.6).
 
+## Rehearsal findings (plan units 1.6 and 3.8, testnet, 2026-10-08)
+
+Evidence: `evidence/rehearsal/rehearsal-2026-10-08T20-46-13-037Z.json` (`node anchor/rehearse.js`,
+throwaway account, verdict PASS). Two facts the write-up must reflect:
+
+- **A single signature is refused as `tx_failed` / `op_bad_auth`, not `tx_bad_auth`.** One weight-1
+  signature meets the LOW threshold (the transaction is authorized to exist) but the `manageData`
+  anchor needs MEDIUM 2, so that operation fails and the transaction applies nothing. Validation
+  rejects it before a ledger: the same sequence number is used successfully by C afterwards.
+- **A, B and C share one transaction hash.** Stellar transaction hashes exclude signatures, so the
+  refused single-signature attempts are byte-for-byte the transaction that later succeeded. Never
+  cite A or B by hash (the link resolves to C). Their evidence is the signed envelope and the
+  result codes, and the comparison is itself the demonstration: the identical transaction refused
+  with one signature, accepted with two.
+
 ## Kickoff decisions log
 
 | Decision | Owner | Status |

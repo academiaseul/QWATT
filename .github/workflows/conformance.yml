@@ -28,3 +28,5 @@ jobs:
         run: node batch/batch.test.js
       - name: Scale test (Deliverable 2) — one month through the batch pipeline, chain verified, deterministic
         run: node batch/scale.js
+      - name: Anchoring transaction builder (Deliverable 3) — the only suite with a dependency
+        run: npm ci --prefix anchor --no-audit --no-fund && node anchor/tx.test.js
