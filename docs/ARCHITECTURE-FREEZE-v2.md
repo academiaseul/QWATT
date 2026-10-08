@@ -79,6 +79,16 @@ throwaway account, verdict PASS). Two facts the write-up must reflect:
   result codes, and the comparison is itself the demonstration: the identical transaction refused
   with one signature, accepted with two.
 
+## Findings during the build (for the write-up and the next spec version)
+
+| # | Finding | Action taken |
+|---|---|---|
+| B-1 | Ingest: a meter returning after a gap longer than the closing grace made `IntervalBuilder` throw, which would stop ingestion mid-run | Fixed (commit `00a25ff`): integration restarts at the returning sample; no energy is interpolated across closed intervals. Regression test fails without the fix. |
+| B-2 | Ingest: the CSV adapter read an empty power cell as 0 W | Fixed (`00a25ff`): an empty cell is a missing reading, not a zero. |
+| B-3 | G0 `plausibility.energy_power` has no absolute floor, so dusk and dawn intervals of 0–11 mWh are refused on quantization noise (5 in the simulated week) | Recorded. **Candidate for spec 1.1:** an absolute floor, like agreement's `deadband_w`. Not changed now (spec frozen). |
+| B-4 | The `rooftop` efficiency floor (AC/DC ≥ 0.88) refuses about 20% of the DC energy of a utility-scale central inverter metered after its transformer (NIST Ground, PVDAQ 4902) | Recorded in `datasets/README.md`. The threshold was deliberately not tuned to the data; per-site profiles belong in a spec bump. |
+| B-5 | A fault's first sample shares a trapezoid with the last normal sample, so a sliver of fault energy lands in the preceding interval, which is refused | Expected and correct; the audit judges intervals fully inside each window. |
+
 ## Decisions log
 
 Nothing below blocks work before Day 15. Until each is resolved the build runs on the stand-in.
