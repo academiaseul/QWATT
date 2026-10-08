@@ -136,6 +136,25 @@ test('a configured second meter that never reports delays closing by one interva
   eq(out[0].meters.b.mwh, 0, 'B carries no energy — the agreement gate will reject it');
 });
 
+test('a meter that disconnects for 15 min and returns does not crash, and no energy is invented for the gap', () => {
+  /* Regression: the returning meter's first sample used to integrate back into intervals that had
+     already closed without it, throwing "arrived after that interval was closed". */
+  const b = mk();
+  const out = [];
+  for (let s = 0; s <= 3600; s += 10) {
+    const ts = T0 + s * 1000;
+    out.push(...b.push('a', { ts, power_w: 100 }));
+    if (s < 600 || s > 1500) out.push(...b.push('b', { ts, power_w: 99 }));   // B silent 600–1500 s
+  }
+  out.push(...(b.flush() || []));
+  eq(out.length, 13, 'every interval of the hour closes (12 plus the one the final sample opens)');
+  const gap = out.filter((r) => r.meters.b.samples === 0);
+  assert(gap.length >= 2, `intervals fully inside the gap have no B samples (${gap.length})`);
+  for (const r of gap) eq(r.meters.b.mwh, 0, `no B energy invented at ${r.ts_start}`);
+  const after = out.find((r) => Date.parse(r.ts_start) >= T0 + 1800e3);
+  assert(after.meters.b.mwh > 8000, 'B integrates normally once a full interval has passed since its return');
+});
+
 test('out-of-order samples are refused', () => {
   const b = mk();
   b.push('a', { ts: T0 + 400000, power_w: 1 });
@@ -175,6 +194,20 @@ test('CSV: quoted fields, epoch and ISO timestamps', () => {
   eq(csv.parseTs('1789657200'), 1789657200000, 'epoch s');
   eq(csv.parseTs('1789657200000'), 1789657200000, 'epoch ms');
   eq(csv.parseTs('2026-09-20T15:00:00Z'), T0, 'iso');
+});
+
+test('CSV: an empty power cell is a missing reading, never 0 W', async () => {
+  const fs = require('fs'), os = require('os');
+  const file = path.join(os.tmpdir(), `qwatt-blank-${process.pid}.csv`);
+  const lines = ['ts,a_w,b_w'];
+  for (let s = 0; s < 600; s += 10) lines.push(`${new Date(T0 + s * 1000).toISOString()},100,${s >= 300 ? '' : '99'}`);
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  const b = mk(); const out = []; b.onInterval = (r) => out.push(r);
+  await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' }, b: { power_w: 'b_w' } }, pace: 'fast' }, b);
+  fs.unlinkSync(file);
+  const second = out.find((r) => r.ts_start === new Date(T0 + 300000).toISOString());
+  eq(second.meters.b.samples, 0, 'blank cells produced no samples');
+  assert(second.meters.a.samples > 0, 'meter A unaffected');
 });
 
 test('HTTP: /intervals accepts a valid record, stamps clock_skew_s, rejects an invalid one', async () => {

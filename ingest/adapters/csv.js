@@ -62,6 +62,8 @@ async function replay(config, builder) {
     if (speed > 0 && prevTs !== null && ts > prevTs) await sleep((ts - prevTs) / speed);
     prevTs = ts;
     for (const [key, cols] of Object.entries(config.meters)) {
+      /* An empty cell is a missing reading (meter disconnected), never 0 W: skip the sample. */
+      if (row[cols.power_w] === '') continue;
       const sample = { ts, power_w: Number(row[cols.power_w]) };
       if (cols.energy_wh && row[cols.energy_wh] !== '') sample.energy_wh = Number(row[cols.energy_wh]);
       intervals += builder.push(key, sample, line + '\n').length;
