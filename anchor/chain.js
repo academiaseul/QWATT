@@ -63,4 +63,14 @@ async function findAnchorTx(server, account, entry, { pages = 5 } = {}) {
   return null;
 }
 
-module.exports = { getHead, anchoredPrefix, nextToAnchor, findAnchorTx, decode };
+/** Above this disagreement with the network, neither service signs: timebounds would be judged wrong. */
+const MAX_CLOCK_SKEW_S = 120;
+
+/** Seconds by which the local clock is ahead (+) or behind (−) the latest closed ledger. */
+async function clockSkewS(server, nowS = Math.floor(Date.now() / 1000)) {
+  const page = await server.ledgers().order('desc').limit(1).call();
+  const closed = Math.floor(Date.parse(page.records[0].closed_at) / 1000);
+  return nowS - closed;
+}
+
+module.exports = { getHead, anchoredPrefix, nextToAnchor, findAnchorTx, clockSkewS, MAX_CLOCK_SKEW_S, decode };

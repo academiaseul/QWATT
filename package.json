@@ -15,7 +15,7 @@
     "test:batch": "node batch/batch.test.js",
     "scale": "node batch/scale.js",
     "verify:feed": "node batch/verify-cli.js",
-    "test:anchor": "node anchor/tx.test.js"
+    "test:anchor": "node anchor/tx.test.js && node anchor/recovery.test.js"
   },
   "devDependencies": {
     "@creit.tech/stellar-wallets-kit": "1.7.0",

@@ -55,6 +55,8 @@ class Proposer {
   _anchoredFile(id) { return this.feed.p('anchored', `${id}.json`); }
 
   async tick(nowS = Math.floor(Date.now() / 1000)) {
+    const skew = await C.clockSkewS(this.server, nowS);
+    if (Math.abs(skew) > C.MAX_CLOCK_SKEW_S) return { action: 'wait', reason: `local clock ${skew}s off the network; not proposing`, skew_s: skew };
     const listed = this.feed.readLedger('batches');
     const head = await C.getHead(this.server, this.cfg.anchor_account);
     const prefix = C.anchoredPrefix(listed, head.anchor_sha256);

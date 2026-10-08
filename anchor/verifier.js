@@ -86,6 +86,8 @@ class Verifier {
   }
 
   async _tick(nowS) {
+    const skew = await C.clockSkewS(this.server, nowS);
+    if (Math.abs(skew) > C.MAX_CLOCK_SKEW_S) return { action: 'wait', reason: `local clock ${skew}s off the network; refusing to judge timebounds`, skew_s: skew };
     const listed = await this.feed.batches();
     const head = await C.getHead(this.server, this.cfg.anchor_account);
     const prefix = C.anchoredPrefix(listed, head.anchor_sha256);
@@ -94,6 +96,11 @@ class Verifier {
 
     const pending = await this.feed.pending(next.batch_id);
     if (pending == null) return { action: 'wait', reason: 'nothing proposed', batch_id: next.batch_id };
+    /* an expired proposal is routine after downtime, not an attack: wait for the fresh one */
+    try {
+      const tb = new S.Transaction(pending, this.cfg.network_passphrase).timeBounds;
+      if (tb && Number(tb.maxTime) !== 0 && Number(tb.maxTime) <= nowS) return { action: 'wait', reason: 'proposal expired; awaiting a fresh one', batch_id: next.batch_id };
+    } catch (e) { /* unparseable: matchPending below refuses it with a reason */ }
 
     const batch = await this.feed.batch(next.batch_id);
     if (batch == null) return this._refuse(next.batch_id, pending, ['verifier.not_published'], 'pending transaction names a batch that is not in the public feed');
