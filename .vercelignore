@@ -20,3 +20,5 @@ ingest
 anchor
 batch
 verifier-state
+live
+feed

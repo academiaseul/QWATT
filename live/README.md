@@ -1,0 +1,50 @@
+# live/ — the seven-day live run (Deliverable 4)
+
+SOW: *"the full pipeline anchoring every interval through the multisig at real-time pace, fed by
+the solar simulator and the CSV replay adapter"*, with fault injections that *"must appear in the
+public rejection log with its reason"*.
+
+```
+simulator.js ──► samples/<day>.csv (+ SHA-256 in samples/manifest.jsonl, published)
+   ▲ faults from schedule.js (published first as faults.json)
+   │
+run.js ──► CSV replay adapter, real-time pace ──► interval builder ──► gates ──► batch pipeline ──► feed
+                                                                                        │
+                        proposer (anchor/proposer.js) signs ◄──────────────────────────┘
+                        verifier (anchor/verifier.js, other host) co-signs from the public feed
+audit.js ──► every fault refused for its reason · every 5-minute slot judged once · samples hash-intact
+```
+
+| File | Role |
+|---|---|
+| `simulator.js` | The Phase 1 bench rig as numbers: 150 Wp in Santiago, real sun position, deterministic clouds, two DC meters at their real resolutions, 10 s samples. A pure function of (seed, time), so any minute regenerates identically. |
+| `schedule.js` | Eight injections, each of the four SOW kinds twice. Grid-aligned whole intervals, placed by solar position. |
+| `run.js` | Runs or resumes the run. Publishes `faults.json` first; refuses a restart with a different seed or length. In real time it resumes at *now* (gaps stay visible, never backfilled) and never emits a sample before its timestamp. |
+| `audit.js` | The acceptance check, from the published feed alone. |
+| `live.test.js` | Accelerated multi-day runs, crash/restart, and tamper detection (CI). |
+
+| Fault | Injection | Expected reason |
+|---|---|---|
+| Shaded sensor | meter b reads 40% low, 20 min at high sun | `agreement.diverge` |
+| Disconnected meter | meter b sends nothing, 20 min | `agreement.diverge` (b closes with 0 samples) |
+| Night injection | 80 W claimed near solar midnight, 15 min | `elevation.night` |
+| Implausible ramp | 0 → 400 W within one sample, 5 min | `nameplate.over` (dedicated ramp gate deferred to Instaward #2, freeze D-10) |
+
+```bash
+node live/run.js --feed feed --days 7                      # the real run, real-time pace
+node live/audit.js feed                                    # any time during or after the run
+node live/run.js --feed /tmp/f --days 7 --speed fast       # the whole week in seconds (rehearsal)
+```
+
+## What the accelerated week shows (`--speed fast`, seed 20261103, start 2026-11-03T03:00Z)
+
+- 2,016 of 2,016 five-minute intervals judged, 0 gaps; 168 hourly batches; the chain re-verifies.
+- All 8 injections refused, each with its expected reason.
+- 7 refusals outside the windows, all explained:
+  - **2 are the leading edge of the night injections.** The first faulty sample forms a trapezoid
+    with the last normal one, so a sliver of fault energy (0.11 Wh) falls in the preceding
+    interval. Refusing it is correct.
+  - **5 are dusk and dawn intervals with 0–11 mWh**, refused by G0's energy/power consistency
+    check. That check uses a purely relative 10% tolerance, so quantization noise near zero trips
+    it. The agreement gate already has an absolute deadband for exactly this. Candidate for spec
+    1.1: an absolute floor on `energy_power_consistency`. Not changed now (spec frozen).
