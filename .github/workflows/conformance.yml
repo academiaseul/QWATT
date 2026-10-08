@@ -34,3 +34,5 @@ jobs:
         run: node batch/reconcile.test.js
       - name: Live run (Deliverable 4) — accelerated multi-day run, every fault refused, coverage complete
         run: node live/live.test.js
+      - name: Watchdog decisions (plan 3.9)
+        run: node ops/watch.test.js

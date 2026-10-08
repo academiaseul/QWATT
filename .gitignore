@@ -16,3 +16,4 @@ verifier-state/
 # live run output (published from the hosts, not committed)
 feed/
 live-state/
+ops-state/
