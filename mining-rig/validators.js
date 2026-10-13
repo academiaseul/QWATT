@@ -28,7 +28,7 @@ const crypto = require('crypto');
  * and the conformance suite all judge against identical numbers. Per-site
  * overrides still apply through site.thresholds (same camelCase keys).
  *
- * Key mapping (spec → validators): rooftop profile = the El Arrayán geometry.
+ * Key mapping (spec → validators): rooftop profile = the residential pilot geometry.
  */
 const SPEC = require('./gates.generated.js');
 const SPEC_VERSION = SPEC.spec_version;

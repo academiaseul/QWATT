@@ -63,9 +63,9 @@
       }
     },
     "rooftop": {
-      "name": "Techo El Arrayán — piloto",
+      "name": "Techo residencial — piloto",
       "description": "4.4 kWp · DC meter before the inverter, AC meter after it · 1-hour batches · Santiago rooftop",
-      "site": { "lat": -33.35, "lon": -70.52, "tz": "America/Santiago" },
+      "site": { "lat": -33.45, "lon": -70.65, "tz": "America/Santiago" },
       "nameplate_w": 4400,
       "ceiling_k": 1.15,
       "interval_max_dt_s": 3600,

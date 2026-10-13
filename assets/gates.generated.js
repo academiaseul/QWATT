@@ -1,5 +1,5 @@
 /* GENERATED FILE — do not edit by hand.
- * Source: protocol/gates.spec.json  (spec_version 1.0.0, sha256 056f1b512e353bbe…)
+ * Source: protocol/gates.spec.json  (spec_version 1.0.0, sha256 32dc1cf9a84eaa9b…)
  * Regenerate: npm run gen:gates   ·   CI verifies this file with: node protocol/gen.js --check
  * Target: assets/gates.generated.js
  */
@@ -143,11 +143,11 @@
         }
       },
       "rooftop": {
-        "name": "Techo El Arrayán — piloto",
+        "name": "Techo residencial — piloto",
         "description": "4.4 kWp · DC meter before the inverter, AC meter after it · 1-hour batches · Santiago rooftop",
         "site": {
-          "lat": -33.35,
-          "lon": -70.52,
+          "lat": -33.45,
+          "lon": -70.65,
           "tz": "America/Santiago"
         },
         "nameplate_w": 4400,
@@ -394,7 +394,7 @@
         "skipped.upstream": "Not evaluated: an earlier gate rejected the input."
       }
     },
-    "digest": "056f1b512e353bbe27b9a0b8d1f0e79b1b84737d5a500c10f5560d5bf806f933"
+    "digest": "32dc1cf9a84eaa9bf33c89dd31cf5a4901d694cfb8d137f5b1e6b106c5a963ce"
   };
   if (typeof module === 'object' && module.exports) module.exports = SPEC;
   else root.QWATT_GATES_SPEC = SPEC;

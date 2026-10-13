@@ -7,7 +7,7 @@
       "source": { "adapter": "replay", "register_map": "conformance" }
     },
     "rooftop": {
-      "spec_version": "1.0.0", "schema_version": "1.1.0", "site_id": "rooftop-arrayan", "node_id": "conformance", "seq": 1,
+      "spec_version": "1.0.0", "schema_version": "1.1.0", "site_id": "rooftop-pilot", "node_id": "conformance", "seq": 1,
       "source": { "adapter": "replay", "register_map": "conformance" }
     }
   },

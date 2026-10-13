@@ -1,6 +1,6 @@
 # QWATT verification gates — spec 1.0.0
 
-> GENERATED from `protocol/gates.spec.json` (sha256 `056f1b512e353bbe…`). Do not edit; run `npm run gen:gates`.
+> GENERATED from `protocol/gates.spec.json` (sha256 `32dc1cf9a84eaa9b…`). Do not edit; run `npm run gen:gates`.
 
 Single source of truth for every threshold and rule that decides whether a metered energy interval is accepted. Every implementation (browser demo, Node validators, Python gateway) reads its parameters from the bindings generated from this file and is held to protocol/conformance/cases.json. The spec_version is written into every anchored batch so each on-chain record states which rules judged it. Edit this file, then run `npm run gen:gates`; never edit a generated binding by hand.
 
@@ -48,10 +48,10 @@ Single source of truth for every threshold and rule that decides whether a meter
 | `phase2.variance_min_samples` | count | 30 | 30 | Below this many active samples the smoothness test is skipped. |
 | `phase2.rtc_max_drift_s` | s | 60 | 60 | Maximum difference between the node's system clock and its hardware RTC. |
 | `phase2.max_gaps` | count | 2 | 2 | Maximum missing samples tolerated inside one batch. |
-| `site.lat`, `site.lon` | deg | -33.45, -70.65 | -33.35, -70.52 | Site coordinates for the solar-elevation gate. |
+| `site.lat`, `site.lon` | deg | -33.45, -70.65 | -33.45, -70.65 | Site coordinates for the solar-elevation gate. |
 
 - **`bench`** — Banco de pruebas — Fase 1: 150 Wp · 12 V · two DC meters (PZEM-017 + EPEver Tracer) · 5-minute intervals · Santiago balcony facing north 30°
-- **`rooftop`** — Techo El Arrayán — piloto: 4.4 kWp · DC meter before the inverter, AC meter after it · 1-hour batches · Santiago rooftop
+- **`rooftop`** — Techo residencial — piloto: 4.4 kWp · DC meter before the inverter, AC meter after it · 1-hour batches · Santiago rooftop
 
 ## Conformance
 
