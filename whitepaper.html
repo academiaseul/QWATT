@@ -317,7 +317,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
 <div class="qd-t mt">Herramientas</div>
 <a title="Testnet — transacciones reales" href="console.html">Consola Onchain</a>
 <a title="Testnet — transacciones reales" href="red.html">QWATT Pulse</a>
-<a title="Prototipo — hardware en construcción" href="piloto.html">Piloto Solar</a>
+<a title="Prototipo — hardware en diseño" href="piloto.html">Piloto Solar</a>
 <a href="backup.html">Backup de claves</a>
 <div class="qd-t mt">Recursos</div>
 <a href="whitepaper.html">Whitepaper</a>
@@ -447,7 +447,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       <li><a href="#s10">Modelo de datos</a></li>
       <li><a href="#s11">Modelo de seguridad</a></li>
       <li><a href="#s12">Modelo de activo</a></li>
-      <li><a href="#s13">Piloto: El Array&aacute;n</a></li>
+      <li><a href="#s13">Piloto solar residencial</a></li>
       <li><a href="#s14">Roadmap</a></li>
       <li><a href="#s15">Consideraciones regulatorias</a></li>
       <li><a href="#s16">Aplicaciones futuras</a></li>
@@ -510,7 +510,7 @@ STELLAR               transacci&oacute;n &#183; memo &#183; ledger    <b>&#8595;
 CAPA DE APLICACI&Oacute;N    Grid &#183; Proof &#183; Pulse &#183; Pay</div>
     <table>
       <tr><th>Capa</th><th>Implementaci&oacute;n</th><th>Estado</th></tr>
-      <tr><td>Energ&iacute;a f&iacute;sica</td><td>Kit FV El Array&aacute;n (dise&ntilde;o de ingenier&iacute;a)</td><td><span class="stx f">PLANIFICADO</span></td></tr>
+      <tr><td>Energ&iacute;a f&iacute;sica</td><td>Kit FV del piloto residencial (dise&ntilde;o de ingenier&iacute;a)</td><td><span class="stx f">PLANIFICADO</span></td></tr>
       <tr><td>Medici&oacute;n</td><td>Puente Modbus TCP (cliente propio, sin drivers)</td><td><span class="stx p">PROTOTIPO</span></td></tr>
       <tr><td>Or&aacute;culo de precio</td><td>EPEX day-ahead v&iacute;a aWATTar + FX</td><td><span class="stx t">EN VIVO</span></td></tr>
       <tr><td>Protocolo / emisi&oacute;n</td><td>Activo QWATT + pagos PoG</td><td><span class="stx t">TESTNET</span></td></tr>
@@ -519,9 +519,7 @@ CAPA DE APLICACI&Oacute;N    Grid &#183; Proof &#183; Pulse &#183; Pay</div>
     </table>
     <p>Para activos de escala industrial, la telemetr&iacute;a no entra por un medidor &uacute;nico sino
     por <b>m&oacute;dulos de exportaci&oacute;n certificados en la capa SCADA</b>: la planta firma lotes de
-    generaci&oacute;n (identidad, intervalo, MWh) que el or&aacute;culo de QWATT ingiere como eventos. La
-    primera integraci&oacute;n certificada prevista es <b>Quorelia SCADA</b>, software de infraestructura
-    cr&iacute;tica de grado gubernamental <span class="stx f">PLANIFICADO</span>.</p>
+    generaci&oacute;n (identidad, intervalo, MWh) que el or&aacute;culo de QWATT ingiere como eventos <span class="stx f">PLANIFICADO</span>.</p>
   </section>
 
   <section id="s5">
@@ -661,9 +659,9 @@ CAPA DE APLICACI&Oacute;N    Grid &#183; Proof &#183; Pulse &#183; Pay</div>
   </section>
 
   <section id="s13">
-    <h2><span class="n">13.</span>Piloto: El Array&aacute;n <span class="stx p">EN DISE&Ntilde;O</span></h2>
+    <h2><span class="n">13.</span>Piloto solar residencial <span class="stx p">EN DISE&Ntilde;O</span></h2>
     <p>El primer circuito f&iacute;sico completo del protocolo: un kit h&iacute;brido con respaldo
-    (4,4 kWp + inversor h&iacute;brido 5 kW + 9,6 kWh LiFePO4) en la precordillera de Santiago,
+    (4,4 kWp + inversor h&iacute;brido 5 kW + 9,6 kWh LiFePO4) para una vivienda en la Regi&oacute;n Metropolitana,
     cuyos medidores alimentan el nodo de verificaci&oacute;n (WattNode).</p>
     <div class="flow">paneles FV <b>&#8594;</b> inversor h&iacute;brido + bater&iacute;a <b>&#8594;</b> medidores Modbus <b>&#8594;</b> WattNode (PoG) <b>&#8594;</b> pago QWATT en testnet</div>
     <p>Lo que el piloto demuestra: que un kWh real, medido por hardware real, puede convertirse en un
