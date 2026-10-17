@@ -15,7 +15,7 @@
     "test:batch": "node batch/batch.test.js",
     "scale": "node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json",
     "verify:feed": "node batch/verify-cli.js",
-    "test:anchor": "node anchor/tx.test.js && node anchor/recovery.test.js",
+    "test:anchor": "node anchor/tx.test.js && node anchor/recovery.test.js && node anchor/tests-abcd.test.js",
     "reconcile": "node anchor/reconcile-cli.js",
     "dataset:fetch": "node batch/datasets/pvdaq.js",
     "live": "node live/run.js --feed feed --days 7",

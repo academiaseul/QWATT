@@ -94,7 +94,7 @@ class FakeHorizon {
     this.sequence += 1n;
     this.ledger += 1;
     const hash = tx.hash().toString('hex');
-    this.txs.push({ hash, successful: true, memo_type: 'text', memo: tx.memo.value.toString(), ledger_attr: this.ledger, created_at: new Date(now * 1000).toISOString() });
+    this.txs.push({ hash, successful: true, memo_type: 'text', memo: tx.memo.value.toString(), ledger_attr: this.ledger, created_at: new Date(now * 1000).toISOString(), signatures: tx.signatures.map((x) => x.signature().toString('base64')) });
     if (mode === 'timeout-after') throw Object.assign(new Error('timeout of 60000ms exceeded (fake, but it landed)'), { code: 'ECONNABORTED' });
     return { hash, ledger: this.ledger };
   }
