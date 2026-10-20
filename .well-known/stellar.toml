@@ -1,34 +1,9 @@
-# stellar.toml — QWATT / Quorelia SpA · SEP-1 asset metadata
+# stellar.toml · QWATT / Quorelia SpA · SEP-1
 # Served at https://qwatt.org/.well-known/stellar.toml with Access-Control-Allow-Origin: *
-# (vercel.json sets the header). Discovery only works once the ISSUER account has
-# home_domain = qwatt.org — run set-home-domain.js. As of 2026-08-25 it is NOT set,
-# so wallets and stellar.expert still show QWATT as an unknown asset.
-#
-# ┌──────────────────────────────────────────────────────────────────────────┐
-# │ BEFORE PUBLISHING THIS VERSION                                           │
-# │  1. Fill every [COMPLETAR] field. Placeholder text published to a SEP-1  │
-# │     reviewer reads worse than the shorter v2.6.0 this replaces.          │
-# │  2. Confirm the MODEL NOTE below matches the site. index.html says       │
-# │     "1 QWATT = 1 MWh" in 14 places; this file must never contradict it.  │
-# └──────────────────────────────────────────────────────────────────────────┘
-#
-# MODEL NOTE (2026-08-25)
-#   Two incompatible definitions of QWATT are in play:
-#     (a) LIVE / BLUEPRINT:  1 QWATT = 1 MWh under the protocol. 42,700,000 units
-#         pre-minted at genesis 2026-08-22, held in treasury, tracking the EPEX
-#         spot price. Demonstration asset — not anchored, nothing redeemable.
-#     (b) PROPOSED (draft toml v2.7.0, 2026-08-25):  1 QWATT = 1 kWh delivered,
-#         elastic supply, issued only on dual-meter verified generation, burned
-#         on redemption against an energy invoice.
-#   (b) is the stronger product and is what the WattNode proof-of-generation
-#   hardware actually measures — but it is not what is on-chain today, and the
-#   42.7M legacy units contradict it. Until those units are burned or quarantined
-#   AND a supply contract exists, this file describes (a) truthfully and records
-#   (b) as roadmap. Editing this text is not what makes (b) true.
+# (vercel.json sets the header). Stellar testnet only.
 
-VERSION = "2.7.0"
+VERSION = "2.8.0"
 
-# TODO-MAINNET: delete this line on mainnet (public network is the default).
 NETWORK_PASSPHRASE = "Test SDF Network ; September 2015"
 
 # Accounts this domain claims control of. Wallets and explorers use this to link
@@ -43,19 +18,11 @@ ORG_NAME = "Quorelia SpA"
 ORG_DBA = "QWATT"
 ORG_URL = "https://qwatt.org"
 ORG_LOGO = "https://qwatt.org/logo.png"
-ORG_DESCRIPTION = "QWATT is an energy-verification protocol for distributed solar: metered production is checked against physics by an independent second instrument, and the verified event is recorded publicly on Stellar. Testnet demonstration — see https://qwatt.org/whitepaper.html for the model and its current limits."
+ORG_DESCRIPTION = "QWATT is an open-source verification prototype on Stellar testnet. It checks solar meter readings with verification filters and anchors the SHA-256 hash of each batch of readings on Stellar testnet, so anyone can verify the record independently. Project in development, Stellar testnet only. Source code: https://github.com/academiaseul/QWATT"
 ORG_OFFICIAL_EMAIL = "jay@quorelia.org"
 ORG_SUPPORT_EMAIL = "jay@quorelia.org"
 ORG_GITHUB = "https://github.com/academiaseul/QWATT"
-# ORG_PHYSICAL_ADDRESS — deliberately absent until the SpA's registered domicile
-#   is confirmed. SEP-1 treats it as optional; a placeholder address published
-#   here would be a false statement about a legal entity. Add it as one line:
-#   ORG_PHYSICAL_ADDRESS = "<calle numero, comuna>, Santiago, Chile"
-# ORG_TWITTER — omit the key entirely rather than publish an empty value.
 
-# One block per founder. SEP-1 reviewers and wallet directories weight this section.
-# NOTE: `name` is a public identity claim — verify the spelling matches the ID
-# document before this file is treated as authoritative at mainnet.
 [[PRINCIPALS]]
 name = "Jay Kim"
 email = "jay@quorelia.org"
@@ -63,32 +30,18 @@ github = "https://github.com/academiaseul"
 
 [[PRINCIPALS]]
 name = "Diego Ostertag"
-# email = "<correo confirmado>"   # add once Diego confirms the address he wants published
 
 [[CURRENCIES]]
 code = "QWATT"
 issuer = "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
 name = "QWATT"
-display_decimals = 2
+display_decimals = 7
 image = "https://qwatt.org/logo.png"
-
-# TODO-MAINNET: change to "live" at mainnet genesis.
 status = "test"
 
-desc = "Testnet demonstration asset for the QWATT energy-verification protocol, where 1 QWATT = 1 MWh under the protocol. The current on-chain supply (42,700,000 units, minted in a single genesis transaction on 2026-08-22) is a demonstration supply: it was not produced by verified generation and is not redeemable for energy, money, or anything else."
+desc = "Stellar testnet asset that the QWATT verification prototype uses only as a fixed nominal anchoring marker: each anchoring transaction carries a fixed nominal payment of 0.0000001 QWATT next to the SHA-256 hash of one batch of meter readings. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC) and not a carbon credit. It has no price and is not for sale."
 
-conditions = "Demonstration only, Stellar testnet. No outstanding unit represents delivered energy, a claim on energy, a security, an investment, or a debt of the issuer. The protocol's verification design — dual independent metering, nameplate-capacity ceiling, solar-elevation gate, meter-divergence check, and the evidence hash anchored in the recording transaction — is implemented for demonstration and has not yet issued a unit against a physically verified event. Any move to verified issuance, redemption, or mainnet requires burning or quarantining the legacy supply, a written supply contract, and Chilean legal review; none has occurred as of 2026-08-25."
+conditions = "Stellar testnet only. Holding QWATT gives no right to energy, money or anything else, and QWATT is not redeemable."
 
-# Anchoring is a factual claim about redeemability, not a marketing field. It stays
-# false until (1) the legacy supply is retired, (2) a supply contract exists that a
-# holder could actually enforce, and (3) counsel has signed off. Flipping this to
-# true — and adding anchor_asset_type / anchor_asset / redemption_instructions —
-# is a legal decision, not a text edit.
+# SEP-1 meaning of "anchored": backed by, or redeemable for, an off-chain asset. QWATT is not.
 is_asset_anchored = false
-
-# TODO-MAINNET checklist for this file:
-#   1. Replace both ACCOUNTS with the mainnet issuer + treasury.
-#   2. Delete NETWORK_PASSPHRASE, set status = "live".
-#   3. Re-run set-home-domain.js against the mainnet issuer.
-#   4. Complete every [COMPLETAR] field — empty fields read worse than absent ones.
-#   5. Re-evaluate is_asset_anchored with counsel, per the note above.

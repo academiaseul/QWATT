@@ -45,7 +45,7 @@ npm run scale                                 # un mes de datos públicos NREL P
 | `mining-rig/` | Prototipo Modbus del hackathon de agosto; sus validadores (`validators.js`) siguen en las pruebas | August hackathon Modbus prototype; its validators (`validators.js`) are still tested |
 | `docs/` | Diseño, modelo de verificación, plan del sprint, manual de operación y versiones anteriores de la propuesta | Design, verification model, sprint plan, runbook and earlier versions of the proposal |
 | `.github/` | CI: corre todas las suites en cada push a `main` y en cada PR | CI: runs every suite on each push to `main` and on each PR |
-| `.well-known/` | `stellar.toml` (SEP-1) del sitio, del hackathon de agosto | The site's `stellar.toml` (SEP-1), from the August hackathon |
+| `.well-known/` | `stellar.toml` (SEP-1) del sitio; solo Stellar testnet | The site's `stellar.toml` (SEP-1); Stellar testnet only |
 | raíz (`*.html`) | Sitio estático de qwatt.org, sin compilación; la mayoría de las páginas viene del hackathon de agosto | Static qwatt.org site, no build step; most pages date from the August hackathon |
 
 ## In English
