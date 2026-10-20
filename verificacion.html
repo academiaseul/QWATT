@@ -245,7 +245,7 @@ html[data-theme="light"] .ctl label .v{color:#8f4522}
 <script>
 (function(){
   var KEY='qwatt.theme';
-  var saved='light';try{saved=localStorage.getItem(KEY)||'light'}catch(e){}
+  var saved='dark';try{saved=localStorage.getItem(KEY)||'dark'}catch(e){}
   document.documentElement.setAttribute('data-theme',saved);
   function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
   syncMeta(saved);
@@ -567,15 +567,16 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       transacci&oacute;n que lo ancla. Un revisor recalcula el hash desde el archivo p&uacute;blico y no necesita nada de nosotros.
     </p>
     <div class="ops">
-      <div class="op"><span class="k">op 1</span><p><code>manageData qwatt.anchor.sha256</code> — digest de 64 hex del manifiesto can&oacute;nico del lote.</p></div>
-      <div class="op"><span class="k">op 2</span><p><code>manageData qwatt.cumulative_kwh</code> — total acumulado; siempre la suma exacta de cada pago truncado anterior.</p></div>
-      <div class="op"><span class="k">op 3</span><p><code>payment</code> — un pago nominal fijo a una cuenta fija, igual en cada lote; no representa la energ&iacute;a del lote.</p></div>
+      <div class="op"><span class="k">op 1</span><p><code>manageData qwatt.anchor.sha256</code> — el SHA-256 del lote, escrito como 64 caracteres hexadecimales. Se calcula sobre el JSON can&oacute;nico del lote sin su propio campo <code>sha256</code>.</p></div>
+      <div class="op"><span class="k">op 2</span><p><code>manageData qwatt.cumulative_mwh</code> — la energ&iacute;a verificada acumulada del sitio, como n&uacute;mero entero en <b>milivatios-hora (mWh)</b>: <code>11600</code> son 11,6&nbsp;Wh. Es el <code>cumulative_mwh</code> del lote, o sea el total del lote anterior m&aacute;s el <code>energy_mwh</code> de este.</p></div>
+      <div class="op"><span class="k">op 3</span><p><code>payment</code> — un pago nominal fijo a una cuenta fija, con el mismo monto en cada lote. Es solo una marca: no es proporcional a la energ&iacute;a del lote ni la representa.</p></div>
+      <div class="op"><span class="k">memo</span><p><code>QW#&lt;seq&gt;</code> — el n&uacute;mero del lote que se ancla. La transacci&oacute;n solo es v&aacute;lida dentro de una ventana de 24&nbsp;h como m&aacute;ximo.</p></div>
     </div>
     <div class="princ">
-      <div><h3 class="sub-h">El menor de dos medidores</h3><p>Cada intervalo ancla <code>min(A,B)</code>. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
-      <div><h3 class="sub-h">Truncar, nunca redondear</h3><p>Los montos se truncan a los 7 decimales de Stellar en <code>Decimal</code>. El resto simplemente no se ancla.</p></div>
-      <div><h3 class="sub-h">Protecci&oacute;n contra doble anclaje</h3><p>Un registro de intenci&oacute;n precede a cada env&iacute;o; un timeout de Horizon se recupera buscando el hash del ancla.</p></div>
-      <div><h3 class="sub-h">Reconciliaci&oacute;n sin nosotros</h3><p><code>lo verificado = lo anclado</code>, recalculado desde Horizon por cualquier revisor con el c&oacute;digo p&uacute;blico.</p></div>
+      <div><h3 class="sub-h">El menor de dos medidores</h3><p>Cada intervalo aceptado aporta <code>min(A,B)</code> a la energ&iacute;a del lote. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
+      <div><h3 class="sub-h">Solo enteros, en mWh</h3><p>Todos los n&uacute;meros de la evidencia son enteros, y la energ&iacute;a va en milivatios-hora (mWh). La lectura de cada medidor se lleva a mWh enteros una sola vez, al ingresar; despu&eacute;s solo hay sumas y m&iacute;nimos de enteros, sin montos con decimales. El hash rechaza cualquier n&uacute;mero que no sea entero.</p></div>
+      <div><h3 class="sub-h">Protecci&oacute;n contra doble anclaje</h3><p>En cada ciclo, el proponente y el verificador releen primero la cadena: el <code>qwatt.anchor.sha256</code> vigente de la cuenta de anclaje dice qu&eacute; lotes ya est&aacute;n anclados. La transacci&oacute;n usa el siguiente n&uacute;mero de secuencia de la cuenta, que Stellar acepta una sola vez, y un env&iacute;o que vence por timeout no se reintenta a ciegas.</p></div>
+      <div><h3 class="sub-h">Reconciliaci&oacute;n sin nosotros</h3><p><code>lo verificado = lo anclado</code>: cada anclaje en Horizon debe llevar el hash y el total de un lote publicado y aceptado, en orden y sin huecos. Cualquier revisor lo recalcula con el c&oacute;digo p&uacute;blico.</p></div>
     </div>
   </section>
 
@@ -595,12 +596,12 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     <h2><span class="n">07 &middot; Sin confiar en nosotros</span>C&oacute;mo lo verificas t&uacute;</h2>
     <p class="sub">El procedimiento completo, con herramientas p&uacute;blicas. El paso 6 es el que nos audita a nosotros.</p>
     <ol class="steps">
-      <li>Abre la transacci&oacute;n de anclaje en stellar.expert.</li>
-      <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacci&oacute;n: ah&iacute; est&aacute; el hash de la evidencia.</li>
-      <li>Descarga el manifiesto del lote desde el feed p&uacute;blico y recalcula su <code>SHA-256</code>. Debe coincidir.</li>
+      <li>Abre la transacci&oacute;n de anclaje en stellar.expert (red testnet). Su memo <code>QW#&lt;seq&gt;</code> dice qu&eacute; lote ancla.</li>
+      <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacci&oacute;n: ah&iacute; est&aacute; el hash de la evidencia. Horizon entrega el valor en base64; decodificado son 64 caracteres hexadecimales.</li>
+      <li>Descarga el manifiesto del lote desde el feed p&uacute;blico, quita su campo <code>sha256</code> y recalcula el <code>SHA-256</code> de su JSON can&oacute;nico (claves ordenadas, sin espacios, solo enteros). Debe coincidir con el valor anclado.</li>
       <li>Vuelve a correr los filtros de verificaci&oacute;n con los n&uacute;meros del propio lote — todos los umbrales est&aacute;n en <a href="protocol/gates.spec.json">gates.spec.json</a> y los casos de conformidad en <a href="protocol/conformance/cases.json">cases.json</a>. Esta p&aacute;gina corre el mismo motor que la suite.</li>
-      <li>Comprueba que <code>qwatt.cumulative_kwh</code> sea la suma exacta de todos los pagos anteriores.</li>
-      <li><b>Reconciliaci&oacute;n:</b> suma lo verificado y comp&aacute;ralo con lo anclado en Stellar testnet; si no cuadran, hay un lote sin respaldo.</li>
+      <li>Comprueba que <code>qwatt.cumulative_mwh</code> sea el <code>cumulative_mwh</code> del lote, en milivatios-hora (mWh): el total del lote anterior m&aacute;s el <code>energy_mwh</code> del lote, que a su vez es la suma de <code>min(A,B)</code> de sus intervalos. El pago no entra en esta cuenta.</li>
+      <li><b>Reconciliaci&oacute;n:</b> compara lo publicado con lo anclado en Stellar testnet: cada anclaje debe llevar el hash y el total de un lote publicado y aceptado, en orden y sin huecos. Un anclaje que no calce con un lote publicado no tiene respaldo.</li>
     </ol>
     <p class="foot-note">
       El modelo completo y el c&oacute;digo de los validadores est&aacute;n en
