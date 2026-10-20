@@ -3,8 +3,19 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": null,
-  "rewrites": [
-    { "source": "/proof/:id", "destination": "/proof.html" }
+  "redirects": [
+    { "source": "/console.html", "destination": "/", "permanent": true },
+    { "source": "/grid.html", "destination": "/", "permanent": true },
+    { "source": "/pay.html", "destination": "/", "permanent": true },
+    { "source": "/wallet.html", "destination": "/", "permanent": true },
+    { "source": "/proof.html", "destination": "/", "permanent": true },
+    { "source": "/proof/:id", "destination": "/", "permanent": true },
+    { "source": "/respaldo.html", "destination": "/", "permanent": true },
+    { "source": "/red.html", "destination": "/", "permanent": true },
+    { "source": "/piloto.html", "destination": "/", "permanent": true },
+    { "source": "/whitepaper.html", "destination": "/", "permanent": true },
+    { "source": "/terminos.html", "destination": "/", "permanent": true },
+    { "source": "/backup.html", "destination": "/", "permanent": true }
   ],
   "headers": [
     {

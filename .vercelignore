@@ -3,8 +3,7 @@
 mining-rig
 .claude
 .env*
-# Wallet dependency build: sources and npm tree stay local. The BUILT bundles in
-# assets/vendor/ must ship — wallet.html imports them at runtime.
+# Wallet dependency build: sources and npm tree stay local.
 node_modules
 vendor-src
 package-lock.json
@@ -26,3 +25,20 @@ ops
 ops-state
 # Until it reads signers and thresholds from Horizon, the page hard-codes "Anchored with 2 of 3 signatures"
 reconcile.html
+# August 2026 hackathon pages, no longer linked from the site. vercel.json redirects each path to /.
+console.html
+grid.html
+pay.html
+wallet.html
+proof.html
+respaldo.html
+red.html
+piloto.html
+whitepaper.html
+terminos.html
+backup.html
+# Files only those pages (or local tooling) use; index.html, verificacion.html and 404.html load none of them.
+qwatt-wallet.js
+assets/vendor
+set-home-domain.js
+deployment.json
