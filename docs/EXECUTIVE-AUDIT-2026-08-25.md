@@ -49,13 +49,13 @@ Layer 2 of the energy stack — *energy intelligence and verification* — sold 
 
 ## 5. Business model (unchanged by this audit, and it survives scrutiny)
 
-Revenue today is **hardware + installation + the verification service**, not the token. Config B (3–5 kWp on-grid) carries 25–30% gross margin; Config C (hybrid, El Arrayán) sells resilience rather than payback. The defensible line is the data layer: in a fragmented Chilean market competing on price, nobody sells verification as a product. The token is the proof mechanism, never the revenue.
+Revenue today is **hardware + installation + the verification service**, not the token. Config B (3–5 kWp on-grid) carries 25–30% gross margin; Config C (hybrid, residential pilot) sells resilience rather than payback. The defensible line is the data layer: in a fragmented Chilean market competing on price, nobody sells verification as a product. The token is the proof mechanism, never the revenue.
 
 **Why anyone would hold QWATT:** they should not be encouraged to. Under the vintage-pricing invariant it is an attestation record, not an instrument to hold for gain — and saying otherwise creates CMF exposure under Ley 21.521.
 
 ## 6. Target customers
 
-1. **Homeowners / SMEs with roofs** (Lo Barnechea, El Arrayán, Chicureo) — buy kit + monitoring; QWATT is the trust layer on their own generation.
+1. **Homeowners / SMEs with roofs** (residential suburbs of Santiago) — buy kit + monitoring; QWATT is the trust layer on their own generation.
 2. **Installers** — bundle the QWATT Box; rev-share on attributes.
 3. **Corporates needing hourly-matched green claims** — the QWATT-C buyer, once the attribute layer exists.
 4. **The Stellar ecosystem** — a physical, auditable use case; the Instawards/SCF path.

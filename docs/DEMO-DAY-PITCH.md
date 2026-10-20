@@ -85,7 +85,7 @@ Deck: `docs/QWATT-Demo-Day.pptx` (7 slides, inglés). Guion hablado en español.
 
 ## 6. Next milestone: 7 unattended days on testnet  ·  3:28 → 4:08  (40 s)
 
-*Sección: roadmap · En pantalla: Horizontal timeline: Sept 14 (sprint start, week 1 checked) → mid-October (big marker: '7 days · 2-of-3 · rejection log ≠ empty') → faded 'first real MWh: 150 Wp bench + El Arrayán 4.4 kWp' → faded 'Soroban verifier · physical pilot'.*
+*Sección: roadmap · En pantalla: Horizontal timeline: Sept 14 (sprint start, week 1 checked) → mid-October (big marker: '7 days · 2-of-3 · rejection log ≠ empty') → faded 'first real MWh: 150 Wp bench + residential pilot 4.4 kWp' → faded 'Soroban verifier · physical pilot'.*
 
 **Texto en el slide**
 
@@ -96,7 +96,7 @@ Deck: `docs/QWATT-Demo-Day.pptx` (7 slides, inglés). Guion hablado en español.
 
 **Se dice**
 
-> Del sprint de 30 días, la semana uno está entregada: ingesta. Semana dos, cadena de evidencia. Semana tres, el 2-de-3 con verificador independiente. Semana cuatro, feed público y corrida en vivo. El hito medible, a mediados de octubre: siete días seguidos de lotes anclados con 2-de-3 en testnet, con fallas inyectadas y un registro público de rechazos que no esté vacío. Después, el primer megawatt-hora real: el banco de 150 watts y el techo de 4,4 kilowatts en El Arrayán. Luego, el verificador en Soroban.
+> Del sprint de 30 días, la semana uno está entregada: ingesta. Semana dos, cadena de evidencia. Semana tres, el 2-de-3 con verificador independiente. Semana cuatro, feed público y corrida en vivo. El hito medible, a mediados de octubre: siete días seguidos de lotes anclados con 2-de-3 en testnet, con fallas inyectadas y un registro público de rechazos que no esté vacío. Después, el primer megawatt-hora real: el banco de 150 watts y un techo residencial de 4,4 kilowatts. Luego, el verificador en Soroban.
 
 ## 7. Two founders. Three asks.  ·  4:08 → 4:38  (30 s)
 

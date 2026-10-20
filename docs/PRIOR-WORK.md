@@ -5,11 +5,11 @@ la tabla es anterior a ese día o ajeno al sprint. **Nada de esto lo financia el
 cada semana desde el Día 1 está en [`CHANGELOG.md`](../CHANGELOG.md).
 
 Fuente: `git log` de este repositorio (fecha de autor de cada commit). En GitHub, `academiaseul` es
-Jay Kim y `CogeloEasy` y `dostertags` son Diego Ostertag.
+Jay Kim y `CogeloEasy` es Diego Ostertag.
 
 | Qué | Fecha | Autor | Commits | Dentro o fuera del sprint |
 |---|---|---|---|---|
-| Sitio, demo en Stellar testnet y documentos del hackathon de agosto; propuesta y SOW del Instaward; especificación única de los filtros de verificación con su suite de conformidad; ingesta independiente del medidor (Modbus, HTTP, CSV); mazo del Demo Day | 22 ago – 25 sep 2026 | Jay Kim (academiaseul) | `41a6d38` … `48a40d3`: 57 commits, toda la historia de `main` hasta `48a40d3` (`git log 48a40d3`), incluido `98b281a` (9 sep) | Fuera: trabajo previo, no financiado |
+| Sitio, demo en Stellar testnet y documentos del hackathon de agosto; propuesta y SOW del Instaward; especificación única de los filtros de verificación con su suite de conformidad; ingesta independiente del medidor (Modbus, HTTP, CSV); presentación del Demo Day | 22 ago – 25 sep 2026 | Jay Kim (academiaseul) | `41a6d38` … `48a40d3`: 57 commits, toda la historia de `main` hasta `48a40d3` (`git log 48a40d3`), incluido `98b281a` (9 sep) | Fuera: trabajo previo, no financiado |
 | Lotes de evidencia y cadena de hashes; licencia MIT; transacción de anclaje y ensayo 2 de 3; proponente y verificador independiente; recuperación; conciliación; datos NREL PVDAQ y prueba de escala; corrida en vivo con fallas programadas; ensayo acelerado; herramienta de la cuenta de anclaje; vigilancia, publicación del feed, informe automático, manual y kit de despliegue | 8 oct 2026 | Diego Ostertag (CogeloEasy) | 17 de los 20 commits de `8b112aa^..3c2cc88` (`8b112aa` … `ba93bca`) | Fuera: trabajo previo, no financiado |
 | Prueba de resistencia en tiempo real, herramienta de pruebas A–D para la cuenta definitiva y chequeo previo a la operación en vivo | 17 oct 2026 | Diego Ostertag (CogeloEasy) | 3 de los 20 commits de `8b112aa^..3c2cc88` (`e43c32d`, `975e7ae`, `3c2cc88`) | Fuera: trabajo previo, no financiado |
 | Limpieza de afirmaciones en el sitio y el protocolo (piloto anonimizado, sin «moneda» ni garantía de recompra) | 13 oct 2026 | Jay Kim (academiaseul) | `48a40d3..5e315ea`: 3 commits (`b133d6c`, `5aba403`, `5e315ea`), rama `limpieza-afirmaciones` | Fuera: trabajo previo, no financiado |

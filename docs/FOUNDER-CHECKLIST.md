@@ -1,9 +1,9 @@
 # What the founders need to provide, and when
 
 Everything the code cannot do for itself. Day numbers are sprint days. Dates assume **Day 1 =
-Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
+Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-20.
 
-## Trabajo previo (antes del Día 1, no financiado)
+## Prior work (before Day 1, not funded by the Instaward)
 
 - [x] License: **MIT** (decided 2026-10-08).
 - [x] Public PV dataset: **NREL PVDAQ NIST Ground, September 2017, CC BY 4.0** (`datasets/README.md`).
@@ -12,12 +12,12 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
 - [x] Multisig, proposer, verifier, recovery and reconciliation built and proven on throwaway
       testnet accounts.
 
-## Now, before Day 1
+## Before the first push
 
 | # | What | Who | Why |
 |---|---|---|---|
-| 1 | **Fix the Day 1 date** and tell the chapter lead | Founders | SOW: "October 1st, 2026 or once received the funds". Every date below hangs on it. |
-| 2 | **OK to push** branch `sprint/phase-0` to `github.com/academiaseul/qwatt` | Diego | The SOW evidence is the public repository; CI only runs on GitHub. Nothing is pushed until you say so. |
+| 1 | Day 1 fixed: **Monday 19 Oct 2026** (done) | Founders | Every date below hangs on it. |
+| 2 | **OK to push** Diego's prior work (merged as `35a1e77`) to `github.com/academiaseul/QWATT` | Diego | The SOW evidence is the public repository; nothing is pushed until he says so. |
 
 ## By Day 3 (Wed 21 Oct)
 
@@ -43,7 +43,7 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
 |---|---|---|---|
 | 7 | **Evidence-feed host.** Recommended: GitHub Pages serving a `feed` branch of the repository | Repo admin | Settings → Pages → source: branch `feed`. Free and public, with no new account. The proposer host then needs push access to that one branch (a deploy key), stored only on that host. |
 | 8 | **Verifier host**: an always-on machine that does **not** run the proposer, operated by Jay | Jay | A small VPS or a spare machine. Needs Node 20, outbound HTTPS and an NTP-synced clock. Its key is generated **on that machine**; send only the public key. |
-| 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 20–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Earlier history shows this machine powers off overnight, so use a VPS or a machine that never sleeps. |
+| 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 20–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Use a VPS or a machine that never sleeps. |
 | 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run | Founders | Someone who will act on it within hours, Days 20–30. |
 
 ## By Day 19 (Fri 6 Nov) — freeze
@@ -60,8 +60,8 @@ The live run starts **Sat 7 Nov (Day 20)**. The counted seven-day window runs fr
 
 | # | What | Who |
 |---|---|---|
-| 12 | **15-minute daily check**: open the reconciliation page, confirm the verdict is RECONCILED or PENDING, glance at the alert inbox | One founder per day |
-| 13 | Do not touch either host's configuration. Fault injections run on their own schedule (`live/schedule.json`) | Both |
+| 12 | **15-minute daily check**: open the reconciliation page (the page is redeployed in week 2; until then run `node anchor/reconcile-cli.js`), confirm the verdict is RECONCILED or PENDING, glance at the alert inbox | One founder per day |
+| 13 | Do not touch either host's configuration. Fault injections run on their own schedule (`live/schedule.js`, published per run as `faults.json`) | Both |
 
 ## By Day 30 (Tue 17 Nov)
 
