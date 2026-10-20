@@ -1,4 +1,4 @@
-# QWATT — dress rehearsal (two-day live run, testnet, throwaway accounts)
+# QWATT — ensayo acelerado: 48 h simuladas en 4 min 18 s (testnet, cuentas desechables, feed local, datos simulados)
 
 Generated 2026-10-08T22:09:00.118Z from public data only: Horizon (`https://horizon-testnet.stellar.org`) and the evidence feed (`http://127.0.0.1:8767`). Reproduce: `node ops/writeup.js --feed http://127.0.0.1:8767 --account GB2QTJRIMRGJDBAJ2PI7PQ74ZNVVXCRDOBKAZA6ZASRYCSTNNRXMX3HU`.
 

@@ -25,3 +25,5 @@ feed
 ops
 ops-state
 archive
+# Until it reads signers and thresholds from Horizon, the page hard-codes "Anchored with 2 of 3 signatures"
+reconcile.html

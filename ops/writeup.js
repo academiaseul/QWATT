@@ -21,6 +21,8 @@ const path = require('path');
 const R = require('../assets/qwatt-reconcile.js');
 
 const EXPLORER = 'https://stellar.expert/explorer/testnet';
+/* Fixed label next to every energy figure: this sprint's readings are simulated, and the network is testnet. */
+const INPUT_LABEL = 'Simulated input · Stellar testnet';
 const txl = (h) => `[\`${h.slice(0, 10)}…${h.slice(-6)}\`](${EXPLORER}/tx/${h})`;
 const kwh = (mwh) => (mwh / 1e6).toLocaleString('en-US', { maximumFractionDigits: 3 });
 const wh = (mwh) => (mwh / 1000).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
@@ -82,7 +84,7 @@ async function build(o) {
     `- Reconciliation verdict: **${rep.verdict}** — [run it yourself in the browser](${recLink}) or \`node anchor/reconcile-cli.js --feed ${o.feed} --account ${o.account}\`.`,
     `- **${s.published_batches}** batches published (${s.accepted_batches} accepted, ${s.rejected_batches} rejected) · **${s.anchored_batches}** anchored through 2-of-3 multisig in ${s.anchor_transactions} transactions.`,
     `- First anchor ${s.first_anchor_at || '—'} · last anchor ${s.last_anchor_at || '—'}.`,
-    `- Energy anchored (cumulative): **${kwh(s.anchored_cumulative_mwh)} kWh** · published: ${kwh(s.published_cumulative_mwh)} kWh.`,
+    `- Energy anchored (cumulative): **${kwh(s.anchored_cumulative_mwh)} kWh** · published: ${kwh(s.published_cumulative_mwh)} kWh · _${INPUT_LABEL}_.`,
     `- Intervals refused by the gates: **${s.rejected_intervals}** — ${Object.entries(s.rejected_by_reason).map(([k, v]) => `\`${k}\` ×${v}`).join(', ') || 'none'}.`,
     `- Anchoring account: [\`${o.account}\`](${EXPLORER}/account/${o.account}) — three signers of weight 1, thresholds 1/2/3, master weight 0.`,
     ...(rep.problems.length ? ['', '**Reconciliation problems:**', ...rep.problems.map((p) => `- ${p}`)] : []),
@@ -95,7 +97,7 @@ async function build(o) {
     auditSection(o.feedDir),
     '## Every anchoring transaction',
     '',
-    'Each row: the batch, the hash recomputed from the published file (equal to the value the transaction carries in `qwatt.anchor.sha256`), and the transaction that anchored it.',
+    `Each row: the batch, the hash recomputed from the published file (equal to the value the transaction carries in \`qwatt.anchor.sha256\`), and the transaction that anchored it. Energy: _${INPUT_LABEL}_.`,
     '',
     '| Seq | Batch | Window (UTC) | Energy (Wh) | Refused intervals | Batch SHA-256 | Ledger | Transaction |',
     '|---:|---|---|---:|---:|---|---:|---|',

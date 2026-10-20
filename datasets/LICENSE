@@ -1,0 +1,27 @@
+Data in datasets/pvdaq-4902-2017-09/ — licence and attribution
+================================================================
+
+Source
+  National Renewable Energy Laboratory (NREL), Photovoltaic Data Acquisition (PVDAQ)
+  Public Datasets, OEDI Data Lake, DOI 10.25984/1846021
+  https://dx.doi.org/10.25984/1846021
+  System 4902, NIST_Ground_1 (NIST campus, Gaithersburg MD), September 2017.
+  Columns used: dc_power_inv_14538 (meter a) and ac_power_meter_1864_5 (meter b).
+
+Licence
+  Creative Commons Attribution 4.0 International (CC BY 4.0)
+  https://creativecommons.org/licenses/by/4.0/
+
+Attribution
+  Data: National Renewable Energy Laboratory (NREL), PVDAQ, CC BY 4.0. Converted by QWATT.
+
+Changes made in the conversion (rules recorded in pvdaq-4902-2017-09/provenance.json)
+  - timestamps are local standard time; UTC = local + 5 h
+  - values x 1000 (kW -> W), rounded to 0.1 W
+  - negative readings (standby draw) written as 0 W
+  - rows with a blank meter value dropped, never zero-filled
+
+provenance.json records the URL and SHA-256 of every source file and the SHA-256 of the
+converted CSV. `node batch/datasets/pvdaq.js` reproduces the CSV from the source files.
+
+This licence covers the data only. QWATT's own code is under the MIT licence in ../LICENSE.

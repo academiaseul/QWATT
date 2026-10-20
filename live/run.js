@@ -45,6 +45,15 @@ function writeAtomic(file, text) {
   fs.renameSync(tmp, file);
 }
 
+/** How faults.json describes the run: the speed actually used, never "real-time" for an accelerated run. */
+function describeRun(days, speed) {
+  const rig = 'simulated Phase 1 bench rig (150 Wp, two DC meters, Santiago)';
+  const then = 'Each fault window below must appear in ledger/rejected.jsonl with one of its expected reasons.';
+  if (speed === 'realtime') return `QWATT ${days === 7 ? 'seven-day' : `${days}-day`} live run: ${rig} replayed through the CSV adapter at real-time pace. ${then}`;
+  const pace = speed === 'fast' ? 'as fast as possible (fast mode)' : `at ${speed}× real-time speed`;
+  return `QWATT accelerated rehearsal, ${days} simulated day(s), not real time: ${rig} replayed through the CSV adapter ${pace}. ${then}`;
+}
+
 /** Load or create the run definition (faults.json). */
 function runDefinition(feedDir, o) {
   const file = path.join(feedDir, 'faults.json');
@@ -57,7 +66,7 @@ function runDefinition(feedDir, o) {
   }
   const startMs = Math.ceil(o.startMs / DT_MS) * DT_MS;
   const def = {
-    description: 'QWATT seven-day live run: simulated Phase 1 bench rig (150 Wp, two DC meters, Santiago) replayed through the CSV adapter at real-time pace. Each fault window below must appear in ledger/rejected.jsonl with one of its expected reasons.',
+    description: describeRun(o.days, o.speed),
     site_id: SITE_ID,
     node_id: NODE_ID,
     seed: o.seed,
@@ -88,7 +97,7 @@ function runDefinition(feedDir, o) {
 async function runLive(o) {
   const log = o.log || ((...a) => console.log('[live]', ...a));
   const speed = o.speed ?? 'realtime';
-  const def = runDefinition(o.feedDir, { seed: o.seed ?? 20261103, days: o.days ?? 7, startMs: o.startMs ?? Date.now() });
+  const def = runDefinition(o.feedDir, { seed: o.seed ?? 20261103, days: o.days ?? 7, startMs: o.startMs ?? Date.now(), speed });
   const runStart = Date.parse(def.run_start), runEnd = Date.parse(def.run_end);
   const pipe = new Pipeline({ dir: o.feedDir, site_id: def.site_id, node_id: def.node_id });
   const samplesDir = path.join(o.feedDir, 'samples');
