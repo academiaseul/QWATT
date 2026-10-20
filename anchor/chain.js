@@ -11,6 +11,7 @@
 
 'use strict';
 
+const E = require('../protocol/evidence');
 const { ANCHOR_KEY, CUMULATIVE_KEY } = require('./tx');
 
 const decode = (b64) => (b64 == null ? null : Buffer.from(b64, 'base64').toString('ascii'));
@@ -63,6 +64,76 @@ async function findAnchorTx(server, account, entry, { pages = 5 } = {}) {
   return null;
 }
 
+/**
+ * Most published batches the verifier downloads to walk from a batch back to
+ * the on-chain head: one week of hourly batches. Only batches published as
+ * rejected lie between the head and the next accepted batch, so a longer walk
+ * is an alarm in itself; the verifier refuses instead of reading an unbounded
+ * history.
+ */
+const MAX_WALK_BATCHES = 168;
+
+/**
+ * Does the published chain behind `batch` lead back exactly to the on-chain head?
+ *
+ * verifyBatch re-derives the batch itself, but takes the previous file's claimed
+ * hash and total on trust. This walk believes nothing it has not recomputed:
+ * each earlier batch is downloaded, rehashed with the shared integer-only rules
+ * (protocol/evidence.js) and linked by prev_hash, seq and site; at every link the
+ * child's energy is re-summed from its intervals and its cumulative must be the
+ * parent's plus that energy. The walk must end at a batch whose recomputed hash
+ * is the on-chain anchor and whose cumulative is the on-chain cumulative. With
+ * nothing anchored yet it must end at seq 0 with prev_hash of 64 zeros and a
+ * total that starts from zero.
+ *
+ * Batches between the head and `batch` were published but never anchored
+ * (rejected at batch level). Under the current rules (batch/assemble.js) they
+ * stay in the hash chain and their energy stays in the running total; the walk
+ * checks that arithmetic and does not change it.
+ *
+ * @param {object} batch        the batch offered for anchoring
+ * @param {{anchor_sha256:string|null, cumulative_mwh:number|null}} head  from getHead
+ * @param {(id:string) => Promise<object|null>} fetchBatch  a published batch by id; null when not published
+ * @param {object} [o]
+ * @param {number} [o.maxSteps=MAX_WALK_BATCHES]  most batches downloaded
+ * @returns {Promise<{ok:boolean, code:string|null, detail:string|null, steps:number}>}
+ */
+async function walkToHead(batch, head, fetchBatch, { maxSteps = MAX_WALK_BATCHES } = {}) {
+  let steps = 0;
+  const fail = (code, detail) => ({ ok: false, code, detail, steps });
+  const anchored = head.anchor_sha256 != null;
+  if (anchored && !Number.isSafeInteger(head.cumulative_mwh)) return fail('verifier.head_mismatch', 'on-chain anchor has no integer cumulative_mwh beside it');
+  if (!anchored && head.cumulative_mwh != null) return fail('verifier.head_mismatch', 'on-chain cumulative_mwh without an on-chain anchor');
+
+  for (let child = batch; ;) {
+    let energy;
+    try { energy = child.intervals.reduce((s, r) => s + E.basisMwh(r), 0); } catch (e) { return fail('verifier.head_mismatch', `${child.batch_id}: ${e.message}`); }
+    if (energy !== child.energy_mwh) return fail('verifier.head_mismatch', `${child.batch_id}: energy_mwh is not the sum of its intervals`);
+    if (child.seq === 0) {
+      if (anchored) return fail('verifier.head_mismatch', `reached seq 0 without meeting the on-chain head ${head.anchor_sha256.slice(0, 12)}…`);
+      if (child.prev_hash !== E.ZERO_HASH || child.cumulative_mwh !== energy) return fail('verifier.head_mismatch', `${child.batch_id}: nothing is anchored, but the chain does not start from prev_hash 0 and a total of 0`);
+      return { ok: true, code: null, detail: null, steps };
+    }
+    if (steps >= maxSteps) return fail('verifier.head_mismatch', `more than ${maxSteps} published batches between ${batch.batch_id} and the on-chain head`);
+
+    const id = E.batchId(child.site_id, child.seq - 1);
+    const parent = await fetchBatch(id);
+    steps++;
+    if (parent == null) return fail('verifier.not_published', `${id} is not in the public feed`);
+    let h;
+    try { h = E.batchSha256(parent); } catch (e) { return fail('verifier.head_mismatch', `${id}: ${e.message}`); }
+    if (h !== parent.sha256 || h !== child.prev_hash || parent.seq !== child.seq - 1 || parent.site_id !== child.site_id) {
+      return fail('verifier.head_mismatch', `${id} does not rehash to the prev_hash of ${child.batch_id}`);
+    }
+    if (child.cumulative_mwh !== parent.cumulative_mwh + energy) return fail('verifier.head_mismatch', `${child.batch_id}: cumulative_mwh is not the total of ${id} plus its energy`);
+    if (anchored && h === head.anchor_sha256) {
+      if (parent.cumulative_mwh !== head.cumulative_mwh) return fail('verifier.head_mismatch', `${id} is the on-chain head, but its total ${parent.cumulative_mwh} is not the on-chain ${head.cumulative_mwh}`);
+      return { ok: true, code: null, detail: null, steps };
+    }
+    child = parent;
+  }
+}
+
 /** Above this disagreement with the network, neither service signs: timebounds would be judged wrong. */
 const MAX_CLOCK_SKEW_S = 120;
 
@@ -73,4 +144,4 @@ async function clockSkewS(server, nowS = Math.floor(Date.now() / 1000)) {
   return nowS - closed;
 }
 
-module.exports = { getHead, anchoredPrefix, nextToAnchor, findAnchorTx, clockSkewS, MAX_CLOCK_SKEW_S, decode };
+module.exports = { getHead, anchoredPrefix, nextToAnchor, walkToHead, findAnchorTx, clockSkewS, MAX_CLOCK_SKEW_S, MAX_WALK_BATCHES, decode };

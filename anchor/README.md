@@ -13,7 +13,7 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | File | Role |
 |---|---|
 | `tx.js` | The deterministic anchoring transaction (anchor hash · cumulative total · nominal payment · memo `QW#<seq>`) and `matchPending`, the verifier's rebuild-and-compare. |
-| `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. |
+| `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. `walkToHead` checks what a batch inherits against the on-chain head. |
 | `proposer.js` | Proposer service: signs the next published, self-verified batch and writes `pending/<id>.xdr`. Never submits. |
 | `verifier.js` | Verifier service: feed URL in, co-signature out. Refusals in `<state>/refusals.jsonl`, served read-only with `--port`. |
 | `feed-client.js` | HTTP(S) reader for the public feed — the verifier's only input path. |
@@ -21,6 +21,30 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
 | `e2e.js` | Throwaway-account end-to-end run of both services: chain, restart, independence test, test D. |
 | `tx.test.js` | Offline tests (no network). |
+
+**What the verifier checks before it co-signs.** Any failure is a refusal with a reason code
+registered in `../protocol/reasons.json`, and nothing is signed:
+
+1. The batch named by the proposal is in the public feed (`verifier.not_published`) and hashes to
+   its batch-ledger entry (`verifier.hash_mismatch`).
+2. The batch re-derives with the shared `verifyBatch`: hash, Merkle root, link to the previous
+   batch, energy and cumulative arithmetic, counts, window and every gate (`batch.*`).
+3. What the batch inherits leads back to the on-chain head (`verifier.head_mismatch`). The verifier
+   walks back from the batch through the published files, rehashes each one with
+   `../protocol/evidence.js` and re-adds every running total. The walk must end at the batch whose
+   hash is the on-chain `qwatt.anchor.sha256` and whose total is the on-chain
+   `qwatt.cumulative_mwh`. With nothing anchored yet, it must end at seq 0 with a total that starts
+   from zero. It reads at most 168 batches (`MAX_WALK_BATCHES` in `chain.js`, one week of hourly
+   batches) and refuses a longer walk. An earlier batch missing from the feed is
+   `verifier.not_published`.
+4. The anchoring transaction rebuilt from the batch is byte-identical to the pending one
+   (`verifier.tx_mismatch`, `verifier.hash_mismatch`).
+
+The chain head is read from Horizon once per tick. If Horizon or the feed cannot be read, the tick
+ends in an error, nothing is signed, and the next tick starts again from the chain. Batches published
+as rejected between the head and the next accepted batch are never anchored. Under the current
+rules they stay in the hash chain and their energy stays in the running total: the walk checks that
+arithmetic and does not change it.
 
 ```bash
 npm install                                   # inside anchor/ — the Stellar SDK, the only dependency

@@ -26,6 +26,7 @@
     "verifier.feed_unavailable": "The verifier could not read the published batch from the public feed.",
     "verifier.not_published": "The pending transaction refers to a batch that is not in the public feed.",
     "verifier.tx_mismatch": "The pending transaction is not byte-identical to the one the verifier rebuilt from the published batch.",
-    "verifier.hash_mismatch": "The published batch no longer hashes to the value in the pending transaction."
+    "verifier.hash_mismatch": "The published batch no longer hashes to the value in the pending transaction.",
+    "verifier.head_mismatch": "Walking back from the batch through the published chain, rehashing every batch and re-adding every total, does not end at the on-chain anchor with the on-chain cumulative_mwh (or needs more steps than the verifier walks)."
   }
 }

@@ -53,7 +53,7 @@ async function world() {
   const w = {
     keys, clock, fake, cfg, feedDir, stateDir, host, pipe,
     mkProposer: () => new Proposer({ feedDir, cfg, keypair: keys.proposer, server: fake }),
-    mkVerifier: () => new Verifier({ feedUrl: host.url, cfg, keypair: keys.verifier, stateDir, server: fake }),
+    mkVerifier: (o = {}) => new Verifier({ feedUrl: host.url, cfg, keypair: keys.verifier, stateDir, server: fake, ...o }),
     addBatches(k) { for (let i = 0; i < 12 * k; i++) pipe.push(iv(n++)); },
     accepted() { return pipe.feed.readLedger('batches').filter((e) => e.status === 'accepted'); },
     async settle(p, v, rounds = 40) {
@@ -89,6 +89,14 @@ function forge(w, id, mutate) {
 
 /** The pipeline builds its next batch on top of `b`, as a proposer that believes that file would. */
 function buildOn(w, b) { w.pipe.asm.prev_hash = b.sha256; w.pipe.asm.cumulative_mwh = b.cumulative_mwh; }
+
+/** Rewrite one batch-ledger line as a batch-level rejection: published, never anchored. */
+function markRejected(w, seq, reasons, sha256) {
+  const f = path.join(w.feedDir, 'ledger', 'batches.jsonl');
+  const lines = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  for (const e of lines) if (e.seq === seq) Object.assign(e, { status: 'rejected', reasons }, sha256 ? { sha256 } : {});
+  fs.writeFileSync(f, lines.map((e) => JSON.stringify(e)).join('\n') + '\n');
+}
 
 const onchainTotal = (w) => Buffer.from(w.fake.data['qwatt.cumulative_mwh'] || '', 'base64').toString();
 
@@ -247,6 +255,88 @@ test('verifier refuses a batch whose inherited total does not match the on-chain
   assert((r.reasons || []).includes('verifier.head_mismatch'), `reasons: ${JSON.stringify(r.reasons)}`);
   eq(w.fake.txs.length, 3, 'nothing new anchored');
   eq(onchainTotal(w), total, 'on-chain cumulative unchanged');
+  await w.close();
+});
+
+test('the walk to the on-chain head passes through a published-but-unanchored batch, and the next accepted batch anchors', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.settle(w.p, w.v);                                        // head = rec-000000
+  w.addBatches(2);
+  markRejected(w, 1, ['batch.spec_mismatch']);                     // rec-000001 published, never anchored
+  await w.settle(w.p, w.v);
+  w.invariant();                                                   // QW#0 then QW#2
+  /* current semantics: the unanchored batch stays in the hash chain and its energy in the running total */
+  const b2 = JSON.parse(fs.readFileSync(path.join(w.feedDir, 'batches', 'rec-000002.json'), 'utf8'));
+  eq(onchainTotal(w), String(b2.cumulative_mwh), 'on-chain total = total of the anchored batch');
+  assert(!fs.existsSync(path.join(w.stateDir, 'refusals.jsonl')), 'no refusal on an honest chain');
+  await w.close();
+});
+
+test('a walk longer than the bound is refused, never signed, and anchors once within it (verifier.head_mismatch)', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.settle(w.p, w.v);
+  w.addBatches(2);
+  markRejected(w, 1, ['batch.spec_mismatch']);                     // rec-000002 is two batches from the head
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+  const r = await w.mkVerifier({ maxWalk: 1 }).tick(w.clock.now());
+  eq(r.action, 'refused', 'refused beyond the bound');
+  eq(r.reasons[0], 'verifier.head_mismatch', 'reason');
+  assert(/more than 1 /.test(r.detail), r.detail);
+  eq(w.fake.txs.length, 1, 'nothing anchored beyond the bound');
+  await w.settle(w.p, w.v);                                        // the default bound reaches the head
+  w.invariant();
+  await w.close();
+});
+
+test('genesis: with nothing anchored yet, an inherited total that does not start from zero is refused (verifier.head_mismatch)', async () => {
+  const w = await world();
+  w.addBatches(1);
+  const forged = forge(w, 'rec-000000', (b) => { b.cumulative_mwh += 1000000; });
+  markRejected(w, 0, ['batch.cumulative_mismatch'], forged.sha256);   // never anchored itself
+  buildOn(w, forged);
+  w.addBatches(1);                                                 // rec-000001, the first accepted batch
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'refused', 'refused');
+  eq(r.reasons[0], 'verifier.head_mismatch', 'reason');
+  eq(w.fake.txs.length, 0, 'nothing anchored');
+  await w.close();
+});
+
+test('a published chain that never reaches the on-chain head is refused even when every total adds up (verifier.head_mismatch)', async () => {
+  const w = await world();
+  w.addBatches(2);
+  await w.settle(w.p, w.v);                                        // head = rec-000001
+  /* same site, node, window and total, other evidence: another hash. A fork that renames the
+     node is already stopped before signing by batch.site_mismatch (S2), so here the evidence differs. */
+  const fork = forge(w, 'rec-000001', (b) => {
+    b.intervals[0].source.raw_sha256 = E.sha256('elsewhere');
+    b.intervals_root = E.merkleRoot(b.intervals);
+  });
+  buildOn(w, fork);
+  w.addBatches(1);
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'refused', 'refused');
+  eq(r.reasons[0], 'verifier.head_mismatch', 'reason');
+  assert(/without meeting the on-chain head/.test(r.detail), r.detail);
+  eq(w.fake.txs.length, 2, 'nothing new anchored');
+  await w.close();
+});
+
+test('an on-chain anchor without its cumulative is missing data: the verifier signs nothing (verifier.head_mismatch)', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.settle(w.p, w.v);
+  delete w.fake.data['qwatt.cumulative_mwh'];
+  w.addBatches(1);
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'refused', 'refused');
+  eq(r.reasons[0], 'verifier.head_mismatch', 'reason');
+  eq(w.fake.txs.length, 1, 'nothing new anchored');
   await w.close();
 });
 

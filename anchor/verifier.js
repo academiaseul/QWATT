@@ -13,9 +13,13 @@
  *   3. download the batch; if it is not published, refuse (verifier.not_published);
  *   4. download the previous batch and the rejected ledger; re-derive the batch
  *      with the shared verifyBatch (hash, root, chain, arithmetic, every gate);
- *   5. rebuild the anchoring transaction from the batch and compare it with the
+ *   5. walk back from the batch to the on-chain head (chain.walkToHead): every
+ *      earlier batch rehashed, every running total re-added, and the walk must
+ *      end at the on-chain anchor with the on-chain cumulative, so an inherited
+ *      total is never taken on trust (verifier.head_mismatch otherwise);
+ *   6. rebuild the anchoring transaction from the batch and compare it with the
  *      pending one byte for byte (matchPending);
- *   6. only if everything agrees: add the second signature and submit.
+ *   7. only if everything agrees: add the second signature and submit.
  *
  * Every refusal is appended once to <state>/refusals.jsonl and, with --port,
  * served read-only at /refusals.jsonl and /status.json so anyone can see what
@@ -45,6 +49,7 @@ class Verifier {
    * @param {import('@stellar/stellar-sdk').Keypair} o.keypair
    * @param {string} o.stateDir   where refusals.jsonl and status.json are kept
    * @param {object} [o.server]
+   * @param {number} [o.maxWalk]  most batches walked back to the on-chain head (default chain.MAX_WALK_BATCHES)
    */
   constructor(o) {
     T.checkConfig(o.cfg);
@@ -52,6 +57,7 @@ class Verifier {
     this.cfg = o.cfg;
     this.keypair = o.keypair;
     this.server = o.server || new S.Horizon.Server(o.cfg.horizon_url);
+    this.maxWalk = o.maxWalk || C.MAX_WALK_BATCHES;
     this.stateDir = o.stateDir;
     fs.mkdirSync(this.stateDir, { recursive: true });
     this.refusalsFile = path.join(this.stateDir, 'refusals.jsonl');
@@ -110,6 +116,9 @@ class Verifier {
     if (batch.seq > 0 && prev == null) return this._refuse(next.batch_id, pending, ['verifier.not_published'], 'previous batch is not in the public feed');
     const check = V.verifyBatch(batch, { prev, rejected: await this.feed.rejected() });
     if (!check.ok) return this._refuse(next.batch_id, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
+    /* what the batch inherits is believed only once it leads back to the on-chain head (S1) */
+    const walk = await C.walkToHead(batch, head, (id) => this.feed.batch(id), { maxSteps: this.maxWalk });
+    if (!walk.ok) return this._refuse(next.batch_id, pending, [walk.code], walk.detail);
 
     const m = T.matchPending(pending, batch, this.cfg, nowS);
     if (!m.match) return this._refuse(next.batch_id, pending, m.reasons, m.detail);
