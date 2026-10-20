@@ -7,8 +7,13 @@
  *   POST /samples    { meter:'a', ts, power_w, energy_wh? }  or an array of them
  *                    → fed to the IntervalBuilder; response { closed: n }
  *   POST /intervals  a complete interval record (normalized at the node)
- *                    → validated against interval.schema.json; clock_skew_s stamped
- *                      by the gateway; response 202, or 400 with the schema errors
+ *                    → validated against interval.schema.json; ts_start / ts_end
+ *                      rewritten from any RFC 3339 spelling to canonical UTC
+ *                      (Date#toISOString: the same instant, one spelling), with
+ *                      the request body's hash kept in source.raw_sha256 when a
+ *                      spelling changed; clock_skew_s stamped by the gateway;
+ *                      response 202, or 400 with the schema errors or
+ *                      ingest.off_grid when the record is off its dt_s grid
  *   POST /flush      close the open interval (end of a replay)
  *   GET  /health     { ok, seq }
  *
@@ -20,8 +25,21 @@
 
 const http = require('http');
 const path = require('path');
+const crypto = require('crypto');
 const { validate } = require(path.join(__dirname, '..', '..', 'protocol', 'schema-lite.js'));
 const SCHEMA = require(path.join(__dirname, '..', '..', 'protocol', 'interval.schema.json'));
+const { offGrid } = require(path.join(__dirname, '..', '..', 'batch', 'verify.js'));
+
+const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
+
+/** Canonical UTC for an RFC 3339 timestamp, or null when it is not one or would lose more than its spelling. */
+function canonicalTs(s) {
+  const up = typeof s === 'string' ? s.toUpperCase() : '';
+  const m = RFC3339.exec(up);
+  if (!m || (m[1] && /[1-9]/.test(m[1].slice(4)))) return null;   // below a millisecond would be rounding, not spelling
+  const t = Date.parse(up);
+  return Number.isFinite(t) ? new Date(t).toISOString() : null;
+}
 
 function readBody(req, limit = 1 << 20) {
   return new Promise((resolve, reject) => {
@@ -71,6 +89,16 @@ function start(config, builder, onInterval) {
       if (req.url === '/intervals') {
         const errs = validate(body, SCHEMA);
         if (errs.length) return send(res, 400, { error: 'schema', details: errs });
+        /* one spelling per instant, as the door and the verifier compare them; the request hash makes the rewrite auditable */
+        const ts = { ts_start: canonicalTs(body.ts_start), ts_end: canonicalTs(body.ts_end) };
+        const bad = Object.keys(ts).filter((k) => ts[k] == null);
+        if (bad.length) return send(res, 400, { error: 'schema', details: bad.map((k) => `${k}: not an RFC 3339 date-time with an offset`) });
+        if (ts.ts_start !== body.ts_start || ts.ts_end !== body.ts_end) {
+          Object.assign(body, ts);
+          body.source = Object.assign({}, body.source, { raw_sha256: crypto.createHash('sha256').update(raw).digest('hex') });
+        }
+        const why = offGrid(body);
+        if (why) return send(res, 400, { error: 'ingest.off_grid', detail: why });
         body.clock_skew_s = Math.round((now() - Date.parse(body.ts_end)) / 1000);
         if (onInterval) onInterval(body);
         return send(res, 202, { accepted: true, seq: body.seq, clock_skew_s: body.clock_skew_s });

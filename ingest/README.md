@@ -14,7 +14,7 @@ CSV file     ──► adapters/csv.js    ──┘        integer mWh · grid-a
 | `lib/registermap.js` | Loads and validates `maps/*.json`; decodes u16/i16/u32/i32/f32 with word order and scale; computes read blocks; encodes for simulators. |
 | `lib/normalize.js` | `IntervalBuilder`: samples in, schema-valid interval records out. Trapezoidal integration split exactly at grid boundaries, or counter deltas. Integer units. Throws rather than emit an invalid record. |
 | `adapters/modbus.js` | Modbus TCP client (no deps), Modbus RTU client (needs `serialport` on the gateway), `pollOnce`, continuous `start`, and a TCP **simulator** for tests. |
-| `adapters/http.js` | `POST /samples`, `POST /intervals` (validated, `clock_skew_s` stamped), `POST /flush`, `GET /health`. |
+| `adapters/http.js` | `POST /samples`, `POST /intervals` (validated; timestamps rewritten from any RFC 3339 spelling to canonical UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`, with the request hash kept in `source.raw_sha256` when a spelling changed; 400 `ingest.off_grid` when off the `dt_s` grid; `clock_skew_s` stamped), `POST /flush`, `GET /health`. |
 | `adapters/csv.js` | Replay at fast or real-time pace; the CSV line is the raw payload. |
 | `maps/pzem-017.json` | Bench meter A. 9600 8N2. |
 | `maps/epever-tracer.json` | Bench meter B. 115200 8N1. Confirm addresses against your controller's manual before the first live read. |

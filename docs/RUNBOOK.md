@@ -68,12 +68,48 @@ Reconciliation page:
 | Alert | Likely cause | Do |
 |---|---|---|
 | `VERIFIER_SILENT` | verifier host down or process crashed | `systemctl status qwatt-verifier`; restart it. Batches wait as *published, not anchored* and catch up in order on their own. Nothing to repair. |
-| `BACKLOG` | verifier is up but not signing | Check the verifier's `/refusals.jsonl`. A refusal means it found a real mismatch: **do not** work around it; see `NEW_REFUSAL`. |
-| `NEW_REFUSAL` | the verifier refused a proposal | Read the reason. `verifier.not_published` is usually feed lag and resolves itself. `verifier.hash_mismatch`, `verifier.head_mismatch` or `batch.*` means the published evidence and the proposal disagree: stop `qwatt-proposer`, investigate, and record it in the write-up. |
+| `BACKLOG` | verifier is up but not signing | Check the verifier's `/refusals.jsonl`. A refusal means it found a real mismatch: **do not** work around it; see `NEW_REFUSAL`. With no refusal, check `journalctl -u qwatt-proposer` for `blocked`: the proposer runs the verifier's checks first and does not propose what the verifier would refuse. `blocked` with `verifier.walk_too_long`: see *A long run of rejected batches* below. |
+| `NEW_REFUSAL` | the verifier refused a proposal | Read the reason. `verifier.not_published` is usually feed lag and resolves itself. `verifier.hash_mismatch`, `verifier.head_mismatch` or `batch.*` means the published evidence and the proposal disagree: stop `qwatt-proposer`, investigate, and record it in the write-up. `verifier.walk_too_long` is not a disagreement: see *A long run of rejected batches* below. |
 | `FEED_STALE` | the live run stopped | `systemctl status qwatt-live`. Restart it. The minutes it was down stay a visible gap; they are never backfilled. Note the gap for the write-up. |
 | `NO_ANCHOR` | proposer, publisher or Horizon problem | Check `qwatt-proposer` and `qwatt-publish` logs, then `https://status.stellar.org`. |
 | `BROKEN` | the chain and the feed disagree | Treat as an incident. Do not edit any published file. Capture the reconciliation output and investigate. |
 | `SOURCE_DOWN` | Horizon or the feed host unreachable | Usually transient. If Horizon is down, nothing can anchor; it resumes by itself when Horizon returns. |
+
+## A long run of rejected batches (`verifier.walk_too_long`)
+
+**When you see it.** `journalctl -u qwatt-proposer` shows `blocked` with `verifier.walk_too_long`,
+or a `NEW_REFUSAL` carries that code; `BACKLOG` and `NO_ANCHOR` follow. More than 168 batches
+(one week of hourly batches) published as rejected lie between the on-chain head and the next
+accepted batch. Before it signs, the verifier walks back from that batch to the on-chain head, and
+the proposer runs the same walk over its own feed before it proposes. Both stop at 168 batches, so
+the check never finishes and nothing anchors again until the bound is raised. Nothing is known to
+be wrong: this code never means a forged chain (that is `verifier.head_mismatch`).
+
+**Why it happens: a node_id change.** Every batch is judged against the last accepted batch,
+including its `node_id`. If `qwatt-live` is restarted with another `node_id` (a re-flashed
+device, an edited config), every later batch is published as rejected with `batch.site_mismatch`,
+not only the first, until the `node_id` is put back. A week of that is longer than the walk.
+
+**Do:**
+
+1. Fix the cause first. Read the reasons of the rejected batches in
+   `/var/lib/qwatt/feed/ledger/batches.jsonl`. For `batch.site_mismatch`, put back the
+   `node_id` the chain started with and restart `qwatt-live`. Do not raise the bound while
+   batches are still being rejected.
+2. Work out the bound: the seq of the blocked batch (in the proposer's log) minus the seq of the
+   last anchored batch (reconciliation page). Use that number, or a little more, as `N`.
+3. Add `--max-walk N` to the `ExecStart` line of **both** `qwatt-proposer` (proposer host) and
+   `qwatt-verifier` (verifier host; agree it with the founder who runs that host), then
+   `systemctl daemon-reload` and restart both. Raising only one side is not enough: the proposer
+   still blocks, or the verifier still refuses.
+4. Wait for the batch to show **anchored** on the reconciliation page. Then remove the flag from
+   both units and restart them; from then on the walk is short again.
+5. Record the gap, the cause and the bound used in the write-up.
+
+Raising the bound is safe: it only changes how far back the services read. Every batch on the way
+is still downloaded once, rehashed, linked to the next one and re-added, and a chain that does not
+lead to the on-chain head is still refused. The cost is one download per batch per tick on the
+verifier host while the flag is set.
 
 ## Testnet reset during the run
 

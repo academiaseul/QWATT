@@ -36,9 +36,12 @@ class Pipeline {
     this.recovered = [];
     const idx = this.feed.readIndex();
     if (idx && idx.site_id !== o.site_id) throw new Error(`feed belongs to site ${idx.site_id}, not ${o.site_id}`);
-    const head = idx ? this.feed.readBatch(idx.latest_batch_id) : null;   // the next batch starts where this one ended
+    /* the previous batch is the head; the floor is the last batch published as accepted up to it */
+    const head = idx ? this.feed.readBatch(idx.latest_batch_id) : null;
+    const lastAccepted = idx ? this.feed.readLedger('batches').filter((e) => e.seq <= idx.latest_seq && e.status === 'accepted').pop() : null;
     const state = idx
-      ? { seq: idx.latest_seq + 1, prev_hash: idx.head_sha256, cumulative_mwh: idx.cumulative_mwh, last_ts_start: idx.last_ts_start, prev_ts_end: head.ts_end, prev_node_id: head.node_id }
+      ? { seq: idx.latest_seq + 1, prev_hash: idx.head_sha256, cumulative_mwh: idx.cumulative_mwh, last_ts_start: idx.last_ts_start,
+          prev: head, floor: lastAccepted ? this.feed.readBatch(lastAccepted.batch_id) : null }
       : undefined;
     this.asm = new BatchAssembler({ site_id: o.site_id, node_id: o.node_id, closeEvery: o.closeEvery, profile: o.profile, state });
     this._recover();
@@ -51,17 +54,13 @@ class Pipeline {
     if (this.feed.hasBatch(openId)) {
       const batch = this.feed.readBatch(openId);
       const rejected = this.feed.readLedger('rejected');
-      const prev = this.asm.seq === 0 ? null
-        : { seq: this.asm.seq - 1, sha256: this.asm.prev_hash, cumulative_mwh: this.asm.cumulative_mwh, site_id: this.asm.site_id, node_id: this.asm.prev_node_id, ts_end: this.asm.prev_ts_end };
-      const check = V.verifyBatch(batch, { prev, rejected, profile: this.asm.profile });
+      const ctx = { prev: this.asm.prev, floor: this.asm.floor, rejected, profile: this.asm.profile };
+      const ok = V.verifyBatch(batch, ctx).ok;
+      /* a refused batch was written with the total carried forward (F6): its reasons are judged that way */
+      const check = ok ? { failures: [] } : V.verifyBatch(batch, { ...ctx, status: 'rejected' });
       for (const l of [...this.feed.readLedger('accepted'), ...rejected]) if (l.batch_id === openId) this.asm.restore(l);
-      this.asm.window = [];
-      this.asm.seq += 1;
-      this.asm.prev_hash = batch.sha256;
-      this.asm.cumulative_mwh = batch.cumulative_mwh;
-      this.asm.prev_ts_end = batch.ts_end;
-      this.asm.prev_node_id = batch.node_id;
-      const closed = { batch, status: check.ok ? 'accepted' : 'rejected', reasons: [...new Set(check.failures.map((f) => f.code))] };
+      this.asm.advance(batch, ok);
+      const closed = { batch, status: ok ? 'accepted' : 'rejected', reasons: [...new Set(check.failures.map((f) => f.code))] };
       this.feed.publish(closed, { last_ts_start: this.asm.last_ts_start });
       this.recovered.push(closed);
       if (this.onBatch) this.onBatch(closed);

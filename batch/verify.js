@@ -2,15 +2,21 @@
  * QWATT — batch verification (Deliverable 2, reused by the Deliverable 3 verifier)
  * ---------------------------------------------------------------------------
  * `verifyBatch` re-derives everything a batch claims from the batch itself, the
- * previous published batch, and the rejected-ledger lines that name it:
+ * previous published batch, the last accepted batch (the floor), and the
+ * rejected-ledger lines that name it:
  *
  *   schema · versions · batch_id · sha256 · intervals_root · chain (prev_hash,
- *   seq, genesis) · energy · cumulative · counts · same site and node as the
- *   chain · time (canonical timestamps, every interval on its dt_s grid, no
- *   interval repeated or overlapping, within the batch or with the previous
- *   batch) · every contained interval re-judged by the gates (must accept) ·
- *   every gate-based rejection re-judged (must reject) · every reason code
- *   registered
+ *   seq, genesis; the previous batch and the floor rehashed) · energy ·
+ *   cumulative · counts · same site and node as the floor · time (canonical
+ *   timestamps, every interval on its dt_s grid, no interval repeated or
+ *   overlapping, within the batch or with the floor) · every contained
+ *   interval re-judged by the gates (must accept) · every gate-based rejection
+ *   re-judged (must reject) · every reason code registered
+ *
+ * The floor is the last batch published as accepted. A batch published as
+ * rejected is never anchored, so its window, node and intervals never become
+ * the floor, and it carries the previous cumulative forward unchanged: its
+ * energy never enters the total (F6).
  *
  * The proposer runs it on its own batch before publishing (a failure publishes
  * the batch as rejected and it is never anchored). The independent verifier
@@ -66,6 +72,11 @@ function offGrid(rec) {
   return null;
 }
 
+/** Does a published batch hash to its own sha256 field? */
+function rehashes(b) {
+  try { return E.batchSha256(b) === b.sha256; } catch (e) { return false; }
+}
+
 /** Schema + integer-only check of one interval. @returns {string[]} errors */
 function intervalErrors(rec) {
   const errs = validate(rec, INTERVAL_SCHEMA);
@@ -76,7 +87,11 @@ function intervalErrors(rec) {
 /**
  * @param {object} batch           the batch as published
  * @param {object} ctx
- * @param {object|null} ctx.prev   previous published batch (null for the genesis batch)
+ * @param {object|null} ctx.prev   previous published batch (null for the genesis batch); it must rehash
+ * @param {object|null} [ctx.floor] last batch published as accepted before this one (null: none yet);
+ *                                 it must rehash. Defaults to prev, which is right only when prev was accepted.
+ * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
+ *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
  * @param {object} [ctx.spec]      generated spec binding
@@ -86,6 +101,7 @@ function verifyBatch(batch, ctx = {}) {
   const spec = ctx.spec || SPEC;
   const profile = ctx.profile || spec.profiles.bench;
   const prev = ctx.prev || null;
+  const floor = ctx.floor === undefined ? prev : ctx.floor;
   const failures = [];
   const fail = (code, detail = {}) => failures.push({ code, detail });
 
@@ -115,17 +131,22 @@ function verifyBatch(batch, ctx = {}) {
   const root = E.merkleRoot(batch.intervals);
   if (root !== batch.intervals_root) fail('batch.root_mismatch', { claimed: batch.intervals_root, recomputed: root });
 
-  /* chain */
+  /* chain: nothing is read from the previous batch or the floor before it rehashes */
   if (prev == null) {
     if (batch.seq !== 0 || batch.prev_hash !== E.ZERO_HASH) fail('batch.genesis_invalid', { seq: batch.seq, prev_hash: batch.prev_hash });
+  } else if (!rehashes(prev)) {
+    fail('batch.chain_break', { prev_seq: prev.seq, why: 'the previous batch does not rehash to its sha256' });
   } else if (batch.seq !== prev.seq + 1 || batch.prev_hash !== prev.sha256 || batch.site_id !== prev.site_id) {
     fail('batch.chain_break', { seq: batch.seq, prev_seq: prev.seq, prev_hash: batch.prev_hash, expected: prev.sha256 });
   }
+  if (floor != null && floor !== prev && !rehashes(floor)) {
+    fail('batch.chain_break', { floor_seq: floor.seq, why: 'the last accepted batch does not rehash to its sha256' });
+  }
 
-  /* arithmetic */
+  /* arithmetic: an accepted batch adds its energy; a refused one carries the total forward (F6) */
   const energy = batch.intervals.reduce((s, r) => s + E.basisMwh(r), 0);
   if (energy !== batch.energy_mwh) fail('batch.energy_mismatch', { claimed: batch.energy_mwh, recomputed: energy });
-  const cumulative = (prev ? prev.cumulative_mwh : 0) + batch.energy_mwh;
+  const cumulative = (prev ? prev.cumulative_mwh : 0) + (ctx.status === 'rejected' ? 0 : batch.energy_mwh);
   if (cumulative !== batch.cumulative_mwh) fail('batch.cumulative_mismatch', { claimed: batch.cumulative_mwh, recomputed: cumulative });
 
   /* counts, including the rejected ledger when supplied */
@@ -140,16 +161,16 @@ function verifyBatch(batch, ctx = {}) {
     });
   }
 
-  /* installation: every interval from the batch's site and node, the batch from the chain's */
+  /* installation: every interval from the batch's site and node, the batch from the floor's */
   const foreign = batch.intervals.find((r) => r.site_id !== batch.site_id || r.node_id !== batch.node_id);
   if (foreign) fail('batch.site_mismatch', { interval_seq: foreign.seq, site_id: foreign.site_id, node_id: foreign.node_id });
-  if (prev != null && (batch.site_id !== prev.site_id || batch.node_id !== prev.node_id)) {
-    fail('batch.site_mismatch', { site_id: batch.site_id, node_id: batch.node_id, chain_site_id: prev.site_id, chain_node_id: prev.node_id });
+  if (floor != null && (batch.site_id !== floor.site_id || batch.node_id !== floor.node_id)) {
+    fail('batch.site_mismatch', { site_id: batch.site_id, node_id: batch.node_id, chain_site_id: floor.site_id, chain_node_id: floor.node_id });
   }
 
   /* time: canonical window, every interval on its grid and inside [ts_start, ts_end],
      each starting at or after the previous one's end, the first at or after the
-     previous batch's end. Gaps are allowed; the same energy twice is not. */
+     floor's end. Gaps are allowed; the same energy twice is not. */
   const w0 = Date.parse(batch.ts_start), w1 = Date.parse(batch.ts_end);
   if (!isCanonicalTs(batch.ts_start) || !isCanonicalTs(batch.ts_end) || !(w1 >= w0)) {
     fail('batch.window_mismatch', { ts_start: batch.ts_start, ts_end: batch.ts_end });
@@ -158,9 +179,9 @@ function verifyBatch(batch, ctx = {}) {
     const why = offGrid(r);
     if (why) fail('batch.interval_off_grid', { interval_seq: r.seq, ts_start: r.ts_start, ts_end: r.ts_end, dt_s: r.dt_s, why });
   }
-  let lastEnd = prev == null ? -Infinity : Date.parse(prev.ts_end), lastEndTs = prev == null ? null : prev.ts_end;
-  if (prev != null && !(w0 >= lastEnd)) fail('batch.interval_overlap', { ts_start: batch.ts_start, prev_ts_end: prev.ts_end });
-  const counted = new Set((prev != null && Array.isArray(prev.intervals) ? prev.intervals : []).map((r) => Date.parse(r.ts_start)));
+  let lastEnd = floor == null ? -Infinity : Date.parse(floor.ts_end), lastEndTs = floor == null ? null : floor.ts_end;
+  if (floor != null && !(w0 >= lastEnd)) fail('batch.interval_overlap', { ts_start: batch.ts_start, floor_ts_end: floor.ts_end });
+  const counted = new Set((floor != null && Array.isArray(floor.intervals) ? floor.intervals : []).map((r) => Date.parse(r.ts_start)));
   for (const r of batch.intervals) {
     const s = Date.parse(r.ts_start), e = Date.parse(r.ts_end);
     if (s < w0 || e > w1) { fail('batch.window_mismatch', { interval_seq: r.seq, ts_start: r.ts_start }); break; }

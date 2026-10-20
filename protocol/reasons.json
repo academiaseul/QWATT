@@ -4,6 +4,8 @@
   "codes": {
     "ingest.duplicate_interval": "An interval for this window was already judged; the repeat is recorded and never counted twice.",
     "ingest.out_of_order": "The interval starts before the last judged interval; late data is recorded, never inserted into a closed window.",
+    "ingest.overlap": "The interval starts before the latest interval judged here ends (a change of dt_s, or an interval inside another); it is recorded, never counted, and the batch it falls in is unaffected.",
+    "ingest.site_mismatch": "The interval names a site_id or node_id other than the one this gateway assembles; it is recorded, never counted, and the batch it falls in is unaffected.",
     "ingest.off_grid": "The interval's timestamps are not canonical UTC (YYYY-MM-DDTHH:mm:ss.sssZ), its ts_start is not a multiple of dt_s from the epoch, or its ts_end is not ts_start + dt_s; it is recorded, never counted.",
     "ingest.spec_mismatch": "The node judged this interval under a different gate-spec version than the engine running here.",
     "ingest.schema_invalid": "The record does not validate against interval.schema.json.",
@@ -13,16 +15,16 @@
     "batch.id_mismatch": "batch_id is not <site_id>-<seq padded to 6>.",
     "batch.hash_mismatch": "sha256 does not equal the hash of the canonical batch.",
     "batch.root_mismatch": "intervals_root does not equal the Merkle root of the contained intervals.",
-    "batch.chain_break": "prev_hash or seq does not continue the previous published batch.",
+    "batch.chain_break": "prev_hash or seq does not continue the previous published batch, or the previous batch or the last accepted one does not rehash to its own sha256.",
     "batch.genesis_invalid": "The first batch must have seq 0 and prev_hash of 64 zeros.",
     "batch.energy_mismatch": "energy_mwh is not the sum of the intervals' basis energy.",
-    "batch.cumulative_mismatch": "cumulative_mwh is not the previous total plus energy_mwh.",
+    "batch.cumulative_mismatch": "cumulative_mwh is not the previous total plus energy_mwh; for a batch published as rejected, it is not the previous total unchanged (a refused batch carries no energy into the total).",
     "batch.count_mismatch": "accepted_count, rejected_count and interval_count do not agree with the batch and the rejected ledger.",
     "batch.window_mismatch": "ts_start or ts_end is not a canonical UTC timestamp, ts_end is before ts_start, or an interval lies outside [ts_start, ts_end].",
-    "batch.interval_repeated": "An interval starts at the same instant as one this batch or the previous batch already counted; the same energy is never counted twice.",
-    "batch.interval_overlap": "An interval starts before the previous interval ends, or the batch starts before the previous batch ends. Gaps are allowed; overlaps are not.",
+    "batch.interval_repeated": "An interval starts at the same instant as one this batch or the last accepted batch already counted; the same energy is never counted twice.",
+    "batch.interval_overlap": "An interval starts before the previous interval ends, or the batch starts before the last accepted batch ends. A batch published as rejected never moves that point. Gaps are allowed; overlaps are not.",
     "batch.interval_off_grid": "A contained interval's timestamps are not canonical UTC (YYYY-MM-DDTHH:mm:ss.sssZ), its ts_start is not a multiple of dt_s from the epoch, or its ts_end is not ts_start + dt_s.",
-    "batch.site_mismatch": "The batch, or an interval inside it, names a site_id or node_id other than the chain's.",
+    "batch.site_mismatch": "The batch, or an interval inside it, names a site_id or node_id other than the chain's (the last accepted batch's).",
     "batch.interval_rejected": "An interval inside the batch fails the gates when re-run.",
     "batch.rejection_unproven": "A rejected-ledger line for this batch passes the gates when re-run and carries no ingest reason.",
     "batch.unregistered_reason": "A ledger line carries a reason code that is not registered.",
@@ -32,6 +34,7 @@
     "verifier.not_published": "The pending transaction refers to a batch that is not in the public feed.",
     "verifier.tx_mismatch": "The pending transaction is not byte-identical to the one the verifier rebuilt from the published batch.",
     "verifier.hash_mismatch": "The published batch no longer hashes to the value in the pending transaction.",
-    "verifier.head_mismatch": "Walking back from the batch through the published chain, rehashing every batch and re-adding every total, does not end at the on-chain anchor with the on-chain cumulative_mwh (or needs more steps than the verifier walks)."
+    "verifier.head_mismatch": "Walking back from the batch through the published chain, rehashing every batch and re-adding every total (a batch never anchored carries the total forward unchanged), does not end at the on-chain anchor with the on-chain cumulative_mwh.",
+    "verifier.walk_too_long": "The walk back to the on-chain head stopped at its bound (168 published batches by default) before reaching the head. The check did not finish; nothing is known to be wrong. The usual cause is a long run of batches published as rejected, such as a node_id changed by mistake. The proposer blocks with the same code; operators raise the bound with --max-walk on both services."
   }
 }

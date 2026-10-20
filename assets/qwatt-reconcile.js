@@ -8,6 +8,9 @@
  *   - the hash chain is unbroken (prev_hash = previous batch's sha256, seq contiguous);
  *   - every anchoring transaction carries the hash of a published, accepted batch,
  *     and the cumulative total that batch states;
+ *   - every batch's cumulative total is the energy of the accepted batches up to
+ *     it: a batch published as rejected carries the total forward unchanged, so
+ *     the on-chain total never includes refused energy;
  *   - accepted batches are anchored in order with no gap; rejected batches never are;
  *   - nothing anchored is missing from the feed.
  *
@@ -143,7 +146,7 @@
       else bySha[a.sha256] = Object.assign({ order: i }, a);
     });
 
-    var prev = null, lastAnchoredIdx = -1, firstUnanchoredAccepted = -1, published = {};
+    var prev = null, lastAnchoredIdx = -1, firstUnanchoredAccepted = -1, published = {}, acceptedEnergy = 0;
     for (var i = 0; i < feed.listed.length; i++) {
       var e = feed.listed[i], b = feed.batches[e.batch_id];
       var row = { batch_id: e.batch_id, seq: e.seq, status: e.status, reasons: e.reasons || [], ledger_sha256: e.sha256 };
@@ -158,6 +161,9 @@
       row.chain_ok = b.prev_hash === link && (prev == null ? b.seq === 0 : b.seq === prev.seq + 1);
       if (!row.chain_ok) problems.push(e.batch_id + ': prev_hash does not continue the chain');
       row.energy_mwh = b.energy_mwh; row.cumulative_mwh = b.cumulative_mwh;
+      if (e.status === 'accepted') acceptedEnergy += b.energy_mwh;
+      row.total_ok = b.cumulative_mwh === acceptedEnergy;
+      if (!row.total_ok) problems.push(e.batch_id + ': cumulative ' + b.cumulative_mwh + ' ≠ ' + acceptedEnergy + ', the energy of the accepted batches up to it (a rejected batch adds none)');
       row.accepted_count = b.accepted_count; row.rejected_count = b.rejected_count;
       published[b.sha256] = true;
 
