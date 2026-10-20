@@ -42,17 +42,21 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
 | # | What | Who | How |
 |---|---|---|---|
 | 7 | **Evidence-feed host.** Recommended: GitHub Pages serving a `feed` branch of the repository | Repo admin | Settings → Pages → source: branch `feed`. Free and public, with no new account. The proposer host then needs push access to that one branch (a deploy key), stored only on that host. |
-| 8 | **Verifier host**: an always-on machine that does **not** run the proposer, operated by Jay | Jay | A small VPS (about USD 5/month, team-paid per the SOW) or a spare machine. Needs Node 20, outbound HTTPS and an NTP-synced clock. Its key is generated **on that machine**; send only the public key. |
-| 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 21–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Earlier history shows this machine powers off overnight, so use a VPS or a machine that never sleeps. |
-| 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run | Founders | Someone who will act on it within hours, Days 21–30. |
+| 8 | **Verifier host**: an always-on machine that does **not** run the proposer, operated by Jay | Jay | A small VPS or a spare machine. Needs Node 20, outbound HTTPS and an NTP-synced clock. Its key is generated **on that machine**; send only the public key. |
+| 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 20–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Earlier history shows this machine powers off overnight, so use a VPS or a machine that never sleeps. |
+| 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run | Founders | Someone who will act on it within hours, Days 20–30. |
 
-## Day 21–23 (Sun 8 – Tue 10 Nov)
+## By Day 19 (Fri 6 Nov) — freeze
 
 | # | What | Who |
 |---|---|---|
-| 11 | **Go / no-go for the live run** after the first 2-of-3 anchor on the real account. Target: first anchor by **Fri 6 Nov (Day 19)** so the weekend is buffer; hard stop Day 23. | Founders |
+| 11 | **Go / no-go for the live run** after the first 2-of-3 anchor on the real account. Target: first anchor by **Fri 6 Nov (Day 19)**, the freeze date. | Founders |
 
-## Days 23–30 (Tue 10 – Tue 17 Nov) — the seven-day live run
+## Days 20–27 (Sat 7 Nov – Sun 15 Nov 00:00) — the seven-day live run
+
+The live run starts **Sat 7 Nov (Day 20)**. The counted seven-day window runs from
+**Sun 8 Nov 00:00 America/Santiago (03:00 UTC)** to **Sun 15 Nov 00:00 America/Santiago
+(03:00 UTC)**, that is Days 21–27.
 
 | # | What | Who |
 |---|---|---|
@@ -63,7 +67,7 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
 
 | # | What | Who |
 |---|---|---|
-| 14 | **Demo video** (contributed founder time, outside the 131 h) | Founders |
+| 14 | **Demo video** | Founders |
 | 15 | **Review the write-up** and the SOW §6 evidence checklist, then submit | Founders |
 
 ## Secrets: where each one lives
