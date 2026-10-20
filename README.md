@@ -43,7 +43,7 @@ npm run scale                                 # un mes de datos públicos NREL P
 | `assets/` | Código del navegador: motor de los filtros, conciliación y bibliotecas empaquetadas (`vendor/`) | Browser code: filter engine, reconciliation, bundled libraries (`vendor/`) |
 | `vendor-src/` | Puntos de entrada para reconstruir `assets/vendor/` con esbuild | Entry points to rebuild `assets/vendor/` with esbuild |
 | `mining-rig/` | Prototipo Modbus del hackathon de agosto; sus validadores (`validators.js`) siguen en las pruebas | August hackathon Modbus prototype; its validators (`validators.js`) are still tested |
-| `docs/` | Diseño, modelo de verificación, propuesta y plan del sprint, manual de operación | Design, verification model, sprint proposal and plan, runbook |
+| `docs/` | Diseño, modelo de verificación, plan del sprint, manual de operación y versiones anteriores de la propuesta | Design, verification model, sprint plan, runbook and earlier versions of the proposal |
 | `.github/` | CI: corre todas las suites en cada push a `main` y en cada PR | CI: runs every suite on each push to `main` and on each PR |
 | `.well-known/` | `stellar.toml` (SEP-1) del sitio, del hackathon de agosto | The site's `stellar.toml` (SEP-1), from the August hackathon |
 | raíz (`*.html`) | Sitio estático de qwatt.org, sin compilación; la mayoría de las páginas viene del hackathon de agosto | Static qwatt.org site, no build step; most pages date from the August hackathon |
