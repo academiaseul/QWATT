@@ -39,6 +39,6 @@ states which rules judged it.
 
 Thresholds are per site, not universal — a Santiago balcony and a Patagonian roof have
 different plausible envelopes. `bench` is the Phase 1 rig (150 Wp, two DC meters, 5-minute
-intervals). `rooftop` is the El Arrayán pilot geometry (4.4 kWp, DC meter before the inverter
+intervals). `rooftop` is the residential pilot geometry (4.4 kWp, DC meter before the inverter
 and AC meter after it). The rule is shared; the numbers are not. `cases.json` includes the same
 twilight instant accepted under one profile and rejected under the other to prove that.

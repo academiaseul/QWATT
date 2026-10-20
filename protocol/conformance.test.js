@@ -77,7 +77,7 @@ test('validators.js thresholds come from the spec (rooftop profile)', () => {
 
 test('solar elevation: shared engine and validators.js agree to 1e-9°', () => {
   const instants = ['2026-09-20T15:00:00Z', '2026-09-20T22:38:00Z', '2026-09-21T02:00:00Z', '2026-08-25T16:30:00Z', '2026-12-21T16:00:00Z', '2026-06-21T16:00:00Z'];
-  for (const iso of instants) for (const [lat, lon] of [[-33.45, -70.65], [-33.35, -70.52], [51.5, 0]]) {
+  for (const iso of instants) for (const [lat, lon] of [[-33.45, -70.65], [-23.65, -70.40], [51.5, 0]]) {
     const a = G.solarElevationDeg(new Date(iso), lat, lon), b = V.solarElevationDeg(new Date(iso), lat, lon);
     assert(Math.abs(a - b) < 1e-9, `${iso} @${lat},${lon}: ${a} vs ${b}`);
   }

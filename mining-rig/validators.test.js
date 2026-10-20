@@ -22,8 +22,8 @@ function assertRejects(result, checkId) {
     `expected ${checkId} to fail; failures were: ${result.failures.map((f) => f.id).join(', ') || '(none)'}`);
 }
 
-/* Santiago rooftop, 4.4 kWp — the El Arrayán pilot's geometry. */
-const SITE = { lat: -33.35, lon: -70.52, thresholds: { nameplateW: 4400 } };
+/* Santiago rooftop, 4.4 kWp — the residential pilot's geometry (spec rooftop profile). */
+const SITE = { lat: -33.45, lon: -70.65, thresholds: { nameplateW: 4400 } };
 
 /** A well-formed, honest midday batch: 1 h, 2.4 kWh DC, sane AC and irradiance. */
 function goodBatch(over = {}) {
