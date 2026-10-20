@@ -14,22 +14,24 @@
 
   gtag('config', 'G-ESWGGQ9742');
 </script>
-<meta name="description" content="Cómo QWATT prueba que un kWh existió: dos medidores independientes, compuertas que fallan cerradas, y una cadena de evidencia que cualquiera puede volver a verificar sin confiar en nosotros.">
+<meta name="description" content="Cómo QWATT prueba que un kWh existió: dos medidores independientes, filtros de verificación que fallan cerrados, y una cadena de evidencia que cualquiera puede volver a verificar sin confiar en nosotros. Solo Stellar testnet.">
 <link rel="canonical" href="https://qwatt.org/verificacion.html">
 <meta name="theme-color" content="#120c07">
 <meta property="og:site_name" content="QWATT">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://qwatt.org/verificacion.html">
 <meta property="og:title" content="QWATT — Verificación">
-<meta property="og:description" content="Compuertas de física entre un medidor y la blockchain. Prueba tú mismo a falsificar un evento energético.">
+<meta property="og:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Prueba tú mismo a falsificar un evento energético.">
 <meta property="og:locale" content="es_CL">
-<meta property="og:image" content="https://qwatt.org/og-image.png">
+<meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://qwatt.org/og-image.png">
+<meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:title" content="QWATT — Verificación">
-<meta name="twitter:description" content="Compuertas de física entre un medidor y la blockchain. Prueba tú mismo a falsificar un evento energético.">
+<meta name="twitter:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Prueba tú mismo a falsificar un evento energético.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -151,8 +153,8 @@
   ul.lines li:first-child{border-top:0}
   ul.lines li::before{content:'\2717';position:absolute;left:0;color:var(--bad);font-family:var(--mono)}
   ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:9px}
-  ol.steps li{counter-increment:s;display:grid;grid-template-columns:28px 1fr;gap:12px;align-items:baseline;font-size:14.5px;line-height:1.6;color:var(--ink-2)}
-  ol.steps li::before{content:counter(s,decimal-leading-zero);font-family:var(--mono);font-size:11px;font-weight:600;color:var(--teal)}
+  ol.steps li{counter-increment:s;padding-left:40px;text-indent:-40px;font-size:14.5px;line-height:1.6;color:var(--ink-2)}
+  ol.steps li::before{content:counter(s,decimal-leading-zero);display:inline-block;width:28px;margin-right:12px;text-indent:0;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--teal)}
 
   .foot-note{font-size:13.5px;color:var(--grey);margin-top:22px;max-width:66ch}
   .foot-note a{color:var(--teal);border-bottom:1px solid rgba(208,138,87,.4)}
@@ -227,12 +229,6 @@ html[data-theme="light"] body > footer .grp a:hover,html[data-theme="light"] #qw
 html[data-theme="light"] body > footer .disclaimer,html[data-theme="light"] #qwfoot .qf-bottom{color:#6f6957;border-top-color:#e0dac9}
 html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
 .d-link::after,.qd-nav a::after{margin-left:auto;flex:none}
-.d-link[href="wallet.html"]::after,.qd-nav a[href="wallet.html"]::after,.d-link[href="console.html"]::after,.qd-nav a[href="console.html"]::after,.d-link[href="pay.html"]::after,.qd-nav a[href="pay.html"]::after,.d-link[href="proof.html"]::after,.qd-nav a[href="proof.html"]::after,.d-link[href="respaldo.html"]::after,.qd-nav a[href="respaldo.html"]::after,.d-link[href="red.html"]::after,.qd-nav a[href="red.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#3cb87f;box-shadow:0 0 6px rgba(60,184,127,.5)}
-.d-link[href="grid.html"]::after,.qd-nav a[href="grid.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#6e5c49}
-.d-link[href="piloto.html"]::after,.qd-nav a[href="piloto.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#c9a15f;box-shadow:0 0 6px rgba(201,161,95,.35)}
-html[data-theme="light"] .d-link[href="wallet.html"]::after,html[data-theme="light"] .qd-nav a[href="wallet.html"]::after,html[data-theme="light"] .d-link[href="console.html"]::after,html[data-theme="light"] .qd-nav a[href="console.html"]::after,html[data-theme="light"] .d-link[href="pay.html"]::after,html[data-theme="light"] .qd-nav a[href="pay.html"]::after,html[data-theme="light"] .d-link[href="proof.html"]::after,html[data-theme="light"] .qd-nav a[href="proof.html"]::after,html[data-theme="light"] .d-link[href="respaldo.html"]::after,html[data-theme="light"] .qd-nav a[href="respaldo.html"]::after,html[data-theme="light"] .d-link[href="red.html"]::after,html[data-theme="light"] .qd-nav a[href="red.html"]::after{background:#15803d;box-shadow:0 0 6px rgba(21,128,61,.3)}
-html[data-theme="light"] .d-link[href="grid.html"]::after,html[data-theme="light"] .qd-nav a[href="grid.html"]::after{background:#c4bca6}
-html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="light"] .qd-nav a[href="piloto.html"]::after{background:#a97b2f;box-shadow:0 0 6px rgba(169,123,47,.3)}
 :root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
 html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
 svg.qm{flex:none}
@@ -348,30 +344,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
 </div>
 <nav class="qd-nav">
 <div class="qd-t">Explorar QWATT</div>
-<a href="index.html">Inicio</a>
-<a href="index.html#peg">C&oacute;mo funciona</a>
-<a href="index.html#dash">Dashboard</a>
-<a href="index.html#onchain">Onchain</a>
-<a href="index.html#clean">QWATT-Clean</a>
-<a href="index.html#tok">Tokenomics</a>
-<a href="index.html#road">Roadmap</a>
-<a href="index.html#security">Seguridad</a>
-<div class="qd-t mt">Plataforma</div>
 <a href="verificacion.html">Verificaci&oacute;n</a>
-<a title="Demo — datos simulados" href="grid.html">QWATT Grid</a>
-<a title="Testnet — transacciones reales" href="proof.html">QWATT Explorer</a>
-<a title="Testnet — transacciones reales" href="respaldo.html">Reservas</a>
-<a title="Testnet — transacciones reales" href="wallet.html">QWATT Wallet</a>
-<a title="Testnet — transacciones reales" href="pay.html">QWATT Pay</a>
-<div class="qd-t mt">Herramientas</div>
-<a title="Testnet — transacciones reales" href="console.html">Consola Onchain</a>
-<a title="Testnet — transacciones reales" href="red.html">QWATT Pulse</a>
-<a title="Prototipo — hardware en diseño" href="piloto.html">Piloto Solar</a>
-<a href="backup.html">Backup de claves</a>
-<div class="qd-t mt">Recursos</div>
-<a href="whitepaper.html">Whitepaper</a>
-<a href="terminos.html">T&eacute;rminos</a>
-<a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
 <a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
 </nav>
 <div class="qd-foot">&#9679; STELLAR TESTNET</div>
@@ -460,23 +433,23 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     <h1>&iquest;C&oacute;mo sabemos que <b>un kWh existi&oacute;</b>?</h1>
     <p class="lede">
       Cualquiera puede declarar que gener&oacute; energ&iacute;a limpia. La diferencia entre una declaraci&oacute;n y una
-      prueba son dos medidores independientes, compuertas que <b>fallan cerradas</b>, y una cadena de evidencia
+      prueba son dos medidores independientes, filtros de verificaci&oacute;n que <b>fallan cerrados</b>, y una cadena de evidencia
       que un desconocido puede recalcular sin confiar en nosotros.
     </p>
     <div class="claim">
       <p><b>Lo que afirma una atestaci&oacute;n QWATT, exactamente:</b> entre <code>t&#8320;</code> y <code>t&#8321;</code>,
       una instalaci&oacute;n registrada produjo <code>E</code> watts-hora, medidos por dos instrumentos independientes
-      cuyas lecturas concuerdan entre s&iacute; y con la f&iacute;sica de ese lugar a esa hora — y este registro no ha
-      sido alterado desde entonces. <b>Nada m&aacute;s.</b> Todo lo dem&aacute;s es una capa contractual encima.</p>
+      cuyas lecturas concuerdan entre s&iacute; y con la f&iacute;sica de ese lugar a esa hora — y esta constancia no ha
+      sido alterada desde entonces. <b>Nada m&aacute;s.</b> Todo lo dem&aacute;s es una capa contractual encima.</p>
     </div>
   </div>
 
   <section>
     <h2><span class="n">01 &middot; Pru&eacute;balo</span>Intenta falsificar un evento</h2>
     <p class="sub">
-      Abajo corren las <b>mismas cuatro compuertas</b> que el gateway ejecuta antes de emitir, con los par&aacute;metros
+      Abajo corren los <b>mismos cuatro filtros de verificaci&oacute;n</b> que el gateway ejecuta antes de anclar, con los par&aacute;metros
       reales del equipo Fase&nbsp;1. Mueve los controles o elige un ataque: el veredicto se recalcula al instante.
-      Un intervalo rechazado <b>no emite nada</b>, y queda escrito en el registro de rechazos.
+      Un intervalo rechazado <b>no se ancla</b>, y queda escrito en la bit&aacute;cora de rechazos.
     </p>
     <div class="rigline">
       <span>150 Wp &middot; 12 V</span><span>&minus;33,45 &middot; &minus;70,65 &middot; norte 30&deg;</span><span id="specv" title="Versi&oacute;n y huella de protocol/gates.spec.json que corre esta p&aacute;gina">spec &mdash;</span>
@@ -521,36 +494,36 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
         <h3>Veredicto del gateway</h3>
         <div class="verdict ok" id="verdict">
           <span class="big" id="vTitle">ACEPTADO</span>
-          <span class="mint" id="vMint">emite 0,0000116 QWATT</span>
+          <span class="mint" id="vMint">se ancla &middot; min(A,B) = 11,6 Wh</span>
         </div>
         <div class="checks" id="checks"></div>
         <p class="foot-note" style="margin-top:14px">
-          Se tokeniza siempre <b>el menor de los dos medidores</b>: una falla puede subestimar, nunca sobreestimar.
+          Se ancla siempre <b>el menor de los dos medidores</b>: una falla puede subestimar, nunca sobreestimar.
         </p>
       </div>
     </div>
   </section>
 
   <section>
-    <h2><span class="n">02 &middot; Las compuertas</span>Cada control atrapa a alguien concreto</h2>
+    <h2><span class="n">02 &middot; Los filtros</span>Cada control atrapa a alguien concreto</h2>
     <p class="sub">
-      Cuatro compuertas corren hoy en el equipo Fase&nbsp;1. Tres m&aacute;s entran cuando el hardware las soporta —
-      y las marcamos como pendientes en vez de insinuar que ya existen.
+      Cuatro filtros de verificaci&oacute;n corren hoy en el equipo Fase&nbsp;1. Tres m&aacute;s entran cuando el hardware los soporta —
+      y los marcamos como pendientes en vez de insinuar que ya existen.
     </p>
     <div class="vlist">
-      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Verosimilitud</h3><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Los timestamps son datos del cliente y escalan a las dem&aacute;s compuertas: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
+      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Verosimilitud</h3><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Los timestamps son datos del cliente y escalan a los dem&aacute;s filtros: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
       <div class="vcard"><div class="vid"><span>G1</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Techo de placa</h3><p>Un panel de 150 Wp no puede superar <code>0,150 kW &times; h &times; 1,15 &asymp; 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><span class="adv">Detiene: alimentar el medidor desde una fuente de banco</span></div>
       <div class="vcard"><div class="vid"><span>G2</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Elevaci&oacute;n solar</h3><p>Posici&oacute;n solar NOAA para &minus;33,45 / &minus;70,65: si hay generaci&oacute;n, el sol debe estar sobre &minus;2&deg;. La energ&iacute;a nocturna es imposible; los ceros nocturnos son honestos.</p><span class="adv">Detiene: inyectar corriente despu&eacute;s del atardecer</span></div>
-      <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Acuerdo entre medidores</h3><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara la compuerta.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
+      <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Acuerdo entre medidores</h3><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara el filtro.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
       <div class="vcard soon"><div class="vid"><span>G4</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Testigo solar</h3><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energ&iacute;a y el testigo est&aacute; a oscuras, el lote cae.</p><span class="adv">Pendiente: requiere celda de 5 Wp + INA226</span></div>
       <div class="vcard soon"><div class="vid"><span>G5</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Rampa y verosimilitud de serie</h3><p>Saltos f&iacute;sicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido, una constante perfecta es sint&eacute;tica.</p><span class="adv">Pendiente: requiere muestreo intra-intervalo</span></div>
-      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Tamper</h3><p>Un reed en la tapa del gabinete: caja abierta &rarr; emisi&oacute;n detenida hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
-      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Firma de dos partes</h3><p>El nodo firma; la tesorer&iacute;a <b>vuelve a correr las compuertas</b> y reci&eacute;n entonces co-firma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una impresora de dinero</span></div>
+      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Tamper</h3><p>Un reed en la tapa del gabinete: caja abierta &rarr; anclaje detenido hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
+      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Firma de dos partes</h3><p>El nodo firma; un verificador independiente <b>vuelve a correr los filtros</b> y reci&eacute;n entonces co-firma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una fuente de constancias falsas</span></div>
     </div>
   </section>
 
   <section>
-    <h2><span class="n">03 &middot; La prueba</span>El registro de rechazos es el entregable</h2>
+    <h2><span class="n">03 &middot; La prueba</span>La bit&aacute;cora de rechazos es el entregable</h2>
     <p class="sub">
       Un verificador que solo publica lo que pas&oacute; est&aacute; haciendo marketing. Estas cuatro fallas se inducen
       f&iacute;sicamente en el equipo y deben aparecer en <code>rejected.jsonl</code> con su raz&oacute;n.
@@ -559,7 +532,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       <table class="drills">
         <thead><tr><th>Prueba</th><th>Acci&oacute;n f&iacute;sica</th><th>Resultado esperado</th></tr></thead>
         <tbody>
-          <tr><td><b>Control &middot; sombra honesta</b></td><td>Cubrir el panel completo durante un intervalo</td><td class="out ok">aceptado &asymp; 0 Wh — las compuertas rechazan fraude, no clima</td></tr>
+          <tr><td><b>Control &middot; sombra honesta</b></td><td>Cubrir el panel completo durante un intervalo</td><td class="out ok">aceptado &asymp; 0 Wh — los filtros rechazan fraude, no clima</td></tr>
           <tr><td><b>Sensor tapado</b></td><td>Levantar una punta de sensado del shunt en el PZEM</td><td class="out">rechazado: divergencia entre medidores</td></tr>
           <tr><td><b>Medidor desconectado</b></td><td>Desenchufar el bus RS485 A durante un intervalo</td><td class="out">rechazado: divergencia (el medidor A colapsa a 0)</td></tr>
           <tr><td><b>Generar de noche</b></td><td>Inyectar desde fuente de laboratorio aguas arriba del shunt, de noche</td><td class="out">rechazado: generaci&oacute;n con el sol bajo &minus;2&deg;</td></tr>
@@ -581,28 +554,28 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     <div class="ladder">
       <div class="rung now"><span class="lv">A0</span><span class="nm">Simulado<small>Sin hardware. Nunca se ancla como generaci&oacute;n: el c&oacute;digo lo impide.</small></span><span class="where">AQU&Iacute; ESTAMOS</span></div>
       <div class="rung"><span class="lv">A1</span><span class="nm">Medido<small>Un instrumento real. Fotones de verdad, sin corroborar.</small></span><span class="where">BANCO</span></div>
-      <div class="rung"><span class="lv">A2</span><span class="nm">Corroborado<small>Dos medidores independientes, compuertas G0&ndash;G3 activas.</small></span><span class="where">FASE 1 &middot; ESTE SPRINT</span></div>
-      <div class="rung"><span class="lv">A3</span><span class="nm">Co-firmado<small>Testigo solar y tamper, m&aacute;s tesorer&iacute;a con clave en b&oacute;veda. Ninguna parte sola emite.</small></span><span class="where">FASE 2</span></div>
+      <div class="rung"><span class="lv">A2</span><span class="nm">Corroborado<small>Dos medidores independientes, filtros G0&ndash;G3 activos.</small></span><span class="where">FASE 1</span></div>
+      <div class="rung"><span class="lv">A3</span><span class="nm">Co-firmado<small>Testigo solar y tamper, m&aacute;s un verificador independiente con clave en b&oacute;veda. Ninguna parte sola ancla.</small></span><span class="where">FASE 2</span></div>
       <div class="rung"><span class="lv">A4</span><span class="nm">Auditado<small>Medidores calibrados y sellados, puesta en marcha por un tercero.</small></span><span class="where">COMERCIAL</span></div>
     </div>
   </section>
 
   <section>
-    <h2><span class="n">05 &middot; Onchain</span>Una transacci&oacute;n at&oacute;mica por emisi&oacute;n</h2>
+    <h2><span class="n">05 &middot; Onchain</span>Una transacci&oacute;n at&oacute;mica por anclaje</h2>
     <p class="sub">
-      El manifiesto del lote es JSON can&oacute;nico y se publica <b>antes</b> de emitir; su SHA-256 viaja dentro de la
-      transacci&oacute;n que emite. Un revisor recalcula el hash desde el archivo p&uacute;blico y no necesita nada de nosotros.
+      El manifiesto del lote es JSON can&oacute;nico y se publica <b>antes</b> de anclar; su SHA-256 viaja dentro de la
+      transacci&oacute;n que lo ancla. Un revisor recalcula el hash desde el archivo p&uacute;blico y no necesita nada de nosotros.
     </p>
     <div class="ops">
       <div class="op"><span class="k">op 1</span><p><code>manageData qwatt.anchor.sha256</code> — digest de 64 hex del manifiesto can&oacute;nico del lote.</p></div>
       <div class="op"><span class="k">op 2</span><p><code>manageData qwatt.cumulative_kwh</code> — total acumulado; siempre la suma exacta de cada pago truncado anterior.</p></div>
-      <div class="op"><span class="k">op 3</span><p><code>payment</code> — el QWATT del lote desde el emisor a la cuenta de distribuci&oacute;n. El pago de vuelta al emisor quema en la redenci&oacute;n.</p></div>
+      <div class="op"><span class="k">op 3</span><p><code>payment</code> — un pago nominal fijo a una cuenta fija, igual en cada lote; no representa la energ&iacute;a del lote.</p></div>
     </div>
     <div class="princ">
-      <div><h3 class="sub-h">El menor de dos medidores</h3><p>Cada intervalo tokeniza <code>min(A,B)</code>. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
-      <div><h3 class="sub-h">Truncar, nunca redondear</h3><p>Los montos se truncan a los 7 decimales de Stellar en <code>Decimal</code>. El resto simplemente no se tokeniza.</p></div>
-      <div><h3 class="sub-h">Protecci&oacute;n contra doble emisi&oacute;n</h3><p>Un registro de intenci&oacute;n precede a cada env&iacute;o; un timeout de Horizon se recupera buscando el hash del ancla.</p></div>
-      <div><h3 class="sub-h">Reconciliaci&oacute;n sin nosotros</h3><p><code>emitido &minus; redimido = circulante</code>, recalculado en vivo desde Horizon en el navegador del revisor.</p></div>
+      <div><h3 class="sub-h">El menor de dos medidores</h3><p>Cada intervalo ancla <code>min(A,B)</code>. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
+      <div><h3 class="sub-h">Truncar, nunca redondear</h3><p>Los montos se truncan a los 7 decimales de Stellar en <code>Decimal</code>. El resto simplemente no se ancla.</p></div>
+      <div><h3 class="sub-h">Protecci&oacute;n contra doble anclaje</h3><p>Un registro de intenci&oacute;n precede a cada env&iacute;o; un timeout de Horizon se recupera buscando el hash del ancla.</p></div>
+      <div><h3 class="sub-h">Reconciliaci&oacute;n sin nosotros</h3><p><code>lo verificado = lo anclado</code>, recalculado desde Horizon por cualquier revisor con el c&oacute;digo p&uacute;blico.</p></div>
     </div>
   </section>
 
@@ -613,7 +586,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       <li><b>No prueba que la energ&iacute;a fue renovable.</b> Prueba que el perfil de generaci&oacute;n coincide con la f&iacute;sica solar de ese lugar y esa hora. Es evidencia fuerte, no un certificado de combustible.</li>
       <li><b>No prueba que el medidor est&eacute; conectado a ese arreglo.</b> Amarrar instrumento e instalaci&oacute;n es un acto f&iacute;sico de puesta en marcha — gabinete sellado, fotos, firma del instalador — no algo criptogr&aacute;fico. Eso es el nivel A4.</li>
       <li><b>No prueba entrega, propiedad ni derecho.</b> Qui&eacute;n es due&ntilde;o de la energ&iacute;a y qui&eacute;n puede reclamarla son preguntas de contrato.</li>
-      <li><b>No es un REC, ni un bono de carbono, ni un t&iacute;tulo de subsidio.</b> QWATT-Clean es un instrumento de transparencia voluntaria mientras no est&eacute; homologado.</li>
+      <li><b>No es un REC, ni un bono de carbono, ni un t&iacute;tulo de subsidio.</b> Una constancia QWATT es evidencia p&uacute;blica y voluntaria, nada m&aacute;s.</li>
       <li><b>No es infalsificable por alguien con acceso f&iacute;sico.</b> El modelo sube el costo de una falsificaci&oacute;n cre&iacute;ble por encima del valor de la energ&iacute;a falsificada, y hace detectables las baratas. Esa es la afirmaci&oacute;n honesta; quien promete m&aacute;s est&aacute; vendiendo algo.</li>
     </ul>
   </section>
@@ -622,17 +595,15 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     <h2><span class="n">07 &middot; Sin confiar en nosotros</span>C&oacute;mo lo verificas t&uacute;</h2>
     <p class="sub">El procedimiento completo, con herramientas p&uacute;blicas. El paso 6 es el que nos audita a nosotros.</p>
     <ol class="steps">
-      <li>Abre la transacci&oacute;n de emisi&oacute;n en stellar.expert.</li>
+      <li>Abre la transacci&oacute;n de anclaje en stellar.expert.</li>
       <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacci&oacute;n: ah&iacute; est&aacute; el hash de la evidencia.</li>
       <li>Descarga el manifiesto del lote desde el feed p&uacute;blico y recalcula su <code>SHA-256</code>. Debe coincidir.</li>
-      <li>Vuelve a correr las compuertas con los n&uacute;meros del propio lote — todos los umbrales est&aacute;n en <a href="protocol/gates.spec.json">gates.spec.json</a> y los casos de conformidad en <a href="protocol/conformance/cases.json">cases.json</a>. Esta p&aacute;gina corre el mismo motor que la suite.</li>
+      <li>Vuelve a correr los filtros de verificaci&oacute;n con los n&uacute;meros del propio lote — todos los umbrales est&aacute;n en <a href="protocol/gates.spec.json">gates.spec.json</a> y los casos de conformidad en <a href="protocol/conformance/cases.json">cases.json</a>. Esta p&aacute;gina corre el mismo motor que la suite.</li>
       <li>Comprueba que <code>qwatt.cumulative_kwh</code> sea la suma exacta de todos los pagos anteriores.</li>
-      <li><b>Reconciliaci&oacute;n:</b> suma lo atestiguado y comp&aacute;ralo con lo emitido desde la g&eacute;nesis. Si no cuadran, el emisor est&aacute; emitiendo sin respaldo.</li>
+      <li><b>Reconciliaci&oacute;n:</b> suma lo verificado y comp&aacute;ralo con lo anclado en Stellar testnet; si no cuadran, hay un lote sin respaldo.</li>
     </ol>
     <p class="foot-note">
-      El <a href="proof.html">Explorer</a> muestra hoy un estado vac&iacute;o honesto: todav&iacute;a no existe ning&uacute;n evento
-      real. Cuando exista, aparecer&aacute; ah&iacute;. El modelo completo est&aacute; en el
-      <a href="whitepaper.html">whitepaper</a>, y el c&oacute;digo de los validadores en
+      El modelo completo y el c&oacute;digo de los validadores est&aacute;n en
       <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener">GitHub &#8599;</a>.
     </p>
   </section>
@@ -659,34 +630,16 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
   <div class="qf-cols">
     <div>
       <a class="qf-brand" href="index.html"><span class="qf-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-      <p class="qf-lead">The Clean Token: energ&iacute;a renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo.</p>
       <span class="qf-chip">&#9679; STELLAR TESTNET</span>
     </div>
     <div class="qf-grp">
-      <h3>Apps</h3>
-      <a href="console.html">Consola Onchain</a>
+      <h3>Enlaces</h3>
       <a href="verificacion.html">Verificaci&oacute;n</a>
-      <a href="grid.html">QWATT Grid</a>
-      <a href="pay.html">QWATT Pay</a>
-      <a href="wallet.html">QWATT Wallet</a>
-      <a href="proof.html">QWATT Explorer</a>
-      <a href="respaldo.html">Reservas</a>
-      <a href="red.html">QWATT Pulse</a>
-      <a href="piloto.html">Piloto Solar</a>
-    </div>
-    <div class="qf-grp">
-      <h3>Recursos</h3>
-      <a href="index.html">Inicio</a>
-      <a href="index.html#clean">QWATT-Clean</a>
-      <a href="whitepaper.html">Whitepaper</a>
-      <a href="backup.html">Backup de claves</a>
-      <a href="terminos.html">T&eacute;rminos y seguridad</a>
-      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+      <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener">GitHub &#8599;</a>
     </div>
   </div>
   <div class="qf-bottom">
     <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
-    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
   </div>
 </div>
 </footer>
@@ -775,10 +728,9 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     v.className = 'verdict ' + (ok ? 'ok' : 'no');
     $('vTitle').textContent = ok ? 'ACEPTADO' : 'RECHAZADO';
     if (ok) {
-      $('vMint').textContent = 'emite ' + res.mint.qwatt_str.replace('.', ',') + ' QWATT'
-        + '  ·  min(A,B) = ' + n1(res.minted) + ' Wh';
+      $('vMint').textContent = 'se ancla  ·  min(A,B) = ' + n1(res.minted) + ' Wh';
     } else {
-      $('vMint').textContent = failed.length + (failed.length === 1 ? ' compuerta cerrada' : ' compuertas cerradas') + ' · no emite';
+      $('vMint').textContent = failed.length + (failed.length === 1 ? ' filtro falló' : ' filtros fallaron') + ' · no se ancla';
     }
   }
 
