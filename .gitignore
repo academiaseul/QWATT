@@ -17,3 +17,4 @@ verifier-state/
 feed/
 live-state/
 ops-state/
+.claude/
