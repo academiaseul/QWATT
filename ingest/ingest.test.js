@@ -224,6 +224,32 @@ test('HTTP: /intervals accepts a valid record, stamps clock_skew_s, rejects an i
   await srv.close();
 });
 
+test('HTTP: /intervals writes RFC 3339 timestamps in canonical UTC, keeps the request hash in raw_sha256, and answers 400 off the grid (ingest.off_grid)', async () => {
+  const { BatchAssembler } = require('../batch/assemble');
+  const got = [];
+  const srv = await httpAdapter.start({ port: 0, now: () => T0 + 1500000 }, mk(), (r) => got.push(r));
+  const rec = (i, spell, dt = 300) => ({ spec_version: '1.0.0', schema_version: '1.1.0', site_id: 's', node_id: 'n', seq: i,
+    ts_start: spell(new Date(T0 + i * 300000).toISOString()), ts_end: spell(new Date(T0 + i * 300000 + dt * 1000).toISOString()), dt_s: dt,
+    meters: { a: { id: 'a', class: 'dc', mwh: 11800 }, b: { id: 'b', class: 'dc', mwh: 11600 } }, source: { adapter: 'http-json' } });
+  const spellings = [(s) => s, (s) => s.replace('.000Z', 'Z'), (s) => s.replace('.000Z', '+00:00'),
+    (s) => new Date(Date.parse(s) - 3 * H).toISOString().replace('Z', '-03:00')];   // Santiago local time, same instant
+  const sent = spellings.map((spell, i) => rec(i, spell));
+  for (const r of sent) eq((await httpAdapter.post(srv.port, '/intervals', r)).status, 202, r.ts_start);
+  const offGrid = rec(4, (s) => new Date(Date.parse(s) + 60000).toISOString());   // a minute off the 300 s grid
+  const off = await httpAdapter.post(srv.port, '/intervals', offGrid);
+  await srv.close();
+  eq(off.status, 400, 'off the grid'); eq(off.body.error, 'ingest.off_grid', 'named');
+  eq(got.length, 4, 'four delivered');
+  got.forEach((r, i) => {
+    eq(r.ts_start, new Date(T0 + i * 300000).toISOString(), `ts_start ${i}`);
+    eq(r.ts_end, new Date(T0 + (i + 1) * 300000).toISOString(), `ts_end ${i}`);
+  });
+  assert(got[0].source.raw_sha256 === undefined, 'a canonical record is delivered as sent');
+  got.slice(1).forEach((r, i) => eq(r.source.raw_sha256, sha256(JSON.stringify(sent[i + 1])), `request hash ${i + 1}`));
+  const a = new BatchAssembler({ site_id: 's', node_id: 'n' });
+  got.forEach((r) => { const l = a.judge(r); eq(l.verdict, 'accept', `door: ${r.ts_start} [${l.reasons}]`); });
+});
+
 test('Modbus TCP: client reads the simulator, exception codes surface as errors', async () => {
   const sim = await modbus.createSimulator({ provider: (uid, fc, addr, count) => { if (addr > 100) throw Object.assign(new Error('x'), { code: 2 }); return Array.from({ length: count }, (_, i) => addr + i); } });
   const c = new modbus.ModbusTcp({ host: '127.0.0.1', port: sim.port });
