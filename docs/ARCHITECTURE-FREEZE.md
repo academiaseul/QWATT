@@ -1,6 +1,6 @@
 # Architecture freeze — Instawards sprint, days 1–3
 
-**Frozen:** 2026-09-09 · **Sprint:** `docs/SOW-INSTAWARD-v3.md` · **Rule:** nothing below changes
+**Frozen:** 2026-09-09 · **Sprint:** SOW v3, an earlier version of the proposal (no longer in this repository) · **Rule:** nothing below changes
 until day 30. If something here turns out to be wrong, the fix is a documented deviation in the
 write-up, not a silent edit.
 
