@@ -1,0 +1,229 @@
+{
+  "started_at": "2026-10-08T20:50:44.831Z",
+  "network": "testnet",
+  "public_keys": {
+    "account": "GCTBRUGQRYNGH7OMRMMQU46NAQNB2AURIWG7D66ADTQDWJC6D2N5O6FO",
+    "proposer": "GDVWC75SUNP4LY4ECDYIRL63ONDHS4HUD4LG2XEP2ZN2UORGFR5VUDKH",
+    "verifier": "GAVIYYOEAIPG7JCFOAWQ4A7KT2QV7UGYOXZCNPRD4V2RSZLPHGVO6FEJ",
+    "third": "GCXLDSWGIUBFTVCIANVKRBBXZDAQPXCID35HG2J5NWI3VF7EFMXVORLM",
+    "destination": "GCPDGSBO74W3WQEAPQM7XHAAXTL5FZ5W2MMTZ6HKDY2VCGRIPZIHIEK2"
+  },
+  "scenarios": {
+    "fault_rejections": [
+      {
+        "batch_id": "e2e-bench-000003",
+        "reasons": [
+          "agreement.diverge"
+        ]
+      }
+    ],
+    "restart": "fresh proposer and verifier instances created after two anchors",
+    "independence_unpublished": {
+      "batch_id": "e2e-bench-000004",
+      "verifier": {
+        "action": "refused",
+        "batch_id": "e2e-bench-000004",
+        "reasons": [
+          "verifier.not_published"
+        ],
+        "detail": "pending transaction names a batch that is not in the public feed"
+      }
+    },
+    "independence_after_publication": {
+      "batch_id": "e2e-bench-000004",
+      "verifier": {
+        "action": "anchored",
+        "batch_id": "e2e-bench-000004",
+        "tx_hash": "9345109700f06e208d3e1e992ddd81cd452017896a511865961233ea4a6a4ea1",
+        "ledger": 5093822
+      }
+    },
+    "test_D_forged_after_signing": {
+      "batch_id": "e2e-bench-000005",
+      "forged_sha256": "7cf49d5b0dce2ad7e190e9c6766ea01998d7d02e2ec0937b0c70d8cc1dd9cf90",
+      "verifier": {
+        "action": "refused",
+        "batch_id": "e2e-bench-000005",
+        "reasons": [
+          "verifier.hash_mismatch"
+        ],
+        "detail": "pending anchor ≠ hash of the published batch"
+      }
+    },
+    "test_D_after_restore": {
+      "batch_id": "e2e-bench-000005",
+      "verifier": {
+        "action": "anchored",
+        "batch_id": "e2e-bench-000005",
+        "tx_hash": "32914f0a5a9c3321e79695586f7691f06a90897d99add5405b66d2f84d243ff9",
+        "ledger": 5093823
+      }
+    }
+  },
+  "ticks": [
+    {
+      "label": "chain 0",
+      "proposer": {
+        "action": "proposed",
+        "batch_id": "e2e-bench-000000",
+        "tx_hash": "fe32abe36974bc70401637b3926ab232a7afd18b034865bc81f16b65d1069208",
+        "sequence": "21877768836874242"
+      },
+      "verifier": {
+        "action": "anchored",
+        "batch_id": "e2e-bench-000000",
+        "tx_hash": "fe32abe36974bc70401637b3926ab232a7afd18b034865bc81f16b65d1069208",
+        "ledger": 5093818
+      }
+    },
+    {
+      "label": "chain 1",
+      "proposer": {
+        "action": "proposed",
+        "batch_id": "e2e-bench-000001",
+        "tx_hash": "319a3feaf79632707ccc3ff7103a07d823bd0998a0056acc4a56b6f52d41d039",
+        "sequence": "21877768836874243"
+      },
+      "verifier": {
+        "action": "anchored",
+        "batch_id": "e2e-bench-000001",
+        "tx_hash": "319a3feaf79632707ccc3ff7103a07d823bd0998a0056acc4a56b6f52d41d039",
+        "ledger": 5093819
+      }
+    },
+    {
+      "label": "chain 2 (after restart)",
+      "proposer": {
+        "action": "proposed",
+        "batch_id": "e2e-bench-000002",
+        "tx_hash": "378ff4efbe2a2a4dd71b9bd93537ce63586440c641dc399e68a26474abb38a07",
+        "sequence": "21877768836874244"
+      },
+      "verifier": {
+        "action": "anchored",
+        "batch_id": "e2e-bench-000002",
+        "tx_hash": "378ff4efbe2a2a4dd71b9bd93537ce63586440c641dc399e68a26474abb38a07",
+        "ledger": 5093820
+      }
+    },
+    {
+      "label": "chain 3 (after restart)",
+      "proposer": {
+        "action": "proposed",
+        "batch_id": "e2e-bench-000003",
+        "tx_hash": "12690a7ba4098ac4bf9118c849ec057ee95b6a55742f6959da3f155b8f6c365e",
+        "sequence": "21877768836874245"
+      },
+      "verifier": {
+        "action": "anchored",
+        "batch_id": "e2e-bench-000003",
+        "tx_hash": "12690a7ba4098ac4bf9118c849ec057ee95b6a55742f6959da3f155b8f6c365e",
+        "ledger": 5093821
+      }
+    },
+    {
+      "label": "chain 4 (after restart)",
+      "proposer": {
+        "action": "idle",
+        "anchored": 4
+      },
+      "verifier": {
+        "action": "idle",
+        "anchored": 4
+      }
+    },
+    {
+      "label": "settle 0",
+      "proposer": {
+        "action": "idle",
+        "anchored": 6
+      },
+      "verifier": {
+        "action": "idle",
+        "anchored": 6
+      }
+    }
+  ],
+  "setup_tx": "39be29a115aa4b16ded4a3df09d390afd015f6b4d688db121a6fbab8f7b9a390",
+  "final": {
+    "feed_verified": true,
+    "feed_problems": [],
+    "batches": 6,
+    "cumulative_mwh_feed": 585750,
+    "onchain_anchor": "736456fbdf4cc33e4aad19abb79685fa847fd45c44440b30e449383785ebd950",
+    "onchain_cumulative_mwh": 585750,
+    "head_matches_last_batch": true,
+    "anchored_records": [
+      {
+        "batch_id": "e2e-bench-000000",
+        "seq": 0,
+        "sha256": "d452b22635054a25a0fd526eabe5c8083206cb5e69144baff09b13721347f595",
+        "tx_hash": "fe32abe36974bc70401637b3926ab232a7afd18b034865bc81f16b65d1069208",
+        "ledger": 5093818,
+        "anchored_at": "2026-10-08T20:51:17Z"
+      },
+      {
+        "batch_id": "e2e-bench-000001",
+        "seq": 1,
+        "sha256": "0a5f9b8ba611210adc786f809cfc298ab8f1a5deb6884f0db37259fa196cff2e",
+        "tx_hash": "319a3feaf79632707ccc3ff7103a07d823bd0998a0056acc4a56b6f52d41d039",
+        "ledger": 5093819,
+        "anchored_at": "2026-10-08T20:51:22Z"
+      },
+      {
+        "batch_id": "e2e-bench-000002",
+        "seq": 2,
+        "sha256": "e14c25c89d9080a8bf8cabe11f50b05ea76483771b3ba6bc6242e7a20a06c3d6",
+        "tx_hash": "378ff4efbe2a2a4dd71b9bd93537ce63586440c641dc399e68a26474abb38a07",
+        "ledger": 5093820,
+        "anchored_at": "2026-10-08T20:51:27Z"
+      },
+      {
+        "batch_id": "e2e-bench-000003",
+        "seq": 3,
+        "sha256": "e92a62f35748eb85bfcf475e5630ee794a27aa3719699dd463f80033a806e3a1",
+        "tx_hash": "12690a7ba4098ac4bf9118c849ec057ee95b6a55742f6959da3f155b8f6c365e",
+        "ledger": 5093821,
+        "anchored_at": "2026-10-08T20:51:32Z"
+      },
+      {
+        "batch_id": "e2e-bench-000004",
+        "seq": 4,
+        "sha256": "15789a104d0cdc051d6d0af7aa04c371051f95ac2e39a2b869481634c2f2af17",
+        "tx_hash": "9345109700f06e208d3e1e992ddd81cd452017896a511865961233ea4a6a4ea1",
+        "ledger": 5093822,
+        "anchored_at": "2026-10-08T20:51:37Z"
+      },
+      {
+        "batch_id": "e2e-bench-000005",
+        "seq": 5,
+        "sha256": "736456fbdf4cc33e4aad19abb79685fa847fd45c44440b30e449383785ebd950",
+        "tx_hash": "32914f0a5a9c3321e79695586f7691f06a90897d99add5405b66d2f84d243ff9",
+        "ledger": 5093823,
+        "anchored_at": "2026-10-08T20:51:42Z"
+      }
+    ],
+    "refusals": [
+      {
+        "at": "2026-10-08T20:51:19.044Z",
+        "batch_id": "e2e-bench-000004",
+        "pending_tx_hash": "9345109700f06e208d3e1e992ddd81cd452017896a511865961233ea4a6a4ea1",
+        "reasons": [
+          "verifier.not_published"
+        ],
+        "detail": "pending transaction names a batch that is not in the public feed"
+      },
+      {
+        "at": "2026-10-08T20:51:24.019Z",
+        "batch_id": "e2e-bench-000005",
+        "pending_tx_hash": "32914f0a5a9c3321e79695586f7691f06a90897d99add5405b66d2f84d243ff9",
+        "reasons": [
+          "verifier.hash_mismatch"
+        ],
+        "detail": "pending anchor ≠ hash of the published batch"
+      }
+    ]
+  },
+  "verdict": "PASS",
+  "finished_at": "2026-10-08T20:51:28.873Z"
+}

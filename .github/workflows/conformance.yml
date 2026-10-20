@@ -24,3 +24,17 @@ jobs:
         run: node mining-rig/validators.test.js
       - name: Ingestion tests + Deliverable 1 acceptance harness
         run: node ingest/ingest.test.js
+      - name: Batch conformance (Deliverable 2) — hash chain, tamper suite, restart safety
+        run: node batch/batch.test.js
+      - name: Scale test (Deliverable 2) — NREL PVDAQ NIST Ground, Sept 2017 (CC BY 4.0), chain verified, deterministic
+        run: node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json
+      - name: Anchoring builder + recovery (Deliverable 3, SOW D4 recovery) — the only suites with a dependency
+        run: npm ci --prefix anchor --no-audit --no-fund && node anchor/tx.test.js && node anchor/recovery.test.js && node anchor/tests-abcd.test.js
+      - name: Reconciliation (Deliverable 4) — the logic reconcile.html runs in the browser
+        run: node batch/reconcile.test.js
+      - name: Live run (Deliverable 4) — accelerated multi-day run, every fault refused, coverage complete
+        run: node live/live.test.js
+      - name: Watchdog decisions (plan 3.9)
+        run: node ops/watch.test.js
+      - name: Feed publisher (two-phase, append-only) against a local bare remote
+        run: node ops/publish-feed.test.js

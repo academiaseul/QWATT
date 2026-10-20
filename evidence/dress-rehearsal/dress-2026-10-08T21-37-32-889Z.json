@@ -1,0 +1,72 @@
+{
+  "started_at": "2026-10-08T21:37:32.889Z",
+  "finished_at": "2026-10-08T21:41:51.097Z",
+  "wall_s": 258,
+  "network": "testnet",
+  "public_keys": {
+    "account": "GB2QTJRIMRGJDBAJ2PI7PQ74ZNVVXCRDOBKAZA6ZASRYCSTNNRXMX3HU",
+    "proposer": "GD6SC4U3CEDHFKPXVTDBK7RMWUMCFYZXHPSW7IKBG525UAGGAKBIOWEW",
+    "verifier": "GBMWI6LQXFCA3APYHO4MICB4HRVIVY52FNUNO7RDIRXELXL5FBOAMXCI",
+    "third": "GBQ3AEU5CR64OYPOT36I6N7UYH4OCY3UIQHJKRC2B7SJC7HKV6XBCWJN",
+    "destination": "GBMWFJC7T5VTEVXCM4FVP545TARP6PLVNR5DCIQLWF3DOAWKWJMCK2AO"
+  },
+  "setup_tx": "3179008a3aad3b7bfe021445d1dc3a902ba53316a87c2430291cf9ebaa44d390",
+  "days": 2,
+  "live_audit": {
+    "ok": true,
+    "coverage": {
+      "judged": 576,
+      "expected": 576,
+      "gaps": 0
+    },
+    "faults": [
+      {
+        "id": "F01-shaded_sensor",
+        "kind": "shaded_sensor",
+        "start": "2026-11-04T16:05:00.000Z",
+        "end": "2026-11-04T16:25:00.000Z",
+        "expect": [
+          "agreement.diverge"
+        ],
+        "intervals": 4,
+        "judged": 4,
+        "refused": 4,
+        "accepted": 0,
+        "codes": {
+          "agreement.diverge": 4
+        },
+        "status": "refused as expected"
+      }
+    ]
+  },
+  "anchoring": {
+    "batches": 48,
+    "anchored": 48,
+    "transient_errors": 0
+  },
+  "reconciliation": {
+    "verdict": "RECONCILED",
+    "summary": {
+      "published_batches": 48,
+      "accepted_batches": 48,
+      "rejected_batches": 0,
+      "anchored_batches": 48,
+      "awaiting_anchor": [],
+      "anchor_transactions": 48,
+      "published_cumulative_mwh": 1107371,
+      "anchored_cumulative_mwh": 1107371,
+      "last_anchored_batch": "bench-santiago-000047",
+      "rejected_intervals": 6,
+      "rejected_by_reason": {
+        "plausibility.energy_power": 2,
+        "agreement.diverge": 4
+      },
+      "first_anchor_at": "2026-10-08T21:38:07Z",
+      "last_anchor_at": "2026-10-08T21:42:02Z"
+    },
+    "problems": []
+  },
+  "first_tx": "a28787643c08e0c3a7bc2f79f0f3002b38dc21695d6a4051d29d1a7a46ca5a20",
+  "last_tx": "ea31ce924c81f4660bd03dfaf7b4d60d9090b6c31f5f20e248b8abc26fa02d30",
+  "verdict": "PASS"
+}

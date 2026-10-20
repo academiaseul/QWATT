@@ -95,6 +95,11 @@ class IntervalBuilder {
     const b = this._bucket(k);
     if (raw != null) b.raw.update(typeof raw === 'string' ? Buffer.from(raw, 'utf8') : raw);
 
+    /* A meter returning after a gap that outlived the intervals it spanned: those intervals were
+       already closed without it, so integration restarts at this sample. Energy is never
+       interpolated across closed intervals: a gap stays a gap (and trying would throw). */
+    if (m.energy === 'integrate' && m.last && this.gridIndex(m.last.ts) <= this.lastClosedK) m.last = null;
+
     if (m.energy === 'integrate' && m.last) {
       let t0 = m.last.ts, p0 = m.last.power_w;
       const t1 = sample.ts, p1 = sample.power_w;

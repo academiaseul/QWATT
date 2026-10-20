@@ -1,0 +1,18 @@
+# VERIFIER HOST ONLY (a different machine and provider from the proposer).
+# Its only input is the public feed URL. It must never be given a path or address of the proposer.
+[Unit]
+Description=QWATT independent verifier
+After=network-online.target time-sync.target
+Wants=network-online.target
+
+[Service]
+User=qwatt
+WorkingDirectory=/opt/qwatt
+ExecStart=/usr/bin/node anchor/verifier.js --feed ${QWATT_FEED_URL} --config /etc/qwatt/anchor.json --state /var/lib/qwatt/verifier --interval 30 --port 8090
+# QWATT_VERIFIER_SECRET=S… and QWATT_FEED_URL=https://… live only here (chmod 600, owner root)
+EnvironmentFile=/etc/qwatt/verifier.env
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

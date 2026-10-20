@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>QWATT Reconciliation</title>
+<meta name="description" content="Recompute every QWATT evidence batch in your browser and check it against what is anchored on Stellar Testnet. No trust in the team required.">
+<meta name="theme-color" content="#faf8f2">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<script>
+/* Same preference key and default as the rest of qwatt.org. */
+(function () { var t = 'light'; try { t = localStorage.getItem('qwatt.theme') || 'light'; } catch (e) {} document.documentElement.setAttribute('data-theme', t); })();
+</script>
+<style>
+  /* Tokens: the site's app palette (proof.html), dark first, light via data-theme. */
+  :root {
+    --bg:#16100a; --panel:#231a10; --panel2:#2b2015; --line:#3b2d1d;
+    --ink:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
+    --accent:#d08a57; --sand:#d9b26a; --good:#3cb87f; --bad:#e05c5c; --warn:#d9b26a;
+    --good-bg:rgba(60,184,127,.08); --bad-bg:rgba(224,92,92,.08); --warn-bg:rgba(217,178,106,.08);
+    --display:'Chakra Petch','Segoe UI',sans-serif;
+    --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
+    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
+  }
+  html[data-theme="light"] {
+    --bg:#faf8f2; --panel:#f1ecdf; --panel2:#e6dfcd; --line:#e2dccd;
+    --ink:#1b1a14; --muted:#5a5244; --faint:#6f6957;
+    --accent:#b0582f; --sand:#8a672f; --good:#1a7f4e; --bad:#b91c1c; --warn:#8a6d1f;
+    --good-bg:rgba(26,127,78,.07); --bad-bg:rgba(185,28,28,.06); --warn-bg:rgba(138,109,31,.08);
+  }
+  * { box-sizing:border-box; margin:0; padding:0 }
+  body { background:var(--bg); color:var(--ink); font-family:var(--body); line-height:1.6; padding:24px 16px 48px; -webkit-font-smoothing:antialiased }
+  .wrap { max-width:1100px; margin:0 auto; display:flex; flex-direction:column; gap:16px }
+  a { color:var(--sand) }
+  :focus-visible { outline:2px solid var(--accent); outline-offset:2px }
+
+  header.site { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap }
+  .brand { display:flex; align-items:center; gap:10px; font-family:var(--display); font-weight:700; font-size:20px; color:var(--ink); text-decoration:none }
+  .bolt { width:32px; height:32px; border-radius:8px; display:grid; place-items:center; font-size:17px; background:linear-gradient(135deg,var(--accent),#a2602f); color:#1a1206 }
+  .brand em { font-style:normal; color:var(--accent) }
+  .hd-right { display:flex; align-items:center; gap:8px }
+  .net-badge { font-family:var(--mono); font-size:12px; color:var(--accent); border:1px solid color-mix(in srgb, var(--accent) 45%, transparent); padding:5px 12px; border-radius:99px }
+  .theme-btn { font:inherit; font-size:15px; width:34px; height:34px; border-radius:99px; border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer }
+
+  h1 { font-family:var(--display); font-size:clamp(26px,4vw,36px); line-height:1.15; text-wrap:balance }
+  .lead { color:var(--muted); max-width:62ch }
+
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:16px; padding:20px }
+  .panel h2 { font-family:var(--display); font-size:17px }
+  .panel .sub { font-size:13px; color:var(--muted); margin:2px 0 14px; max-width:70ch }
+
+  form.src { display:grid; grid-template-columns:2fr 1.4fr auto; gap:12px; align-items:end }
+  @media (max-width:820px) { form.src { grid-template-columns:1fr } }
+  label { display:flex; flex-direction:column; gap:5px; font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.08em }
+  input { font-family:var(--mono); font-size:13px; padding:10px 12px; border-radius:10px; border:1px solid var(--line); background:var(--bg); color:var(--ink); width:100%; text-transform:none; letter-spacing:0 }
+  details.adv { grid-column:1 / -1; font-size:13px; color:var(--muted) }
+  details.adv summary { cursor:pointer }
+  details.adv label { margin-top:8px; max-width:520px }
+  button.run { font-family:var(--display); font-weight:600; font-size:15px; padding:10px 22px; border-radius:10px; border:0; background:var(--accent); color:#fff; cursor:pointer; white-space:nowrap }
+  button.run:disabled { opacity:.6; cursor:progress }
+  .progress { font-family:var(--mono); font-size:12.5px; color:var(--faint); min-height:1.6em }
+
+  .verdict { border-radius:16px; padding:18px 20px; border:1px solid; display:flex; gap:16px; align-items:flex-start }
+  .verdict .v-word { font-family:var(--display); font-weight:700; font-size:22px; letter-spacing:.04em; white-space:nowrap }
+  .verdict p { color:var(--ink); font-size:14.5px; max-width:70ch }
+  .verdict ul { margin:8px 0 0 18px; font-family:var(--mono); font-size:12.5px }
+  .v-ok { border-color:color-mix(in srgb, var(--good) 45%, transparent); background:var(--good-bg) } .v-ok .v-word { color:var(--good) }
+  .v-pending { border-color:color-mix(in srgb, var(--warn) 45%, transparent); background:var(--warn-bg) } .v-pending .v-word { color:var(--warn) }
+  .v-broken { border-color:color-mix(in srgb, var(--bad) 45%, transparent); background:var(--bad-bg) } .v-broken .v-word { color:var(--bad) }
+  @media (max-width:560px) { .verdict { flex-direction:column; gap:6px } }
+
+  .tiles { display:grid; grid-template-columns:repeat(4,1fr); gap:12px }
+  @media (max-width:860px) { .tiles { grid-template-columns:repeat(2,1fr) } }
+  .tile { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; min-width:0 }
+  .tile .t-l { font-size:11.5px; color:var(--muted); text-transform:uppercase; letter-spacing:1px }
+  .tile .t-v { font-family:var(--mono); font-variant-numeric:tabular-nums; font-size:22px; font-weight:600; margin-top:6px; overflow-wrap:anywhere }
+  .tile .t-s { font-family:var(--mono); font-size:12px; color:var(--faint); margin-top:2px; overflow-wrap:anywhere }
+
+  .scroll { overflow-x:auto }
+  table { width:100%; border-collapse:collapse; font-size:13.5px; font-variant-numeric:tabular-nums }
+  th { font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:1.2px; color:var(--faint); text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); font-weight:500; white-space:nowrap }
+  td { padding:9px 10px; border-bottom:1px solid color-mix(in srgb, var(--line) 60%, transparent); vertical-align:middle; white-space:nowrap }
+  td.num, th.num { text-align:right }
+  .mono { font-family:var(--mono); font-size:12.5px }
+  .dim { color:var(--faint) }
+  .chip { font-family:var(--mono); font-size:10px; letter-spacing:.1em; padding:3px 9px; border-radius:99px; border:1px solid; white-space:nowrap; text-transform:uppercase }
+  .c-anch { color:var(--good); border-color:color-mix(in srgb, var(--good) 45%, transparent) }
+  .c-wait { color:var(--warn); border-color:color-mix(in srgb, var(--warn) 45%, transparent) }
+  .c-rej { color:var(--faint); border-color:var(--line) }
+  .c-bad { color:var(--bad); border-color:color-mix(in srgb, var(--bad) 45%, transparent) }
+  .ok { color:var(--good) } .no { color:var(--bad) }
+
+  .two { display:grid; grid-template-columns:1fr 1fr; gap:16px }
+  @media (max-width:860px) { .two { grid-template-columns:1fr } }
+  ol.how { margin-left:18px; font-size:14px; display:flex; flex-direction:column; gap:6px; max-width:70ch }
+  code { font-family:var(--mono); font-size:12.5px; background:var(--panel2); padding:1px 6px; border-radius:5px; overflow-wrap:anywhere }
+  .empty { border:1px dashed var(--line); border-radius:12px; padding:16px; color:var(--muted); font-size:13.5px }
+  footer { font-size:12.5px; color:var(--faint); max-width:80ch }
+  [hidden] { display:none !important }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="site">
+    <a class="brand" href="/"><span class="bolt" aria-hidden="true">⚡</span><span>Q<em>WATT</em></span></a>
+    <div class="hd-right">
+      <span class="net-badge">STELLAR TESTNET</span>
+      <button class="theme-btn" id="themeBtn" type="button" aria-label="Switch light/dark theme" title="Light / dark"></button>
+    </div>
+  </header>
+
+  <div>
+    <h1>Check every anchored batch yourself</h1>
+    <p class="lead">This page downloads the public evidence feed, recomputes each batch's SHA-256 in your browser, and compares it with what the 2-of-3 anchoring account wrote on Stellar. It trusts nothing the QWATT team says; the only inputs are the published files and the public ledger.</p>
+  </div>
+
+  <section class="panel" aria-labelledby="src-h">
+    <h2 id="src-h">Sources</h2>
+    <p class="sub">Shareable: the page reads <code>?feed=</code> and <code>?account=</code> from its address, so a link carries the exact check.</p>
+    <form class="src" id="srcForm">
+      <label>Evidence feed URL<input id="feedIn" type="url" required placeholder="https://…/feed" spellcheck="false"></label>
+      <label>Anchoring account<input id="acctIn" required pattern="G[A-Z2-7]{55}" placeholder="G…" spellcheck="false"></label>
+      <button class="run" id="runBtn" type="submit">Reconcile</button>
+      <details class="adv"><summary>Horizon server</summary>
+        <label>Horizon URL<input id="horizonIn" type="url" value="https://horizon-testnet.stellar.org" spellcheck="false"></label>
+      </details>
+    </form>
+    <p class="progress" id="progress" role="status" aria-live="polite"></p>
+  </section>
+
+  <section id="result" hidden>
+    <div class="wrap">
+      <div class="verdict" id="verdict"></div>
+
+      <div class="tiles">
+        <div class="tile"><div class="t-l">Published batches</div><div class="t-v" id="tPub">—</div><div class="t-s" id="tPubS"></div></div>
+        <div class="tile"><div class="t-l">Anchored with 2 of 3 signatures</div><div class="t-v" id="tAnc">—</div><div class="t-s" id="tAncS"></div></div>
+        <div class="tile"><div class="t-l">Energy, cumulative</div><div class="t-v" id="tEn">—</div><div class="t-s" id="tEnS"></div></div>
+        <div class="tile"><div class="t-l">Intervals refused</div><div class="t-v" id="tRej">—</div><div class="t-s" id="tRejS"></div></div>
+      </div>
+
+      <section class="panel" aria-labelledby="b-h">
+        <h2 id="b-h">Batches</h2>
+        <p class="sub">Oldest first. “Hash” is recomputed here from the downloaded file; “Chain” checks the link to the previous batch; the transaction is the one that anchored that exact hash.</p>
+        <div class="scroll">
+          <table>
+            <thead><tr><th>Seq</th><th>Batch</th><th>Window (UTC)</th><th>Status</th><th class="num">Energy (Wh)</th><th>Hash</th><th>Chain</th><th>Anchoring transaction</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <div class="two">
+        <section class="panel" aria-labelledby="r-h">
+          <h2 id="r-h">Why intervals were refused</h2>
+          <p class="sub">From the public rejection ledger. A refused interval never enters a batch and is never anchored.</p>
+          <div id="reasons"></div>
+        </section>
+        <section class="panel" aria-labelledby="h-h">
+          <h2 id="h-h">Do it without this page</h2>
+          <ol class="how">
+            <li>Download any batch from <code>&lt;feed&gt;/batches/&lt;batch_id&gt;.json</code>.</li>
+            <li>Remove its <code>sha256</code> field, serialize with sorted keys and no whitespace, and SHA-256 the UTF-8 bytes.</li>
+            <li>Open the anchoring transaction on stellar.expert: its <code>qwatt.anchor.sha256</code> data entry must equal your hash.</li>
+            <li>Check the transaction carries two signatures: one from the proposer and one from the independent verifier.</li>
+          </ol>
+        </section>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    QWATT · verification layer for metered renewable generation · Stellar Testnet only. No token issuance and no real-world-asset claim is made by these records. Logic: <code>assets/qwatt-reconcile.js</code> (open source, MIT); the command-line equivalent is <code>anchor/reconcile-cli.js</code>.
+  </footer>
+</div>
+
+<script src="assets/qwatt-reconcile.js"></script>
+<script>
+(function () {
+  'use strict';
+  var $ = function (id) { return document.getElementById(id); };
+  var R = window.QWATT_RECONCILE;
+
+  /* theme toggle, same key as the site */
+  function setTheme(t) {
+    document.documentElement.setAttribute('data-theme', t);
+    $('themeBtn').textContent = t === 'light' ? '☽' : '☀';
+    var mc = document.querySelector('meta[name="theme-color"]'); if (mc) mc.setAttribute('content', t === 'light' ? '#faf8f2' : '#16100a');
+    try { localStorage.setItem('qwatt.theme', t); } catch (e) {}
+  }
+  setTheme(document.documentElement.getAttribute('data-theme') || 'light');
+  $('themeBtn').addEventListener('click', function () { setTheme(document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light'); });
+
+  /* Everything below renders data from the feed: always textContent, never innerHTML. */
+  function el(tag, cls, text) { var n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
+  var fmtInt = new Intl.NumberFormat('en-US');
+  var wh = function (mwh) { return fmtInt.format(Math.floor(mwh / 1000)) + '.' + String(mwh % 1000).padStart(3, '0'); };
+  var kwh = function (mwh) { return (mwh / 1e6).toLocaleString('en-US', { maximumFractionDigits: 3 }) + ' kWh'; };
+  var short = function (h) { return h ? h.slice(0, 10) + '…' + h.slice(-6) : '—'; };
+  var when = function (iso) { return iso ? iso.replace('T', ' ').replace(/:00\.000Z$|\.000Z$|Z$/, '') : '—'; };
+
+  var params = new URLSearchParams(location.search);
+  if (params.get('feed')) $('feedIn').value = params.get('feed');
+  if (params.get('account')) $('acctIn').value = params.get('account');
+  if (params.get('horizon')) $('horizonIn').value = params.get('horizon');
+
+  function verdictBox(rep) {
+    var box = $('verdict');
+    box.textContent = '';
+    var map = {
+      RECONCILED: ['v-ok', 'Everything published and accepted is anchored, and every anchor matches the batch it names.'],
+      PENDING: ['v-pending', 'Everything checks out so far; the newest accepted batches are still waiting for their second signature. This is normal while the pipeline runs.'],
+      BROKEN: ['v-broken', 'The chain and the feed disagree. Each problem found is listed below.'],
+    };
+    var m = map[rep.verdict];
+    box.className = 'verdict ' + m[0];
+    box.appendChild(el('div', 'v-word', rep.verdict));
+    var body = el('div');
+    body.appendChild(el('p', null, m[1]));
+    if (rep.problems.length) {
+      var ul = el('ul');
+      rep.problems.slice(0, 50).forEach(function (p) { ul.appendChild(el('li', null, p)); });
+      body.appendChild(ul);
+    }
+    box.appendChild(body);
+  }
+
+  function render(rep, horizon) {
+    var s = rep.summary;
+    verdictBox(rep);
+    $('tPub').textContent = fmtInt.format(s.published_batches);
+    $('tPubS').textContent = s.accepted_batches + ' accepted · ' + s.rejected_batches + ' rejected';
+    $('tAnc').textContent = fmtInt.format(s.anchored_batches) + ' / ' + fmtInt.format(s.accepted_batches);
+    $('tAncS').textContent = s.awaiting_anchor.length ? s.awaiting_anchor.length + ' awaiting' : (s.last_anchor_at ? 'last ' + when(s.last_anchor_at) : 'none yet');
+    $('tEn').textContent = kwh(s.published_cumulative_mwh);
+    $('tEnS').textContent = 'on-chain ' + kwh(s.anchored_cumulative_mwh);
+    $('tRej').textContent = fmtInt.format(s.rejected_intervals);
+    $('tRejS').textContent = Object.keys(s.rejected_by_reason).length + ' distinct reasons';
+
+    var tb = $('rows'); tb.textContent = '';
+    var explorer = /testnet/.test(horizon) ? 'https://stellar.expert/explorer/testnet/tx/' : 'https://stellar.expert/explorer/public/tx/';
+    rep.rows.forEach(function (r) {
+      var tr = el('tr');
+      tr.appendChild(el('td', 'mono', String(r.seq)));
+      tr.appendChild(el('td', 'mono', r.batch_id));
+      tr.appendChild(el('td', 'mono dim', r.file === 'missing' ? 'file missing' : ''));
+      var st = el('td');
+      var chip;
+      if (r.status !== 'accepted') chip = el('span', 'chip c-rej', 'rejected');
+      else if (r.anchor) chip = el('span', 'chip c-anch', 'anchored');
+      else chip = el('span', 'chip c-wait', 'awaiting');
+      if (r.file_ok === false || r.chain_ok === false) chip = el('span', 'chip c-bad', 'mismatch');
+      st.appendChild(chip); tr.appendChild(st);
+      tr.appendChild(el('td', 'num mono', r.energy_mwh == null ? '—' : wh(r.energy_mwh)));
+      tr.appendChild(el('td', r.file_ok ? 'ok' : 'no', r.file_ok ? '✓' : '✗'));
+      tr.appendChild(el('td', r.chain_ok ? 'ok' : 'no', r.chain_ok ? '✓' : '✗'));
+      var txc = el('td', 'mono');
+      if (r.anchor) {
+        var a = el('a', null, short(r.anchor.tx_hash));
+        a.href = explorer + encodeURIComponent(r.anchor.tx_hash); a.target = '_blank'; a.rel = 'noopener';
+        txc.appendChild(a);
+        txc.appendChild(el('span', 'dim', ' · ledger ' + r.anchor.ledger));
+      } else txc.appendChild(el('span', 'dim', r.status === 'accepted' ? 'not yet' : 'never (rejected)'));
+      tr.appendChild(txc);
+      tb.appendChild(tr);
+      r._tr = tr;
+    });
+    return rep;
+  }
+
+  function renderReasons(s) {
+    var box = $('reasons'); box.textContent = '';
+    var entries = Object.keys(s.rejected_by_reason).map(function (k) { return [k, s.rejected_by_reason[k]]; }).sort(function (a, b) { return b[1] - a[1]; });
+    if (!entries.length) { box.appendChild(el('div', 'empty', 'No interval has been refused yet.')); return; }
+    var t = el('table'); var th = el('thead'); var hr = el('tr');
+    hr.appendChild(el('th', null, 'Reason code')); hr.appendChild(el('th', 'num', 'Intervals'));
+    th.appendChild(hr); t.appendChild(th);
+    var body = el('tbody');
+    entries.forEach(function (e) { var tr = el('tr'); tr.appendChild(el('td', 'mono', e[0])); tr.appendChild(el('td', 'num mono', fmtInt.format(e[1]))); body.appendChild(tr); });
+    t.appendChild(body); box.appendChild(t);
+  }
+
+  function windows(feed, rep) {
+    rep.rows.forEach(function (r) {
+      var b = feed.batches[r.batch_id];
+      if (b && r._tr) r._tr.children[2].textContent = when(b.ts_start) + ' → ' + when(b.ts_end).slice(11);
+    });
+  }
+
+  $('srcForm').addEventListener('submit', async function (ev) {
+    ev.preventDefault();
+    var feedUrl = $('feedIn').value.trim(), account = $('acctIn').value.trim(), horizon = $('horizonIn').value.trim();
+    var q = new URLSearchParams({ feed: feedUrl, account: account });
+    if (horizon !== 'https://horizon-testnet.stellar.org') q.set('horizon', horizon);
+    history.replaceState(null, '', '?' + q.toString());
+    $('runBtn').disabled = true;
+    var prog = $('progress');
+    try {
+      prog.textContent = 'Downloading the evidence feed and reading the anchoring account from Horizon…';
+      var both = await Promise.all([R.fetchFeed(feedUrl), R.fetchAnchors(horizon, account)]);
+      prog.textContent = 'Recomputing ' + both[0].listed.length + ' batch hashes in your browser…';
+      var rep = await R.reconcile(both[0], both[1]);
+      render(rep, horizon); windows(both[0], rep); renderReasons(rep.summary);
+      $('result').hidden = false;
+      prog.textContent = 'Checked ' + rep.rows.length + ' batches and ' + rep.summary.anchor_transactions + ' anchoring transactions at ' + new Date().toISOString().slice(11, 19) + ' UTC.';
+    } catch (e) {
+      prog.textContent = 'Could not complete the check: ' + e.message + '. Confirm the feed URL serves index.json and ledger/batches.jsonl, and the account is a G… address.';
+    } finally {
+      $('runBtn').disabled = false;
+    }
+  });
+
+  if (params.get('feed') && params.get('account')) $('srcForm').requestSubmit();
+})();
+</script>
+</body>
+</html>

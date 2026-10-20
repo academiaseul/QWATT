@@ -1,0 +1,157 @@
+{
+  "source": "NREL PVDAQ via the OEDI Data Lake (public HTTPS, no account)",
+  "licence": "CC BY 4.0 — NREL, Photovoltaic Data Acquisition (PVDAQ) Public Datasets, DOI 10.25984/1846021",
+  "attribution": "Data: National Renewable Energy Laboratory (NREL), PVDAQ, CC BY 4.0. Converted by QWATT.",
+  "config": {
+    "system": 4902,
+    "name": "NIST_Ground_1",
+    "month": "2017-09",
+    "a": "dc_power_inv_14538",
+    "b": "ac_power_meter_1864_5",
+    "utc_offset": -5,
+    "unit_scale": 1000,
+    "nameplate_w": 270700,
+    "lat": 39.1319,
+    "lon": -77.2141
+  },
+  "rules": [
+    "timestamps are local standard time; UTC = local − (-5) h",
+    "values × 1000 (kW → W), rounded to 0.1 W",
+    "negative readings (standby draw) written as 0 W",
+    "rows with a blank meter value dropped, never zero-filled"
+  ],
+  "counts": {
+    "days": 30,
+    "missing_days": 0,
+    "rows_written": 43178,
+    "rows_dropped": 0,
+    "values_clamped_to_zero": 923
+  },
+  "output": {
+    "file": "pvdaq-4902-2017-09.csv",
+    "sha256": "fc51d15b00447f7fd587c44c60a5ce0f1ed5e120607b45b525c637e3f27e596d"
+  },
+  "sources": [
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=1/system_4902__date_2017_09_01.csv",
+      "sha256": "9eb7e8cd4d0906d5cb6078da285ff2247fe1c22870bc28a39fe94737d6aa0cd6"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=2/system_4902__date_2017_09_02.csv",
+      "sha256": "dddb211a86f0475f3f46d6f001c210776f3a66c27f3433eca837b0c2b168e07a"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=3/system_4902__date_2017_09_03.csv",
+      "sha256": "0115ef97f439eadb4ce77fd6082d24740df48892dc65e956bccdfd5a516b2b31"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=4/system_4902__date_2017_09_04.csv",
+      "sha256": "0699d30ba31c7a557683edd78bec179b5c576ece4699b348702dcf5d0f07cfdf"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=5/system_4902__date_2017_09_05.csv",
+      "sha256": "f0db4236eae88227f5c170be8d2f8c408546a32d50118b3f01eafa13a37913a0"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=6/system_4902__date_2017_09_06.csv",
+      "sha256": "51ae395cd274500d2f0d62a994a794675cce42f932e4e397ad31a64c5c0ed400"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=7/system_4902__date_2017_09_07.csv",
+      "sha256": "f5932b0d1458b951268bb5202aa9ed90d5ace282df4f3b9cd41e8c8f81af4590"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=8/system_4902__date_2017_09_08.csv",
+      "sha256": "117f5004662aa8268a85e11650ac2e2a91d9822000795eb6f393d6206744ffab"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=9/system_4902__date_2017_09_09.csv",
+      "sha256": "e9d91765b06ca1cbc238a28ac2faf5dd293dbc01b417487db620576a7368a42e"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=10/system_4902__date_2017_09_10.csv",
+      "sha256": "82fb942a52a6f861587b84e2bf793022cb58c4b5749bfc463efdfaf02451118c"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=11/system_4902__date_2017_09_11.csv",
+      "sha256": "ae3c96fdb79a4351caa77907599fb2a6dc8953b15dcd12ba07d674a038f0ecd6"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=12/system_4902__date_2017_09_12.csv",
+      "sha256": "2ccb7154594783ef759c18d3adba8e1daa3364e2f3d40b343631c3db9a9938c4"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=13/system_4902__date_2017_09_13.csv",
+      "sha256": "e6ad7b66682ec10844b4f2f1f822d6d1c7ffa8be210a02f6d9e3b0c4bbf4a26f"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=14/system_4902__date_2017_09_14.csv",
+      "sha256": "e8bb64d51d1e9284cd56d72a22a66cd444402ff7a6078876aa71bf1f770771f7"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=15/system_4902__date_2017_09_15.csv",
+      "sha256": "01d02b0053f32784d6185d1f738e908fed4f94107b4a2d404ca56fef418f03c8"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=16/system_4902__date_2017_09_16.csv",
+      "sha256": "75a37d13d7d5eac11de4db57cddce479e9bee820b542d92c063bd43460b92b5c"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=17/system_4902__date_2017_09_17.csv",
+      "sha256": "d22dc24edc49461e7e3e2f62c4351f3e57eaba3886ab27d4401dd876b14184a5"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=18/system_4902__date_2017_09_18.csv",
+      "sha256": "2800cb2e7b359e4cc811140d066e889e35f202325cb8b33b5889c44c545ee100"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=19/system_4902__date_2017_09_19.csv",
+      "sha256": "4fe0867850345a8b4c1f2cd895a4ff6d49d973878bbe5a5868aa41171663fb07"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=20/system_4902__date_2017_09_20.csv",
+      "sha256": "75dc56015987a645702fa64af3e03388d91f0b4b95d798eaa0e10d28e1105176"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=21/system_4902__date_2017_09_21.csv",
+      "sha256": "1e38444162734ed1482e63948d83dfa59316868f5bdfb9567621e51aa3d961eb"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=22/system_4902__date_2017_09_22.csv",
+      "sha256": "3f4860f3185432fbfe7f249cfa0d86ce0d569e34ccbc96f27d4035849b5edec4"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=23/system_4902__date_2017_09_23.csv",
+      "sha256": "bbd24ce2381a738a18c40901cb48ce3d90b7b018725b5d5f061137ff396d808e"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=24/system_4902__date_2017_09_24.csv",
+      "sha256": "a0f00a7a6860659a938a9818962bb6118acffd7a2f9ac4c756ab689209679a45"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=25/system_4902__date_2017_09_25.csv",
+      "sha256": "b51c0f4f9c85516546d146c109250bf89efffeb85238ab92debcaaed2efd6e54"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=26/system_4902__date_2017_09_26.csv",
+      "sha256": "509111a1490d9961f040bd03421e9ba7e22204b45ae2d60e5c7383b18d8e9669"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=27/system_4902__date_2017_09_27.csv",
+      "sha256": "e5ed83a95675048828774064e776bf1fa3c4e60e34dcb69958768192f616b90f"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=28/system_4902__date_2017_09_28.csv",
+      "sha256": "4984e9902a1a88d83b7e414ab0def8f5d7120c4f950b5a5fb336e6ffef4b83ac"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=29/system_4902__date_2017_09_29.csv",
+      "sha256": "5996b36d05f96467d27a2ce66c31bf2129189fc5b9e062e26e02933d43710aaf"
+    },
+    {
+      "url": "https://oedi-data-lake.s3.amazonaws.com/pvdaq/csv/pvdata/system_id=4902/year=2017/month=9/day=30/system_4902__date_2017_09_30.csv",
+      "sha256": "32036b1f0960d90aed1b643915e90933af178a5784db771999932632cc71dc7d"
+    }
+  ],
+  "converted_at": "2026-10-08T21:24:31.378Z"
+}

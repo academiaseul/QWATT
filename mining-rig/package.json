@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "QWATT proof-of-generation bridge: Modbus solar meter -> QWATT payouts on Stellar testnet",
+  "license": "MIT",
   "main": "miner.js",
   "scripts": {
     "start": "node miner.js",

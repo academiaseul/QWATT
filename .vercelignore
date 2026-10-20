@@ -17,3 +17,10 @@ docs
 # Sprint tooling — not part of the site
 ingest
 .github
+anchor
+batch
+verifier-state
+live
+feed
+ops
+ops-state

@@ -1,0 +1,18 @@
+# Watchdog — preferably on the verifier host or a third machine, never only on the proposer host
+# (a watchdog that dies with what it watches cannot report that it died).
+[Unit]
+Description=QWATT watchdog
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=qwatt
+WorkingDirectory=/opt/qwatt
+ExecStart=/usr/bin/node ops/watch.js --account ${QWATT_ANCHOR_ACCOUNT} --feed ${QWATT_FEED_URL} --verifier-status ${QWATT_VERIFIER_STATUS} --state /var/lib/qwatt/ops --interval 300
+# QWATT_ALERT_WEBHOOK=https://ntfy.sh/<private topic>  (or any webhook) — set when the alert recipient is named
+EnvironmentFile=/etc/qwatt/watch.env
+Restart=always
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

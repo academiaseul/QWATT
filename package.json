@@ -3,14 +3,23 @@
   "version": "1.0.0",
   "private": true,
   "description": "QWATT — static site plus the verification protocol (protocol/). No build step for the site; `npm run gen:gates` regenerates the gate bindings from protocol/gates.spec.json, `npm test` runs the conformance and validator suites with no install. npm install is only needed to vendor the wallet dependencies (see scripts/build-wallet-vendor.md).",
+  "license": "MIT",
   "scripts": {
     "gen:gates": "node protocol/gen.js",
-    "test": "node protocol/gen.js --check && node protocol/conformance.test.js && node mining-rig/validators.test.js && node ingest/ingest.test.js",
+    "test": "node protocol/gen.js --check && node protocol/conformance.test.js && node mining-rig/validators.test.js && node ingest/ingest.test.js && node batch/batch.test.js && node batch/reconcile.test.js && node live/live.test.js && node ops/watch.test.js && node ops/publish-feed.test.js",
     "test:conformance": "node protocol/conformance.test.js",
     "test:validators": "node mining-rig/validators.test.js",
     "vendor:wallet": "esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-sdk.entry.js --outfile=assets/vendor/stellar-sdk.js && esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-wallets-kit.entry.js --outfile=assets/vendor/stellar-wallets-kit.js",
     "test:ingest": "node ingest/ingest.test.js",
-    "harness": "node ingest/harness.js"
+    "harness": "node ingest/harness.js",
+    "test:batch": "node batch/batch.test.js",
+    "scale": "node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json",
+    "verify:feed": "node batch/verify-cli.js",
+    "test:anchor": "node anchor/tx.test.js && node anchor/recovery.test.js && node anchor/tests-abcd.test.js",
+    "reconcile": "node anchor/reconcile-cli.js",
+    "dataset:fetch": "node batch/datasets/pvdaq.js",
+    "live": "node live/run.js --feed feed --days 7",
+    "live:audit": "node live/audit.js feed"
   },
   "devDependencies": {
     "@creit.tech/stellar-wallets-kit": "1.7.0",
