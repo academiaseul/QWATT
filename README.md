@@ -14,7 +14,7 @@ npm test
 
 *QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.*
 
-El README del hackathon de agosto 2026 está en [archive/README-hackathon-ago-2026.md](archive/README-hackathon-ago-2026.md).
+El README del hackathon de agosto 2026 sigue en el historial: https://github.com/academiaseul/QWATT/blob/2bb5496/README.md
 
 ## Verificación completa
 
@@ -44,7 +44,6 @@ npm run scale                                 # un mes de datos públicos NREL P
 | `vendor-src/` | Puntos de entrada para reconstruir `assets/vendor/` con esbuild | Entry points to rebuild `assets/vendor/` with esbuild |
 | `mining-rig/` | Prototipo Modbus del hackathon de agosto; sus validadores (`validators.js`) siguen en las pruebas | August hackathon Modbus prototype; its validators (`validators.js`) are still tested |
 | `docs/` | Diseño, modelo de verificación, propuesta y plan del sprint, manual de operación | Design, verification model, sprint proposal and plan, runbook |
-| `archive/` | Histórico del hackathon de agosto 2026, ajeno al sprint (no se publica en el sitio) | August 2026 hackathon history, outside the sprint (not deployed) |
 | `.github/` | CI: corre todas las suites en cada push y PR | CI: runs every suite on each push and PR |
 | `.well-known/` | `stellar.toml` (SEP-1) del sitio, del hackathon de agosto | The site's `stellar.toml` (SEP-1), from the August hackathon |
 | raíz (`*.html`) | Sitio estático de qwatt.org, sin compilación; la mayoría de las páginas viene del hackathon de agosto | Static qwatt.org site, no build step; most pages date from the August hackathon |
@@ -73,4 +72,4 @@ The folder table above has an English column.
 
 *QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.*
 
-The August 2026 hackathon README is in [archive/README-hackathon-ago-2026.md](archive/README-hackathon-ago-2026.md).
+The August 2026 hackathon README is still in the history: https://github.com/academiaseul/QWATT/blob/2bb5496/README.md

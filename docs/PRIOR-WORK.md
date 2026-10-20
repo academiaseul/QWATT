@@ -1,10 +1,8 @@
 # Trabajo previo al sprint Instawards
 
 El sprint Instawards Chile empieza el **lunes 19 de octubre de 2026 (Día 1)**. Todo lo que está en
-la tabla es anterior a ese día o ajeno al sprint. **Nada de esto lo financia el Instaward.** Las
-horas financiadas empiezan el 19 oct 2026 y se registran en [`SPRINT-HOURS.csv`](SPRINT-HOURS.csv),
-separadas de las aportadas por el equipo (columna `tipo`: `financiada` o `aportada`); lo hecho cada
-semana está en [`CHANGELOG.md`](../CHANGELOG.md).
+la tabla es anterior a ese día o ajeno al sprint. **Nada de esto lo financia el Instaward.** Lo hecho
+cada semana desde el Día 1 está en [`CHANGELOG.md`](../CHANGELOG.md).
 
 Fuente: `git log` de este repositorio (fecha de autor de cada commit). En GitHub, `academiaseul` es
 Jay Kim y `CogeloEasy` y `dostertags` son Diego Ostertag.
@@ -43,4 +41,4 @@ git show --stat 2bb5496                                          # configuració
 ```
 
 *In English: everything in the table predates Day 1 (Monday 19 Oct 2026) or is outside the sprint,
-and none of it is funded by the Instaward. Funded hours start on 19 Oct 2026.*
+and none of it is funded by the Instaward. What was done each week from Day 1 on is in CHANGELOG.md.*
