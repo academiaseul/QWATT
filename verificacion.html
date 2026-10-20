@@ -5,15 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QWATT — Verificación</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-ESWGGQ9742"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-ESWGGQ9742');
-</script>
 <meta name="description" content="Cómo QWATT prueba que un kWh existió: dos medidores independientes, filtros de verificación que fallan cerrados, y una cadena de evidencia que cualquiera puede volver a verificar sin confiar en nosotros. Solo Stellar testnet.">
 <link rel="canonical" href="https://qwatt.org/verificacion.html">
 <meta name="theme-color" content="#120c07">
@@ -21,7 +12,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://qwatt.org/verificacion.html">
 <meta property="og:title" content="QWATT — Verificación">
-<meta property="og:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Prueba tú mismo a falsificar un evento energético.">
+<meta property="og:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Intenta tú mismo falsificar un evento energético.">
 <meta property="og:locale" content="es_CL">
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
@@ -31,7 +22,7 @@
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
 <meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:title" content="QWATT — Verificación">
-<meta name="twitter:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Prueba tú mismo a falsificar un evento energético.">
+<meta name="twitter:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Intenta tú mismo falsificar un evento energético.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
@@ -64,6 +55,7 @@
   .lede{font-size:16.5px;line-height:1.65;color:var(--ink-2);max-width:62ch;margin:20px 0 0}
   .claim{background:var(--paper-2);border-left:3px solid var(--teal);padding:20px 24px;margin:26px 0 0;max-width:68ch}
   .claim p{font-size:15px;line-height:1.6;color:var(--ink-2)}
+  .claim p+p{margin-top:12px}
   .claim b{color:var(--ink);font-weight:600}
 
   section{padding:52px 0;border-bottom:1px solid var(--line)}
@@ -437,10 +429,11 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       que un desconocido puede recalcular sin confiar en nosotros.
     </p>
     <div class="claim">
-      <p><b>Lo que afirma una atestaci&oacute;n QWATT, exactamente:</b> entre <code>t&#8320;</code> y <code>t&#8321;</code>,
-      una instalaci&oacute;n registrada produjo <code>E</code> watts-hora, medidos por dos instrumentos independientes
+      <p><b>Lo que afirma una constancia QWATT, exactamente:</b> entre <code>t&#8320;</code> y <code>t&#8321;</code>,
+      una instalaci&oacute;n registrada produjo <code>E</code> vatios-hora, medidos por dos instrumentos independientes
       cuyas lecturas concuerdan entre s&iacute; y con la f&iacute;sica de ese lugar a esa hora — y esta constancia no ha
       sido alterada desde entonces. <b>Nada m&aacute;s.</b> Todo lo dem&aacute;s es una capa contractual encima.</p>
+      <p>Durante el sprint toda la entrada es simulada (nivel A0): las constancias ancladas en Stellar testnet prueban el software y los filtros de verificaci&oacute;n, no que una instalaci&oacute;n haya producido energ&iacute;a.</p>
     </div>
   </div>
 
@@ -448,7 +441,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     <h2><span class="n">01 &middot; Pru&eacute;balo</span>Intenta falsificar un evento</h2>
     <p class="sub">
       Abajo corren los <b>mismos cuatro filtros de verificaci&oacute;n</b> que el gateway ejecuta antes de anclar, con los par&aacute;metros
-      reales del equipo Fase&nbsp;1. Mueve los controles o elige un ataque: el veredicto se recalcula al instante.
+      del equipo Fase&nbsp;1 (150&nbsp;Wp; en este sprint, simulado). Mueve los controles o elige un ataque: el veredicto se recalcula al instante.
       Un intervalo rechazado <b>no se ancla</b>, y queda escrito en la bit&aacute;cora de rechazos.
     </p>
     <div class="rigline">
@@ -507,26 +500,27 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
   <section>
     <h2><span class="n">02 &middot; Los filtros</span>Cada control atrapa a alguien concreto</h2>
     <p class="sub">
-      Cuatro filtros de verificaci&oacute;n corren hoy en el equipo Fase&nbsp;1. Tres m&aacute;s entran cuando el hardware los soporta —
+      Cuatro filtros de verificaci&oacute;n est&aacute;n activos hoy, con los par&aacute;metros del equipo Fase&nbsp;1. Tres m&aacute;s entran cuando el hardware los soporta —
       y los marcamos como pendientes en vez de insinuar que ya existen.
     </p>
     <div class="vlist">
-      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Verosimilitud</h3><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Los timestamps son datos del cliente y escalan a los dem&aacute;s filtros: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
+      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Verosimilitud</h3><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Las marcas de tiempo son datos del cliente y escalan a los dem&aacute;s filtros: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
       <div class="vcard"><div class="vid"><span>G1</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Techo de placa</h3><p>Un panel de 150 Wp no puede superar <code>0,150 kW &times; h &times; 1,15 &asymp; 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><span class="adv">Detiene: alimentar el medidor desde una fuente de banco</span></div>
       <div class="vcard"><div class="vid"><span>G2</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Elevaci&oacute;n solar</h3><p>Posici&oacute;n solar NOAA para &minus;33,45 / &minus;70,65: si hay generaci&oacute;n, el sol debe estar sobre &minus;2&deg;. La energ&iacute;a nocturna es imposible; los ceros nocturnos son honestos.</p><span class="adv">Detiene: inyectar corriente despu&eacute;s del atardecer</span></div>
       <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Acuerdo entre medidores</h3><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara el filtro.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
       <div class="vcard soon"><div class="vid"><span>G4</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Testigo solar</h3><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energ&iacute;a y el testigo est&aacute; a oscuras, el lote cae.</p><span class="adv">Pendiente: requiere celda de 5 Wp + INA226</span></div>
       <div class="vcard soon"><div class="vid"><span>G5</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Rampa y verosimilitud de serie</h3><p>Saltos f&iacute;sicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido, una constante perfecta es sint&eacute;tica.</p><span class="adv">Pendiente: requiere muestreo intra-intervalo</span></div>
-      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Tamper</h3><p>Un reed en la tapa del gabinete: caja abierta &rarr; anclaje detenido hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
-      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Firma de dos partes</h3><p>El nodo firma; un verificador independiente <b>vuelve a correr los filtros</b> y reci&eacute;n entonces co-firma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una fuente de constancias falsas</span></div>
+      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Apertura del gabinete</h3><p>Un reed en la tapa del gabinete: caja abierta &rarr; anclaje detenido hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
+      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">SPRINT</span></div><h3 class="sub-h">Firma de dos partes</h3><p>El proponente firma; un verificador independiente <b>vuelve a correr los filtros</b> y reci&eacute;n entonces cofirma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una fuente de constancias falsas</span></div>
     </div>
   </section>
 
   <section>
     <h2><span class="n">03 &middot; La prueba</span>La bit&aacute;cora de rechazos es el entregable</h2>
     <p class="sub">
-      Un verificador que solo publica lo que pas&oacute; est&aacute; haciendo marketing. Estas cuatro fallas se inducen
-      f&iacute;sicamente en el equipo y deben aparecer en <code>rejected.jsonl</code> con su raz&oacute;n.
+      Un verificador que solo publica lo que pas&oacute; est&aacute; haciendo marketing. En un equipo f&iacute;sico estas fallas se inducen
+      as&iacute;; en la corrida simulada del sprint se programan con <code>live/schedule.js</code> y se publican en <code>faults.json</code>.
+      En ambos casos deben aparecer en <code>rejected.jsonl</code> con su raz&oacute;n.
     </p>
     <div class="tscroll">
       <table class="drills">
@@ -552,10 +546,10 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
       el resultado convino. Hoy el protocolo no tiene ning&uacute;n evento real — y lo decimos aqu&iacute; en vez de esconderlo.
     </p>
     <div class="ladder">
-      <div class="rung now"><span class="lv">A0</span><span class="nm">Simulado<small>Sin hardware. Nunca se ancla como generaci&oacute;n: el c&oacute;digo lo impide.</small></span><span class="where">AQU&Iacute; ESTAMOS</span></div>
+      <div class="rung now"><span class="lv">A0</span><span class="nm">Simulado<small>Sin hardware: lecturas simuladas. En este sprint se anclan solo en Stellar testnet, rotuladas como entrada simulada, y no prueban que una instalaci&oacute;n haya producido energ&iacute;a.</small></span><span class="where">AQU&Iacute; ESTAMOS</span></div>
       <div class="rung"><span class="lv">A1</span><span class="nm">Medido<small>Un instrumento real. Fotones de verdad, sin corroborar.</small></span><span class="where">BANCO</span></div>
       <div class="rung"><span class="lv">A2</span><span class="nm">Corroborado<small>Dos medidores independientes, filtros G0&ndash;G3 activos.</small></span><span class="where">FASE 1</span></div>
-      <div class="rung"><span class="lv">A3</span><span class="nm">Co-firmado<small>Testigo solar y tamper, m&aacute;s un verificador independiente con clave en b&oacute;veda. Ninguna parte sola ancla.</small></span><span class="where">FASE 2</span></div>
+      <div class="rung"><span class="lv">A3</span><span class="nm">Cofirmado<small>Testigo solar y sensor de apertura del gabinete, m&aacute;s un verificador independiente con clave en b&oacute;veda. Ninguna parte sola ancla.</small></span><span class="where">FASE 2</span></div>
       <div class="rung"><span class="lv">A4</span><span class="nm">Auditado<small>Medidores calibrados y sellados, puesta en marcha por un tercero.</small></span><span class="where">COMERCIAL</span></div>
     </div>
   </section>
@@ -581,7 +575,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
   </section>
 
   <section>
-    <h2><span class="n">06 &middot; L&iacute;mites</span>Lo que una atestaci&oacute;n <em>no</em> prueba</h2>
+    <h2><span class="n">06 &middot; L&iacute;mites</span>Lo que una constancia <em>no</em> prueba</h2>
     <p class="sub">La credibilidad de todo lo anterior depende de no venderlo de m&aacute;s.</p>
     <ul class="lines">
       <li><b>No prueba que la energ&iacute;a fue renovable.</b> Prueba que el perfil de generaci&oacute;n coincide con la f&iacute;sica solar de ese lugar y esa hora. Es evidencia fuerte, no un certificado de combustible.</li>
@@ -640,7 +634,7 @@ body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
     </div>
   </div>
   <div class="qf-bottom">
-    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
+    <span>&copy; 2026 QWATT &#183; proyecto en desarrollo &#183; solo Stellar testnet &#183; no es una inversi&oacute;n y no se vende</span>
   </div>
 </div>
 </footer>
