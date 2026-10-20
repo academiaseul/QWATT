@@ -1,3 +1,5 @@
+> Histórico · hackathon ago 2026 · ajeno al sprint Instawards
+
 # QWATT — social launch kit (2026-08-23)
 
 > Founder-voice posts. Rules: honest testnet framing, no investment language,

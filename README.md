@@ -1,89 +1,76 @@
-# ⚡ QWATT
+# QWATT · constancias de generación solar verificables de forma independiente (Stellar testnet)
 
-Demo from the **Stellar × AI Studio Build Challenge**: a digital asset that tracks the spot
-price of one megawatt-hour of electricity (**1 QWATT = 1 MWh**), issued for real on the
-**Stellar testnet** on August 22, 2026.
+QWATT es un verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet.
 
-- Issuer: `GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46`
-- Distributor: `GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW`
-- Supply: 42,700,000 QWATT — [view on stellar.expert](https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46)
+**Sprint Instawards Chile, desde el 19 oct 2026** · Jay Kim y Diego Ostertag, Santiago · Lo hecho cada semana: [CHANGELOG.md](CHANGELOG.md) · Trabajo previo (antes del 19 oct): [docs/PRIOR-WORK.md](docs/PRIOR-WORK.md)
 
-## Pages
-
-| Page | What it does |
-|---|---|
-| `index.html` | Landing page: live QWATT dashboard, tokenomics, roadmap (ES/EN) |
-| `console.html` | Onchain console: deploy (genesis) or restore QWATT, buy with atomic 3-op transactions |
-| `grid.html` | QWATT Grid: energy ecosystem — generators, marketplace, solar panels paid in QWATT |
-| `respaldo.html` | Live proof-of-backing: reads reserves from Horizon every 15 s |
-| `pay.html` | QWATT Pay: generic testnet XLM payments demo |
-| `piloto.html`, `red.html`, `whitepaper.html`, `backup.html` | Pilot narrative, network view, whitepaper, backup |
-
-Everything is static HTML — no build step, no backend. The Stellar SDK is inlined.
-
-## Live data sources
-
-The price oracle uses **real market data**, fetched client-side, with an automatic fallback
-to a simulated demand curve when offline:
-
-- **Electricity spot price**: EPEX day-ahead (Germany), EUR/MWh, via the free
-  [aWATTar API](https://www.awattar.de/services/api) — no key required.
-- **XLM/USD and EUR→USD**: [CoinGecko simple price API](https://docs.coingecko.com/) — no key required.
-
-Both refresh every 5 minutes.
-
-## Run locally
+Pruébalo (solo necesitas Node.js 18+ y git):
 
 ```bash
-npx -y serve -l 3000 .
+git clone https://github.com/academiaseul/QWATT.git
+cd QWATT
+npm test
 ```
 
-Then open http://localhost:3000. (Opening `index.html` directly from disk also works;
-the live-data fetches still run.)
+*QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.*
 
-## Deploy — Vercel + qwatt.org
+El README del hackathon de agosto 2026 está en [archive/README-hackathon-ago-2026.md](archive/README-hackathon-ago-2026.md).
 
-The site is pure static files (`vercel.json` adds the CORS header SEP-1 requires for
-`stellar.toml`; `.vercelignore` keeps `mining-rig/` and its secrets off the deployment).
+## Verificación completa
+
+Son los mismos pasos que corre el CI. Ninguna prueba se conecta a Stellar testnet: el anclaje se prueba contra un Horizon simulado y claves desechables creadas en memoria.
 
 ```bash
-npx -y vercel login
+npm test                                      # filtros de verificación, ingesta, lotes, conciliación, corrida en vivo y operación; sin instalar nada
+npm ci --prefix anchor --no-audit --no-fund   # instala el SDK de Stellar, la única dependencia (solo para anchor/)
+npm run test:anchor                           # anclaje con 2 de 3 firmas, recuperación y pruebas A–D
+npm run harness                               # prueba de aceptación: Modbus, HTTP y CSV producen registros idénticos
+npm run scale                                 # un mes de datos públicos NREL PVDAQ: 720 lotes, cadena verificada, segunda corrida idéntica
 ```
+
+## Cómo está organizado
+
+| Carpeta | Qué contiene | In English |
+|---|---|---|
+| `protocol/` | Especificación de los filtros de verificación (`gates.spec.json`), esquemas, reglas de hash de la evidencia y suite de conformidad | Verification-filter spec, schemas, evidence hashing rules, conformance suite |
+| `ingest/` | Adaptadores de medidores (Modbus, HTTP, CSV) que entregan el mismo registro de intervalo de 5 minutos | Meter adapters (Modbus, HTTP, CSV) that emit the same 5-minute interval record |
+| `batch/` | Lotes de evidencia encadenados por hash, su verificación, el feed en disco y la prueba de escala | Hash-chained evidence batches, their verification, the on-disk feed, the scale test |
+| `anchor/` | Anclaje en Stellar testnet con 2 de 3 firmas: transacción determinista, proponente, verificador independiente, recuperación | 2-of-3 anchoring on Stellar testnet: deterministic transaction, proposer, independent verifier, recovery |
+| `live/` | Simulador solar, fallas programadas, corrida en vivo y su auditoría | Solar simulator, scheduled faults, live run and its audit |
+| `ops/` | Vigilancia, publicación del feed, informe automático, chequeo previo y servicios systemd | Watchdog, feed publisher, generated write-up, preflight, systemd units |
+| `datasets/` | Datos públicos NREL PVDAQ (CC BY 4.0) convertidos, con su procedencia y hashes | Converted NREL PVDAQ public data (CC BY 4.0), with provenance and hashes |
+| `evidence/` | Registros de los ensayos previos (8 oct 2026, cuentas desechables) y de la prueba de escala | Records of the prior rehearsals (8 Oct 2026, throwaway accounts) and the scale test |
+| `assets/` | Código del navegador: motor de los filtros, conciliación y bibliotecas empaquetadas (`vendor/`) | Browser code: filter engine, reconciliation, bundled libraries (`vendor/`) |
+| `vendor-src/` | Puntos de entrada para reconstruir `assets/vendor/` con esbuild | Entry points to rebuild `assets/vendor/` with esbuild |
+| `mining-rig/` | Prototipo Modbus del hackathon de agosto; sus validadores (`validators.js`) siguen en las pruebas | August hackathon Modbus prototype; its validators (`validators.js`) are still tested |
+| `docs/` | Diseño, modelo de verificación, propuesta y plan del sprint, manual de operación | Design, verification model, sprint proposal and plan, runbook |
+| `archive/` | Histórico del hackathon de agosto 2026, ajeno al sprint (no se publica en el sitio) | August 2026 hackathon history, outside the sprint (not deployed) |
+| `.github/` | CI: corre todas las suites en cada push y PR | CI: runs every suite on each push and PR |
+| `.well-known/` | `stellar.toml` (SEP-1) del sitio, del hackathon de agosto | The site's `stellar.toml` (SEP-1), from the August hackathon |
+| raíz (`*.html`) | Sitio estático de qwatt.org, sin compilación; la mayoría de las páginas viene del hackathon de agosto | Static qwatt.org site, no build step; most pages date from the August hackathon |
+
+## In English
+
+**QWATT · independently verifiable solar generation records (Stellar testnet)**
+
+QWATT is an open-source verifier that turns solar meter readings into independently verifiable records on Stellar testnet.
+
+**Instawards Chile sprint, since 19 Oct 2026** · Jay Kim and Diego Ostertag, Santiago · What was done each week: [CHANGELOG.md](CHANGELOG.md) (Spanish) · Prior work (before 19 Oct): [docs/PRIOR-WORK.md](docs/PRIOR-WORK.md)
+
+Try it (you only need Node.js 18+ and git). No test connects to Stellar testnet: anchoring is tested against a simulated Horizon with throwaway keys generated in memory.
 
 ```bash
-npx -y vercel --prod
+git clone https://github.com/academiaseul/QWATT.git
+cd QWATT
+npm test                                      # verification filters, ingestion, batches, reconciliation, live run, ops; no install
+npm ci --prefix anchor --no-audit --no-fund   # installs the Stellar SDK, the only dependency (anchor/ only)
+npm run test:anchor                           # 2-of-3 anchoring, recovery, tests A–D
+npm run harness                               # acceptance test: Modbus, HTTP and CSV produce identical records
+npm run scale                                 # one month of NREL PVDAQ public data: 720 batches, chain verified, second run identical
 ```
 
-Accept the defaults (no build command, output directory `.`). The first deploy gives you a
-`*.vercel.app` URL. Then attach the domain:
+The folder table above has an English column.
 
-1. Buy `qwatt.org` at any registrar (Namecheap, Porkbun, Cloudflare, …).
-2. Vercel dashboard → the project → **Settings → Domains** → add `qwatt.org`
-   (and `www.qwatt.org`). Vercel shows the DNS records to set at the registrar —
-   an `A` record to `76.76.21.21` or nameserver delegation; either works.
-3. Wait for DNS + the automatic HTTPS certificate, then verify
-   `https://qwatt.org/.well-known/stellar.toml` loads.
+*QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.*
 
-(Alternatives: GitHub Pages or Netlify also work — the `_headers` file covers Netlify's
-CORS config.)
-
-## After deploying: link the asset to qwatt.org (SEP-1)
-
-1. `.well-known/stellar.toml` already declares `https://qwatt.org` as the org URL.
-2. Set `home_domain` on the **issuer** account so explorers/wallets discover the file:
-   open [Stellar Lab (testnet) → Build Transaction](https://lab.stellar.org/transaction/build?$=network$id=testnet),
-   source account = issuer, add a **Set Options** operation with
-   *Home Domain* = `qwatt.org` (no `https://`), then sign with the **issuer secret key**
-   and submit. After that, stellar.expert shows QWATT with your name/description instead
-   of "unknown asset".
-
-## ⚠️ Operational notes
-
-- **Never commit or publish the issuer/distributor secret keys.** The site only needs
-  the public addresses; secrets are pasted into `console.html`/`grid.html` at runtime only.
-- **Stellar testnet resets periodically** (roughly quarterly). A reset wipes the asset.
-  To recover: run a new genesis in `console.html`, save the new secret keys, then update
-  the issuer/distributor addresses in `index.html` (Onchain section), `respaldo.html`
-  (`ISSUER`/`DIST` constants), and `.well-known/stellar.toml`.
-- This is a demonstration project on testnet only. Prices shown are market data or
-  simulations; nothing here is investment advice or an offer.
+The August 2026 hackathon README is in [archive/README-hackathon-ago-2026.md](archive/README-hackathon-ago-2026.md).

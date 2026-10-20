@@ -1,3 +1,5 @@
+> Histórico · hackathon ago 2026 · ajeno al sprint Instawards
+
 # QWATT — One-Page Blueprint
 
 > The 25-phase transformation prompt, distilled against what actually exists. One page, kept current.
