@@ -1,8 +1,9 @@
+> Histórico · hackathon ago 2026 · ajeno al sprint Instawards
+
 # QWATT — Software Architecture Master Plan
 
-> Engineering only. No positioning, no business model — those live in `INNOVATION-AUDIT.md`
-> and `STRATEGY-TOKENIZATION.md`. Written 2026-09-05.
-> Companions: `VERIFICATION-MODEL.md` (the protocol) · `EXECUTIVE-AUDIT-2026-08-25.md` (site state)
+> Engineering only. Written 2026-09-05.
+> Companion: `docs/VERIFICATION-MODEL.md` (the protocol)
 
 ---
 
