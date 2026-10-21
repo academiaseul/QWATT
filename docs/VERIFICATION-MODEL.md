@@ -179,14 +179,14 @@ display it — this is the honesty-label system applied to the physics.
 
 | Level | Setup | Checks active | What it means |
 |---|---|---|---|
-| **A0 · SIMULATED** | Solar simulator, no hardware | none | Demonstration only. **Never** anchored as generation. |
+| **A0 · SIMULATED** | Solar simulator, no hardware | none | Demonstration only. Anchored on testnet only with the label "Simulated input"; never presented as generation. |
 | **A1 · MEASURED** | One instrument (bench stage 1) | V1, V2, V5, V6 | Real photons, single witness. "Measured, not corroborated." |
 | **A2 · CORROBORATED** | Dual meter + sun witness (bench stage 2 / WattNode v0) | V1–V7 | Two independent instruments agreeing with physics. |
 | **A3 · CO-SIGNED** | A2 + treasury co-signature, vaulted key (WattNode v1) | V1–V7 ×2 | No single party can mint. **Target for the pilot.** |
 | **A4 · AUDITED** | A3 + calibrated, sealed meters, third-party commissioning | V1–V7 ×2 + certificates | The level a corporate ESG buyer can rely on. |
 
 Today the protocol sits at **A0**. The bench reaches **A1** in stage 1 and **A2** in stage 2;
-the El Arrayán pilot targets **A3**. No claim above the current level appears anywhere public.
+the residential pilot targets **A3**. No claim above the current level appears anywhere public.
 
 ## 10. Why this is the product
 

@@ -1,4 +1,4 @@
-# QWATT — dress rehearsal (two-day live run, testnet, throwaway accounts)
+# QWATT — ensayo acelerado: 48 h simuladas en 4 min 18 s (testnet, cuentas desechables, feed local, datos simulados)
 
 Generated 2026-10-08T22:09:00.118Z from public data only: Horizon (`https://horizon-testnet.stellar.org`) and the evidence feed (`http://127.0.0.1:8767`). Reproduce: `node ops/writeup.js --feed http://127.0.0.1:8767 --account GB2QTJRIMRGJDBAJ2PI7PQ74ZNVVXCRDOBKAZA6ZASRYCSTNNRXMX3HU`.
 
@@ -25,7 +25,7 @@ Evidence file: `evidence/rehearsal/rehearsal-2026-10-08T20-46-13-037Z.json` · a
 
 A, B and C are the **same transaction body**: Stellar transaction hashes exclude signatures. The identical transaction was refused with one signature and accepted with two. A and B are therefore cited by envelope and result code, never by hash (their hash resolves to C).
 
-## Fault injections during the live run
+## Fault injections during the accelerated rehearsal
 
 Coverage: **576 of 576** five-minute intervals judged · 0 gap(s) · 0 duplicate(s). Audit verdict: **OK**.
 

@@ -1,9 +1,9 @@
 # What the founders need to provide, and when
 
 Everything the code cannot do for itself. Day numbers are sprint days. Dates assume **Day 1 =
-Monday 12 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
+Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-20.
 
-## Already done (nothing to do)
+## Prior work (before Day 1, not funded by the Instaward)
 
 - [x] License: **MIT** (decided 2026-10-08).
 - [x] Public PV dataset: **NREL PVDAQ NIST Ground, September 2017, CC BY 4.0** (`datasets/README.md`).
@@ -12,20 +12,20 @@ Monday 12 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
 - [x] Multisig, proposer, verifier, recovery and reconciliation built and proven on throwaway
       testnet accounts.
 
-## Now, before Day 1
+## Before the first push
 
 | # | What | Who | Why |
 |---|---|---|---|
-| 1 | **Fix the Day 1 date** and tell the chapter lead | Founders | SOW: "October 1st, 2026 or once received the funds". Every date below hangs on it. |
-| 2 | **OK to push** branch `sprint/phase-0` to `github.com/academiaseul/qwatt` | Diego | The SOW evidence is the public repository; CI only runs on GitHub. Nothing is pushed until you say so. |
+| 1 | Day 1 fixed: **Monday 19 Oct 2026** (done) | Founders | Every date below hangs on it. |
+| 2 | **OK to push** Diego's prior work (merged as `35a1e77`) to `github.com/academiaseul/QWATT` | Diego | The SOW evidence is the public repository; nothing is pushed until he says so. |
 
-## By Day 3 (Wed 14 Oct)
+## By Day 3 (Wed 21 Oct)
 
 | # | What | Who | Why |
 |---|---|---|---|
 | 3 | **Read and sign `docs/ARCHITECTURE-FREEZE-v2.md`** (both founders), or change any adopted default | Jay + Diego | After sign-off the design is frozen until Day 30. |
 
-## By Day 15 (Mon 26 Oct) — latest Day 19 (Fri 30 Oct)
+## By Day 15 (Mon 2 Nov) — latest Day 19 (Fri 6 Nov)
 
 | # | What | Who | How |
 |---|---|---|---|
@@ -37,33 +37,37 @@ Monday 12 October 2026**; shift them if Day 1 moves. Status as of 2026-10-08.
 > If it is created before the third signer exists, it cannot be fixed later; it would have to be
 > replaced.
 
-## By Day 18 (Thu 29 Oct)
+## By Day 18 (Thu 5 Nov)
 
 | # | What | Who | How |
 |---|---|---|---|
 | 7 | **Evidence-feed host.** Recommended: GitHub Pages serving a `feed` branch of the repository | Repo admin | Settings → Pages → source: branch `feed`. Free and public, with no new account. The proposer host then needs push access to that one branch (a deploy key), stored only on that host. |
-| 8 | **Verifier host**: an always-on machine that does **not** run the proposer, operated by Jay | Jay | A small VPS (about USD 5/month, team-paid per the SOW) or a spare machine. Needs Node 20, outbound HTTPS and an NTP-synced clock. Its key is generated **on that machine**; send only the public key. |
-| 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 21–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Earlier history shows this machine powers off overnight, so use a VPS or a machine that never sleeps. |
-| 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run | Founders | Someone who will act on it within hours, Days 21–30. |
+| 8 | **Verifier host**: an always-on machine that does **not** run the proposer, operated by Jay | Jay | A small VPS or a spare machine. Needs Node 20, outbound HTTPS and an NTP-synced clock. Its key is generated **on that machine**; send only the public key. |
+| 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 20–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Use a VPS or a machine that never sleeps. |
+| 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run | Founders | Someone who will act on it within hours, Days 20–30. |
 
-## Day 21–23 (Sun 1 – Tue 3 Nov)
-
-| # | What | Who |
-|---|---|---|
-| 11 | **Go / no-go for the live run** after the first 2-of-3 anchor on the real account. Target: first anchor by **Fri 30 Oct (Day 19)** so the weekend is buffer; hard stop Day 23. | Founders |
-
-## Days 23–30 (Tue 3 – Tue 10 Nov) — the seven-day live run
+## By Day 19 (Fri 6 Nov) — freeze
 
 | # | What | Who |
 |---|---|---|
-| 12 | **15-minute daily check**: open the reconciliation page, confirm the verdict is RECONCILED or PENDING, glance at the alert inbox | One founder per day |
-| 13 | Do not touch either host's configuration. Fault injections run on their own schedule (`live/schedule.json`) | Both |
+| 11 | **Go / no-go for the live run** after the first 2-of-3 anchor on the real account. Target: first anchor by **Fri 6 Nov (Day 19)**, the freeze date. | Founders |
 
-## By Day 30 (Tue 10 Nov)
+## Days 20–27 (Sat 7 Nov – Sun 15 Nov 00:00) — the seven-day live run
+
+The live run starts **Sat 7 Nov (Day 20)**. The counted seven-day window runs from
+**Sun 8 Nov 00:00 America/Santiago (03:00 UTC)** to **Sun 15 Nov 00:00 America/Santiago
+(03:00 UTC)**, that is Days 21–27.
 
 | # | What | Who |
 |---|---|---|
-| 14 | **Demo video** (contributed founder time, outside the 131 h) | Founders |
+| 12 | **15-minute daily check**: open the reconciliation page (the page is redeployed in week 2; until then run `node anchor/reconcile-cli.js`), confirm the verdict is RECONCILED or PENDING, glance at the alert inbox | One founder per day |
+| 13 | Do not touch either host's configuration. Fault injections run on their own schedule (`live/schedule.js`, published per run as `faults.json`) | Both |
+
+## By Day 30 (Tue 17 Nov)
+
+| # | What | Who |
+|---|---|---|
+| 14 | **Demo video** | Founders |
 | 15 | **Review the write-up** and the SOW §6 evidence checklist, then submit | Founders |
 
 ## Secrets: where each one lives

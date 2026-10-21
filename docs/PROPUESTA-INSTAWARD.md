@@ -23,7 +23,7 @@ Construido en 4 días desde la hackathon Stellar × AI Studio (20 de agosto):
 
 ## Objetivo del sprint
 
-Instalar **WattNode v0** — el nodo de verificación — sobre el sistema solar híbrido del piloto El Arrayán (Lo Barnechea, Chile) y producir **los primeros eventos Proof-of-Generation reales de la historia del protocolo**, verificables por cualquier persona de la comunidad Stellar en el explorer.
+Instalar **WattNode v0** — el nodo de verificación — sobre el sistema solar híbrido de un piloto residencial en Chile y producir **los primeros eventos Proof-of-Generation reales de la historia del protocolo**, verificables por cualquier persona de la comunidad Stellar en el explorer.
 
 ## Prioridades, en orden
 
