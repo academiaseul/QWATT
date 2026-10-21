@@ -13,8 +13,8 @@
     "site_id": { "type": "string", "minLength": 1, "description": "Registered site identifier (hash or slug)." },
     "node_id": { "type": "string", "minLength": 1, "description": "Node identity — the public key of the node's signing key once nodes sign." },
     "seq": { "type": "integer", "minimum": 0, "description": "Strictly increasing per node. Replay protection." },
-    "ts_start": { "type": "string", "format": "date-time", "description": "Interval start, RFC 3339 UTC, aligned to a multiple of dt_s from the epoch." },
-    "ts_end": { "type": "string", "format": "date-time", "description": "Interval end, RFC 3339 UTC. Must be after ts_start." },
+    "ts_start": { "type": "string", "format": "date-time", "description": "Interval start in canonical UTC, exactly as Date#toISOString writes it (YYYY-MM-DDTHH:mm:ss.sssZ), a multiple of dt_s from the epoch. One spelling per instant: the assembler refuses any other (ingest.off_grid); the HTTP gateway rewrites any other RFC 3339 spelling of the same instant to this form and keeps the request hash in source.raw_sha256." },
+    "ts_end": { "type": "string", "format": "date-time", "description": "Interval end in the same canonical UTC form, exactly ts_start + dt_s." },
     "dt_s": { "type": "integer", "minimum": 1, "description": "Interval length in seconds. Must equal ts_end − ts_start within 1 s." },
     "clock_skew_s": { "type": "integer", "description": "Gateway receive time − ts_end, whole seconds. Filled in by the gateway, absent at the node." },
     "meters": {

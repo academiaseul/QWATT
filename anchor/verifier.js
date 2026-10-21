@@ -3,7 +3,7 @@
  * QWATT — independent verifier service (Deliverable 3)
  * ---------------------------------------------------------------------------
  *   QWATT_VERIFIER_SECRET=S… node anchor/verifier.js --feed https://<public feed> --config anchor/config.json \
- *        [--state ./verifier-state] [--interval 30] [--port 8090]
+ *        [--state ./verifier-state] [--interval 30] [--port 8090] [--max-walk 168]
  *
  * Runs on a separate host with a separate key. Its ONLY input is the public
  * evidence feed (a base URL) plus the public chain. Each tick:
@@ -11,12 +11,15 @@
  *   1. chain head → anchored prefix → the next accepted batch;
  *   2. download pending/<id>.xdr; if there is none, nothing has been proposed;
  *   3. download the batch; if it is not published, refuse (verifier.not_published);
- *   4. download the previous batch and the rejected ledger; re-derive the batch
- *      with the shared verifyBatch (hash, root, chain, arithmetic, every gate);
- *   5. walk back from the batch to the on-chain head (chain.walkToHead): every
- *      earlier batch rehashed, every running total re-added, and the walk must
- *      end at the on-chain anchor with the on-chain cumulative, so an inherited
- *      total is never taken on trust (verifier.head_mismatch otherwise);
+ *   4. walk back from the batch to the on-chain head (chain.walkToHead): every
+ *      earlier batch downloaded once and rehashed, every running total re-added
+ *      (a batch never anchored carries the total forward unchanged), and the
+ *      walk must end at the on-chain anchor with the on-chain cumulative, so an
+ *      inherited total is never taken on trust (verifier.head_mismatch otherwise;
+ *      verifier.walk_too_long when the walk stops at its bound, --max-walk);
+ *   5. re-derive the batch with the shared verifyBatch (hash, root, chain,
+ *      arithmetic, time, every gate) against the copies the walk rehashed: the
+ *      previous batch, and the anchored head as the floor;
  *   6. rebuild the anchoring transaction from the batch and compare it with the
  *      pending one byte for byte (matchPending);
  *   7. only if everything agrees: add the second signature and submit.
@@ -35,7 +38,6 @@ const http = require('http');
 const path = require('path');
 const S = require('@stellar/stellar-sdk');
 const V = require('../batch/verify');
-const E = require('../protocol/evidence');
 const T = require('./tx');
 const C = require('./chain');
 const { makeFeedClient, FeedUnavailable } = require('./feed-client');
@@ -49,7 +51,7 @@ class Verifier {
    * @param {import('@stellar/stellar-sdk').Keypair} o.keypair
    * @param {string} o.stateDir   where refusals.jsonl and status.json are kept
    * @param {object} [o.server]
-   * @param {number} [o.maxWalk]  most batches walked back to the on-chain head (default chain.MAX_WALK_BATCHES)
+   * @param {number} [o.maxWalk]  most batches walked back to the on-chain head (default chain.MAX_WALK_BATCHES; CLI --max-walk)
    */
   constructor(o) {
     T.checkConfig(o.cfg);
@@ -57,7 +59,7 @@ class Verifier {
     this.cfg = o.cfg;
     this.keypair = o.keypair;
     this.server = o.server || new S.Horizon.Server(o.cfg.horizon_url);
-    this.maxWalk = o.maxWalk || C.MAX_WALK_BATCHES;
+    this.maxWalk = o.maxWalk == null ? C.MAX_WALK_BATCHES : C.checkMaxWalk(o.maxWalk);
     this.stateDir = o.stateDir;
     fs.mkdirSync(this.stateDir, { recursive: true });
     this.refusalsFile = path.join(this.stateDir, 'refusals.jsonl');
@@ -112,13 +114,13 @@ class Verifier {
     if (batch == null) return this._refuse(next.batch_id, pending, ['verifier.not_published'], 'pending transaction names a batch that is not in the public feed');
     if (batch.sha256 !== next.sha256) return this._refuse(next.batch_id, pending, ['verifier.hash_mismatch'], 'batch file differs from the batch ledger entry');
 
-    const prev = batch.seq > 0 ? await this.feed.batch(E.batchId(batch.site_id, batch.seq - 1)) : null;
-    if (batch.seq > 0 && prev == null) return this._refuse(next.batch_id, pending, ['verifier.not_published'], 'previous batch is not in the public feed');
-    const check = V.verifyBatch(batch, { prev, rejected: await this.feed.rejected() });
-    if (!check.ok) return this._refuse(next.batch_id, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
-    /* what the batch inherits is believed only once it leads back to the on-chain head (S1) */
+    /* what the batch inherits is believed only once it leads back to the on-chain head (S1). Each
+       earlier batch is downloaded once, and the batch is judged against those same rehashed copies:
+       the previous batch, and the anchored head as the floor for time, node and counted intervals. */
     const walk = await C.walkToHead(batch, head, (id) => this.feed.batch(id), { maxSteps: this.maxWalk });
     if (!walk.ok) return this._refuse(next.batch_id, pending, [walk.code], walk.detail);
+    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: await this.feed.rejected() });
+    if (!check.ok) return this._refuse(next.batch_id, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
 
     const m = T.matchPending(pending, batch, this.cfg, nowS);
     if (!m.match) return this._refuse(next.batch_id, pending, m.reasons, m.detail);
@@ -150,11 +152,13 @@ class Verifier {
 async function cli() {
   const args = process.argv.slice(2);
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
+  let maxWalk;
+  try { maxWalk = C.maxWalkArg(args); } catch (e) { console.error(e.message); process.exit(2); }
   const secret = process.env.QWATT_VERIFIER_SECRET;
   if (!secret) { console.error('QWATT_VERIFIER_SECRET is not set; refusing to start'); process.exit(2); }
   const feedUrl = opt('--feed');
   if (!feedUrl) { console.error('--feed <public base URL> is required: it is the verifier\'s only input'); process.exit(2); }
-  const v = new Verifier({ feedUrl, cfg: loadConfig(opt('--config', path.join(__dirname, 'config.json'))), keypair: S.Keypair.fromSecret(secret), stateDir: path.resolve(opt('--state', 'verifier-state')) });
+  const v = new Verifier({ feedUrl, cfg: loadConfig(opt('--config', path.join(__dirname, 'config.json'))), keypair: S.Keypair.fromSecret(secret), stateDir: path.resolve(opt('--state', 'verifier-state')), maxWalk });
   if (opt('--port')) v.serve(Number(opt('--port')));
   const every = Number(opt('--interval', 30)) * 1000;
   const run = async () => console.log(new Date().toISOString(), JSON.stringify(await v.tick()));
