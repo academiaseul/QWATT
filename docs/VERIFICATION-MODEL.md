@@ -4,7 +4,7 @@
 > who could lie, what stops them, and how a stranger re-checks the claim.
 > This is the reference for implementing `oracle.js`; the executable form of §5 lives in
 > `mining-rig/validators.js`.
-> Companions: `docs/wattnode-architecture.svg` (hardware) · `LEGAL-NETBILLING.md` (what may be claimed) · `CLEAN-TOKEN-ARCHITECTURE.md` (attribute layer).
+> Companion: `docs/wattnode-architecture.svg` (hardware).
 
 ---
 
