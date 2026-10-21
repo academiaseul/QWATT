@@ -238,6 +238,92 @@ test('a batch smuggling a gate-failing interval is caught on re-judgment', () =>
   has(V.verifyBatch(rehash(b), { prev: null }), 'batch.interval_rejected', 'nameplate breach inside a batch');
 });
 
+/* ──────────────── the same energy, twice: across batches (S2) ──────────────── */
+
+/** An otherwise valid batch after `prev`, every derived field recomputed the way a forger would. */
+function nextBatch(prev, intervals, o = {}) {
+  const site = o.site_id ?? prev.site_id, seq = prev.seq + 1;
+  const first = intervals.reduce((m, r) => (Date.parse(r.ts_start) < Date.parse(m.ts_start) ? r : m));
+  const last = intervals.reduce((m, r) => (Date.parse(r.ts_end) > Date.parse(m.ts_end) ? r : m));
+  const energy = intervals.reduce((s, r) => s + E.basisMwh(r), 0);
+  return rehash({
+    batch_id: E.batchId(site, seq), site_id: site, node_id: o.node_id ?? prev.node_id, seq,
+    ts_start: o.ts_start ?? first.ts_start, ts_end: o.ts_end ?? last.ts_end,
+    spec_version: prev.spec_version, schema_version: prev.schema_version,
+    interval_count: intervals.length, accepted_count: intervals.length, rejected_count: 0,
+    intervals, intervals_root: E.merkleRoot(intervals),
+    energy_mwh: energy, cumulative_mwh: prev.cumulative_mwh + energy, prev_hash: prev.sha256,
+  });
+}
+
+/** The chain's middle batch as head, fresh intervals for what comes after it, and proof that an honest next batch verifies. */
+function afterB1() {
+  const { batches: [, b1] } = chain3();
+  const fresh = (from, n) => Array.from({ length: n }, (_, k) => iv(from + k));
+  const check = (b) => { const res = V.verifyBatch(b, { prev: b1, rejected: [] }); codesOf(res).forEach((c) => emitted.add(c)); return res; };
+  const honest = check(nextBatch(b1, fresh(24, 12)));
+  assert(honest.ok, `an honest next batch must verify: ${codesOf(honest)}`);
+  return { b1, fresh, check };
+}
+
+test('rejects a repeated interval (batch.interval_repeated)', () => {
+  const { b1, fresh, check } = afterB1();
+  has(check(nextBatch(b1, clone(b1.intervals))), 'batch.interval_repeated', 'the previous batch re-sent as the next one');
+  has(check(nextBatch(b1, [clone(b1.intervals[10]), ...fresh(24, 11)])), 'batch.interval_repeated', 'one counted interval slipped in front');
+  const twice = fresh(24, 12); twice[6] = clone(twice[5]);
+  has(check(nextBatch(b1, twice)), 'batch.interval_repeated', 'the same interval twice in one batch');
+  const respelled = clone(b1.intervals[10]);
+  respelled.ts_start = respelled.ts_start.replace('.000Z', 'Z'); respelled.ts_end = respelled.ts_end.replace('.000Z', 'Z');
+  has(check(nextBatch(b1, [respelled, ...fresh(24, 11)])), 'batch.interval_repeated', 'a counted interval re-spelled so its hash differs');
+});
+
+test('rejects an overlapping interval (batch.interval_overlap)', () => {
+  const { b1, fresh, check } = afterB1();
+  has(check(nextBatch(b1, fresh(24, 12), { ts_start: b1.intervals[10].ts_start })), 'batch.interval_overlap', 'the window reaches back into the previous batch');
+  has(check(nextBatch(b1, [iv(17), ...fresh(24, 11)])), 'batch.interval_overlap', 'a slot the previous batch already judged and refused');
+  const swapped = fresh(24, 12); [swapped[3], swapped[4]] = [swapped[4], swapped[3]];
+  has(check(nextBatch(b1, swapped)), 'batch.interval_overlap', 'an interval that starts before the one before it ends');
+  /* gaps stay allowed: a missing interval is simply not counted */
+  const gap = check(nextBatch(b1, [...fresh(26, 4), ...fresh(32, 4)]));
+  assert(gap.ok, `a gap is not an overlap: ${codesOf(gap)}`);
+  /* a node replaying its last half hour after a batch closed: refused at the door, and the batch that records the refusals is valid */
+  const a = mkAsm();
+  for (let i = 0; i < 12; i++) a.judge(iv(i));
+  a.close();
+  const replay = [];
+  for (let i = 6; i < 12; i++) replay.push(a.judge(iv(i)));
+  record(replay);
+  const closed = a.close();
+  eq(closed.status, 'accepted', `a window of refused replays is still a valid record [${closed.reasons}]`);
+});
+
+test('rejects an interval off the 5-minute grid (batch.interval_off_grid)', () => {
+  const { b1, fresh, check } = afterB1();
+  const at = (t) => new Date(t).toISOString();
+  const probes = [
+    ['a minute off the grid', (r) => Object.assign(clone(r), { ts_start: at(Date.parse(r.ts_start) + 60e3), ts_end: at(Date.parse(r.ts_end) + 60e3) })],
+    ['ending a second past the grid', (r) => Object.assign(clone(r), { ts_end: at(Date.parse(r.ts_end) + 1000) })],
+    ['an on-grid instant spelled another way', (r) => Object.assign(clone(r), { ts_start: r.ts_start.replace('.000Z', 'Z'), ts_end: r.ts_end.replace('.000Z', '+00:00') })],
+  ];
+  for (const [name, bend] of probes) {
+    const ivs = fresh(24, 12); ivs[11] = bend(ivs[11]);
+    has(check(nextBatch(b1, ivs)), 'batch.interval_off_grid', name);
+    const line = mkAsm().judge(bend(iv(35)));
+    record([line]);
+    eq(line.reasons[0], 'ingest.off_grid', `${name}: refused at the door`);
+  }
+});
+
+test('rejects a batch from another installation (batch.site_mismatch)', () => {
+  const { b1, fresh, check } = afterB1();
+  const as = (r, ids) => Object.assign(clone(r), ids);
+  const oneForeign = (ids) => { const ivs = fresh(24, 12); ivs[6] = as(ivs[6], ids); return ivs; };
+  has(check(nextBatch(b1, oneForeign({ node_id: 'other-node' }))), 'batch.site_mismatch', 'an interval from another node');
+  has(check(nextBatch(b1, oneForeign({ site_id: 'other-site' }))), 'batch.site_mismatch', 'an interval from another site');
+  has(check(nextBatch(b1, fresh(24, 12).map((r) => as(r, { node_id: 'other-node' })), { node_id: 'other-node' })), 'batch.site_mismatch', 'the next batch from another node');
+  has(check(nextBatch(b1, fresh(24, 12).map((r) => as(r, { site_id: 'other-site' })), { site_id: 'other-site' })), 'batch.site_mismatch', 'the next batch from another site');
+});
+
 /* ───────────────────────── pipeline: restart safety ───────────────────────── */
 
 test('restart mid-window: persisted lines are restored and closed as a batch, nothing lost', () => {
