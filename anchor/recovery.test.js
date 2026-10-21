@@ -77,6 +77,21 @@ async function world() {
   return w;
 }
 
+/** Rewrite a published batch file and rehash it, so the forgery is internally consistent. */
+function forge(w, id, mutate) {
+  const f = path.join(w.feedDir, 'batches', `${id}.json`);
+  const b = JSON.parse(fs.readFileSync(f, 'utf8'));
+  mutate(b);
+  b.sha256 = E.batchSha256(b);
+  fs.writeFileSync(f, E.canonical(b) + '\n');
+  return b;
+}
+
+/** The pipeline builds its next batch on top of `b`, as a proposer that believes that file would. */
+function buildOn(w, b) { w.pipe.asm.prev_hash = b.sha256; w.pipe.asm.cumulative_mwh = b.cumulative_mwh; }
+
+const onchainTotal = (w) => Buffer.from(w.fake.data['qwatt.cumulative_mwh'] || '', 'base64').toString();
+
 test('happy path: three batches anchored once each, in order', async () => {
   const w = await world();
   w.addBatches(3);
@@ -212,6 +227,26 @@ test('a batch the verifier refused is never retried with the same proposal, and 
   fs.writeFileSync(f, orig);
   await w.settle(w.p, w.v);
   w.invariant();
+  await w.close();
+});
+
+/* ── S1 · the inherited total: what a batch inherits must lead back to the on-chain head ── */
+
+test('verifier refuses a batch whose inherited total does not match the on-chain head (verifier.head_mismatch)', async () => {
+  const w = await world();
+  w.addBatches(3);
+  await w.settle(w.p, w.v);
+  w.invariant();                                                   // honest chain anchored; head = rec-000002
+  const total = onchainTotal(w);
+  const forged = forge(w, 'rec-000002', (b) => { b.cumulative_mwh += 1000000; });   // inflated, rehashed
+  buildOn(w, forged);
+  w.addBatches(1);                                                 // rec-000003 inherits the inflated total
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'the new batch is proposed');
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'refused', 'verifier refuses to co-sign');
+  assert((r.reasons || []).includes('verifier.head_mismatch'), `reasons: ${JSON.stringify(r.reasons)}`);
+  eq(w.fake.txs.length, 3, 'nothing new anchored');
+  eq(onchainTotal(w), total, 'on-chain cumulative unchanged');
   await w.close();
 });
 
