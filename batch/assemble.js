@@ -4,9 +4,10 @@
  * Intervals in, judged ledger lines and hash-chained batches out.
  *
  *   judge(interval)  → one ledger line: accepted (with its basis energy) or
- *                      rejected (with registered reason codes). Duplicates and
- *                      out-of-order intervals are rejected here with ingest.*
- *                      codes, so the same window is never counted twice.
+ *                      rejected (with registered reason codes). Off-grid,
+ *                      duplicate and out-of-order intervals are rejected here
+ *                      with ingest.* codes, so the same window is never counted
+ *                      twice.
  *   close()          → the batch for the open window, self-verified with the
  *                      same verifyBatch the independent verifier runs.
  *
@@ -30,7 +31,7 @@ class BatchAssembler {
    * @param {string} o.node_id
    * @param {number} [o.closeEvery=12]
    * @param {object} [o.profile]  gate profile (default: spec profile `bench`)
-   * @param {object} [o.state]    { seq, prev_hash, cumulative_mwh, last_ts_start } to resume a chain
+   * @param {object} [o.state]    { seq, prev_hash, cumulative_mwh, last_ts_start, prev_ts_end, prev_node_id } to resume a chain
    */
   constructor(o) {
     if (!o || !o.site_id || !o.node_id) throw new Error('BatchAssembler: site_id and node_id are required');
@@ -44,6 +45,8 @@ class BatchAssembler {
     this.prev_hash = s.prev_hash ?? E.ZERO_HASH;
     this.cumulative_mwh = s.cumulative_mwh ?? 0;
     this.last_ts_start = s.last_ts_start ?? null;   // ISO string of the latest in-order interval judged
+    this.prev_ts_end = s.prev_ts_end ?? null;       // ts_end of the last closed batch: the next one starts at or after it
+    this.prev_node_id = s.prev_node_id ?? null;     // node_id of the last closed batch
     this.window = [];                               // ledger lines of the open window, in judgment order
   }
 
@@ -51,7 +54,7 @@ class BatchAssembler {
   get full() { return this.window.length >= this.closeEvery; }
 
   state() {
-    return { seq: this.seq, prev_hash: this.prev_hash, cumulative_mwh: this.cumulative_mwh, last_ts_start: this.last_ts_start };
+    return { seq: this.seq, prev_hash: this.prev_hash, cumulative_mwh: this.cumulative_mwh, last_ts_start: this.last_ts_start, prev_ts_end: this.prev_ts_end, prev_node_id: this.prev_node_id };
   }
 
   /** Judge one interval record. @returns ledger line */
@@ -63,6 +66,9 @@ class BatchAssembler {
       line.detail = { errors: errs.slice(0, 5) };
     } else if (rec.spec_version !== this.spec.spec_version || rec.schema_version !== V.INTERVAL_SCHEMA_VERSION) {
       line.reasons = ['ingest.spec_mismatch'];
+    } else if (V.offGrid(rec)) {
+      line.reasons = ['ingest.off_grid'];
+      line.detail = { why: V.offGrid(rec) };
     } else if (this._seen(rec.ts_start)) {
       line.reasons = ['ingest.duplicate_interval'];
     } else if (this.last_ts_start != null && Date.parse(rec.ts_start) < Date.parse(this.last_ts_start)) {
@@ -106,8 +112,10 @@ class BatchAssembler {
     const rejected = this.window.filter((l) => l.verdict !== 'accept');
     const timed = this.window.filter((l) => !(l.reasons || []).some((c) => c.startsWith('ingest.')));
     const bounds = (timed.length ? timed : this.window).map((l) => l.interval);
-    const tsStart = bounds.reduce((m, r) => (Date.parse(r.ts_start) < Date.parse(m) ? r.ts_start : m), bounds[0].ts_start);
-    const tsEnd = bounds.reduce((m, r) => (Date.parse(r.ts_end) > Date.parse(m) ? r.ts_end : m), bounds[0].ts_end);
+    let tsStart = bounds.reduce((m, r) => (Date.parse(r.ts_start) < Date.parse(m) ? r.ts_start : m), bounds[0].ts_start);
+    let tsEnd = bounds.reduce((m, r) => (Date.parse(r.ts_end) > Date.parse(m) ? r.ts_end : m), bounds[0].ts_end);
+    /* only refused replays: the batch spans no time, so it cannot reach back into the previous one */
+    if (!timed.length && this.prev_ts_end != null) tsStart = tsEnd = this.prev_ts_end;
     const intervals = accepted.map((l) => l.interval).sort((x, y) => Date.parse(x.ts_start) - Date.parse(y.ts_start));
     const energy = intervals.reduce((s, r) => s + E.basisMwh(r), 0);
 
@@ -132,7 +140,7 @@ class BatchAssembler {
     batch.sha256 = E.batchSha256(batch);
 
     const prev = this.seq === 0 ? null
-      : { seq: this.seq - 1, sha256: this.prev_hash, cumulative_mwh: this.cumulative_mwh, site_id: this.site_id };
+      : { seq: this.seq - 1, sha256: this.prev_hash, cumulative_mwh: this.cumulative_mwh, site_id: this.site_id, node_id: this.prev_node_id, ts_end: this.prev_ts_end };
     const check = V.verifyBatch(batch, { prev, rejected, profile: this.profile, spec: this.spec });
 
     /* The chain advances through a batch-level rejection so the defect stays
@@ -140,6 +148,8 @@ class BatchAssembler {
     this.seq += 1;
     this.prev_hash = batch.sha256;
     this.cumulative_mwh = batch.cumulative_mwh;
+    this.prev_ts_end = batch.ts_end;
+    this.prev_node_id = batch.node_id;
     this.window = [];
 
     return {

@@ -5,9 +5,12 @@
  * previous published batch, and the rejected-ledger lines that name it:
  *
  *   schema · versions · batch_id · sha256 · intervals_root · chain (prev_hash,
- *   seq, genesis) · energy · cumulative · counts · window order · every
- *   contained interval re-judged by the gates (must accept) · every gate-based
- *   rejection re-judged (must reject) · every reason code registered
+ *   seq, genesis) · energy · cumulative · counts · same site and node as the
+ *   chain · time (canonical timestamps, every interval on its dt_s grid, no
+ *   interval repeated or overlapping, within the batch or with the previous
+ *   batch) · every contained interval re-judged by the gates (must accept) ·
+ *   every gate-based rejection re-judged (must reject) · every reason code
+ *   registered
  *
  * The proposer runs it on its own batch before publishing (a failure publishes
  * the batch as rejected and it is never anchored). The independent verifier
@@ -44,6 +47,24 @@ function isRegistered(code, spec = SPEC) {
 }
 
 const isGateCode = (code) => /^(plausibility|nameplate|elevation|agreement)\./.test(code);
+
+/** One spelling per instant: exactly what Date#toISOString writes (UTC, milliseconds, `Z`). */
+const isCanonicalTs = (s) => typeof s === 'string' && Number.isFinite(Date.parse(s)) && new Date(Date.parse(s)).toISOString() === s;
+
+/**
+ * Why an interval is off its time grid, or null. On the grid: both timestamps
+ * canonical, ts_start a multiple of dt_s from the epoch, ts_end exactly dt_s
+ * later. Each window then has one start and one spelling, so the same energy
+ * cannot pass as two different intervals. The assembler refuses these at the
+ * door (ingest.off_grid); the verifier refuses a batch carrying one.
+ */
+function offGrid(rec) {
+  if (!isCanonicalTs(rec.ts_start) || !isCanonicalTs(rec.ts_end)) return 'timestamps are not canonical';
+  const s = Date.parse(rec.ts_start), dtMs = rec.dt_s * 1000;
+  if (s % dtMs !== 0) return `ts_start is not a multiple of ${rec.dt_s} s`;
+  if (Date.parse(rec.ts_end) - s !== dtMs) return `ts_end is not ts_start + ${rec.dt_s} s`;
+  return null;
+}
 
 /** Schema + integer-only check of one interval. @returns {string[]} errors */
 function intervalErrors(rec) {
@@ -119,13 +140,34 @@ function verifyBatch(batch, ctx = {}) {
     });
   }
 
-  /* window: contained intervals strictly ordered and inside [ts_start, ts_end] */
+  /* installation: every interval from the batch's site and node, the batch from the chain's */
+  const foreign = batch.intervals.find((r) => r.site_id !== batch.site_id || r.node_id !== batch.node_id);
+  if (foreign) fail('batch.site_mismatch', { interval_seq: foreign.seq, site_id: foreign.site_id, node_id: foreign.node_id });
+  if (prev != null && (batch.site_id !== prev.site_id || batch.node_id !== prev.node_id)) {
+    fail('batch.site_mismatch', { site_id: batch.site_id, node_id: batch.node_id, chain_site_id: prev.site_id, chain_node_id: prev.node_id });
+  }
+
+  /* time: canonical window, every interval on its grid and inside [ts_start, ts_end],
+     each starting at or after the previous one's end, the first at or after the
+     previous batch's end. Gaps are allowed; the same energy twice is not. */
   const w0 = Date.parse(batch.ts_start), w1 = Date.parse(batch.ts_end);
-  let last = -Infinity;
+  if (!isCanonicalTs(batch.ts_start) || !isCanonicalTs(batch.ts_end) || !(w1 >= w0)) {
+    fail('batch.window_mismatch', { ts_start: batch.ts_start, ts_end: batch.ts_end });
+  }
+  for (const r of batch.intervals) {
+    const why = offGrid(r);
+    if (why) fail('batch.interval_off_grid', { interval_seq: r.seq, ts_start: r.ts_start, ts_end: r.ts_end, dt_s: r.dt_s, why });
+  }
+  let lastEnd = prev == null ? -Infinity : Date.parse(prev.ts_end), lastEndTs = prev == null ? null : prev.ts_end;
+  if (prev != null && !(w0 >= lastEnd)) fail('batch.interval_overlap', { ts_start: batch.ts_start, prev_ts_end: prev.ts_end });
+  const counted = new Set((prev != null && Array.isArray(prev.intervals) ? prev.intervals : []).map((r) => Date.parse(r.ts_start)));
   for (const r of batch.intervals) {
     const s = Date.parse(r.ts_start), e = Date.parse(r.ts_end);
-    if (!(s > last) || s < w0 || e > w1) { fail('batch.window_mismatch', { interval_seq: r.seq, ts_start: r.ts_start }); break; }
-    last = s;
+    if (s < w0 || e > w1) { fail('batch.window_mismatch', { interval_seq: r.seq, ts_start: r.ts_start }); break; }
+    if (counted.has(s)) { fail('batch.interval_repeated', { interval_seq: r.seq, ts_start: r.ts_start }); break; }
+    if (!(s >= lastEnd)) { fail('batch.interval_overlap', { interval_seq: r.seq, ts_start: r.ts_start, after: lastEndTs }); break; }
+    counted.add(s);
+    lastEnd = e; lastEndTs = r.ts_end;
   }
 
   /* re-judge every contained interval: each must pass the gates as the spec stands */
@@ -155,6 +197,7 @@ module.exports = {
   intervalErrors,
   isRegistered,
   isGateCode,
+  offGrid,
   INTERVAL_SCHEMA_VERSION,
   BATCH_SCHEMA_VERSION,
   SPEC,

@@ -138,6 +138,40 @@ test('a broken chain link in the feed → BROKEN', async () => {
   assert(rep.problems.some((p) => /chain/.test(p)), rep.problems.join('; '));
 });
 
+test('the on-chain cumulative is the energy of accepted batches only: a refused batch that adds its energy is BROKEN, one that carries the total forward reconciles', async () => {
+  const { feed } = makeFeed(1);
+  const b0 = feed.batches[feed.listed[0].batch_id];
+  const next = (prev, intervals, cumulative) => {
+    const energy = intervals.reduce((s, r) => s + E.basisMwh(r), 0);
+    const b = {
+      batch_id: E.batchId(prev.site_id, prev.seq + 1), site_id: prev.site_id, node_id: prev.node_id, seq: prev.seq + 1,
+      ts_start: intervals[0].ts_start, ts_end: intervals[intervals.length - 1].ts_end, spec_version: prev.spec_version, schema_version: prev.schema_version,
+      interval_count: intervals.length, accepted_count: intervals.length, rejected_count: 0, intervals, intervals_root: E.merkleRoot(intervals),
+      energy_mwh: energy, cumulative_mwh: cumulative ?? prev.cumulative_mwh + energy, prev_hash: prev.sha256,
+    };
+    b.sha256 = E.batchSha256(b);
+    return b;
+  };
+  const withRefused = (carry) => {
+    const f = JSON.parse(JSON.stringify(feed));
+    const refused = next(b0, b0.intervals, carry ? b0.cumulative_mwh : undefined);   // batch 0 re-sent: refused
+    const after = next(refused, Array.from({ length: 12 }, (_, k) => iv(12 + k)));
+    for (const [b, status] of [[refused, 'rejected'], [after, 'accepted']]) {
+      f.listed.push({ batch_id: b.batch_id, seq: b.seq, sha256: b.sha256, status, reasons: status === 'rejected' ? ['batch.interval_repeated'] : [] });
+      f.batches[b.batch_id] = b;
+    }
+    return { f, after };
+  };
+  const ok = withRefused(true);
+  const rep = await R.reconcile(ok.f, anchorsFor(ok.f, 2));
+  eq(rep.verdict, 'RECONCILED', rep.problems.join('; '));
+  eq(rep.summary.anchored_cumulative_mwh, b0.energy_mwh + ok.after.energy_mwh, 'anchored total = energy of accepted batches');
+  const bad = withRefused(false);
+  const rep2 = await R.reconcile(bad.f, anchorsFor(bad.f, 2));
+  eq(rep2.verdict, 'BROKEN', 'a refused batch that adds its energy');
+  assert(rep2.problems.some((p) => /accepted/.test(p) && p.includes(bad.f.listed[1].batch_id)), rep2.problems.join('; '));
+});
+
 test('fetchFeed reads a served feed exactly as published', async () => {
   const { dir, feed } = makeFeed(2);
   const http = require('http');

@@ -14,6 +14,7 @@ const V = require('./verify');
 const { BatchAssembler } = require('./assemble');
 const { Pipeline } = require('./pipeline');
 const { verifyFeed } = require('./verify-cli');
+const { Feed } = require('./feed');
 const REASONS = require('../protocol/reasons.json');
 
 const FIXTURE = path.join(__dirname, '..', 'protocol', 'conformance', 'batch-cases.json');
@@ -243,8 +244,8 @@ test('a batch smuggling a gate-failing interval is caught on re-judgment', () =>
 /** An otherwise valid batch after `prev`, every derived field recomputed the way a forger would. */
 function nextBatch(prev, intervals, o = {}) {
   const site = o.site_id ?? prev.site_id, seq = prev.seq + 1;
-  const first = intervals.reduce((m, r) => (Date.parse(r.ts_start) < Date.parse(m.ts_start) ? r : m));
-  const last = intervals.reduce((m, r) => (Date.parse(r.ts_end) > Date.parse(m.ts_end) ? r : m));
+  const first = intervals.reduce((m, r) => (Date.parse(r.ts_start) < Date.parse(m.ts_start) ? r : m), intervals[0]);
+  const last = intervals.reduce((m, r) => (Date.parse(r.ts_end) > Date.parse(m.ts_end) ? r : m), intervals[0]);
   const energy = intervals.reduce((s, r) => s + E.basisMwh(r), 0);
   return rehash({
     batch_id: E.batchId(site, seq), site_id: site, node_id: o.node_id ?? prev.node_id, seq,
@@ -322,6 +323,161 @@ test('rejects a batch from another installation (batch.site_mismatch)', () => {
   has(check(nextBatch(b1, oneForeign({ site_id: 'other-site' }))), 'batch.site_mismatch', 'an interval from another site');
   has(check(nextBatch(b1, fresh(24, 12).map((r) => as(r, { node_id: 'other-node' })), { node_id: 'other-node' })), 'batch.site_mismatch', 'the next batch from another node');
   has(check(nextBatch(b1, fresh(24, 12).map((r) => as(r, { site_id: 'other-site' })), { site_id: 'other-site' })), 'batch.site_mismatch', 'the next batch from another site');
+});
+
+/* ──────── review of S1/S2: the floor, refused batches and the door ──────── */
+
+const at = (min) => T0 + min * 60e3;
+/** An interval of `dt` seconds starting `min` minutes after T0. */
+const ivAt = (min, dt = DT, o = {}) => {
+  const r = iv(0, o), m = (x) => ({ ...x, mwh: Math.round(x.mw_mean * dt / 3600) });
+  return Object.assign(r, { seq: o.seq ?? 1000 + min, ts_start: new Date(at(min)).toISOString(), ts_end: new Date(at(min) + dt * 1000).toISOString(), dt_s: dt,
+    meters: { a: m(r.meters.a), b: m(r.meters.b) }, source: { adapter: 'simulator', raw_sha256: E.sha256(`raw-at-${min}-${dt}`) } });
+};
+/** Accepted-batch spans claimed by more than one batch: the same energy counted twice. */
+function claimedTwice(dir) {
+  const feed = new Feed(dir);
+  const spans = [];
+  for (const e of feed.readLedger('batches').filter((x) => x.status === 'accepted')) {
+    for (const r of feed.readBatch(e.batch_id).intervals) spans.push({ seq: e.seq, s: Date.parse(r.ts_start), e: Date.parse(r.ts_end) });
+  }
+  return spans.filter((x, i) => spans.some((y, j) => j > i && y.seq !== x.seq && Math.min(x.e, y.e) > Math.max(x.s, y.s)));
+}
+
+test('a batch published as rejected never becomes the floor: an accepted batch re-sent after it is refused (batch.interval_repeated)', () => {
+  const dir = tmpDir();
+  const p = mkPipe(dir);
+  for (let i = 0; i < 12; i++) p.push(iv(i));
+  const b0 = p.feed.readBatch('bench-santiago-000000');
+  /* a refused, empty batch whose window lies an hour before b0, then b0's own intervals again */
+  const hourBefore = new Date(T0 - 3600e3).toISOString();
+  const b1 = nextBatch(b0, [], { ts_start: hourBefore, ts_end: hourBefore });
+  p.feed.publish({ batch: b1, status: 'rejected', reasons: ['batch.interval_overlap'] });
+  const b2 = nextBatch(b1, clone(b0.intervals));
+  const res = V.verifyBatch(b2, { prev: b1, floor: b0, rejected: [] });
+  codesOf(res).forEach((c) => emitted.add(c));
+  has(res, 'batch.interval_repeated', 'judged against the last accepted batch, not the refused one');
+  p.feed.publish({ batch: b2, status: 'accepted', reasons: [] });
+  const out = verifyFeed(dir);
+  assert(!out.ok && out.problems.some((x) => x.includes(b2.batch_id)), `verify-cli must refuse ${b2.batch_id}: ${out.problems.join('; ')}`);
+});
+
+test('the previous batch is rehashed before its time, node or intervals are read (batch.chain_break)', () => {
+  const { batches: [b0] } = chain3();
+  const b1 = nextBatch(b0, clone(b0.intervals));
+  const rewritten = Object.assign(clone(b0), { ts_end: '1970-01-01T00:00:00.000Z', intervals: [] });   // sha256 field kept
+  const res = V.verifyBatch(b1, { prev: rewritten, rejected: [] });
+  has(res, 'batch.chain_break', 'a previous batch that does not rehash');
+});
+
+test('a refused batch carries the total forward unchanged and never moves the floor; only accepted batches add energy (batch.cumulative_mismatch)', () => {
+  const a = mkAsm();
+  for (let i = 0; i < 12; i++) a.judge(iv(i));
+  const b0 = a.close().batch;
+  /* a defect the door did not catch: a line from another node slipped into the window */
+  for (let i = 12; i < 23; i++) a.judge(iv(i));
+  a.window.push({ batch_id: a.openBatchId, verdict: 'accept', reasons: [], interval: Object.assign(iv(23), { node_id: 'other-node' }), basis_mwh: E.basisMwh(iv(23)) });
+  const refused = a.close();
+  eq(refused.status, 'rejected', 'refused at batch level');
+  assert(refused.batch.energy_mwh > 0, 'it holds energy');
+  eq(refused.batch.cumulative_mwh, b0.cumulative_mwh, 'cumulative carried forward unchanged');
+  eq(a.prev_ts_end, b0.ts_end, 'the floor stays at the last accepted batch');
+  const asRejected = V.verifyBatch(refused.batch, { prev: b0, status: 'rejected' });
+  assert(!codesOf(asRejected).includes('batch.cumulative_mismatch'), `carried total: ${codesOf(asRejected)}`);
+  for (let i = 24; i < 36; i++) a.judge(iv(i));
+  const next = a.close();
+  eq(next.status, 'accepted', `the next batch [${next.reasons}]`);
+  eq(next.batch.cumulative_mwh, b0.energy_mwh + next.batch.energy_mwh, 'the total is the energy of accepted batches only');
+  /* a batch published as rejected that still adds its energy is caught */
+  const dir = tmpDir();
+  const p = mkPipe(dir);
+  for (let i = 0; i < 12; i++) p.push(iv(i));
+  const c0 = p.feed.readBatch('bench-santiago-000000');
+  const c1 = nextBatch(c0, [clone(c0.intervals[11]), ...Array.from({ length: 11 }, (_, k) => iv(12 + k))]);   // really fails: interval_repeated
+  const res = V.verifyBatch(c1, { prev: c0, status: 'rejected' });
+  codesOf(res).forEach((c) => emitted.add(c));
+  has(res, 'batch.cumulative_mismatch', 'a refused batch that adds its energy');
+  p.feed.publish({ batch: c1, status: 'rejected', reasons: ['batch.interval_repeated'] });
+  const out = verifyFeed(dir);
+  assert(!out.ok && out.problems.some((x) => x.includes(c1.batch_id)), `verify-cli: ${out.problems.join('; ')}`);
+});
+
+test('a change of dt_s is refused interval by interval at the door, never a whole batch, and nothing is counted twice (ingest.overlap)', () => {
+  /* one overlapping interval inside a window: only that line is refused */
+  const a = mkAsm();
+  for (let i = 0; i < 9; i++) a.judge(iv(i));
+  a.judge(ivAt(45, 900));                                          // 15:45–16:00
+  const inside = a.judge(ivAt(50));                                // 15:50, after the last start, inside the last span
+  record([inside]);
+  eq(inside.reasons[0], 'ingest.overlap', 'the overlapping line');
+  a.judge(ivAt(60));
+  const closed = a.close();
+  eq(closed.status, 'accepted', `the batch survives [${closed.reasons}]`);
+  eq(closed.batch.accepted_count, 11, 'every honest line counted');
+  /* honest pipeline: 900 s, then 60 s inside it, then 300 s again */
+  const dir = tmpDir();
+  const p = mkPipe(dir);
+  for (let i = 0; i < 11; i++) p.push(iv(i));
+  p.push(ivAt(60, 900));                                           // 16:00–16:15 closes batch 0
+  const tiny = [];
+  for (let k = 0; k < 12; k++) tiny.push(p.push(ivAt(61, 60, { seq: 2000 + k })));
+  record(tiny);
+  eq(tiny[0].reasons[0], 'ingest.overlap', '16:01 starts inside 16:00–16:15');
+  for (let i = 0; i < 12; i++) p.push(ivAt(65 + i * 5));
+  const out = verifyFeed(dir);
+  assert(out.ok, out.problems.join('; '));
+  eq(out.rejected_batches, 0, 'no batch lost');
+  eq(claimedTwice(dir).length, 0, 'no span claimed by two accepted batches');
+});
+
+test('an interval from another site or node is refused at the door and the batch survives (ingest.site_mismatch)', () => {
+  const a = mkAsm();
+  for (let i = 0; i < 10; i++) a.judge(iv(i));
+  const stray = a.judge(Object.assign(iv(10), { node_id: 'stray-node' }));
+  const other = a.judge(Object.assign(iv(11), { site_id: 'other-site' }));
+  record([stray, other]);
+  eq(stray.reasons[0], 'ingest.site_mismatch', 'another node');
+  eq(other.reasons[0], 'ingest.site_mismatch', 'another site');
+  const closed = a.close();
+  eq(closed.status, 'accepted', `the batch survives [${closed.reasons}]`);
+});
+
+test('a node change is judged against the last accepted batch, so every later batch is refused, not only the first (batch.site_mismatch)', () => {
+  const dir = tmpDir();
+  let p = mkPipe(dir);
+  for (let i = 0; i < 12; i++) p.push(iv(i));
+  p = mkPipe(dir, { node_id: 'node-2' });                          // the node replaced, same feed
+  for (let i = 12; i < 48; i++) p.push(Object.assign(iv(i), { node_id: 'node-2' }));
+  const st = p.feed.readLedger('batches');
+  const after = st.filter((e) => e.seq >= 1);
+  assert(after.length === 3 && after.every((e) => e.status === 'rejected' && e.reasons.includes('batch.site_mismatch')), JSON.stringify(st.map((e) => [e.seq, e.status, e.reasons])));
+  eq(verifyFeed(dir).cumulative_mwh, 12 * Math.round(99000 * DT / 3600), 'no energy from the other node');
+});
+
+test('a batch window comes only from intervals that hold time: refused lines and spans longer than the gates allow never set it (batch.interval_overlap, batch.window_mismatch)', () => {
+  /* a gate-refused 3600 s interval (bench allows 900 s) does not stretch the window */
+  let dir = tmpDir(), p = mkPipe(dir);
+  for (let i = 0; i < 11; i++) p.push(iv(i));
+  const bogus = p.push(ivAt(60, 3600));
+  record([bogus]);
+  for (let i = 0; i < 24; i++) p.push(ivAt(65 + i * 5));
+  let st = p.feed.readLedger('batches');
+  eq(p.feed.readBatch(st[0].batch_id).ts_end, iv(10).ts_end, 'batch 0 ends with its last accepted interval');
+  assert(st.every((e) => e.status === 'accepted'), JSON.stringify(st.map((e) => [e.seq, e.status, e.reasons])));
+  /* a first window of nothing but refused lines, some spelled another way: canonical, zero-length, on every grid */
+  dir = tmpDir(); p = mkPipe(dir);
+  for (let i = 0; i < 12; i++) {
+    const r = ivAt(1 + i * 5);                                     // off the 300 s grid
+    if (i % 2) { r.ts_start = r.ts_start.replace('.000Z', 'Z'); r.ts_end = r.ts_end.replace('.000Z', '+00:00'); }
+    p.push(r);
+  }
+  for (let i = 0; i < 24; i++) p.push(iv(1 + i));
+  st = p.feed.readLedger('batches');
+  const g = p.feed.readBatch(st[0].batch_id);
+  eq(g.ts_start, '1970-01-01T00:00:00.000Z', 'genesis window start');
+  eq(g.ts_end, g.ts_start, 'zero-length');
+  assert(st.every((e) => e.status === 'accepted'), JSON.stringify(st.map((e) => [e.seq, e.status, e.reasons])));
+  assert(verifyFeed(dir).ok, 'the feed verifies');
 });
 
 /* ───────────────────────── pipeline: restart safety ───────────────────────── */
