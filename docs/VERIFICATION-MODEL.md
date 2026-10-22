@@ -39,7 +39,7 @@ converted at payout.
 | A7 | **The issuer (us)** | Mints QWATT with no generation behind it | **Only partially counterable.** Supply is public and every unit must trace to an anchored batch; a stranger can total the attested Wh and compare against issued QWATT (§7). This is the check that matters most for credibility, and it is why the treasury's minting rule must stay mechanical. |
 
 The design principle throughout: **a compromised node should be a broken sensor, not a money
-printer.** No single key, and no single instrument, can create supply on its own.
+printer.** No single key, and no single instrument, can issue QWATT on its own.
 
 ## 3. Measurement layer
 
