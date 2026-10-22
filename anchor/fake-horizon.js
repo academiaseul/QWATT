@@ -26,7 +26,7 @@
  * Without `account`, no account exists until `fund(id)` (what Friendbot does)
  * creates one the way the network does: master weight 1, thresholds 0/0/0, no
  * other signers. With `account`, it starts already configured: `signers` of
- * weight 1, master weight 0, and `thresholds` (default below).
+ * weight 1, master weight 0, and `thresholds` (default: anchor/thresholds.js).
  *
  * Fault injection (one-shot): `failNext = 'timeout-after'` applies the
  * transaction and then throws a network error (the classic Horizon 504 that
@@ -37,8 +37,10 @@
 'use strict';
 
 const S = require('@stellar/stellar-sdk');
+const { THRESHOLDS } = require('./thresholds');
 
-const DEFAULT_THRESHOLDS = { low: 1, med: 2, high: 3 };
+/* the anchoring account's real thresholds (2/2/3) unless a test passes others */
+const DEFAULT_THRESHOLDS = { ...THRESHOLDS };
 const LOW_OPS = new Set(['bumpSequence', 'allowTrust', 'setTrustLineFlags']);
 const HIGH_FIELDS = ['signer', 'masterWeight', 'lowThreshold', 'medThreshold', 'highThreshold'];
 

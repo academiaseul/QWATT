@@ -27,10 +27,23 @@ what it watches cannot report that it died.
 3. **Create the anchoring account** (from any machine; it needs only public keys):
    `node anchor/setup-account.js --proposer G… --verifier G… --third G… --out anchor.json`.
    Copy `anchor.json` to `/etc/qwatt/anchor.json` on **both** hosts. It holds public values only.
+   The tool sets three signers of weight 1, master weight 0 and thresholds **2/2/3** (low 2,
+   medium 2, high 3; `anchor/thresholds.js`): no single key can send any transaction for the
+   account (the network answers `tx_bad_auth`), anchoring needs 2 of the 3 keys, and changing
+   signers or thresholds needs all 3.
+
+   **Fallback, only if the account must exist before the third signer is named** (decision OD-1;
+   the two-signer mode of `setup-account.js` comes in week 2, so until then this is done by hand,
+   for example in Stellar Laboratory on testnet): build the same setup transaction the tool builds,
+   with only the proposer and verifier signers (weight 1 each), master weight 0 and thresholds
+   **2/2/2** (low 2, medium 2, high 2). Anchoring still needs both keys. When the third signer
+   sends their public key, submit **one** `setOptions` that adds them with weight 1 and sets the
+   high threshold to 3, signed by both the proposer and the verifier keys, then run step 4's
+   `--verify` with `--third`: every check must pass, `thresholds 2/2/3` included.
 4. **Jay signs the funding transaction** the tool printed (Stellar Laboratory → testnet → sign
    with the treasury key → submit). Then run
    `node anchor/setup-account.js --verify G… --proposer G… --verifier G… --third G…`;
-   every check must pass.
+   every check must pass, `thresholds 2/2/3` included.
 5. **Feed host:** in the repository settings, GitHub Pages serves the `feed` branch at the root.
    Add the proposer host's deploy key with write access. Note the Pages URL (it is case-sensitive:
    check whether it is `…github.io/QWATT/` or `…/qwatt/`). That URL is `QWATT_FEED_URL`.

@@ -33,9 +33,17 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-20.
 | 5 | Third signer agrees to be reachable Days 15–30 and to sign **one** test transaction | Third signer | Routine anchoring never needs them; they are the recovery key. The one test proves their key works. |
 | 6 | **Fund the anchoring account with QWATT**: one payment of 1 QWATT from the treasury `GCLS6…OKW` to the new anchoring account, after it adds a QWATT trustline | Jay (treasury key holder) | Each batch pays 0.0000001 QWATT back to the treasury, so 1 QWATT covers 10 million batches. `node anchor/setup-account.js --proposer G… --verifier G… --third G…` creates and configures the account, then prints the **unsigned** funding transaction; Jay signs it in Stellar Laboratory (the tool never sees the treasury secret). Rehearsed end to end: `evidence/asset-rehearsal/`. |
 
-> **Why Day 15 is firm:** the anchoring account requires all three signatures to change its signers.
-> If it is created before the third signer exists, it cannot be fixed later; it would have to be
-> replaced.
+> **Why Day 15 is firm:** at 2/2/3 the anchoring account requires all three signatures to change its
+> signers, so it should be created with the third signer already in it. If the account has to be
+> created before the third signer exists, it is not lost: it starts at the fallback, thresholds
+> 2/2/2 with only the two team signers, and when the third signer is named the two team keys add
+> them and raise the thresholds to 2/2/3 in one setOptions signed by both. The two-signer setup mode
+> of `setup-account.js` comes in week 2; until then the fallback is done by hand following the
+> runbook (`docs/RUNBOOK.md`, one-time setup, step 3).
+>
+> **Thresholds 2/2/3** (decided 21 Oct 2026; low 2, medium 2, high 3): no single key, the third
+> signer's included, can send any transaction for the anchoring account; anchoring needs 2 of the
+> 3 keys; changing signers or thresholds needs all 3. `setup-account.js --verify` checks it.
 
 ## By Day 18 (Thu 5 Nov)
 

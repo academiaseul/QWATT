@@ -4,6 +4,17 @@ Accepted batches are anchored only when two of three keys sign: the **proposer**
 **independent verifier** on a separate host, and an **off-team third signer**. The verifier's only
 input is the public evidence feed, so nothing can be signed before it is public.
 
+**The anchoring account's thresholds are 2/2/3** (low 2, medium 2, high 3; three signers of
+weight 1; master weight 0; defined once in `thresholds.js`). On Stellar every transaction needs
+its source account's low threshold for its fee and sequence, so:
+
+- **no single key can send any transaction for the account**: the network rejects it as
+  `tx_bad_auth` and applies nothing, a `BumpSequence` included (under low 1, one key alone could
+  bump the sequence, voiding every pending co-signed anchor, or bump it to its maximum and leave
+  the account unable to send anything again);
+- **anchoring needs two of the three keys** (`manageData` and `payment` are medium);
+- **changing signers or thresholds needs all three** (`setOptions` on those fields is high).
+
 ```
 batch pipeline ─► feed dir ──(published as static files)──► verifier: download · re-derive · rebuild tx
                      ▲                                              │  sign only on a byte-identical match
@@ -12,6 +23,8 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 
 | File | Role |
 |---|---|
+| `thresholds.js` | The anchoring account's thresholds (2/2/3), read by every tool that sets, checks or describes them. |
+| `setup-account.js` | Creates and configures the real anchoring account in one master-signed transaction; `--verify` re-checks it, thresholds included. |
 | `tx.js` | The deterministic anchoring transaction (anchor hash · cumulative total · nominal payment · memo `QW#<seq>`) and `matchPending`, the verifier's rebuild-and-compare. |
 | `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. `walkToHead` checks what a batch inherits against the on-chain head. |
 | `proposer.js` | Proposer service: runs the verifier's walk over its own feed, signs the next published, self-verified batch and writes `pending/<id>.xdr`; otherwise it reports `blocked` with the verifier's reason. Never submits. |
@@ -20,7 +33,7 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `static-server.js` | Read-only static server for a feed directory (local runs, tests). |
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
 | `e2e.js` | Throwaway-account end-to-end run of both services: chain, restart, independence test, test D. |
-| `tx.test.js` | Offline tests (no network). |
+| `tx.test.js` · `recovery.test.js` · `tests-abcd.test.js` | Offline tests (no network), against `fake-horizon.js`, which applies Stellar's signature rules. |
 
 **What the verifier checks before it co-signs.** Any failure is a refusal with a reason code
 registered in `../protocol/reasons.json`, and nothing is signed:
@@ -70,8 +83,13 @@ QWATT_VERIFIER_SECRET=S… node verifier.js --feed https://<public feed> --confi
 Secrets come from the environment only and are never written, logged or committed. `config.json`
 (copy `config.example.json`) holds public values only and stays out of git because it is host-specific.
 
-**Evidence notes for the write-up** (from the live rehearsal):
-- a single signature is refused as `tx_failed` / `op_bad_auth`: it meets the low threshold, not the
-  medium one the anchor needs;
+**Evidence notes for the write-up:**
+- under 2/2/3 a single signature is refused as `tx_bad_auth`: it does not meet the low threshold,
+  so the transaction itself is rejected. The 8 Oct 2026 rehearsal ran at 1/2/3, where one signature
+  met the low threshold and the anchor failed as `tx_failed` / `op_bad_auth` (medium not met); its
+  evidence keeps those codes;
+- on the real account, `tests-abcd.js` loads the account before A and B and records its thresholds;
+  A and B count as refused only on `tx_bad_auth` with the account at 2/2/3, otherwise the A–D
+  verdict is FAIL (`rehearse.js` keeps accepting `op_bad_auth` for the 8 Oct evidence);
 - tests A, B and C share one transaction hash because Stellar hashes exclude signatures — cite A
   and B by envelope and result code, never by hash.

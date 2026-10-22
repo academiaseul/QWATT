@@ -34,6 +34,7 @@ const V = require('../batch/verify');
 const { Pipeline } = require('../batch/pipeline');
 const { verifyFeed } = require('../batch/verify-cli');
 const T = require('./tx');
+const TH = require('./thresholds');
 const C = require('./chain');
 const { Proposer } = require('./proposer');
 const { Verifier } = require('./verifier');
@@ -53,7 +54,7 @@ async function setupMultisig(master, signers) {
   const acct = await server.loadAccount(master.publicKey());
   const b = new S.TransactionBuilder(acct, { fee: String(S.BASE_FEE), networkPassphrase: S.Networks.TESTNET });
   for (const s of signers) b.addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: s, weight: 1 } }));
-  b.addOperation(S.Operation.setOptions({ masterWeight: 0, lowThreshold: 1, medThreshold: 2, highThreshold: 3 }));
+  b.addOperation(S.Operation.setOptions({ masterWeight: 0, ...TH.setOptionsFields() }));
   const tx = b.setTimeout(300).build();
   tx.sign(master);
   return (await server.submitTransaction(tx)).hash;

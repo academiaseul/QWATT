@@ -25,6 +25,7 @@ const { auditLive } = require('./audit');
 const { Proposer } = require('../anchor/proposer');
 const { Verifier } = require('../anchor/verifier');
 const { serveDir } = require('../anchor/static-server');
+const TH = require('../anchor/thresholds');
 const R = require('../assets/qwatt-reconcile.js');
 
 const HORIZON = 'https://horizon-testnet.stellar.org';
@@ -41,7 +42,7 @@ async function main() {
   const acct = await server.loadAccount(pub.account);
   const b = new S.TransactionBuilder(acct, { fee: String(S.BASE_FEE), networkPassphrase: S.Networks.TESTNET });
   for (const s of [pub.proposer, pub.verifier, pub.third]) b.addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: s, weight: 1 } }));
-  b.addOperation(S.Operation.setOptions({ masterWeight: 0, lowThreshold: 1, medThreshold: 2, highThreshold: 3 }));
+  b.addOperation(S.Operation.setOptions({ masterWeight: 0, ...TH.setOptionsFields() }));
   const setup = b.setTimeout(300).build(); setup.sign(K.account);
   await server.submitTransaction(setup);
 

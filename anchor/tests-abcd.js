@@ -16,7 +16,13 @@
  *      Nothing is submitted and nothing is published: the public feed is never touched.
  *
  * A and B never enter a ledger (validation rejects them), so they consume no
- * sequence number and do not disturb the running pipeline. Each run merges its
+ * sequence number and do not disturb the running pipeline. Before submitting,
+ * each loads the account and records its thresholds in the evidence; A and B
+ * count as refused only when the account is at 2/2/3 (anchor/thresholds.js)
+ * and the network answered tx_bad_auth. (One signature refused as tx_failed /
+ * op_bad_auth, as on the 8 Oct 1/2/3 rehearsal, means one key alone met the
+ * low threshold: the verdict is then FAIL. rehearse.js keeps its own, lenient
+ * check for that historical evidence.) Each run merges its
  * result into evidence/abcd/abcd.json, the format `ops/writeup.js --tests` reads.
  */
 
@@ -31,23 +37,36 @@ const C = require('./chain');
 const { Feed } = require('../batch/feed');
 const { makeFeedClient } = require('./feed-client');
 const { loadConfig } = require('./proposer');
+const TH = require('./thresholds');
 
-const authRefused = (codes) => !!codes && (codes.transaction === 'tx_bad_auth' || (codes.transaction === 'tx_failed' && (codes.operations || []).includes('op_bad_auth')));
+/**
+ * A single-signature submission counts as refused only when the network answered
+ * tx_bad_auth (no single key meets the low threshold) AND the account was loaded
+ * at 2/2/3. tx_failed / op_bad_auth means one key alone met the low threshold.
+ */
+const authRefused = (codes, thresholdsMatch) => !!codes && codes.transaction === 'tx_bad_auth' && thresholdsMatch === true;
 
-async function submitExpectRefusal(server, tx) {
+/** The account's thresholds as the network reports them, loaded before A or B submits. */
+async function accountThresholds(server, account) {
+  const acct = await server.loadAccount(account);
+  return { thresholds: acct.thresholds, thresholds_match: TH.matches(acct.thresholds) };
+}
+
+async function submitExpectRefusal(server, tx, th) {
   try {
     const res = await server.submitTransaction(tx);
-    return { ok: true, hash: res.hash, refused: false };
+    return { ok: true, hash: res.hash, refused: false, ...th };
   } catch (e) {
     const codes = e && e.response && e.response.data && e.response.data.extras && e.response.data.extras.result_codes;
     if (!codes) throw e;
-    return { ok: false, refused: authRefused(codes), codes, body_hash: tx.hash().toString('hex'), signatures: tx.signatures.length };
+    return { ok: false, refused: authRefused(codes, th.thresholds_match), codes, ...th, body_hash: tx.hash().toString('hex'), signatures: tx.signatures.length };
   }
 }
 
 /** A — proposer host: submit the proposer-signed pending transaction alone. */
 async function testA({ feedDir, cfg, keypair, server }) {
   const feed = new Feed(feedDir);
+  const th = await accountThresholds(server, cfg.anchor_account);   // loaded first: the evidence records what the account was
   const listed = feed.readLedger('batches');
   const head = await C.getHead(server, cfg.anchor_account);
   const next = C.nextToAnchor(listed, C.anchoredPrefix(listed, head.anchor_sha256));
@@ -55,13 +74,14 @@ async function testA({ feedDir, cfg, keypair, server }) {
   const batch = feed.readBatch(next.batch_id);
   const tx = T.buildAnchorTx(batch, cfg, T.proposalParams(head.sequence));
   tx.sign(keypair);
-  const r = await submitExpectRefusal(server, tx);
+  const r = await submitExpectRefusal(server, tx, th);
   return { ...r, batch_id: next.batch_id, expect: 'refused', envelope_xdr: tx.toEnvelope().toXDR('base64') };
 }
 
 /** B — verifier host: rebuild from the published batch, sign with the verifier key only, submit. */
 async function testB({ feedUrl, cfg, keypair, server }) {
   const feed = makeFeedClient(feedUrl);
+  const th = await accountThresholds(server, cfg.anchor_account);   // loaded first: the evidence records what the account was
   const listed = await feed.batches();
   const head = await C.getHead(server, cfg.anchor_account);
   const next = C.nextToAnchor(listed, C.anchoredPrefix(listed, head.anchor_sha256));
@@ -69,7 +89,7 @@ async function testB({ feedUrl, cfg, keypair, server }) {
   const batch = await feed.batch(next.batch_id);
   const tx = T.buildAnchorTx(batch, cfg, T.proposalParams(head.sequence));
   tx.sign(keypair);
-  const r = await submitExpectRefusal(server, tx);
+  const r = await submitExpectRefusal(server, tx, th);
   return { ...r, batch_id: next.batch_id, expect: 'refused', envelope_xdr: tx.toEnvelope().toXDR('base64') };
 }
 
@@ -115,7 +135,8 @@ function merge(file, account, which, result) {
   ev.steps[STEP[which]] = { ...result, at: new Date().toISOString() };
   const s = ev.steps;
   ev.verdict = s.A_proposer_alone && s.B_verifier_alone && s.C_proposer_plus_verifier && s.D_altered_after_proposer_signed
-    ? (s.A_proposer_alone.refused && s.B_verifier_alone.refused && s.C_proposer_plus_verifier.ok && s.D_altered_after_proposer_signed.refused ? 'PASS' : 'FAIL')
+    ? (s.A_proposer_alone.refused && s.B_verifier_alone.refused && s.A_proposer_alone.thresholds_match === true && s.B_verifier_alone.thresholds_match === true
+      && s.C_proposer_plus_verifier.ok && s.D_altered_after_proposer_signed.refused ? 'PASS' : 'FAIL')
     : 'INCOMPLETE';
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, JSON.stringify(ev, null, 2) + '\n');
@@ -141,4 +162,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('test failed to run:', e.message); process.exitCode = 1; });
 
-module.exports = { testA, testB, testC, testD, merge, authRefused };
+module.exports = { testA, testB, testC, testD, merge, authRefused, accountThresholds };

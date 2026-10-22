@@ -57,22 +57,31 @@ Memo `QW#<seq>`. Base fee. Timebounds 24 h. Built deterministically from the pub
 both proposer and verifier; the verifier signs only if its rebuilt transaction hash equals the
 pending XDR's.
 
-## Keys and thresholds (v1 §8, unchanged except the account)
+## Keys and thresholds (v1 §8, changed: the account, and thresholds 2/2/3 since 21 Oct 2026)
 
 Three signers, weight 1 each: proposer (gateway host), independent verifier (separate provider and
 account, key generated on its host), third signer (off-team, named before the real account is created — see the decisions log).
-Thresholds low 1, medium 2, high 3; master weight 0 once the signers are set. Rehearsed on a
-throwaway testnet account first (plan unit 1.6).
+Thresholds low 2, medium 2, high 3 (`anchor/thresholds.js`); master weight 0 once the signers are
+set. Rehearsed on a throwaway testnet account first (plan unit 1.6, 8 Oct 2026, at the earlier 1/2/3).
+
+**Amended 21 Oct 2026 (decision OD-1, both founders): thresholds 2/2/3, was 1/2/3.** On Stellar a
+transaction needs its source account's low threshold for its fee and sequence, and `BumpSequence`
+is a low-threshold operation. Under 1/2/3 one key, the off-team third signer's included, could
+alone bump the sequence, voiding every pending co-signed anchor, or bump it to its maximum and leave
+the account unable to send anything again. Under 2/2/3 no single key can send any transaction for
+the account; anchoring still needs 2 of the 3 keys and changing signers still needs all 3.
 
 ## Rehearsal findings (plan units 1.6 and 3.8, testnet, 2026-10-08)
 
 Evidence: `evidence/rehearsal/rehearsal-2026-10-08T20-46-13-037Z.json` (`node anchor/rehearse.js`,
 throwaway account, verdict PASS). Two facts the write-up must reflect:
 
-- **A single signature is refused as `tx_failed` / `op_bad_auth`, not `tx_bad_auth`.** One weight-1
+- **On 8 Oct (1/2/3) a single signature was refused as `tx_failed` / `op_bad_auth`; under 2/2/3 it is `tx_bad_auth`.** One weight-1
   signature meets the LOW threshold (the transaction is authorized to exist) but the `manageData`
   anchor needs MEDIUM 2, so that operation fails and the transaction applies nothing. Validation
   rejects it before a ledger: the same sequence number is used successfully by C afterwards.
+  (That rehearsal ran at 1/2/3. Under 2/2/3 one signature does not meet LOW, so the network
+  rejects the transaction itself as `tx_bad_auth`; it still never enters a ledger.)
 - **A, B and C share one transaction hash.** Stellar transaction hashes exclude signatures, so the
   refused single-signature attempts are byte-for-byte the transaction that later succeeded. Never
   cite A or B by hash (the link resolves to C). Their evidence is the signed envelope and the
@@ -98,8 +107,9 @@ Nothing below blocks work before Day 15. Until each is resolved the build runs o
 | License (D-11) | **decided: MIT** | — | — |
 | Payment amount (D-1) | adopted: 0.0000001 QWATT | sign-off | — |
 | Anchoring account (D-2) | adopted: new dedicated account | Day 15 (plan 3.1) | throwaway testnet accounts (rehearsal, e2e) |
+| Thresholds (OD-1) | decided 21 Oct 2026: 2/2/3; fallback 2/2/2 while only the two team signers exist, raised to 2/2/3 by one setOptions signed by both when the third signer is added | — | — |
 | Ramp fault (D-10), `samples_root` (D-6) | adopted as above | sign-off | — |
-| **Third signer** named, public key received | open | **Day 15**, latest Day 19 | throwaway key. The real account must not be created without it: with high threshold 3, adding a signer later needs all three existing keys |
+| **Third signer** named, public key received | open | **Day 15**, latest Day 19 | throwaway key. If the real account has to be created before it, it starts at the 2/2/2 fallback (Thresholds row): the two team keys then add the third signer and raise it to 2/2/3 |
 | **Evidence-feed host** | open — recommended: a `feed` branch of this repository on GitHub Pages (free, public, no new account) | Day 18 | `anchor/static-server.js` serving the feed locally |
 | **Verifier host and operator** | open — any always-on machine that does not run the proposer, operated by the other founder | Day 18 | verifier runs locally against the local feed URL |
 | Public PV dataset | **decided: NREL PVDAQ system 4902 (NIST Ground), Sept 2017, CC BY 4.0** — see `datasets/README.md` | — | — |
