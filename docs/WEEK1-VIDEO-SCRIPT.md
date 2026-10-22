@@ -1,7 +1,7 @@
 # QWATT — Week 1 update · YouTube script (3:00)
 
 **Deliverable:** Instawards sprint, Deliverable 1 — meter-agnostic ingestion (`docs/SOW-INSTAWARD-v3.md` §4)
-**On camera:** Jay Kim (CEO) · Diego Ostertag (engineering and product)
+**On camera:** Jay Kim and Diego Ostertag, co-founders
 **Audience:** Stellar community reviewers, program leads, prospective design partners
 **Spoken length:** ≈ 2:50 at a steady pace · **Hard stop:** 3:00
 **Language:** English (a Spanish cut can reuse the same shots)
@@ -12,11 +12,11 @@ Every number below comes from the repo as of commit `98b281a` and can be re-run 
 
 ## 0:00 – 0:15 · Cold open (Jay, to camera)
 
-*On screen: black, then the QWATT logo. Lower third: "Jay Kim · CEO, QWATT".*
+*On screen: black, then the QWATT logo. Lower third: "Jay Kim · Co-founder, QWATT".*
 
 > **JAY:** Small solar can't prove what it produced. Every meter speaks a different language, and
 > verifying them costs more than the energy is worth. This week we fixed the first half of that
-> problem. I'm Jay, CEO of QWATT, and this is week one.
+> problem. I'm Jay, co-founder of QWATT with Diego, and this is week one.
 
 ## 0:15 – 0:40 · Why week one matters (Jay)
 
@@ -29,7 +29,7 @@ Every number below comes from the repo as of commit `98b281a` and can be re-run 
 
 ## 0:40 – 1:05 · Architecture freeze (Diego)
 
-*On screen: `docs/ARCHITECTURE-FREEZE.md`, scroll slowly. Lower third: "Diego Ostertag · Engineering & Product".*
+*On screen: `docs/ARCHITECTURE-FREEZE.md`, scroll slowly. Lower third: "Diego Ostertag · Co-founder, QWATT".*
 
 > **DIEGO:** Days one to three, we froze the architecture: the record format, the batch definition,
 > the hash rules, the transaction format. One rule we're strict about: every unit of energy in our
@@ -93,7 +93,7 @@ Every number below comes from the repo as of commit `98b281a` and can be re-run 
 - **Tense.** Multisig anchoring is week 3: say "will take two signatures", never "takes".
 - **Don't say:** "DeFi", "decentralized", "REC" / "I-REC", "carbon credit", "investment", "price",
   "mainnet", or "customers" / "revenue" as if they existed (same list as `docs/DEMO-DAY-PITCH.md`).
-- **Diego's lower third:** "Engineering & Product", matching the Demo Day deck.
+- **Titles:** both lower thirds say "Co-founder, QWATT". Never introduce either of you as CEO.
 - **Thumbnail:** "Any meter → one record" over the byte-identical terminal line.
 - **Description box:** link the repo, `docs/ARCHITECTURE-FREEZE.md`, `ingest/README.md` and the
   green CI run for commit `98b281a`.
