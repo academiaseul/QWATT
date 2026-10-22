@@ -1,99 +1,167 @@
-# QWATT — Week 1 update · YouTube script (3:00)
+# QWATT — Week 1 · YouTube script (3:00)
 
+**Working title:** *Every rooftop should be able to prove its sunshine*
 **Deliverable:** Instawards sprint, Deliverable 1 — meter-agnostic ingestion (`docs/SOW-INSTAWARD-v3.md` §4)
 **On camera:** Jay Kim and Diego Ostertag, co-founders
-**Audience:** Stellar community reviewers, program leads, prospective design partners
-**Spoken length:** ≈ 2:50 at a steady pace · **Hard stop:** 3:00
-**Language:** English (a Spanish cut can reuse the same shots)
+**Audience:** Stellar community, program reviewers, solar installers, possible design partners
+**Spoken length:** ≈ 2:50 · **Hard stop:** 3:00 · **Language:** English (a Spanish cut can reuse every shot)
 
-Every number below comes from the repo as of commit `98b281a` and can be re-run on camera.
+**The feeling we want:** people meet two builders who care about a real, small problem, see it solved
+in front of them with nothing hidden, and leave wanting to try it or help.
+**The one idea they remember:** *any meter, one truth.*
 
----
-
-## 0:00 – 0:15 · Cold open (Jay, to camera)
-
-*On screen: black, then the QWATT logo. Lower third: "Jay Kim · Co-founder, QWATT".*
-
-> **JAY:** Small solar can't prove what it produced. Every meter speaks a different language, and
-> verifying them costs more than the energy is worth. This week we fixed the first half of that
-> problem. I'm Jay, co-founder of QWATT with Diego, and this is week one.
-
-## 0:15 – 0:40 · Why week one matters (Jay)
-
-*On screen: simple diagram, three meters (Modbus, HTTP, CSV) → one record → four physics gates → Stellar. Highlight the first arrow only.*
-
-> **JAY:** Our verifier already judges energy with four physics gates, under an open spec, version
-> 1.0.0. But a verifier is only useful if real equipment can feed it. So the week-one commitment was
-> simple to say and hard to do: any meter in, one identical record out. Adding a new meter should
-> mean adding a configuration file, never changing the rules that judge it. Diego.
-
-## 0:40 – 1:05 · Architecture freeze (Diego)
-
-*On screen: `docs/ARCHITECTURE-FREEZE.md`, scroll slowly. Lower third: "Diego Ostertag · Co-founder, QWATT".*
-
-> **DIEGO:** Days one to three, we froze the architecture: the record format, the batch definition,
-> the hash rules, the transaction format. One rule we're strict about: every unit of energy in our
-> evidence is a whole number of milliwatt-hours. No decimals ever get hashed, so any language,
-> on any machine, produces the exact same bytes. If something in the freeze turns out wrong, we
-> document the change publicly. We don't edit it quietly.
-
-## 1:05 – 1:45 · Three adapters, two meters as config (Diego)
-
-*On screen: the ingest diagram from `ingest/README.md`, then open `ingest/maps/pzem-017.json` beside `ingest/maps/epever-tracer.json`.*
-
-> **DIEGO:** Days four to seven, we built ingestion. Three ways in: Modbus, the industrial standard
-> most inverters and meters use; HTTP, for devices that push data; and CSV, for replaying historical
-> files. Our two bench meters, a PZEM-017 and an EPEver Tracer, aren't code. They're these two
-> JSON files: addresses, data types, scaling. A new meter is a new file.
-> And every record carries a fingerprint of the raw data it came from, so anyone can check that our
-> conversion did exactly what the file says.
-
-## 1:45 – 2:20 · The proof (Diego, then Jay)
-
-*On screen: terminal, full screen. Type and run `node ingest/ingest.test.js`. Hold on the last lines:*
-`harness: 720 samples × 2 meters → 24 intervals per path · 24/24 accepted · 240.9 Wh basis · BYTE-IDENTICAL across csv, http and modbus`
-`21 passed, 0 failed`
-
-> **DIEGO:** Here's the acceptance test. One synthetic solar morning, two meters, 720 samples, sent
-> through all three paths. Twenty-four intervals out of each, all twenty-four accepted, and the
-> records are byte-identical across Modbus, HTTP and CSV.
->
-> **JAY:** That's the point. Same energy, three different routes, one answer. And it runs on every
-> commit: 21 ingestion tests, 37 conformance checks and 24 validator tests, all green in public CI.
-
-*Cut to GitHub Actions, green run on `academiaseul/QWATT`.*
-
-## 2:20 – 2:45 · What's next (Jay, to camera)
-
-*On screen: simple roadmap strip, Week 1 ✓ · Week 2 · Week 3 · Week 4.*
-
-> **JAY:** Week two: these records become evidence batches, chained by hash, so changing any past
-> record breaks the chain. And we publish the rejections, not just the passes, because a verifier
-> that only shows its successes hasn't proven anything. Week three: anchoring on Stellar testnet,
-> where it will take two independent signatures to record a batch.
-
-## 2:45 – 3:00 · Close (Jay and Diego, two-shot)
-
-*On screen: qwatt.org · github.com/academiaseul/QWATT · "Testnet".*
-
-> **DIEGO:** Everything we showed is open source. Clone it and run the same test.
->
-> **JAY:** We're looking for one shared-rooftop building or installer to be our design partner.
-> If that's you, find us at qwatt.org. See you in week two.
+Every number in this script comes from the repo at commit `98b281a` and can be re-run on camera.
 
 ---
 
-## Production notes
+## 0:00 – 0:12 · The hook
 
-- **Record the terminal for real.** Run `node ingest/ingest.test.js` on camera from a fresh clone;
-  it needs no install step. Don't edit the numbers in post.
-- **Data is synthetic.** The harness uses a simulated morning and a Modbus simulator. Do not say or
-  imply that live meters or a real rooftop were read this week. The EPEver addresses still need
-  confirming against the controller manual before the first live read (`ingest/README.md`).
-- **Tense.** Multisig anchoring is week 3: say "will take two signatures", never "takes".
+*Black screen. Sound first: a quiet electrical hum. Fade up on an extreme close-up of a meter
+display, digits ticking. Natural light, slow push-in. No logo yet.*
+
+> **JAY (voice-over):** This number is the only proof a small solar roof has of what it gave the
+> world. And right now, almost nobody can check it.
+
+*Hard cut to Jay on a rooftop in Santiago, panels behind him, late-afternoon sun.*
+
+## 0:12 – 0:40 · Why we care
+
+*Jay walks along the panels, talking to camera. B-roll: an apartment building's shared roof, a
+single meter in a stairwell, a hand holding an electricity bill with one kWh figure circled.*
+
+> **JAY:** I'm Jay. I spent ten years in energy, running solar plants here in Chile, and I've
+> seen the same argument again and again: whose meter, which number, who checks it.
+> Picture one roof, one meter, forty neighbors. Proving who produced what costs more than the
+> energy is worth. So the smallest producers just get left out.
+> Diego and I started QWATT so that a small roof can prove its work as cleanly as a power plant can.
+
+## 0:40 – 1:05 · The problem nobody sees
+
+*Cut to Diego at the workbench. Lower third: "Diego Ostertag · Co-founder, QWATT". On the
+desk: the bench meters if you have them, otherwise product photos composited on screen.*
+
+> **DIEGO:** Here's the hidden problem. Every meter speaks its own dialect. Different wiring,
+> different registers, different units. Most systems handle that by writing new code for every
+> device, and every new line of code is a new place for mistakes to hide.
+> So in week one we asked: what if the rules that judge the energy never had to change?
+
+*Graphic: four meters speaking in different scribbled "languages" → one clean line of text.*
+
+## 1:05 – 1:40 · What we built
+
+*Screen recording, clean and zoomed. Show `ingest/maps/pzem-017.json` next to
+`ingest/maps/epever-tracer.json`, then the three-paths diagram from `ingest/README.md`
+animating in one arrow at a time.*
+
+> **DIEGO:** We built a translator. Data can arrive three ways: straight off the wire from a
+> meter, pushed over the internet, or replayed from a file. And a meter isn't code anymore.
+> It's a short settings file, like adding one more language to a dictionary.
+> Every record also keeps a fingerprint of the raw data it came from, so anyone can check we
+> translated honestly. And we count energy in whole numbers only, so every computer on earth gets
+> the exact same answer.
+
+## 1:40 – 2:15 · The moment of truth
+
+*Music drops out completely. Terminal, full screen, real time. Diego types
+`node ingest/ingest.test.js` and presses Enter. Let the lines scroll at real speed. Freeze and
+highlight the key line in the brand accent colour:*
+`harness: 720 samples × 2 meters → 24 intervals per path · 24/24 accepted · 240.9 Wh basis · BYTE-IDENTICAL across csv, http, modbus`
+
+> **DIEGO:** So here's the test. One simulated solar morning, two meters, 720 readings, sent down
+> all three roads.
+
+*Beat. One full second of silence on the highlighted line.*
+
+> **DIEGO:** Byte-identical. Every path, the same answer, down to the last character.
+
+*Music comes back in, warmer. Cut to Jay, smiling.*
+
+> **JAY:** Same sunshine, three different roads, one truth. And this isn't a one-time demo. It runs
+> on every change we make, in public. You can watch it go green.
+
+*Quick cut: the green GitHub Actions run on `academiaseul/QWATT`.*
+
+## 2:15 – 2:40 · Where this goes
+
+*Back on the rooftop, golden hour. Simple roadmap overlay: Week 1 ✓ · Week 2 · Week 3 · Week 4.*
+
+> **JAY:** Next week, every record gets chained to the one before it, so nobody can quietly
+> rewrite the past. And we'll publish the rejections, not just the passes, because a checker that
+> only shows its wins hasn't proven anything.
+> In week three, records go onto Stellar's test network, and it will take two independent
+> signatures to write one.
+
+## 2:40 – 3:00 · The invitation
+
+*Two-shot, Jay and Diego side by side on the roof. Natural, not posed. End card fades in:
+qwatt.org · github.com/academiaseul/QWATT · "Testnet".*
+
+> **DIEGO:** Everything you saw is open source. Clone it, run the same test, and try to break it.
+>
+> **JAY:** And if you live or work under a shared solar roof, we'd love you as our first design
+> partner. Every rooftop should be able to prove its sunshine. See you next week.
+
+*Last frame: the meter close-up from the opening, digits still ticking, then cut to black.*
+
+---
+
+## Why this version works
+
+- **It opens on a feeling, not a feature.** A ticking number nobody can check is the whole problem
+  in five seconds, before any logo or name.
+- **It earns trust before it asks for attention.** Jay's ten years running plants is said once, as
+  the reason he cares, not as a credential.
+- **Every technical idea has a picture.** Dialects and a translator, a dictionary entry, three roads
+  to one truth. Viewers who never heard of Modbus still follow.
+- **The proof is real and given room.** The music cuts, the line is highlighted, and there's a beat
+  of silence. That pause is the emotional peak of the video.
+- **It ends with an invitation, not a pitch.** "Try to break it" and "be our partner" make viewers
+  part of the story.
+- **It loops.** The last frame is the first frame, now with meaning.
+
+## Shoot list
+
+| Shot | Where | Notes |
+|---|---|---|
+| Meter display, extreme close-up | Any real meter or inverter screen | Macro or phone in portrait-zoom; digits must move |
+| Jay walk-and-talk | A rooftop with panels, Santiago | Late afternoon or golden hour; lavalier mic, wind cover |
+| Shared-roof B-roll | Apartment building roof, stairwell meter | Get permission from the building; no faces of neighbors without consent |
+| Bill close-up | A real bill with personal data covered, or a mock-up | Blur names, account numbers and address |
+| Diego at the bench | Desk with laptop and meters | Soft side light; meters only if physically there |
+| Terminal run | Screen capture, fresh clone | 125 % zoom, dark theme, one take, no edits to numbers |
+| Two-shot close | Same rooftop | Shoot several takes; keep the most natural one |
+
+## Sound and edit
+
+- **Music:** soft, warm instrumental (piano or light synth), low under voice. Fully out for the
+  terminal moment, back in on "Same sunshine". Use royalty-free or licensed tracks only.
+- **Pacing:** change the picture every 5–8 seconds; never hold a talking head longer than ~15 s
+  without a cut to B-roll.
+- **Captions:** burned-in, large, high contrast. Most viewers watch muted at first.
+- **Colour:** keep the QWATT palette (warm paper, terracotta accent) on every graphic.
+
+## YouTube packaging
+
+- **Title options:**
+  1. *Every rooftop should be able to prove its sunshine · QWATT week 1*
+  2. *Any meter, one truth: what we built in week one*
+  3. *We made three different roads give the exact same answer*
+- **Thumbnail:** Jay and Diego on the roof, small, to one side; big text "ANY METER → ONE TRUTH";
+  the highlighted "BYTE-IDENTICAL" line as a strip across the bottom.
+- **Chapters:** 0:00 The problem · 0:40 Every meter speaks a dialect · 1:05 What we built ·
+  1:40 The test · 2:15 What's next · 2:40 Try it yourself
+- **Description:** two lines on the mission, then links to the repo, `docs/ARCHITECTURE-FREEZE.md`,
+  `ingest/README.md` and the green CI run for commit `98b281a`. Mark it clearly as testnet.
+- **Pinned comment:** "What meter is on your roof? Tell us and we'll tell you how hard it is to
+  add." Comments drive reach, and the answers are leads for design partners.
+
+## Honesty guardrails (keep these, the trust is the product)
+
+- **Data is simulated.** The test uses a simulated morning and a simulated meter. Never say or
+  imply that live meters or a real rooftop were read this week. Rooftop shots are setting, not
+  evidence; add the on-screen text "Test data: simulated" during the terminal shot.
+- **Tense.** The two-signature step is week three: say "will take", never "takes".
+- **Jay's background:** "ten years in energy, running solar plants here in Chile". Don't inflate it.
 - **Don't say:** "DeFi", "decentralized", "REC" / "I-REC", "carbon credit", "investment", "price",
   "mainnet", or "customers" / "revenue" as if they existed (same list as `docs/DEMO-DAY-PITCH.md`).
-- **Titles:** both lower thirds say "Co-founder, QWATT". Never introduce either of you as CEO.
-- **Thumbnail:** "Any meter → one record" over the byte-identical terminal line.
-- **Description box:** link the repo, `docs/ARCHITECTURE-FREEZE.md`, `ingest/README.md` and the
-  green CI run for commit `98b281a`.
+- **Titles:** both of you are "Co-founder, QWATT". Never introduce either of you as CEO.
