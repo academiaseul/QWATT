@@ -19,12 +19,18 @@ IntervalBuilder), and one arrow from the translator into the output card
   7.3 s       HTTP arrow, soft click
   9.1 s       CSV arrow, soft click
   9.6-10.0 s  the trunk runs into the translator and on to the output card,
-              which lights in terracotta (half lit at 10.05 s); calm hold to 11.0 s
+              which lights in terracotta (half lit at about 10.08 s); calm hold
+              to 11.0 s
+
+Each travelling head fades in rather than popping on: about a quarter strength
+on its click frame, full two frames later (HEAD_IN).
 
 Everything on screen is text from the repo or Diego's words: no numbers, no
 records, no meters. check_repo() refuses to render unless every technical name
 shown still appears in the diagram in ingest/README.md, the files it names
-exist under ingest/, and lib/normalize.js still defines class IntervalBuilder.
+exist (ingest/adapters/*.js, ingest/lib/normalize.js,
+protocol/interval.schema.json), and lib/normalize.js still defines class
+IntervalBuilder.
 The icons (a square wave, a globe, a page with rows) are plain glyphs, not
 products. The clicks are synthesised by ffmpeg, -16 dBFS peak.
 
@@ -104,6 +110,7 @@ SPEED = 620                            # px/s average along a path
 T_TRUNK = (9.6, 9.82)
 T_DOWN = (9.82, 9.97)
 T_LIGHT = (9.9, 10.25)
+HEAD_IN = (1 / FPS, 0.07)              # a head fades in from 1 frame before its start to 0.07 s after
 
 
 def ease(a, b, t):
@@ -459,11 +466,11 @@ def main():
                 if s > 0.5:
                     pts = [((x - bx0) * SS, (y - by0) * SS) for x, y in p.upto(s)]
                     d.line(pts, fill=255, width=LINE_W * SS, joint="curve")
-                    x, y = pts[0]
                     r = LINE_W * SS / 2
-                    d.ellipse([x - r, y - r, x + r, y + r], fill=255)
-            if n_in:
-                r = (JR - 2) * SS * ease(arrive[0], arrive[0] + 0.25, t)
+                    for x, y in (pts[0], pts[-1]):  # round caps; the far one hides under a head
+                        d.ellipse([x - r, y - r, x + r, y + r], fill=255)
+            if n_in:  # the junction fills, out to just past its ring so no grey edge is left
+                r = (JR + 1) * SS * ease(arrive[0], arrive[0] + 0.25, t)
                 d.ellipse([jx - r, jy - r, jx + r, jy + r], fill=255)
             cache = np.asarray(m.reduce(SS), np.float32) / 255
 
@@ -473,10 +480,9 @@ def main():
         for p, s0, dur, a in [(src_paths[k], starts[k], durs[k], arrive[k]) for k in range(3)] + \
                 [(trunk, T_TRUNK[0], T_TRUNK[1] - T_TRUNK[0], None),
                  (down, T_DOWN[0], T_DOWN[1] - T_DOWN[0], None)]:
-            if t < s0:
-                continue
-            alpha = 1.0 if a is None else 1 - ease(a, a + 0.18, t)
-            if alpha <= 0:
+            alpha = glide(s0 - HEAD_IN[0], s0 + HEAD_IN[1], t)  # fades in, no pop on the click frame
+            alpha *= 1.0 if a is None else 1 - ease(a, a + 0.18, t)
+            if alpha < 0.005:
                 continue
             samples = [p.at(p.length * glide(s0, s0 + dur, t - shutter * j / (BLUR - 1)))
                        for j in range(BLUR - 1, -1, -1)]

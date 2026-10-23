@@ -5,7 +5,7 @@ exact same answer."
 The interval record from shot 14, canonicalised and hashed twice, by two
 independent pieces of code on two different machines-as-glyphs.
 
-  0.0-1.1 s  kicker "docs/ARCHITECTURE-FREEZE.md §1", headline "Energy in whole /
+  0.0-1.2 s  kicker "docs/ARCHITECTURE-FREEZE.md §1", headline "Energy in whole /
              milliwatt-hours" ("whole" in terracotta) and the freeze's issuance
              line "1 QWATT = 1 MWh = 1,000,000,000 mWh" rise in a few frames apart
   1.95-2.75 s the headline glides up and shrinks into the title; the kicker and the
@@ -101,12 +101,10 @@ W, H = 1080, 1920
 SS = 2  # title, laptops, labels and badge are drawn at 2x; screen text at 1x, in place
 
 ESPRESSO = (22, 16, 10)
-COFFEE = (41, 29, 19)
 PAPER = (250, 248, 242)
 TERRACOTTA = (176, 88, 47)
 TERRA_LIGHT = (208, 138, 87)
 MUTED = (150, 130, 110)
-ELLIPSIS = (178, 158, 138)
 BYTES_INK = (168, 150, 130)  # the canonical bytes line, a step under the values
 BAND = (118, 61, 34)  # highlighter: terracotta pressed into the screen
 HOT = (246, 214, 186)  # hash text on the band
@@ -167,7 +165,8 @@ LAP_B = dict(name="Python", w=780, h=340, x=CX - 390, y=984, r=30, bz=24, bt=24,
              base=(138, 126, 112), base_top=(172, 160, 144), base_front=(104, 94, 82))
 LABEL_GAP = 18  # label baseline sits this far above the lid
 BADGE_Y = 880  # badge centre, midway between laptop A's base and B's label
-SOURCE_Y = 1424  # footnote baseline
+SOURCE_Y = (1420, 1462)  # footnote baselines: the record, then where its data comes from
+SOURCE_PX = 30
 MARGIN = 50  # transparent border around a laptop layer, room for its shadow
 
 # screen rows, px from the top of the content block (centred in each screen)
@@ -185,6 +184,7 @@ MOVE_STAGGER = 1 / FPS  # kicker, line 1, line 2, note leave a frame apart
 LAP_T = {"Node.js": (2.6, 3.35), "Python": (2.75, 3.5)}  # once the title has cleared their space
 LAP_RISE = 90
 SOURCE_T = (3.4, 3.9)
+SOURCE_STEP = 2 / FPS  # second footnote line, after the first
 HL_T = {"Node.js": (6.40, 6.80), "Python": (6.46, 6.86)}
 BADGE_T = (6.5, 6.95)
 T_SETTLE = 4.0  # everything but the screens and the badge is at rest from here
@@ -266,7 +266,8 @@ def load_sides():
     js = node_side()
     py = python_side(js["record_text"])
     rec = py["record"]
-    assert rec["seq"] == 0 and rec["source"]["adapter"] == "modbus-tcp", "not shot 14's record"
+    if rec["seq"] != 0 or rec["source"]["adapter"] != "modbus-tcp":
+        raise SystemExit("BLOCKER: the first modbus record is not shot 14's (seq 0, modbus-tcp)")
     problems = []
     if py["canonical"] != js["canonical"].encode("utf-8"):
         problems.append("canonical bytes differ")
@@ -624,10 +625,10 @@ def main():
     kick, kick_base = text_layer([("docs/ARCHITECTURE-FREEZE.md §1", FM, KICK_PX, TERRA_LIGHT)], 40)
     note, note_base = text_layer([("1 QWATT = 1 MWh = 1,000,000,000 mWh", FM, NOTE_PX, MUTED)], 40)
     t0, t1 = rec["ts_start"], rec["ts_end"]
-    src_text = (f"interval seq {rec['seq']} · {t0[:10]} {t0[11:16]}–{t1[11:16]} UTC · "
-                "simulated test data")
-    source, source_base = text_layer([(src_text, FS, 26, MUTED)], 40)
-    assert LEFT + source.size[0] / SS < 940, "footnote runs into the right safe zone"
+    sources = [text_layer([(s, FS, SOURCE_PX, MUTED)], 44) for s in (
+        f"interval seq {rec['seq']} · {t0[:10]} {t0[11:16]}–{t1[11:16]} UTC",
+        "simulated test data")]
+    assert all(LEFT + im.size[0] / SS < 940 for im, _ in sources), "footnote runs into the right safe zone"
     badge, b_m, b_w, b_h = badge_layer()
 
     laps = {}
@@ -693,9 +694,10 @@ def main():
                       alpha=al, blur=0.5 * v)
 
             # footnote: the record and where the data comes from
-            a = smooth(*SOURCE_T, t)
-            if a > 0:
-                place(frame, source, LEFT - 2, SOURCE_Y - source_base + 10 * (1 - a), 1 / SS, alpha=a)
+            for j, ((im, b), y) in enumerate(zip(sources, SOURCE_Y)):
+                a = smooth(SOURCE_T[0] + j * SOURCE_STEP, SOURCE_T[1] + j * SOURCE_STEP, t)
+                if a > 0:
+                    place(frame, im, LEFT - 2, y - b + 10 * (1 - a), 1 / SS, alpha=a)
             if t >= T_SETTLE:
                 cache = frame.copy()
 

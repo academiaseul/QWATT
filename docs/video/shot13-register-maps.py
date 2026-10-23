@@ -8,7 +8,8 @@ frames apart (0.0-1.0 s) and the camera pushes in slowly for the whole shot.
 At 3.0 s the lines that make a meter a meter are marked in terracotta, one after
 the other, as with a highlighter: its name, its serial settings and its fields
 (one register per line). Everything else dims. At 4.5 s a small caption card
-rises in: "A new meter = a new file". Hold to the end.
+rises in: "A new meter = a new file", and rides the push-in with the cards. Hold
+to the end.
 
 What is real: every character inside the cards is read from the two JSON files at
 render time, as stored (the files' own 2-space indentation, spacing and order),
@@ -68,7 +69,7 @@ STR = TERRA_LIGHT
 NUM = PAPER
 PUNCT = (140, 118, 98)
 ELLIPSIS = (178, 158, 138)
-DIM = 0.42  # what is left of a line's contrast once it steps back
+DIM = 0.55  # what is left of a line's contrast once it steps back
 BAND = (118, 61, 34)  # highlighter: terracotta pressed into the coffee card
 HOT = {KEY: PAPER, NUM: PAPER, STR: (246, 214, 186), PUNCT: (214, 168, 138),
        ELLIPSIS: (226, 190, 160)}  # text colours on the band, all bold
@@ -77,7 +78,6 @@ FS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FB = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FM = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 FMB = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
-FMO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Oblique.ttf"
 
 MAPS = os.environ.get("QWATT_MAPS", "ingest/maps")
 FILES = ("pzem-017.json", "epever-tracer.json")
@@ -106,7 +106,8 @@ HL_T0, HL_STEP, HL_LEN, HL_B_LAG = 3.0, 0.07, 0.4, 0.1  # highlighter, row by ro
 DIM_T = (3.0, 3.6)
 CAP_T = (4.5, 5.0)
 CAPTION = "A new meter = a new file"
-CAP_Y = 1436  # caption card centre; bottom edge stays above the 420 px caption band
+CAP_Y = 1434  # caption card centre at scale 1, 20 px under card B; it rides the camera
+# with the cards, so that gap holds through the push-in and its bottom ends at ~1490
 
 TOKEN = re.compile(r'"(?:[^"\\]|\\.)*"|-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?|true|false|null|[{}\[\],:]|\s+|.')
 
@@ -132,7 +133,7 @@ def spans(line):
         s = m.group()
         if s.startswith('"'):
             kind = KEY if re.match(r"\s*:", line[m.end():]) else STR
-        elif s[0] in "-0123456789" and len(s) > 0 and s != "-":
+        elif s[0] in "-0123456789" and s != "-":
             kind = NUM
         elif s in ("true", "false", "null"):
             kind = NUM
@@ -224,7 +225,7 @@ def card_layers(name):
     d.text((o + P(CARD_W - 6), by - P(4)), f"{len(lines)} lines", font=f_meta,
            fill=(*MUTED, 255), anchor="rs")
 
-    f_reg, f_bold, f_note = font(FM, CODE_PX), font(FMB, CODE_PX), font(FMO, CODE_PX - 2)
+    f_reg, f_bold, f_note = font(FM, CODE_PX), font(FMB, CODE_PX), font(FM, CODE_PX - 2)
     adv = f_reg.getlength("0")
     rows = [cut(spans(ln)) for ln in lines[:SHOWN]]
     more = len(lines) - SHOWN
@@ -370,9 +371,9 @@ def main():
                       alpha=smooth(a, a + 0.5, t), blur=0.5 * v)
         ce = ease(*CAP_T, t)
         if ce > 0:
-            cx = CARD_X + CARD_W / 2 - cap_w / 2 - cap_m
-            cy = CAP_Y - cap_h / 2 - cap_m + 22 * (1 - ce)
-            place(frame, cap, cx, cy, 1 / SS, alpha=smooth(CAP_T[0], CAP_T[0] + 0.35, t))
+            cx = ANCHOR[0] + (CARD_X + CARD_W / 2 - cap_w / 2 - cap_m - ANCHOR[0]) * s + drift
+            cy = ANCHOR[1] + (CAP_Y - cap_h / 2 - cap_m - ANCHOR[1]) * s + 22 * (1 - ce)
+            place(frame, cap, cx, cy, s / SS, alpha=smooth(CAP_T[0], CAP_T[0] + 0.35, t))
         frame += rng.standard_normal((H, W, 1), dtype=np.float32) * 2.2  # film grain
         sys.stdout.buffer.write(np.clip(frame + 0.5, 0, 255).astype(np.uint8).tobytes())
 

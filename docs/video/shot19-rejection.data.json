@@ -1,0 +1,154 @@
+{
+ "about": "The gate engine's verdict shown in shot 19 (rejection), verbatim. assets/qwatt-gates.js evaluateInterval() with assets/gates.generated.js on protocol/conformance/cases.json case bench-night-generation, merged over defaults[profile] as protocol/conformance.test.js does; messages_en is the spec's English message filled by the engine's format(). sha256 is of the three input files.",
+ "command": "python3 docs/video/shot19-overlays.py data > docs/video/shot19-rejection.data.json",
+ "node": "v22.22.0",
+ "case": {
+  "id": "bench-night-generation",
+  "profile": "bench",
+  "description": "Energy reported at 23:00 local with the sun 41° below the horizon",
+  "input": {
+   "ts_start": "2026-09-21T02:00:00Z",
+   "ts_end": "2026-09-21T02:05:00Z",
+   "dt_s": 300,
+   "meters": {
+    "a": {
+     "id": "pzem-017",
+     "class": "dc",
+     "mwh": 8000
+    },
+    "b": {
+     "id": "epever",
+     "class": "dc",
+     "mwh": 7900
+    }
+   }
+  },
+  "expect": {
+   "verdict": "reject",
+   "fail": [
+    "elevation"
+   ],
+   "codes": {
+    "elevation": "elevation.night"
+   }
+  }
+ },
+ "input": {
+  "spec_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "site_id": "bench-santiago",
+  "node_id": "conformance",
+  "seq": 1,
+  "source": {
+   "adapter": "replay",
+   "register_map": "conformance"
+  },
+  "ts_start": "2026-09-21T02:00:00Z",
+  "ts_end": "2026-09-21T02:05:00Z",
+  "dt_s": 300,
+  "meters": {
+   "a": {
+    "id": "pzem-017",
+    "class": "dc",
+    "mwh": 8000
+   },
+   "b": {
+    "id": "epever",
+    "class": "dc",
+    "mwh": 7900
+   }
+  }
+ },
+ "profile_site": {
+  "lat": -33.45,
+  "lon": -70.65,
+  "tz": "America/Santiago"
+ },
+ "result": {
+  "engine": "1.1.0",
+  "spec_version": "1.0.0",
+  "spec_digest": "056f1b512e353bbe27b9a0b8d1f0e79b1b84737d5a500c10f5560d5bf806f933",
+  "profile": "Banco de pruebas — Fase 1",
+  "verdict": "reject",
+  "checks": [
+   {
+    "id": "plausibility",
+    "label": "G0",
+    "status": "pass",
+    "code": "plausibility.ok",
+    "detail": {
+     "dt": 300,
+     "skew": 0
+    }
+   },
+   {
+    "id": "nameplate",
+    "label": "G1",
+    "status": "pass",
+    "code": "nameplate.ok",
+    "detail": {
+     "ceiling": 14.375,
+     "nameplate": 150,
+     "minutes": 5,
+     "over": 8
+    }
+   },
+   {
+    "id": "elevation",
+    "label": "G2",
+    "status": "fail",
+    "code": "elevation.night",
+    "detail": {
+     "el": -41.11,
+     "min": -2,
+     "floor_wh": 0.0625,
+     "generating": true
+    }
+   },
+   {
+    "id": "agreement",
+    "label": "G3",
+    "status": "pass",
+    "code": "agreement.ok",
+    "detail": {
+     "diff": 0.1,
+     "tol": 0.4,
+     "frac": 0.05,
+     "deadband_w": 2
+    }
+   }
+  ],
+  "failures": [
+   {
+    "id": "elevation",
+    "label": "G2",
+    "code": "elevation.night",
+    "detail": {
+     "el": -41.11,
+     "min": -2,
+     "floor_wh": 0.0625,
+     "generating": true
+    }
+   }
+  ],
+  "mint": null
+ },
+ "messages_en": [
+  "Generation reported with the sun at -41.11°, below the -2° threshold."
+ ],
+ "gate_titles_en": {
+  "plausibility": "Plausibility",
+  "nameplate": "Nameplate ceiling",
+  "elevation": "Solar elevation",
+  "agreement": "Meter agreement",
+  "witness": "Sun witness",
+  "ramp": "Ramp and plausibility",
+  "chain": "Chain and clock",
+  "integrity": "Node integrity"
+ },
+ "sha256": {
+  "assets/qwatt-gates.js": "e5bbd796475cf63977df63f1ecb359fce47652f60fd989a30a4ae7126db74762",
+  "assets/gates.generated.js": "1dea3c6976a42c67dfc58812dace35f3ebd69caa1e86ea56b529fff438f9e70d",
+  "protocol/conformance/cases.json": "4217f706e4a58fb718170e55ab0f6213eb7421eac69fe3a795013616e94d8b28"
+ }
+}

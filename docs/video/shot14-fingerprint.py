@@ -40,7 +40,7 @@ muted and the register data is bright; "a" and "b" are the record's meter keys.
 The frame count, byte count and "1 of 24" are counted from the run. The colours
 are a light syntax colouring done here, not an editor.
 
-With the repo at 5b02798 the record reads:
+With the repo at ec5f99d (the same as at 5b02798) the record reads:
 
     seq 0, ts 2026-09-20T15:00:00.000Z-15:05:00.000Z, dt_s 300
     a pzem-017:1    dc  mwh 9180  samples 30  mw_mean 110227
@@ -60,8 +60,9 @@ low room tone, three soft air swishes (card in, pan, second card) and one soft
 tick on the highlight; peak -23.4 dBFS, mono, as measured. Music comes in the edit.
 
 Vertical-platform safe zones are kept clear: the top 120 px, the right 140 px and
-the bottom 420 px (the pan carries the top of the record under the top band once
-it has been read). Colour is converted and tagged as BT.709.
+the bottom 420 px. The pan carries the record's first lines, read and dimmed by
+then, up to the top edge; above y=200 the frame melts back into the background, so
+the top band stays clean. Colour is converted and tagged as BT.709.
 
 Writes raw RGB frames to stdout. Needs node, numpy and Pillow. Render from the
 repo root with:
@@ -121,7 +122,6 @@ FS = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FB = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
 FM = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 FMB = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
-FMO = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Oblique.ttf"
 
 REPO = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 
@@ -197,6 +197,7 @@ LINK_X = CARD_X + 13  # the connector leaves the highlight's terracotta bar, str
 ANCHOR = (800, 1200)
 S0, S1 = 1.0, 1.02
 PAN = 460
+TOP_FADE = (60, 200)  # frame px: background above 60, the shot untouched below 200
 
 # timings, in seconds
 CARD_T = (0.0, 1.0)  # rise of the record card
@@ -284,14 +285,6 @@ def split_spans(sp, at):
     return left, right
 
 
-def cut(line_spans):
-    """Keep what fits in MAX_CHARS; a cut line ends in a muted ellipsis (none do today)."""
-    if sum(len(s) for s, _ in line_spans) <= MAX_CHARS:
-        return line_spans
-    left, _ = split_spans(line_spans, MAX_CHARS - 1)
-    return left + [("…", ELLIPSIS)]
-
-
 def record_rows(record):
     """The record as JSON.stringify(record, null, 2), coloured; the raw_sha256 line
     wrapped after WRAP hex characters. Returns rows and the indices of the hash rows."""
@@ -304,7 +297,9 @@ def record_rows(record):
             hot += [len(rows), len(rows) + 1]
             rows += [a, [(" " * col, None)] + b]
         else:
-            rows.append(cut(sp))
+            rows.append(sp)
+    # honesty guard: every line fits whole, nothing is cut, nothing is added
+    assert all(sum(len(s) for s, _ in r) <= MAX_CHARS for r in rows), "a record line would be cut"
     assert "".join(s for r in rows for s, _ in r).replace(" ", "") == \
         json.dumps(record, indent=2, ensure_ascii=False).replace(" ", "").replace("\n", "")
     return rows, hot
@@ -392,11 +387,13 @@ def record_layers(rows, hot, meta):
                 cx += adv * len(s)
         return np.asarray(img.convert("RGBa"))
 
-    return {
+    c = {
         "empty": draw("empty"), "plain": draw("plain"), "after": draw("after"),
         "rows": [(y, y + P(ROW_H)) for y in row_y], "hot": hot, "o": o, "h": card_h,
         "band_bottom": TAB_H + PAD_TOP + (hot[-1] + 1) * ROW_H,  # card px
     }
+    c["still"] = {k: rgba_image(c[k]) for k in ("plain", "after")}  # the two resting states
+    return c
 
 
 def payload_layers(data):
@@ -410,7 +407,7 @@ def payload_layers(data):
     img = base.copy()
     d = ImageDraw.Draw(img)
     f_hex, f_lab = font(FM, HEX_PX), font(FMB, HEX_PX)
-    f_note, f_foot, f_sha = font(FMO, HEX_PX - 2), font(FS, 23), font(FMB, 26)
+    f_note, f_foot, f_sha = font(FM, HEX_PX - 2), font(FS, 23), font(FMB, 26)
     f_eq = font(FM, 22)
     adv = f_hex.getlength("0")
     tx = o + P(28)
@@ -446,6 +443,7 @@ def payload_layers(data):
     bounds.append((y, y + SEC_ROW_H + 8))
     return {
         "empty": np.asarray(base.convert("RGBa")), "full": np.asarray(img.convert("RGBa")),
+        "still": img.convert("RGBa"),
         "rows": [(o + P(a), o + P(b)) for a, b in bounds], "h": sec_h, "o": o,
     }
 
@@ -528,7 +526,7 @@ def mix_rows(a, b, bounds, vals):
     return out
 
 
-def record_now(c, t, cache={}):
+def record_now(c, t):
     """The record card's pixels at time t: lines arriving, plain, marked, or mid-way."""
     n = len(c["rows"])
     if t < ROW_T0 + (n - 1) * ROW_STEP + ROW_LEN:
@@ -545,9 +543,7 @@ def record_now(c, t, cache={}):
     else:
         key = None
     if key:
-        if key not in cache:
-            cache[key] = rgba_image(c[key])
-        return cache[key]
+        return c["still"][key]
     w = c["plain"].shape[1]
     xs = np.arange(w, dtype=np.float32)
     feather = 60.0
@@ -562,21 +558,19 @@ def record_now(c, t, cache={}):
     return rgba_image(mix_rows(c["plain"], c["after"], c["rows"], vals))
 
 
-def payload_now(c, t, cache={}):
+def payload_now(c, t):
     n = len(c["rows"])
     vals = [smooth(SEC_ROW_T0 + i * SEC_ROW_STEP, SEC_ROW_T0 + i * SEC_ROW_STEP + 0.3, t)
             for i in range(n)]
     if all(v == 1 for v in vals):
-        if "full" not in cache:
-            cache["full"] = rgba_image(c["full"])
-        return cache["full"]
+        return c["still"]
     return rgba_image(mix_rows(c["empty"], c["full"], c["rows"], vals))
 
 
-def link_path(sec_y):
-    """The connector in canvas px: down from the highlight's bar, a rounded corner,
-    then right into the side of the second card's tab."""
-    x0, y0 = LINK_X, CARD_Y + REC_BAND_BOTTOM
+def link_path(band_bottom, sec_y):
+    """The connector in canvas px: down from the highlight's bar (band_bottom, card px),
+    a rounded corner, then right into the side of the second card's tab."""
+    x0, y0 = LINK_X, CARD_Y + band_bottom
     y1 = sec_y + SEC_TAB_H / 2
     x1 = SEC_X - 3
     r = 16
@@ -629,21 +623,19 @@ def draw_link(frame, pts, s, start_a, end_r):
     dst += a * np.array(TERRA_LIGHT, np.float32)
 
 
-REC_BAND_BOTTOM = 0  # set in main(), card px from the card's top
-
-
 def main():
-    global REC_BAND_BOTTOM
     data = load_fingerprint()
     rows, hot = record_rows(data["record"])
     rec = record_layers(rows, hot, f"modbus path · 1 of {data['intervals']}")
-    REC_BAND_BOTTOM = rec["band_bottom"]
     sec = payload_layers(data)
     sec_y = CARD_Y + rec["h"] + SEC_GAP
     src = source_layer()
     cap, cap_m, cap_w, cap_h = caption_layer()
-    path = link_path(sec_y)
+    path = link_path(rec["band_bottom"], sec_y)
     bg = background()
+    # top band: what the pan carries up melts back into the background
+    y0, y1 = TOP_FADE
+    fade = np.array([1 - smooth(y0, y1, y) for y in range(y1)], np.float32)[:, None, None]
     rng = np.random.default_rng(14)
 
     for i in range(int(DUR * FPS)):
@@ -691,6 +683,7 @@ def main():
             cy = CAP_Y - cap_h / 2 - cap_m + 22 * (1 - ce)
             place(frame, cap, cx, cy, 1 / SS, alpha=smooth(CAP_T[0], CAP_T[0] + 0.35, t))
 
+        frame[:y1] += (bg[:y1] - frame[:y1]) * fade
         frame += rng.standard_normal((H, W, 1), dtype=np.float32) * 2.2  # film grain
         sys.stdout.buffer.write(np.clip(frame + 0.5, 0, 255).astype(np.uint8).tobytes())
 

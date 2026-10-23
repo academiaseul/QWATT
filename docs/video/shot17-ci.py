@@ -5,30 +5,40 @@ change we make, in public. You can watch it go green." Then back to Jay.
   0.00-0.40 s  the title "Every change, checked in public" and the repo path rise
                in, then the card, its four step rows staggered 3 frames apart
   0.30-1.64 s  the four steps of .github/workflows/conformance.yml run in order:
-               a terracotta arc turns on each, then it ticks to a terracotta check
-               (0.56, 0.92, 1.28, 1.64 s) and the rail to the next step fills
-  1.76-2.10 s  a terracotta band sweeps in: "passed", commit 98b281a, and under it
+               a terracotta arc turns on each, then it ticks to a green check
+               (0.56, 0.92, 1.28, 1.64 s) and the rail to the next step fills green
+  1.76-2.10 s  a green band sweeps in: "passed", commit 98b281a, and under it
                the run's date and id; hold to 3.0 s
   whole shot   a very slow push-in, 1.0 to 1.012
 
 What is real: everything the card states comes from the GitHub REST API, copied
-into shot17-ci.data.json next to this file (fetched 2026-10-23 04:27 UTC): the
-"conformance" run 34340123840, run #8, a push to main for 98b281a38f27 (the
-week-1 commit), created 2026-09-09 10:25:23 UTC, status completed, conclusion
-success, and its job "gates", whose four named steps each concluded success.
-The repo is public (unauthenticated API: private false). The step commands are
-read from .github/workflows/conformance.yml, unchanged since 98b281a, and the
-render refuses to start unless its four step names are exactly the steps the
-API says ran, in that order. Each icon and the summary are drawn from the
+into shot17-ci.data.json next to this file (fetched 2026-10-23 04:27 UTC,
+re-fetched and identical at 06:07 UTC): the "conformance" run 34340123840, run
+#8, a push to main for 98b281a38f27 (the week-1 commit), created 2026-09-09
+10:25:23 UTC, status completed, conclusion success, and its job "gates", whose
+four named steps each concluded success. The repo is public (unauthenticated
+API: private false). The step commands are read from
+.github/workflows/conformance.yml, unchanged since 98b281a, and the render
+refuses to start unless its four step names are exactly the steps the API says
+ran, in that order. Each icon and the summary are drawn from the
 recorded conclusions: a run that was not a success would render as what it
 was (a cross, "failed" on a brick band), never as passed. Full run:
 https://github.com/academiaseul/QWATT/actions/runs/34340123840
 
+Why this run, and its date: the script and the video description cite the CI
+run for 98b281a, and it is the run whose steps are exactly week 1's four. Its
+date, 2026-09-09, is older than this week's update: it is when 98b281a ran.
+Later runs on main (#30 for c1ae630, 2026-10-21, green) run eleven named steps,
+including later deliverables, and #27-#28 on main are red, so a screen recording
+should open the run page above, not the Actions list.
+
 What is styled here, not GitHub's: the short labels (spec check, conformance,
 validators, ingest) for the four step names, the card, the icons, the order and
 pace of the ticks (on GitHub the four steps took about one second together,
-10:25:35-10:25:36), the band and the grain. It is a QWATT card, not a copy of
-GitHub's interface, and no logo is drawn. No person, hand, meter or desk.
+10:25:35-10:25:36), the colours (a warm moss green for "passed", the payoff of
+"go green"; terracotta stays the accent), the band and the grain. It is a QWATT
+card, not a copy of GitHub's interface, and no logo is drawn. No person, hand,
+meter or desk.
 
 Audio: four soft ticks as the checks land and a low two-note tone under
 "passed", made by ffmpeg's aevalsrc from the same times as the picture (`sfx`
@@ -70,6 +80,7 @@ COFFEE = (41, 29, 19)
 PAPER = (250, 248, 242)
 TERRACOTTA = (176, 88, 47)
 TERRA_LIGHT = (208, 138, 87)
+GREEN = (88, 132, 70)  # passed: a warm moss green, for Jay's "watch it go green"
 BRICK = (128, 44, 34)  # a run that did not pass; never used for this run
 EDGE = (64, 48, 34)  # 1 px card border, idle rail
 RING = (112, 92, 72)  # a step that has not started
@@ -93,7 +104,7 @@ LABELS = {
     "Ingestion tests + Deliverable 1 acceptance harness": "ingest",
 }
 # conclusion -> (summary word, band colour, icon)
-STATUS = {"success": ("passed", TERRACOTTA, "check"), "failure": ("failed", BRICK, "cross"),
+STATUS = {"success": ("passed", GREEN, "check"), "failure": ("failed", BRICK, "cross"),
           "cancelled": ("cancelled", RING, "dash"), "skipped": ("skipped", RING, "dash")}
 
 # layout, frame px
@@ -106,10 +117,10 @@ TAB_H = 58
 ROW_TOP, ROW_H = TAB_H + 28, 128  # first step row, from the card's top
 ICON_X, ICON_DY, ICON_R = 76, 40, 27  # disc centre from the row's top-left
 TEXT_X = 140
-LABEL_PX, CMD_PX = 42, 28
+LABEL_PX, CMD_PX = 42, 30
 BAND_TOP = ROW_TOP + 4 * ROW_H + 16
 BAND_H, BAND_IN = 100, 22  # band height, inset from the card's sides
-META_PX = 28
+META_PX = 32
 CARD_H = BAND_TOP + BAND_H + 82
 MARGIN = 44  # around the card layer, room for its shadow
 CANVAS = (-60, 150, W + 60, 1480)  # the area all layers are drawn in, frame px
@@ -151,6 +162,11 @@ def ease_v(a, b, t, dist):
     """Speed of an ease-out cubic move of dist px, in px per frame."""
     x = (t - a) / (b - a)
     return 0.0 if not 0 <= x < 1 else 3 * (1 - x) ** 2 * dist / ((b - a) * FPS)
+
+
+def mix(c, amount):
+    """Colour c faded into the coffee card by amount (0 = coffee, 1 = c)."""
+    return tuple(int(COFFEE[j] + (c[j] - COFFEE[j]) * amount) for j in range(3))
 
 
 # ── the data ──────────────────────────────────────────────────────────────
@@ -416,12 +432,12 @@ class Shot:
                 y1 = o + P(ROW_TOP + (k + 1) * ROW_H + ICON_DY - ICON_R - 4)
                 x = o + P(ICON_X)
                 ra = min(a, ease(ta + ROW_STEP, ta + ROW_STEP + RISE_LEN, t))
-                mix = lambda c: tuple(int(COFFEE[j] + (c[j] - COFFEE[j]) * ra) for j in range(3))  # noqa
-                d.rectangle([x - P(1.5), y0, x + P(1.5), y1], fill=(*mix(EDGE), 255))
+                d.rectangle([x - P(1.5), y0, x + P(1.5), y1], fill=(*mix(EDGE, ra), 255))
                 f = ease(TICKS[k], TICKS[k] + RAIL_LEN, t)
-                if f > 0:
+                if f > 0:  # in the colour of the step's conclusion
+                    col = STATUS.get(self.steps[k]["conclusion"], (None, RING))[1]
                     d.rectangle([x - P(1.5), y0, x + P(1.5), y0 + (y1 - y0) * f],
-                                fill=(*mix(TERRACOTTA), 255))
+                                fill=(*mix(col, ra), 255))
             card.alpha_composite(faded(lab, a * live), (o + P(TEXT_X - ldx), o + P(top + 52 - ldy)))
             card.alpha_composite(faded(cmd, a * (0.40 + 0.35 * live)),
                                  (o + P(TEXT_X - cdx), o + P(top + 98 - cdy)))
@@ -450,7 +466,7 @@ class Shot:
             card.alpha_composite(band, (bx, by))
             if s > 0:
                 meta, mdx, mdy = self.meta
-                card.alpha_composite(faded(meta, s * 0.8),
+                card.alpha_composite(faded(meta, s * 0.9),
                                      (o + P(BAND_IN + 6 - mdx),
                                       o + P(BAND_TOP + BAND_H + 50 - mdy + 8 * (1 - s))))
         return card

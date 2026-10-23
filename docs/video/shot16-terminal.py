@@ -12,8 +12,12 @@ same answer, down to the last character."
   2.72 s      Enter. The captured output appears line by line at the times it
               really printed, counted from the moment node was started: 32 lines
               in 0.44 s. The view glides after the newest line like a
-              smooth-scrolling terminal (eased in and out, motion blur while it
-              moves) and settles at 4.2 s with the harness line in view
+              smooth-scrolling terminal (eased in and out, up to 3 rows a frame,
+              motion blur while it moves): 45 rows in about 0.75 s where a real
+              terminal would jump, so the harness line is whole in view at
+              3.40 s, 0.24 s after it printed, and the view is still from 3.83 s.
+              A row leaving the window fades out whole, so no clipped row shows
+              at the edge once the view is still
   3.16 s      node exits; the next prompt, cursor blinking
   10.0 s      freeze: the cursor goes, the harness line gets a terracotta bar,
               row by row three frames apart, and everything else steps back; a
@@ -44,9 +48,14 @@ commit 3fce885 with ingest/ clean, exit 0 after 0.44 s. A clean git archive of
 
 and "26 passed, 0 failed". The storyboard's "21 passed, 0 failed" is what
 98b281a prints (21 tests); later commits added tests. The harness line is the
-same at both commits. The test data is the harness's simulated morning (fixed
-seed) on a simulated Modbus bus, and the label "Test data: simulated" stays on
-screen: no live meter, no real roof.
+same at both commits. For the editor: 3fce885 is on the branch
+claude/lucid-heisenberg-4tjuer and not yet on main; origin/main (c1ae630)
+prints "24 passed, 0 failed". If ingest/ is not merged as captured before
+publishing, re-capture on the commit that main will have and re-render. The
+test data is two simulated hours around midday (12:00-14:00 Santiago, 20 Sep
+2026, fixed seed; the spoken line's "morning" is the script's word, nothing on
+screen says it) on a simulated Modbus bus, and the label "Test data: simulated"
+stays on screen: no live meter, no real roof.
 
 What is styled here, not printed: the card, its tab, the "$" prompt (a stand-in
 for any shell's), the cursor, the terracotta check marks, the bold weight on
@@ -70,7 +79,8 @@ right 140 px (text, bar and label stay left of x = 940 at full push-in; only the
 card's empty right margin passes it) or the bottom 420 px (the card ends at
 1462). Colour is converted and tagged as BT.709.
 
-Writes raw RGB frames to stdout. Needs numpy and Pillow (node only to capture).
+Writes raw RGB frames to stdout. Needs numpy and Pillow (node, git and tar only
+to capture, git and tar to record which code produced the run).
 Render from the repo root with:
 
     python3 docs/video/shot16-terminal.py | ffmpeg -y -f rawvideo -pix_fmt rgb24 \\
@@ -103,7 +113,6 @@ PAPER = (250, 248, 242)
 TERRACOTTA = (176, 88, 47)
 TERRA_LIGHT = (208, 138, 87)
 EDGE = (64, 48, 34)  # 1 px card border
-MUTED = (150, 130, 110)
 TEXT = (226, 216, 202)  # output text on coffee
 DIM = 0.32  # what is left of a line's contrast once it steps back
 SUM_DIM = 0.36  # the summary line until its reveal
@@ -142,7 +151,7 @@ LABEL_RIGHT = 922  # frame px; keeps the label inside the safe line at full push
 KEY_T = (0.40, 2.60)  # first and last character
 ENTER_T = 2.72
 BLINK = 0.53
-SCROLL_V, SCROLL_A = 1.5, 0.2  # view glide: rows per frame, rows per frame per frame
+SCROLL_V, SCROLL_A = 3.0, 0.3  # view glide: rows per frame, rows per frame per frame
 FREEZE_T = 10.0
 CURSOR_OUT = (FREEZE_T, FREEZE_T + 0.25)
 DIM_T = (FREEZE_T, FREEZE_T + 0.5)
@@ -522,7 +531,6 @@ class Terminal:
                 round(ease(*UNDER_T, t), 3))
 
     def draw(self, i):
-        t = i / FPS
         (n_typed, n_rows, scroll_px, blur_px, c_row, c_col, c_a, dim, bands, glow, reveal,
          under) = self.state(i)
         win = np.empty((self.wh, self.ww, 3), np.float32)
@@ -555,12 +563,17 @@ class Terminal:
             a = (self.band * wipe)[..., None]
             put(a * np.array(TERRACOTTA, np.float32), a, bx, by)
 
+        # a row leaving the window fades out whole over one row of travel, so once
+        # the view is still the row just above (or below) it is gone, not clipped
+        top0, top1 = P(WIN_PAD - ROW_H + 4), P(WIN_PAD)  # a row's top edge: gone .. whole
+        bot0, bot1 = self.wh - top0, self.wh - top1  # its bottom edge, mirrored
         for r in range(n_rows):
             y = y_of(r)
-            if y + P(ROW_H) < 0 or y > self.wh:
+            k_edge = smooth(top0, top1, y) * smooth(bot0, bot1, y + P(ROW_H))
+            if k_edge <= 0:
                 continue
             kind = self.rows[r][0]
-            k_dim = 1 - (1 - DIM) * dim
+            k_dim = (1 - (1 - DIM) * dim) * k_edge
             if kind == "cmd":
                 rgb, a = self.prompt
                 put(rgb, a, self.tx, y, k_dim)
@@ -576,13 +589,13 @@ class Terminal:
                 rgb, a = self.strips[r]
                 if r in self.hot:
                     p = bands[self.hot.index(r)]
-                    put(rgb, a, self.tx, y, 1 - p)
+                    put(rgb, a, self.tx, y, (1 - p) * k_edge)
                     rgb, a = self.strips[r, "hot"]
-                    put(rgb, a, self.tx, y, p)
+                    put(rgb, a, self.tx, y, p * k_edge)
                 elif r == self.sum_row:
-                    put(rgb, a, self.tx, y, SUM_DIM * (1 - reveal))
+                    put(rgb, a, self.tx, y, SUM_DIM * (1 - reveal) * k_edge)
                     rgb, a = self.strips[r, "hot"]
-                    put(rgb, a, self.tx, y, reveal)
+                    put(rgb, a, self.tx, y, reveal * k_edge)
                 else:
                     put(rgb, a, self.tx, y, k_dim)
 

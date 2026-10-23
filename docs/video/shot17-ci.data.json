@@ -7,6 +7,8 @@
   "GitHub MCP actions_list list_workflow_jobs resource_id=34340123840 (GET /repos/academiaseul/QWATT/actions/runs/34340123840/jobs)",
   "curl https://api.github.com/repos/academiaseul/QWATT, unauthenticated: HTTP 200, private false, visibility public"
  ],
+ "reverified_utc": "2026-10-23T06:07:01Z",
+ "reverified": "get_workflow_run and list_workflow_jobs for 34340123840 fetched again: every field kept below is identical. Repo still public (unauthenticated API, private false).",
  "why_this_run": "The run for 98b281a, the week-1 commit the video script cites. Of the 30 conformance runs listed, it is the only one for that sha.",
  "repo": {
   "full_name": "academiaseul/QWATT",
