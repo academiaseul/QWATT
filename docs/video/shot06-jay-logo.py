@@ -194,17 +194,21 @@ def rooftop_plate():
         x += 18
     pts.append((pw, ph))
     d.polygon(pts, fill=(118, 112, 128, 255))
-    # city haze band
+    vx, vy = pw * 0.5, hz + 40  # vanishing point of the roof
+    near = ph * 1.04 - vy       # front edge of the nearest panel row, just below the frame
+    edge = vy + near * 0.14     # far edge of the roof (parapet)
+
+    # city haze band, then the city beyond the roof edge fading into it
     d.rectangle([0, hz + 40, pw, hz + 115], fill=(205, 170, 140, 90))
+    d.rectangle([0, hz + 115, pw, edge], fill=(158, 140, 134, 255))
 
-    # roof deck
-    d.polygon([(0, hz + 85), (pw, hz + 85), (pw, ph), (0, ph)], fill=(150, 140, 128, 255))
+    # roof deck and its parapet
+    d.polygon([(0, edge), (pw, edge), (pw, ph), (0, ph)], fill=(150, 140, 128, 255))
+    d.rectangle([0, edge - 6, pw, edge + 4], fill=(178, 168, 156, 255))
 
-    # rows of panels in perspective, packing tighter toward the horizon
-    vx, vy = pw * 0.5, hz + 40
-    near = ph * 1.04 - vy  # front edge of the nearest row, just below the frame
-    for r in reversed(range(10)):  # far rows first, near rows overlap them
-        ka = 0.72 ** r     # scale of the row's front edge
+    # five rows of panels in perspective, packing tighter toward the roof edge
+    for r in reversed(range(5)):  # far rows first, near rows overlap them
+        ka = 0.66 ** r     # scale of the row's front edge
         kb = ka * 0.82     # and of its back edge
         y_near, y_top = vy + near * ka, vy + near * kb
         span = int(pw / (230 * ka)) + 2
