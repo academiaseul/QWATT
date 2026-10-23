@@ -83,6 +83,24 @@ test('crash and restart mid-run (fast mode): no gap, no duplicate, same energy a
   eq(v.cumulative_mwh, verifyFeed(one).cumulative_mwh, 'same energy as the uninterrupted run');
 });
 
+test('V3-6: the simulator path stamps clock_skew_s from the replay clock in an accelerated run, from the wall clock in real time', async () => {
+  const { builderClock } = require('./run');
+  eq(typeof builderClock, 'function', 'live/run.js exports builderClock');
+  eq(typeof builderClock('realtime'), 'function', 'real time reads a real clock');
+  const before = Date.now(), read = builderClock('realtime')();
+  assert(read >= before && read <= Date.now(), 'the real-time clock is the host clock');
+  eq(builderClock('fast'), 'replay', 'fast');
+  eq(builderClock(60), 'replay', 'accelerated ×60');
+  eq(builderClock(1), 'replay', 'a numeric speed of 1 resumes like a replay, so it uses the replay clock');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 3, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
+  const lines = ['accepted', 'rejected'].flatMap((n) => fs.readFileSync(path.join(dir, 'ledger', n + '.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)));
+  eq(lines.length, 3 * 288, 'every interval judged');
+  const seen = {};
+  for (const l of lines) { const k = l.interval.clock_skew_s; assert(Number.isInteger(k), `no clock_skew_s at ${l.interval.ts_start}`); seen[k] = (seen[k] || 0) + 1; }
+  eq(JSON.stringify(seen), JSON.stringify({ 0: 859, 300: 4, '-10': 1 }), 'closed at its end; by the grace while meter b is disconnected; the final flush 10 s early');
+});
+
 test('a restarted run refuses to change its seed or length', async () => {
   const dir = tmp();
   await runLive({ feedDir: dir, days: 1, startMs: START, seed: 1, speed: 'fast', log: quiet, stopAtMs: START + 3600e3 });
