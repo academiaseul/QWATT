@@ -89,7 +89,7 @@ TR_Y0, TR_Y1 = 1000, 1170              # translator card
 OUT_Y0, OUT_Y1 = 1250, 1390            # output card
 R = 22                                 # corner radius of the lines
 LINE_W = 6
-BOX = (420, 400, 930, 1260)            # region the strokes live in
+BOX = (400, 380, 940, 1270)            # region the strokes live in
 
 # timeline, s
 T_TITLE = 0.2
@@ -326,11 +326,11 @@ def output_cards():
 
 def output_glow():
     """Soft terracotta light around the lit output card, added on top."""
-    pad = 90
+    pad = 66  # keeps the light inside the frame on the left
     w, h = X1 - X0 + 2 * pad, OUT_Y1 - OUT_Y0 + 2 * pad
     m = Image.new("L", (w, h), 0)
     ImageDraw.Draw(m).rounded_rectangle([pad, pad, w - pad, h - pad], 22, fill=255)
-    g = np.asarray(m.filter(ImageFilter.GaussianBlur(34)), np.float32) / 255.0
+    g = np.asarray(m.filter(ImageFilter.GaussianBlur(24)), np.float32) / 255.0
     return g[..., None] * np.array(TERRACOTTA, np.float32), X0 - pad, OUT_Y0 - pad
 
 
@@ -387,9 +387,11 @@ def heads_alpha(heads, shape):
             m = Image.new("L", (P * SS, P * SS), 0)
             arrowhead(ImageDraw.Draw(m), p, u, ox, oy)
             patch += np.asarray(m.reduce(SS), np.float32) / (255 * len(samples))
-        x0, y0 = ox - bx0, oy - by0
-        reg = acc[y0:y0 + P, x0:x0 + P]
-        reg[:] = 1 - (1 - reg) * (1 - patch * alpha)
+        x0, y0 = ox - bx0, oy - by0  # clip the patch to the stroke box
+        cx0, cy0 = max(x0, 0), max(y0, 0)
+        cx1, cy1 = min(x0 + P, shape[1]), min(y0 + P, shape[0])
+        reg = acc[cy0:cy1, cx0:cx1]
+        reg[:] = 1 - (1 - reg) * (1 - patch[cy0 - y0:cy1 - y0, cx0 - x0:cx1 - x0] * alpha)
     return acc
 
 

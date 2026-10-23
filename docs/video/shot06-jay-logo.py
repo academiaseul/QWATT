@@ -3,8 +3,8 @@ camera on the rooftop for "Diego and I started QWATT so that a small roof can
 prove its work as cleanly as a power plant can." The QWATT logo fades in small,
 top-left corner. The music lift happens in the edit; there is no audio here.
 
-Jay's footage is real (the founders filmed it vertically); this renders only what
-goes around it:
+Jay's footage is real and has to be filmed (the founders shoot it vertically); this
+renders only what goes around it:
 
   overlay       the logo alone, with transparency, in paper with a soft shadow so it
                 reads on bright sky and on darker roofs (default)
@@ -88,9 +88,11 @@ def key_logo():
 
     Every pixel is background + n * (navy - background) + b * (bolt - background);
     n and b, solved by least squares, are how much of each ink covers it. The inks
-    never touch and the fit leaves under 3 levels of residual, so this is exact up
-    to the file's own noise. Returns the maps zero-padded so the resampling box can
-    reach past the mark, the mark's bounding box in them, and both ink colours.
+    never touch and the fit leaves under 3 levels of residual for all but ~100 of
+    the file's 1.57 M pixels (max ~5), so this is exact up to the file's own noise.
+    Returns the maps zero-padded so the resampling box can reach past the mark, the
+    mark's bounding box in them, the scale that makes it LOGO_W wide, and both ink
+    colours.
     """
     a = np.asarray(Image.open(LOGO_PNG).convert("RGB"), float)
     border = np.concatenate([a[:40].reshape(-1, 3), a[-40:].reshape(-1, 3),
@@ -113,6 +115,8 @@ def key_logo():
     ys, xs = np.nonzero(alpha)
     box = [xs.min(), ys.min(), xs.max() + 1, ys.max() + 1]
     scale = LOGO_W / (box[2] - box[0])
+    # canvas margin and drift, plus 24 source px (~6 px on the canvas) for the canvas
+    # rounding up and the filter's reach; PIL refuses a box that leaves the array
     m = int(math.ceil((PAD + DRIFT) / scale)) + 24
     n, b = (np.pad(c, m).astype(np.float32) for c in (n, b))
     return {"n": n, "b": b, "box": [v + m for v in box], "scale": scale,
@@ -132,8 +136,10 @@ def place(cov, key, dy):
     s = key["scale"]
     cw, ch = canvas_size(key)
     src = (x0 - PAD / s, y0 - (PAD + dy) / s, x0 + (cw - PAD) / s, y0 + (ch - PAD - dy) / s)
-    out = Image.fromarray(cov, "F").resize((cw, ch), Image.LANCZOS, box=src)
-    return np.clip(np.asarray(out, float), 0, 1)  # Lanczos rings a little; keep it in range
+    # Hamming, not Lanczos: Lanczos overshoots inside the strokes, and once clipped the
+    # held mark is left up to 4 % short of opaque in places. Hamming stays in 0..1 here.
+    out = Image.fromarray(cov, "F").resize((cw, ch), Image.HAMMING, box=src)
+    return np.clip(np.asarray(out, float), 0, 1)
 
 
 def blur_matrix(size, sigma, shift=0.0):
@@ -172,7 +178,8 @@ def logo_layer(key, dy, variant):
 def rooftop_plate():
     """Vertical stand-in plate, larger than the frame so the camera can drift: the same
     late-afternoon roof as shot02's plate, re-composed for 9:16. Sky above Jay's head,
-    the Andes and the city haze behind his shoulders, rows of panels below."""
+    the Andes and the city behind his shoulders, a small roof with three rows of panels
+    below."""
     pw, ph = W + 120, H + 120
     hz = ph * 0.43  # foot of the mountains
     yy, xx = np.mgrid[0:ph, 0:pw].astype(float)
@@ -181,7 +188,8 @@ def rooftop_plate():
     sky = np.stack([
         150 + 105 * v ** 1.4, 175 + 60 * v ** 1.4, 205 - 40 * v ** 1.2,
     ], axis=-1)
-    sun = np.exp(-(((xx - pw * 0.80) / 240) ** 2 + ((yy - (hz - 240)) / 220) ** 2))
+    # low sun off to the right, so its glow sits beside the guide box, not under it
+    sun = np.exp(-(((xx - pw * 0.92) / 240) ** 2 + ((yy - (hz - 240)) / 220) ** 2))
     sky += sun[..., None] * np.array([90, 60, 10])
     img = Image.fromarray(np.clip(sky, 0, 255).astype(np.uint8), "RGB")
     d = ImageDraw.Draw(img, "RGBA")
@@ -196,25 +204,43 @@ def rooftop_plate():
     d.polygon(pts, fill=(118, 112, 128, 255))
 
     vx, vy = pw * 0.5, hz + 40  # vanishing point of the roof
-    near = ph * 1.04 - vy       # front edge of the nearest panel row, just below the frame
+    near = ph * 1.04 - vy       # perspective scale: depth k sits at y = vy + near * k
     edge = vy + near * 0.14     # far edge of the roof (parapet)
 
-    # city haze band, then the city below, out to the roof edge
-    d.rectangle([0, hz + 40, pw, hz + 115], fill=(205, 170, 140, 90))
-    d.rectangle([0, hz + 115, pw, edge], fill=(158, 140, 134, 255))
+    # the city beyond the parapet: three layers of low blocks, hazier the farther they are
+    d.rectangle([0, vy - 10, pw, edge], fill=(170, 150, 143, 255))
+    for top, tone, haze in ((vy - 4, (164, 146, 142), 70), (vy + 30, (150, 134, 131), 45),
+                            (vy + 70, (136, 123, 121), 0)):
+        x = rng.uniform(-60, 0)
+        while x < pw:
+            bw = rng.uniform(40, 150)
+            d.rectangle([x, top + rng.uniform(0, 40), x + bw, edge], fill=(*tone, 255))
+            x += bw + rng.uniform(0, 30)
+        d.rectangle([0, vy - 10, pw, edge], fill=(205, 170, 140, haze))
+    # the haze band where the city meets the mountains (as in shot02)
+    d.rectangle([0, hz + 10, pw, vy + 40], fill=(205, 170, 140, 90))
 
     # roof deck and its parapet
     d.polygon([(0, edge), (pw, edge), (pw, ph), (0, ph)], fill=(150, 140, 128, 255))
     d.rectangle([0, edge - 6, pw, edge + 4], fill=(178, 168, 156, 255))
 
-    # five rows of panels in perspective, packing tighter toward the roof edge
-    for r in reversed(range(5)):  # far rows first, near rows overlap them
-        ka = 0.66 ** r     # scale of the row's front edge
-        kb = ka * 0.82     # and of its back edge
+    # a utility box on the deck, left of Jay: says "building roof", gives the scale
+    k0, k1 = 1 / 2.4, 1 / 2.9  # depth of its front and back faces
+    bx0, bx1, bh = -1100, -800, 380
+    fy, by = vy + near * k0, vy + near * k1
+    d.polygon([(vx + bx0 * k0, fy - bh * k0), (vx + bx1 * k0, fy - bh * k0),
+               (vx + bx1 * k1, by - bh * k1), (vx + bx0 * k1, by - bh * k1)], fill=(196, 188, 176, 255))
+    d.polygon([(vx + bx1 * k0, fy), (vx + bx1 * k0, fy - bh * k0),
+               (vx + bx1 * k1, by - bh * k1), (vx + bx1 * k1, by)], fill=(150, 144, 136, 255))
+    d.rectangle([vx + bx0 * k0, fy - bh * k0, vx + bx1 * k0, fy], fill=(172, 164, 152, 255))
+
+    # three rows of five panels, an even pitch apart: a roof-sized array, not a field
+    for z in (2.78, 1.95, 1.12):  # distance of each row's front edge; far rows first
+        ka = 1 / z           # scale of the row's front edge
+        kb = 1 / (z + 0.42)  # and of its back edge
         y_near, y_top = vy + near * ka, vy + near * kb
-        span = int(pw / (230 * ka)) + 2
-        for c in range(-span, span + 1):
-            xa = vx + (c * 230 - 100) * ka
+        for c in range(-2, 3):
+            xa = vx + (c * 230 - 102.5) * ka
             xb = xa + 205 * ka
             quad = [(xa, y_near), (xb, y_near), (vx + (xb - vx) * kb / ka, y_top), (vx + (xa - vx) * kb / ka, y_top)]
             d.polygon(quad, fill=(28, 40, 62, 255), outline=(170, 175, 185, 255))
@@ -227,18 +253,36 @@ def rooftop_plate():
     return img.filter(ImageFilter.GaussianBlur(2.0))  # shallow depth of field behind Jay
 
 
-def plate_frame(base, t):
+def guide(d, ink):
+    """Where Jay stands: centred, eyes on the upper-third line, head well below the logo."""
+    gx, gy = W // 2, H // 3
+    d.rectangle([gx - 300, gy - 200, gx + 300, H + 10], outline=ink, width=3)
+    d.line([(gx - 30, gy), (gx + 30, gy)], fill=ink, width=3)
+    d.line([(gx, gy - 30), (gx, gy + 30)], fill=ink, width=3)
+    return gx, gy
+
+
+def guide_shade():
+    """Soft dark shadow under the guide lines, so they hold on the sun glow and pale sky.
+    It is fixed in the frame, like the guide, so it is built once."""
+    m = Image.new("L", (W, H), 0)
+    guide(ImageDraw.Draw(m), 255)
+    m = m.transform(m.size, Image.AFFINE, (1, 0, -1, 0, 1, -2))  # 1 px right, 2 px down
+    return m.filter(ImageFilter.GaussianBlur(2.5)).point(lambda a: int(a * 0.5))
+
+
+def plate_frame(base, shade, t):
     ox = 60 + 16 * math.sin(t * 0.5) + 4 * math.sin(t * 2.3)  # handheld: slow sway, a little shake
     oy = 60 + 10 * math.sin(t * 0.7 + 1) + 3 * math.sin(t * 2.9)
     frame = base.resize((W, H), Image.BILINEAR, box=(ox, oy, ox + W, oy + H))
+    frame.paste(ESPRESSO, (0, 0, W, H), shade)
     d = ImageDraw.Draw(frame, "RGBA")
-    # where Jay stands: centred, eyes on the upper-third line, head well below the logo
-    gx, gy = W // 2, H // 3
-    d.rectangle([gx - 300, gy - 200, gx + 300, H + 10], outline=(*PAPER, 200), width=3)
-    d.line([(gx - 30, gy), (gx + 30, gy)], fill=(*PAPER, 200), width=3)
-    d.line([(gx, gy - 30), (gx, gy + 30)], fill=(*PAPER, 200), width=3)
+    gx, gy = guide(d, (*PAPER, 200))
+    # the label on the same espresso pill as the placeholder notice: pale sky is no backing
     f = ImageFont.truetype(FONT_BOLD, 30)
-    d.text((gx - 280, gy - 186), "JAY: to camera", font=f, fill=(*PAPER, 230))
+    x0, y0, x1, y1 = d.textbbox((gx - 280, gy - 182), "JAY: to camera", font=f)
+    d.rounded_rectangle([x0 - 12, y0 - 9, x1 + 12, y1 + 9], radius=8, fill=(*ESPRESSO, 120))
+    d.text((gx - 280, gy - 182), "JAY: to camera", font=f, fill=(*PAPER, 230))
     # placeholder notice, just above the caption zone
     s = ImageFont.truetype(FONT_BOOK, 24)
     label = "PLACEHOLDER · replace with real footage"
@@ -257,6 +301,7 @@ def main():
     assert LOGO_Y >= SAFE_TOP and LOGO_X + LOGO_W <= W - SAFE_RIGHT
     variant = "navy" if mode == "overlay-navy" else "paper"
     base = rooftop_plate() if mode == "plate" else None
+    shade = guide_shade() if mode == "plate" else None
     cw, ch = canvas_size(key)
     cx, cy = LOGO_X - PAD, LOGO_Y - PAD
     layers = {}  # by drift, so the held logo is built once
@@ -274,7 +319,7 @@ def main():
             rgb8 = np.where(a8[..., None] > 0, np.clip(np.rint(rgb), 0, 255), 0).astype(np.uint8)
             frame[cy:cy + ch, cx:cx + cw] = np.dstack([rgb8, a8])
         else:
-            img = np.array(plate_frame(base, t), float)
+            img = np.array(plate_frame(base, shade, t), float)
             region = img[cy:cy + ch, cx:cx + cw]
             img[cy:cy + ch, cx:cx + cw] = rgb * alpha[..., None] + region * (1 - alpha[..., None])
             frame = np.dstack([np.clip(np.rint(img), 0, 255).astype(np.uint8),
