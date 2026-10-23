@@ -1,6 +1,6 @@
 # Deliverable 1 evidence · meter-agnostic ingestion
 
-**Every Deliverable 1 build item is built and tested. On public `main`, the CSV, HTTP and Modbus adapters turn the same simulated input into byte-identical interval records, and the gate engine gives them identical verdicts: 24 of 24 intervals accepted on every path.** The result comes from [CI run #30](https://github.com/academiaseul/QWATT/actions/runs/39593847463) at `c1ae630` and is saved in [`evidence/harness/harness-c1ae630.txt`](../evidence/harness/harness-c1ae630.txt). What still needs the bench hardware or a founder decision is listed at the end.
+**Every Deliverable 1 build item is built and tested. On public `main`, the CSV, HTTP and Modbus adapters turn the same simulated input into byte-identical interval records, and the gate engine gives them identical verdicts: 24 of 24 intervals accepted on every path.** [CI run #30](https://github.com/academiaseul/QWATT/actions/runs/39593847463) at `c1ae630` shows it, and [`evidence/harness/harness-c1ae630.txt`](../evidence/harness/harness-c1ae630.txt) saves the same output from a clean export of that commit. What still needs the bench hardware or a founder decision is listed at the end.
 
 - **Date:** Fri 23 Oct 2026 (Day 5).
 - **SOW:** Deliverable 1 as written in `docs/SOW-INSTAWARD-v3.md` on this branch (§4 Scope, §5 Week 1, §6 Evidence of Completion).
@@ -10,11 +10,9 @@
 
 > **Resumen.** El Entregable 1 (ingesta independiente del medidor) está construido y probado. En `main`, CSV, HTTP y Modbus producen registros idénticos byte a byte con la misma entrada simulada, y el motor los acepta igual (24 de 24). La salida de la prueba de aceptación quedó guardada en `evidence/harness/` y el CI está en verde (corrida #30).
 >
-> Quedan dos cosas para el banco de pruebas:
-> - los registros de batería del EPEver (0x3104 y 0x3105), que necesitan una lectura en vivo;
-> - la configuración del PZEM-017.
->
-> Quedan también dos decisiones de los fundadores: fusionar la congelación v3 a `main` y sincronizar esta rama con `main`.
+> Lo pendiente está al final. Lo principal:
+> - en el banco de pruebas, una lectura en vivo de dos registros de batería del EPEver (0x3104 y 0x3105) y la configuración del PZEM-017;
+> - de los fundadores, fusionar la congelación v3 a `main` y sincronizar esta rama con `main`.
 >
 > Todo es simulado y solo en Stellar testnet.
 
@@ -62,12 +60,13 @@
   - a Modbus poll contributes its reply frames.
 
   The CSV and HTTP adapter comments that said otherwise are corrected.
-- **The harness input is described as what it is:** two simulated hours, 12:00–14:00 Santiago, not "a morning" (`ingest/harness.js`, `ingest/README.md`).
+- **The harness input is described by its actual hours:** two simulated hours, 12:00–14:00 Santiago (`ingest/harness.js`, `ingest/README.md`).
+- **Two tests for paths that had none:** `GET /health`, and CSV replay at a pace factor.
 - **The week-1 section of `CHANGELOG.md`** and a draft X post, `docs/WEEK1-X-POST.md`.
 
 **Test results.**
-- On this branch, `node ingest/ingest.test.js` gives 24 passed, 0 failed (21 before the three new tests).
-- These changes were also merged with `main` at `c1ae630` in a scratch copy. The only conflicts were `.gitignore` and `CHANGELOG.md`. In that merged copy, `npm test` passed every suite, with ingest at 27 passed, 0 failed.
+- On this branch, `node ingest/ingest.test.js` gives 26 passed, 0 failed (21 before the five new tests).
+- These changes were also merged with `main` at `c1ae630` in a scratch copy. The only conflicts were `.gitignore` and `CHANGELOG.md`. In that merged copy, `npm test` passed every suite, with ingest at 29 passed, 0 failed. The `anchor/` suites need `npm ci` and were not run there; this change does not touch `anchor/`.
 
 ## Deviation D1-1 · adapter interface as built
 
@@ -92,7 +91,6 @@ The freeze rule asks for deviations to be documented in the write-up, so it is r
   - **Documents:** the ones read are third-party copies, because the manufacturer sites were unreachable; their hashes are recorded. The documented-frame test decodes the manufacturers' worked examples, not frames captured from our devices.
 - **Raw payloads are not stored,** so only someone holding the original input can recompute `raw_sha256`. Freeze v3 plans `samples_root` and published raw lines (V3-5).
 - **Comparison scope.** The harness compares verdict, mint and failure ids, not the full verdict object. It excludes `source` from the record comparison by design.
-- **Not unit-tested:** real-time CSV pacing and `GET /health`.
 - **This branch is behind `main`.** It forked at `2bb5496` and is 55 commits behind `origin/main`. As a result:
   - it still has the two ingest bugs that `00a25ff` fixed on `main`: a meter returning after a 15-minute gap throws, and a blank CSV cell reads as 0 W;
   - it lacks DV-4;

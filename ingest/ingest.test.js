@@ -301,6 +301,30 @@ test('raw_sha256 is recomputable from the input alone: a CSV line once per meter
   }
 });
 
+test('HTTP: GET /health answers ok with the next sequence number', async () => {
+  const b = mk1();
+  const srv = await httpAdapter.start({ port: 0 }, b);
+  await httpAdapter.post(srv.port, '/samples', [{ meter: 'a', ts: T0, power_w: 100 }, { meter: 'a', ts: T0 + 300000, power_w: 100 }]);
+  const health = await new Promise((resolve, reject) => require('http').get({ host: '127.0.0.1', port: srv.port, path: '/health' }, (res) => {
+    let s = ''; res.on('data', (d) => { s += d; }); res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(s) }));
+  }).on('error', reject));
+  await srv.close();
+  eq(health.status, 200, 'status'); eq(health.body.ok, true, 'ok'); eq(health.body.seq, 1, 'one interval closed, next seq 1');
+});
+
+test('CSV: a pace factor waits the scaled gap between rows; fast pace does not wait', async () => {
+  const fs = require('fs'), os = require('os');
+  const file = path.join(os.tmpdir(), `qwatt-pace-${process.pid}.csv`);
+  const lines = ['ts,a_w'];
+  for (let s = 0; s <= 90; s += 10) lines.push(`${new Date(T0 + s * 1000).toISOString()},100`);
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  const time = async (pace) => { const t = Date.now(); await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' } }, pace }, mk1()); return Date.now() - t; };
+  const paced = await time(1000), fast = await time('fast');
+  fs.unlinkSync(file);
+  assert(paced >= 75, `90 s of data at ×1000 waits about 90 ms (${paced} ms)`);
+  assert(fast < paced, `fast pace is faster (${fast} ms vs ${paced} ms)`);
+});
+
 test('Deliverable 1 acceptance: csv, http and modbus paths are byte-identical', async () => {
   const diffs = await harness.run();
   eq(diffs, 0, 'differences');

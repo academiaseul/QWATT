@@ -8,7 +8,8 @@ continuous 18 s motion graphic, cut into two files at 8.0 s.
              DIN-rail module, a square panel meter, a wall-box inverter, a
              three-phase meter; blank or abstract displays, no names, no
              digits). Each speaks a bubble of made-up marks that writes itself
-             on: loops, zig-zags, dots and dashes, broken hexagons.
+             on: overlapping coils, a jagged trace, dots and dashes, broken
+             honeycomb chains. None of them is a letter or a real script.
     2.5-5.5  under each meter a block of "code" grows line by line: abstract
              bars, each block shaped differently (indents, braces, a flat
              register table, copy-paste per phase)
@@ -16,7 +17,8 @@ continuous 18 s motion graphic, cut into two files at 8.0 s.
              by one: the bugs hiding in four code paths
   Shot 11 (0:55-1:05, 8.0-18.0 s). Diego: "So in week one we asked: what if
   the rules that judge the energy never had to change?"
-    8.0-10.5   code fades back, the meters shrink into a dimmed row at the
+    8.0-10.5   code fades back (from 7.8 s, so the two frames at the seam
+               differ), the meters shrink into a dimmed row at the
                top, and every mark peels off its bubble as a stream of ink
                that flies down and settles into one line of monospace text,
                each meter writing one quarter of it
@@ -36,8 +38,8 @@ order the builder emits them, with raw_sha256 cut to 8 hex characters and
 "…". Meter ids are left out: they carry product names. The badge is read from
 assets/gates.generated.js: the number of gates the spec runs on a single
 interval (level "interval"), spec_version, and the first 8 hex characters of
-the spec digest that node protocol/gen.js --check prints. With the repo at
-9f12953 the screen reads:
+the spec digest that node protocol/gen.js --check prints. Rendered on
+23 Oct 2026 (HEAD 616b2d2), the screen reads:
 
     {"ts_start":"2026-09-20T15:30:00.000Z","dt_s":300,
      "meters":{"a":{"mwh":9085},"b":{"mwh":8947}},
@@ -49,9 +51,10 @@ Nothing implies a live meter or a real roof: the morning is the harness's
 simulation, and the source line says so.
 
 Writes raw RGB frames to stdout for frames [START, END) of the 540-frame
-timeline (default: all of it). Every frame is a pure function of its index,
-so the two halves meet frame-exact. Needs node, numpy and Pillow. Render
-from the repo root with:
+timeline (default: all of it). Every frame is a pure function of its index
+(grain is seeded per frame), so the two halves meet frame-exact. Both
+renders together take 2-6 minutes on a shared 4-core machine. Needs node,
+numpy and Pillow. Render from the repo root with:
 
     A="anoisesrc=d=18:c=pink:r=48000:a=0.6:seed=1010:nb_samples=64,highpass=f=1400,lowpass=f=4800,\\
     volume=eval=frame:volume='0.26*(0.3+0.7*pow(abs(sin(2*PI*2.6*t)*sin(2*PI*0.83*t+1.3)),0.6))\\
