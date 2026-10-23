@@ -54,12 +54,12 @@ so the two halves meet frame-exact. Needs node, numpy and Pillow. Render
 from the repo root with:
 
     A="anoisesrc=d=18:c=pink:r=48000:a=0.6:seed=1010:nb_samples=64,highpass=f=1400,lowpass=f=4800,\\
-    volume=eval=frame:volume='0.11*(0.3+0.7*pow(abs(sin(2*PI*2.6*t)*sin(2*PI*0.83*t+1.3)),0.6))\\
+    volume=eval=frame:volume='0.26*(0.3+0.7*pow(abs(sin(2*PI*2.6*t)*sin(2*PI*0.83*t+1.3)),0.6))\\
     *(1-0.4*min(1,max(0,(t-5.5)/0.6)))*min(1,t/0.4)*min(1,max(0,(8.4-t)/0.8))'[s];\\
-    aevalsrc=s=48000:d=18:exprs='gte(t,8)*0.11*if(lt(t,10.4),pow((t-8)/2.4,2),exp(-(t-10.4)*2.2))\\
+    aevalsrc=s=48000:d=18:exprs='gte(t,8)*0.11*if(lt(t,10.4),pow((t-8)/2.4,2),exp(-max(t-10.4,0)*2.2))\\
     *(sin(2*PI*(196*min(t-8,2.5)+19.6*pow(min(t-8,2.5),2)+294*max(t-10.5,0)))\\
     +0.3*sin(4*PI*(196*min(t-8,2.5)+19.6*pow(min(t-8,2.5),2)+294*max(t-10.5,0))))\\
-    +gte(t,13)*(0.14*exp(-(t-13)*320)*sin(2*PI*2300*(t-13))+0.11*exp(-(t-13)*90)*sin(2*PI*640*(t-13)))'[k];\\
+    +gte(t,13)*(0.14*exp(-max(t-13,0)*320)*sin(2*PI*2300*(t-13))+0.11*exp(-max(t-13,0)*90)*sin(2*PI*640*(t-13)))'[k];\\
     [s][k]amix=inputs=2:normalize=0[bed]"
     V="[0:v]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p[v]"
     ENC="-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -color_primaries bt709 \\
@@ -75,8 +75,8 @@ from the repo root with:
 Both commands build the same 18 s audio bed (seeded noise, so identical) and
 keep their own slice of it, so the sound runs on across the seam too: a soft
 pencil-scribble texture under 0-8 s, a quiet rising tone (G3 to D4) under the
-resolve 8.0-10.5 s, one soft click as the padlock shuts at 13.0 s; peak about
--10 dBFS. The music goes on in the edit.
+resolve 8.0-10.5 s, one soft click as the padlock shuts at 13.0 s. Peaks: the
+scribble about -27 dBFS, the tone -18, the click -14. Music is added in the edit.
 """
 import json
 import math
@@ -187,7 +187,7 @@ MOVE = (8.0, 9.3)                  # meters to the top row
 DEP0, DEP_STAGGER, DEP_WIN = 8.3, 0.08, 0.9  # marks peel off, per slot
 FLY, FLY_JIT = 0.95, 0.08
 DIM = (9.0, 10.4)
-BAND_IN = (9.3, 10.4)
+BAND_IN = (9.6, 10.5)
 LINKS = (10.4, 1.0, 0.15)          # start, duration, stagger per slot
 SOURCE_IN = (10.6, 11.2)
 BADGE_IN = (12.2, 12.7)
@@ -197,7 +197,7 @@ DRIFT = (13.2, DUR, 0.008)         # slow push-in, ease-in, to +0.8 %
 DRIFT_C = (CX, 800)
 
 N_PER_BUBBLE = 1500                # ink particles per bubble
-SUBSTEPS, SHUTTER = 5, 0.6         # motion blur for the particles (fraction of a frame)
+SUBSTEPS, SHUTTER = 10, 0.6        # motion blur for the particles (fraction of a frame)
 GRAIN = 2.4                        # film grain sigma, as in shot 9
 
 
@@ -431,35 +431,31 @@ def script_strokes(kind, rng):
                     x += ln + rng.uniform(7, 10)
                 if rng.random() < 0.18:
                     x += 10
-    else:  # broken honeycomb clusters: 2-4 cells, some walls missing, one cell seeded
+    else:  # broken honeycomb chains: 2-4 cells side by side, some walls missing, one cell seeded
         R = 9.5
-        hx, hy = 1.5 * R, math.sqrt(3) * R  # flat-top lattice steps
+        hx, hy = 1.5 * R, math.sqrt(3) * R  # flat-top lattice: columns 1.5 R apart, half a cell up or down
         for base in (34, 86):
             x = rng.uniform(4, 10)
             while x < iw - 3 * R:
-                cells = [(0, 0)]
-                for _ in range(int(rng.integers(1, 4))):
-                    ci, cj = cells[int(rng.integers(len(cells)))]
-                    di, dj = [(1, 0), (1, -1), (0, 1), (0, -1)][int(rng.integers(4))]
-                    if (ci + di, cj + dj) not in cells:
-                        cells.append((ci + di, cj + dj))
+                n = int(rng.integers(2, 5))
+                if x + 2 * R + (n - 1) * hx > iw - 2:
+                    break
+                lift = rng.choice([-1, 1]) * hy / 4
+                centres = [(x + R + k * hx, base - 12 + (lift if k % 2 == 0 else -lift)) for k in range(n)]
                 edges = {}
-                for ci, cj in cells:
-                    cx = x + R + ci * hx
-                    cy = base - hy / 2 + (cj + (ci % 2) * 0.5) * hy - hy / 2
-                    vx = [(round(cx + R * math.cos(k * math.pi / 3), 2), round(cy + R * math.sin(k * math.pi / 3), 2))
+                for cx, cy in centres:
+                    vx = [(round(cx + R * math.cos(k * math.pi / 3), 1), round(cy + R * math.sin(k * math.pi / 3), 1))
                           for k in range(6)]
                     for k in range(6):
-                        e = tuple(sorted((vx[k], vx[(k + 1) % 6])))
-                        edges[e] = edges.get(e, 0) + 1
-                keep = [e for e in edges if rng.random() > 0.28]
-                for a, b in keep:
-                    out.append(([a, b], 2.6))
-                ci, cj = cells[int(rng.integers(len(cells)))]
-                cx = x + R + ci * hx
-                cy = base - hy / 2 + (cj + (ci % 2) * 0.5) * hy - hy / 2
+                        edges[tuple(sorted((vx[k], vx[(k + 1) % 6])))] = True
+                keep = [e for e in edges if rng.random() > 0.15]
+                if len(keep) == len(edges):  # always broken somewhere
+                    keep.pop(int(rng.integers(len(keep))))
+                for e0, e1 in keep:
+                    out.append(([e0, e1], 2.6))
+                cx, cy = centres[int(rng.integers(n))]
                 out.append((dot(cx, cy, 1.2), 4.0))
-                x += 2 * R + hx * max(ci for ci, _ in cells) + rng.uniform(10, 15)
+                x = centres[-1][0] + R + rng.uniform(10, 15)
     # keep every mark inside the bubble whatever the dice said
     allp = np.concatenate([np.asarray(p, float) for p, _ in out])
     kx = min(1.0, (iw - 3) / max(allp[:, 0].max(), 1))
@@ -598,18 +594,18 @@ def make_bugs(rng):
             if toks and (c, l) not in used and (c, l - 1) not in used and (c, l + 1) not in used:
                 break
         used.add((c, l))
-        x, ln, _ = toks[int(rng.integers(len(toks)))]
+        x, ln, kd = toks[int(rng.integers(len(toks)))]
         y = y0 + LINE_Y0 + l * LINE_PITCH
         xa = x0 + CODE_X + x
-        v = Vec(xa - 4, y - 4, xa + ln + 14, y + BAR_H + 9)
-        if rng.random() < 0.65:
-            span = min(ln, rng.uniform(26, 46))
-            xs = np.linspace(xa + 2, xa + span, 40)
-            v.line(list(zip(xs, y + BAR_H + 4.3 + 1.8 * np.sin((xs - xa) / 6 * 2 * math.pi))), TERRA_LIGHT, 2.2)
+        v = Vec(xa - 4, y - 4, xa + ln + 16, y + BAR_H + 10)
+        if rng.random() < 0.65 and kd != "kw":  # a squiggle would vanish under a terracotta keyword
+            span = min(ln, rng.uniform(30, 50))
+            xs = np.linspace(xa + 2, xa + span, 48)
+            v.line(list(zip(xs, y + BAR_H + 4.6 + 2.0 * np.sin((xs - xa) / 6.5 * 2 * math.pi))), TERRA_LIGHT, 2.5)
             x_end = xa + span + 2
         else:
-            v.circle((xa + ln + 7, y + BAR_H / 2), 3.2, fill=TERRA_LIGHT)
-            xa, x_end = xa + ln + 3, xa + ln + 11
+            v.circle((xa + ln + 8, y + BAR_H / 2), 3.8, fill=TERRA_LIGHT)
+            xa, x_end = xa + ln + 3, xa + ln + 13
         bugs.append((c, BUG_T0 + k * BUG_DT, v.done(), xa, x_end))
     return bugs
 
@@ -762,13 +758,15 @@ def particle_positions(t):
     tx, ty = P["tx"][act], P["ty"][act]
     xs, ys, ws = [], [], []
     fade = (1 - smooth(P["tarr"][act], P["tarr"][act] + 0.28, t)) / SUBSTEPS
+    # the start point follows the bubble at frame time: only the flight itself is
+    # motion-blurred, since the bubble the ink leaves is drawn sharp
+    p0x, p0y = np.empty(len(act)), np.empty(len(act))
+    for c in range(4):
+        m = slot == SLOT[c]
+        mx, my, ms, _ = meter_state(c, t)
+        p0x[m], p0y[m] = mx + ms * rx[m], my + ms * ry[m]
     for j in range(SUBSTEPS):
         tj = t - j * SHUTTER / FPS / (SUBSTEPS - 1)
-        p0x, p0y = np.empty(len(act)), np.empty(len(act))
-        for c in range(4):
-            m = slot == SLOT[c]
-            mx, my, ms, _ = meter_state(c, max(tj, DEP0))
-            p0x[m], p0y[m] = mx + ms * rx[m], my + ms * ry[m]
         cx = CX + P["cxo"][act]
         cy = (p0y + ty) / 2 + P["cyo"][act]
         u = clamp((tj - P["tdep"][act]) / P["fly"][act])
@@ -809,15 +807,14 @@ def splat(img, xs, ys, ws, color, gain=3.2):
 # ── shot 11 furniture: band, links, source line, badge ───────────────────
 
 def band(img, t):
-    k = float(ease_io(*BAND_IN, t))
+    k = float(smooth(*BAND_IN, t))
     if k <= 0:
         return
     y0, y1 = int(round(LAYER["top"])), int(round(LAYER["bottom"]))
-    xa, xb = int(CX - k * (CX + 2)), int(CX + k * (W - CX + 2))
     yy = np.arange(y0, y1) + 0.5
     ramp = smooth(0, 22, yy - y0) * smooth(0, 22, y1 - yy)  # soft top and bottom edges
-    a = (0.9 * ramp).astype(np.float32)[:, None, None]
-    reg = img[y0:y1, max(xa, 0):min(xb, W)]
+    a = (0.9 * k * ramp).astype(np.float32)[:, None, None]
+    reg = img[y0:y1]
     reg *= 1 - a
     reg += np.array(BAND, np.float32) * a
     tick = float(smooth(10.0, 10.5, t))

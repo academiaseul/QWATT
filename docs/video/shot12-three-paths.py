@@ -26,7 +26,7 @@ records, no meters. check_repo() refuses to render unless every technical name
 shown still appears in the diagram in ingest/README.md, the files it names
 exist under ingest/, and lib/normalize.js still defines class IntervalBuilder.
 The icons (a square wave, a globe, a page with rows) are plain glyphs, not
-products. The clicks are synthesised by ffmpeg, about -11 dBFS peak.
+products. The clicks are synthesised by ffmpeg, -16 dBFS peak.
 
 Writes raw RGB frames to stdout. Needs numpy and Pillow. Render with:
 
@@ -34,12 +34,13 @@ Writes raw RGB frames to stdout. Needs numpy and Pillow. Render with:
       -r 30 -i - -f lavfi -i "aevalsrc='(0.20*sin(2*PI*1050*t)+0.07*sin(2*PI*2400*t))*exp(-70*t)*(1-exp(-3000*t))':d=0.15:s=48000" \\
       -filter_complex "[0:v]scale=out_color_matrix=bt709[v];[1]lowpass=f=4500,asplit=3[c1][c2][c3];\\
     [c1]adelay=5300:all=1[d1];[c2]adelay=7300:all=1[d2];[c3]adelay=9100:all=1[d3];\\
-    [d1][d2][d3]amix=inputs=3:normalize=0,apad=whole_dur=11,atrim=0:11,aformat=channel_layouts=stereo[a]" \\
+    [d1][d2][d3]amix=inputs=3:normalize=0,apad=whole_len=528000,aformat=channel_layouts=stereo[a]" \\
       -map "[v]" -map "[a]" -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p \\
       -color_primaries bt709 -color_trc bt709 -colorspace bt709 -movflags +faststart \\
       -c:a aac -b:a 192k QWATT-week1-shot12-three-paths.mp4
 
-The click times in adelay (ms) are ARROWS below; change both together.
+The click times in adelay (ms) are ARROWS below; change both together. apad pads
+the clicks to exactly 11 s (528000 samples at 48 kHz).
 """
 import math
 import os

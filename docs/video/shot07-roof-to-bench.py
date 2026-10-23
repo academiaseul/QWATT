@@ -1,31 +1,41 @@
-"""QWATT week 1 video, shot 7 (0:37-0:40), vertical 1080x1920: the wordless
+r"""QWATT week 1 video, shot 7 (0:37-0:40), vertical 1080x1920: the wordless
 "roof to bench" transition between Jay on the rooftop and Diego at the workbench.
 
-Open on a warm close-up of solar cells, a sun glint drifting across them. A cable
-leaves the panel's junction box and the camera tilts down after it, over the
+Open on a warm, sunlit close-up of solar cells, a sun glint drifting across them. A
+cable leaves the panel's junction box and the camera tilts down after it, over the
 parapet and down through the building, while a terracotta pulse runs along the
 cable just ahead of the camera. The light cools from late-afternoon sun to the
 neutral side light of the bench. The move settles on a desk and the edge of a
-laptop: the cable runs into it, the pulse arrives, and the screen glows with a
-few abstract terminal lines. The last 0.3 s hold still for the cut to Diego.
+laptop: the cable runs into it and the pulse fades into the port. The screen glows
+softly with a few abstract terminal lines and a waiting cursor the whole time; it
+does not react to the pulse. The last 0.3 s hold still for the cut to Diego.
 
-Honesty: the bench holds only the laptop and the cable (the meters are not on the
-desk yet). No people, no text, no numbers, no logos.
+Honesty: everything here is generated. The roof and the bench are illustrative,
+not Jay's or Diego's locations, and the panel-to-laptop cable is a visual metaphor,
+not a real installation or data link: no live rooftop or meter is read this week
+(the test data is simulated), so never pair this shot with "live" wording. The
+bench holds only the laptop and the cable (the meters are not on the desk yet). No
+people, no text, no numbers, no logos. Jay before this shot and Diego after it are
+real footage.
 
 Writes raw RGB frames to stdout. Needs numpy and Pillow. Render with:
 
     G="exp(-pow(log(max(b,1)*sr/(2*nb)/(260+2300*exp(-pow((pts/sr-1.35)/0.5,2))))/0.42,2))"
-    python3 docs/video/shot07-roof-to-bench.py | ffmpeg -y -f rawvideo -pix_fmt rgb24 \\
-      -s 1080x1920 -r 30 -i - -f lavfi -i "anoisesrc=d=3:c=pink:r=48000:a=0.5:s=7" \\
-      -filter_complex "[1]afftfilt=real='re*$G':imag='im*$G',highpass=f=120,\\
-    volume='0.1+0.9*exp(-pow((t-1.35)/0.55,2))':eval=frame,afade=t=in:st=0:d=0.4,\\
-    afade=t=out:st=2.45:d=0.55,volume=0.5[a]" -map 0:v -map "[a]" -c:v libx264 \\
-      -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 192k \\
+    python3 docs/video/shot07-roof-to-bench.py | ffmpeg -y -f rawvideo -pix_fmt rgb24 \
+      -s 1080x1920 -r 30 -i - -f lavfi -i "anoisesrc=d=3:c=pink:r=48000:a=0.5:s=7" \
+      -filter_complex "[0]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p[v];\
+    [1]afftfilt=real='re*$G':imag='im*$G',highpass=f=120,\
+    volume='0.1+0.9*exp(-pow((t-1.35)/0.55,2))':eval=frame,afade=t=in:st=0:d=0.4,\
+    afade=t=out:st=2.45:d=0.55,volume=1.4[a]" -map "[v]" -map "[a]" -c:v libx264 \
+      -preset slow -crf 18 -pix_fmt yuv420p -colorspace bt709 -color_primaries bt709 \
+      -color_trc bt709 -movflags +faststart -c:a aac -b:a 192k \
       -shortest QWATT-week1-shot07-roof-to-bench.mp4
 
+The video is converted and tagged as BT.709, like shots 6 and 8 on either side.
 The whoosh is pink noise through a band-pass whose centre sweeps from ~260 Hz up
 to ~2.5 kHz and back (afftfilt; pts/sr is time in seconds), peaking with the
-pulse's fastest stretch at 1.35 s. The music swell is added in the edit.
+pulse's fastest stretch at 1.35 s, around -30 dBFS RMS with peaks near -18 dBFS.
+The music swell is added in the edit.
 `python3 docs/video/shot07-roof-to-bench.py still 1.5 out.png` writes one frame.
 """
 import math
@@ -75,23 +85,23 @@ SCREEN = [(-6, 3758), (598, 3758), (603, 4160), (-11, 4160)]
 DECK = [(-30, 4200), (622, 4200), (690, 4500), (-84, 4500)]
 PORT = (630, 4232)
 TERM_X, TERM_Y, TERM_PITCH = 26, 3792, 26
-NEW_LINE = (11, 290)        # row and length of the line that appears when the pulse lands
+TERM_ROWS = 12              # the last row is a fresh prompt with a waiting cursor
 
 # Base colour down the world (y, rgb); pairs one pixel apart make hard edges
 ROWS = [
     (0, (206, 196, 180)), (FRAME_Y, (206, 196, 180)),           # backsheet between cells
-    (FRAME_Y + 1, (22, 19, 18)), (1500, (30, 26, 24)),           # deep shade under the panel
-    (1740, (46, 40, 35)), (1772, (132, 110, 88)),                # low sun on the gravel
-    (PARAPET_Y, (156, 128, 102)),
+    (FRAME_Y + 1, (64, 58, 56)), (1500, (80, 71, 64)),           # open shade under the panel, sky-lit
+    (1740, (90, 79, 69)), (1772, (150, 124, 98)),                # low sun on the gravel
+    (PARAPET_Y, (166, 136, 108)),
     (PARAPET_Y + 1, (224, 200, 168)), (PARAPET_Y + 60, (204, 180, 150)),  # parapet cap
     (PARAPET_Y + 61, (86, 68, 56)), (PARAPET_Y + 84, (170, 140, 112)),    # drip shadow
     (1990, (188, 154, 122)), (2380, (150, 124, 104)),            # outside wall, warm plaster
     (2520, (92, 80, 74)), (SLAB_Y - 30, (30, 28, 28)),           # through the slab
-    (SLAB_Y + 40, (30, 29, 30)), (2730, (116, 120, 124)),
-    (2731, (196, 198, 198)), (2736, (132, 136, 140)),            # cornice catching room light
-    (2900, (150, 154, 158)), (DESK_Y, (162, 165, 168)),          # bench wall, cool neutral
-    (DESK_Y + 1, (92, 88, 84)), (DESK_Y + 14, (166, 156, 143)),  # contact shadow, desk top
-    (WH, (146, 138, 126)),
+    (SLAB_Y + 40, (30, 29, 30)), (2730, (118, 119, 120)),
+    (2731, (198, 198, 196)), (2736, (134, 134, 134)),            # cornice catching room light
+    (2900, (154, 153, 150)), (DESK_Y, (166, 164, 160)),          # bench wall, neutral paint
+    (DESK_Y + 1, (94, 84, 74)), (DESK_Y + 14, (176, 152, 124)),  # contact shadow, pale oak desk top
+    (WH, (158, 134, 108)),
 ]
 
 
@@ -219,10 +229,10 @@ def draw_panel(img):
             v = rng.normal(0, 3)
             d.polygon([P(x0 + ch, y0), P(x1 - ch, y0), P(x1, y0 + ch), P(x1, y1 - ch), P(x1 - ch, y1),
                        P(x0 + ch, y1), P(x0, y1 - ch), P(x0, y0 + ch)],
-                      fill=(int(22 + v), int(36 + v), int(68 + 1.4 * v)))
+                      fill=(int(30 + v), int(42 + v), int(76 + 1.4 * v)))
             for fy in np.arange(y0 + 6, y1 - 3, 9):  # fine grid fingers
                 inset = max(0, ch - min(fy - y0, y1 - fy)) + 2
-                d.line([P(x0 + inset, fy), P(x1 - inset, fy)], fill=(44, 60, 94), width=1)
+                d.line([P(x0 + inset, fy), P(x1 - inset, fy)], fill=(50, 64, 98), width=1)
             for bx in np.linspace(x0 + 34, x1 - 34, 5):  # busbars, ribbons bridging the gaps
                 d.line([P(bx, y0 - 7), P(bx, y1 + 7)], fill=(198, 192, 182), width=5)
 
@@ -241,13 +251,19 @@ def draw_panel(img):
     d.rounded_rectangle(box(747, 1320, 777, 1344), radius=5 * SS, fill=(34, 35, 38))
     d.line([P(749, 1330), P(775, 1330)], fill=(64, 64, 66), width=SS)
 
-    # sheen on the glass: brighter toward the low sun, a warm sky reflection near the top
+    # sheen on the glass: brighter toward the low sun, plus the bright hazy sky it
+    # reflects (a screen blend, so busbars keep their detail), warmer near the top
     top = (FRAME_Y + 53) * SS
     a = np.asarray(img.crop((0, 0, WW * SS, top)), np.float32)
     yy, xx = np.mgrid[0:top, 0:WW * SS].astype(np.float32) / SS
     xx -= MX
-    m = 0.92 + 0.34 * np.exp(-((xx - 980) / 700) ** 2 - ((yy - 200) / 900) ** 2)
-    a = a * m[..., None] + (22 * np.clip(1 - yy / FRAME_Y, 0, 1))[..., None] * np.array([1.0, 0.82, 0.55])
+    sun = np.exp(-((xx - 980) / 700) ** 2 - ((yy - 200) / 900) ** 2)
+    a = a * (0.94 + 0.30 * sun)[..., None]
+    up = np.clip(1 - yy / FRAME_Y, 0, 1)
+    sky = (34 + 16 * up + 14 * sun) * (yy < FRAME_Y)
+    tint = (np.array([1.0, 0.97, 0.94], np.float32) * (1 - 0.3 * up[..., None])
+            + np.array([1.12, 0.98, 0.78], np.float32) * (0.3 * up[..., None]))
+    a = 255 - (255 - a) * (255 - sky[..., None] * tint) / 255
     img.paste(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)), (0, 0))
 
 
@@ -307,11 +323,8 @@ def deck_point(u, v):
 
 def draw_laptop(img):
     d = ImageDraw.Draw(img)
-    # base: deck, front face, keyboard well with plain keys, trackpad
+    # base: deck, keyboard well with plain keys (lit top edges), trackpad
     d.polygon([P(*q) for q in DECK], fill=(98, 100, 105))
-    (ax, ay), (bx, by), (cx, cy), (dx, dy) = DECK
-    d.polygon([P(dx, dy), P(cx, cy), P(cx - 2, cy + 22), P(dx + 2, dy + 22)], fill=(52, 54, 58))
-    d.line([P(dx, dy), P(cx, cy)], fill=(150, 152, 156), width=2 * SS)
     for r in range(6):
         v0, v1 = 0.06 + r * 0.075, 0.06 + r * 0.075 + 0.058
         n = 13 if r else 15
@@ -324,12 +337,35 @@ def draw_laptop(img):
                 u1 = 0.06 + 9 * (0.88 / n) - 0.012
             d.polygon([P(*deck_point(u0, v0)), P(*deck_point(u1, v0)), P(*deck_point(u1, v1)),
                        P(*deck_point(u0, v1))], fill=(36, 37, 40))
+            d.line([P(*deck_point(u0 + 0.002, v0)), P(*deck_point(u1 - 0.002, v0))], fill=(62, 63, 67), width=SS)
     d.polygon([P(*deck_point(0.34, 0.56)), P(*deck_point(0.66, 0.56)), P(*deck_point(0.66, 0.93)),
                P(*deck_point(0.34, 0.93))], fill=(108, 110, 115), outline=(86, 88, 92))
-    # lid and hinge
+
+    # aluminium shading: darker toward the hinge (under the lid), lighter toward the
+    # front lip and toward the window on the left
+    x0, y0, x1, y1 = box(-84, 4200, 690, 4500)
+    a = np.asarray(img.crop((x0, y0, x1, y1)), np.float32)
+    mask = Image.new("L", (x1 - x0, y1 - y0), 0)
+    ImageDraw.Draw(mask).polygon([(qx - x0, qy - y0) for qx, qy in (P(*q) for q in DECK)], fill=255)
+    mask = np.asarray(mask, np.float32)[..., None] / 255
+    v, u = np.mgrid[0:y1 - y0, 0:x1 - x0].astype(np.float32)
+    v, u = v / (y1 - y0), u / (x1 - x0)
+    g = (0.86 + 0.20 * v ** 0.7 + 0.06 * (1 - u))[..., None]
+    a = a * (1 - mask) + a * g * mask
+    img.paste(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)), (x0, y0))
+
+    # front face and its catch-light lip
+    *_, (cx, cy), (dx, dy) = DECK
+    d.polygon([P(dx, dy), P(cx, cy), P(cx - 2, cy + 22), P(dx + 2, dy + 22)], fill=(52, 54, 58))
+    d.line([P(dx, dy + 6), P(cx - 1, cy + 6)], fill=(64, 66, 70), width=SS)
+    d.line([P(dx, dy), P(cx, cy)], fill=(158, 160, 164), width=2 * SS)
+    # lid and hinge, the lid's edges catching the window light
     d.rectangle(box(-30, 4190, 622, 4204), fill=(28, 28, 30))
+    d.line([P(-30, 4203), P(622, 4203)], fill=(58, 59, 63), width=SS)
     d.polygon([P(*q) for q in LID], fill=(28, 29, 32))
-    d.line([P(-24, 3741), P(616, 3741)], fill=(140, 142, 148), width=2 * SS)
+    d.line([P(-24, 3741), P(616, 3741)], fill=(146, 148, 154), width=2 * SS)
+    d.line([P(-24, 3744), P(616, 3744)], fill=(48, 49, 53), width=SS)
+    d.line([P(616, 3742), P(622, 4194)], fill=(62, 63, 68), width=SS)
     d.polygon([P(*q) for q in SCREEN], fill=(14, 18, 24))
     # plug at the side port, the cable's strain relief
     px, py = PORT
@@ -373,7 +409,7 @@ def draw_screen(img):
 
     d = ImageDraw.Draw(img)
     rng = np.random.default_rng(17)
-    for i in range(NEW_LINE[0]):
+    for i in range(TERM_ROWS - 1):
         if i in (3, 7):
             continue  # blank lines between groups of output
         y = TERM_Y + i * TERM_PITCH
@@ -388,6 +424,11 @@ def draw_screen(img):
             x += n + 12
             if x > 520:
                 break
+    # a fresh prompt and a resting block cursor on the last row: part of the static
+    # world, so it pans and blurs with everything else and never reacts to the pulse
+    y = TERM_Y + (TERM_ROWS - 1) * TERM_PITCH
+    d.rounded_rectangle(box(TERM_X, y, TERM_X + 18, y + 7), radius=3 * SS, fill=(172, 128, 104))
+    d.rectangle(box(TERM_X + 30, y - 5, TERM_X + 41, y + 12), fill=(150, 160, 166))
 
 
 def world():
@@ -508,40 +549,9 @@ def pulse_layer(img, t):
              "dot", 9)
 
 
-def screen_layer(img, t, cam):
-    """The laptop answers: a soft brightening and one new line, then stillness."""
-    if t < T_ARRIVE - 0.6:
-        return
-    lift = smooth(T_ARRIVE, T_ARRIVE + 0.08, t) * (0.35 + 0.65 * math.exp(-max(t - T_ARRIVE - 0.08, 0) / 0.22))
-    grow = smooth(T_ARRIVE + 0.06, T_ARRIVE + 0.32, t)
-    quad = [to_screen(x, y, cam) for x, y in SCREEN]
-    xs = [q[0] for q in quad]
-    ys = [q[1] for q in quad]
-    z = cam[2]
-
-    if lift > 0.01:
-        def scr(d, ox, oy):
-            d.polygon([(x - ox, y - oy) for x, y in quad], fill=255)
-        add_glow(img, scr, (min(xs) - 120, min(ys) - 120, max(xs) + 120, max(ys) + 160),
-                 [(3, np.array([26, 34, 42], np.float32), lift), (60, np.array([30, 38, 46], np.float32), 0.7 * lift)])
-
-    row, length = NEW_LINE
-    lx, ly = to_screen(TERM_X, TERM_Y + row * TERM_PITCH, cam)
-    n = length * grow * z
-
-    def line(d, ox, oy):
-        if n > 1:
-            d.rounded_rectangle([lx - ox, ly - oy, lx + n - ox, ly + 7 * z - oy], radius=3, fill=255)
-        cx = lx + n + (12 * z if n > 1 else 0)
-        d.rectangle([cx - ox, ly - 5 * z - oy, cx + 11 * z - ox, ly + 12 * z - oy], fill=150)  # cursor
-
-    add_glow(img, line, (lx - 20, ly - 30, lx + length * z + 60, ly + 40),
-             [(0.6, np.array([214, 178, 150], np.float32), 1.0), (6, CORE, 0.25 * grow)])
-
-
 YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
 VIGNETTE = (1 - 0.28 * np.clip(((XX - W / 2) / (W / 2)) ** 2 + ((YY - H / 2) / (H / 2)) ** 2, 0, 1.6) ** 1.4)[..., None]
-WARM, COOL = np.array([1.07, 1.0, 0.87]), np.array([0.97, 1.0, 1.035])
+WARM, COOL = np.array([1.07, 1.0, 0.87]), np.array([0.99, 1.0, 1.01])
 
 
 def render(src, t, grain_rng):
@@ -580,7 +590,6 @@ def render(src, t, grain_rng):
     img = img * focus + np.asarray(soft, np.float32) * (1 - focus)
 
     pulse_layer(img, t)
-    screen_layer(img, t, cam)
 
     # light: late-afternoon sun cooling into the bench's neutral side light
     k = smooth(0.25, 0.85, p)
