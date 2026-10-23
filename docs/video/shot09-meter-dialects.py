@@ -482,7 +482,7 @@ def draw(canvas, el, f):
             return
         px = px.copy()
         px[:, int(px.shape[1] * r):] = 0
-    x, y = el.x, el.y
+    x, y = int(round(el.x)), int(round(el.y))
     v = abs(el.offset(f + 0.5)[0] - el.offset(f - 0.5)[0])  # px per frame
     n = int(round(v * SHUTTER))
     if n >= 2:
