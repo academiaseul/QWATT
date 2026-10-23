@@ -95,7 +95,14 @@ what it watches cannot report that it died.
 7. Install the units: `cp ops/deploy/*.service /etc/systemd/system/`, fill in `/etc/qwatt/*.env`
    from `ops/deploy/env.example` (`publish.env` on the proposer host, `verifier-log.env` on the
    verifier host), then `systemctl daemon-reload`. `qwatt-publish` runs only on the proposer host,
-   `qwatt-verifier-log` only on the verifier host.
+   `qwatt-verifier-log` only on the verifier host. On the proposer host,
+   `live.env` must hold `QWATT_PROPOSER_PUBLIC`, `QWATT_VERIFIER_PUBLIC` and `QWATT_THIRD_PUBLIC`
+   (the three public keys from step 3, `G…` only, never a secret) before `qwatt-live` first
+   starts: a real-time run will not start without them, and they are published in `faults.json`,
+   which never changes (wrong keys mean a new feed). Set `QWATT_RUN_START` for the run being
+   started (`now` for the week-2 rehearsal on Thu 29 Oct; the live run's own start time for the
+   live run) and give each run an empty feed directory. `/opt/qwatt` must be a git checkout of the
+   commit being run: the run publishes it as `code_commit`.
 
 ## Starting the run (Day 21, latest Day 23)
 
@@ -104,7 +111,7 @@ Start in this order, checking each before the next:
 | Step | Host | Command | Check |
 |---|---|---|---|
 | 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min |
-| 2 | proposer | `systemctl enable --now qwatt-live` | `feed/faults.json` exists; `journalctl -u qwatt-live` shows "replaying …" |
+| 2 | proposer | `systemctl enable --now qwatt-live` | `feed/faults.json` exists, with `label` = "Simulated input · assurance A0 · Stellar testnet", `anchoring.signers` = the three public keys from setup step 3 and `code_commit` = `git -C /opt/qwatt rev-parse HEAD`; `journalctl -u qwatt-live` shows "replaying …" |
 | 3 | proposer | `systemctl enable --now qwatt-publish` | `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>/index.json` (`<run>` = `QWATT_RUN`, `run` for the live run) loads (the CDN may lag up to 5 minutes); `journalctl -u qwatt-publish` shows `published …` |
 | 4 | proposer | `systemctl enable --now qwatt-proposer` | within an hour, the first batch shows **anchored** on the reconciliation page |
 
