@@ -13,7 +13,7 @@
     "test:ingest": "node ingest/ingest.test.js",
     "harness": "node ingest/harness.js",
     "test:batch": "node batch/batch.test.js",
-    "scale": "node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json",
+    "scale": "node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json --expect evidence/scale/scale-pvdaq-4902-2017-09.json",
     "verify:feed": "node batch/verify-cli.js",
     "audit:evidence": "node ops/evidence-audit.js",
     "test:anchor": "node anchor/tx.test.js && node anchor/recovery.test.js && node anchor/tests-abcd.test.js && node anchor/keys.test.js",
