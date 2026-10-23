@@ -133,6 +133,27 @@ test('V3-9: roles given to the write-up (--proposer/--verifier/--third) reach th
   assert(JSON.stringify(report.summary.roles) === JSON.stringify(roles), `the roles as given: ${JSON.stringify(report.summary.roles)}`);
 });
 
+test('tests table has the independence row and points to tests-abcd.js, not rehearse.js', async () => {
+  stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-writeup-')), 'abcd.json');
+  fs.writeFileSync(file, JSON.stringify({
+    network: 'testnet', public_keys: { account: ACCOUNT },
+    steps: {
+      A_proposer_alone: { ok: false, refused: true, codes: { transaction: 'tx_bad_auth' } },
+      I_withheld_refused: { ok: true, refused: true, reasons: ['verifier.not_published'], submitted: false },
+    },
+  }));
+  const md = (await build(opts({ tests: file }))).markdown;
+  const row = (t) => md.split('\n').find((l) => l.startsWith(`| ${t} |`)) || '';
+  assert(row('I').includes('`verifier.not_published`'), `I shows the verifier's code: ${row('I')}`);
+  assert(/withheld from the verifier's only input path/.test(row('I')), `I says what was done, not "unpublished": ${row('I')}`);
+  assert(!/unpublished/i.test(row('I')), `no "unpublished" wording: ${row('I')}`);
+  assert(/Horizon response in the evidence folder/.test(row('A')), `A's evidence column: ${row('A')}`);
+  const missing = (await build(opts({ tests: path.join(os.tmpdir(), 'qwatt-no-such-abcd.json') }))).markdown;
+  assert(missing.includes('anchor/tests-abcd.js'), 'the hint names anchor/tests-abcd.js');
+  assert(!missing.includes('rehearse.js'), 'and not rehearse.js');
+});
+
 (async () => {
   console.log('\nops write-up generator');
   const realFetch = globalThis.fetch;
