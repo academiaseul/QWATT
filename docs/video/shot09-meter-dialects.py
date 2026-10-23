@@ -39,6 +39,7 @@ peaking near -14 dBFS.
 """
 import argparse
 import json
+import math
 import os
 import re
 import sys
@@ -294,6 +295,25 @@ def pill(h, box):
     return s.px
 
 
+def dashed_rrect(box, r, dash=16, gap=11):
+    """Dashes along a rounded rectangle's outline, evenly spaced all the way round."""
+    x0, y0, x1, y1 = box
+    pts = []
+    for cx, cy, a0 in ((x1 - r, y0 + r, -90), (x1 - r, y1 - r, 0), (x0 + r, y1 - r, 90), (x0 + r, y0 + r, 180)):
+        pts += [(cx + r * math.cos(math.radians(a0 + k)), cy + r * math.sin(math.radians(a0 + k)))
+                for k in range(0, 91, 5)]
+    pts.append(pts[0])
+    p = np.array(pts)
+    s = np.concatenate([[0], np.cumsum(np.hypot(*np.diff(p, axis=0).T))])
+    n = max(1, round(s[-1] / (dash + gap)))
+    period = s[-1] / n
+    out = []
+    for i in range(n):
+        u = np.linspace(i * period, i * period + period * dash / (dash + gap), 8)
+        out.append(list(zip(np.interp(u, s, p[:, 0]), np.interp(u, s, p[:, 1]))))
+    return out
+
+
 def photo_slot(path):
     size = INNER
     s = Sprite(size, size)
@@ -308,11 +328,11 @@ def photo_slot(path):
     else:
         s.rrect([0, 0, size - 1, size - 1], 20, PAPER, 0.035)
         m = Image.new("L", (size, size), 0)
-        ImageDraw.Draw(m).rounded_rectangle([1, 1, size - 2, size - 2], 20, outline=255, width=3)
-        yy, xx = np.mgrid[0:size, 0:size]
-        dashes = ((xx + yy) // 13) % 2 == 0  # diagonal stripes cut the outline into dashes on every side
-        s.over(Image.fromarray((np.asarray(m) * dashes).astype(np.uint8)), PAPER, 0.38)
-        s.text((size / 2, size / 2), "product photo", font(FR, 28), PAPER, 0.55, anchor="mm")
+        d = ImageDraw.Draw(m)
+        for dash in dashed_rrect([2, 2, size - 3, size - 3], 20):
+            d.line(dash, fill=255, width=3, joint="curve")
+        s.over(m, PAPER, 0.38)
+        s.text((size / 2, size / 2), "product photo", font(FR, 30), PAPER, 0.55, anchor="mm")
     return s.px
 
 
@@ -323,7 +343,7 @@ def beat_wiring(maps, photos):
         els.append(El(photo_slot(photos[side]), CARD_X[side] + PAD, BODY_Y, t_in, t_out,
                       clip=card_clip(side)))
     row_h, y0 = 108, BODY_Y + INNER + 22
-    fl, fv = font(FB, 27), font(FMB, 52)
+    fl, fv = font(FB, 29), font(FMB, 54)
     for g, (label, *vals) in enumerate(wiring_rows(maps), start=1):
         same = vals[0] == vals[1]
         sprites, pills = [], []
@@ -343,7 +363,7 @@ def beat_wiring(maps, photos):
 
 def beat_registers(maps):
     els = []
-    fl, fv = font(FB, 27), font(FMB, 46)
+    fl, fv = font(FB, 29), font(FMB, 48)
     fn = [f"{m['protocol']['function']:02d}" for m in maps]
     head_h = 92
     sprites = []
@@ -355,7 +375,7 @@ def beat_registers(maps):
     add_row(els, 1, 0, sprites, BODY_Y - 6, head_h / 2, fn[0] == fn[1])
 
     row_h, y0 = 172, BODY_Y + head_h
-    fk, fa, ft = font(FM, 27), font(FMB, 58), font(FM, 25)
+    fk, fa, ft = font(FM, 28), font(FMB, 58), font(FM, 26)
     for g, pair in enumerate(register_rows(maps), start=1):
         same = pair[0]["address"] == pair[1]["address"]
         sprites, pills = [], []
@@ -376,30 +396,34 @@ def beat_registers(maps):
 
 
 def beat_units(maps):
-    els = []
-    rows = register_rows(maps)
-    blocks = [("POWER", rows[2]), ("ENERGY COUNTER", rows[3])] if len(rows) == 4 else []
-    if not blocks:
-        raise SystemExit("maps need a power field and an energy counter for beat 3")
-    fl, fk, fx, fc, fh = font(FB, 27), font(FM, 27), font(FMB, 40), font(FR, 29), font(FMB, 84)
-    blk_h = 318
+    """Power (the field each map integrates energy from) and the energy counter:
+    what one raw count is worth on each device."""
+    els, blocks = [], []
+    for label, pick in (("POWER", "power_field"), ("ENERGY COUNTER", "counter_field")):
+        keys = [m.get(pick) for m in maps]
+        if all(k and k in m["fields"] for k, m in zip(keys, maps)):
+            blocks.append((label, [field(m, k) for k, m in zip(keys, maps)]))
+    fl, fk, fx, fc, fh = font(FB, 29), font(FM, 28), font(FMB, 40), font(FR, 30), font(FMB, 92)
+    blk_h, gap = 330, 84
     for g, (label, pair) in enumerate(blocks):
         same = pair[0]["scale"] == pair[1]["scale"]
         hi = (PAPER, 0.9) if same else (TERRA_LT, 1.0)
         sprites, pills = [], []
         for r in pair:
-            s = row_sprite(blk_h)
+            s = row_sprite(blk_h + gap)
+            if g < len(blocks) - 1:
+                s.line(blk_h + gap // 2, PAPER, 0.10)
             s.text((0, 6), label, fl, TERRA_LT, 1.0, track=2)
-            s.text((0, 50), r["key"], fk, MUTED, 1.0)
-            s.runs((0, 136), [(r["type"], PAPER, 0.85), (" × ", MUTED, 1.0), (r["scale"], *hi),
+            s.text((0, 52), r["key"], fk, MUTED, 1.0)
+            s.runs((0, 140), [(r["type"], PAPER, 0.85), (" × ", MUTED, 1.0), (r["scale"], *hi),
                               (" → ", MUTED, 1.0), (r["unit"], PAPER, 0.85)], fx)
-            s.text((0, 166), "1 raw count =", fc, MUTED, 1.0)
+            s.text((0, 170), "1 raw count =", fc, MUTED, 1.0)
             hero = f"{r['scale']} {r['unit']}"
-            s.text((0, 290), hero, fh, *hi, anchor="ls")
+            s.text((0, 302), hero, fh, *hi, anchor="ls")
             sprites.append(s.px)
             hw = fh.getlength(hero)
-            pills.append(None if same else pill(blk_h, [-12, 214, hw + 12, 308]))
-        add_row(els, 2, g * 2, sprites, BODY_Y + g * (blk_h + 44), 262, same, pills)
+            pills.append(None if same else pill(blk_h + gap, [-12, 222, hw + 12, 318]))
+        add_row(els, 2, g * 2, sprites, BODY_Y + g * (blk_h + gap), 270, same, pills)
     return els
 
 
@@ -413,7 +437,7 @@ def card(side, m):
     s.rrect([M, M, M + CARD_W - 1, M + CARD_H - 1], 28, CARD_FILL, 0.96)
     s.rrect([M, M, M + CARD_W - 1, M + CARD_H - 1], 28, PAPER, 0.11, width=2)
     s.text((M + PAD, M + 30), MODELS[side], font(FB, 42), PAPER, 1.0)
-    s.text((M + PAD, M + 86), m["_file"], font(FM, 27), MUTED, 1.0)
+    s.text((M + PAD, M + 86), m["_file"], font(FM, 28), MUTED, 1.0)
     m2 = Image.new("L", (s.w, s.h), 0)
     ImageDraw.Draw(m2).line([(M + 2, M + 134), (M + CARD_W - 2, M + 134)], fill=255, width=2)
     s.over(m2, PAPER, 0.12)
@@ -437,7 +461,7 @@ def heading():
 
 def source_line():
     s = Sprite(880, 46)
-    f = font(FM, 28)
+    f = font(FM, 29)
     s.text((0, 36), "from ingest/maps/*.json", f, MUTED, 0.95, anchor="ls")
     return El(s.px, LEFT, SOURCE_Y, BEAT * FPS + 5, slide=0)
 

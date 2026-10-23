@@ -60,7 +60,7 @@ SHUTTER = 0.5               # 180-degree shutter for the motion blur
 
 # Pulse: forms at the junction box, leaves at 0.15 s, reaches the laptop at 2.3 s
 T_PULSE0, T_ARRIVE = 0.15, 2.30
-TRAIL = 170                 # e-folding length of the fading trail, along the cable
+TRAIL = 220                 # e-folding length of the fading trail, along the cable
 
 # Cable route through the world: junction box gland -> wall clips -> desk -> laptop port
 CABLE = [(762, 1336), (764, 1420), (772, 1540), (784, 1680), (792, 1800), (796, 1866),
@@ -80,8 +80,8 @@ NEW_LINE = (11, 290)        # row and length of the line that appears when the p
 # Base colour down the world (y, rgb); pairs one pixel apart make hard edges
 ROWS = [
     (0, (206, 196, 180)), (FRAME_Y, (206, 196, 180)),           # backsheet between cells
-    (FRAME_Y + 1, (40, 34, 31)), (1500, (50, 43, 39)),           # shade under the panel
-    (1740, (70, 60, 52)), (1770, (138, 114, 92)),                # low sun on the gravel
+    (FRAME_Y + 1, (22, 19, 18)), (1500, (30, 26, 24)),           # deep shade under the panel
+    (1740, (46, 40, 35)), (1772, (132, 110, 88)),                # low sun on the gravel
     (PARAPET_Y, (156, 128, 102)),
     (PARAPET_Y + 1, (224, 200, 168)), (PARAPET_Y + 60, (204, 180, 150)),  # parapet cap
     (PARAPET_Y + 61, (86, 68, 56)), (PARAPET_Y + 84, (170, 140, 112)),    # drip shadow
@@ -480,16 +480,16 @@ def trail_layer(img, t, cam):
     def draw(d, ox, oy):
         for i in range(len(ss) - 1):
             d.line([(sx[i] - ox, sy[i] - oy), (sx[i + 1] - ox, sy[i + 1] - oy)],
-                   fill=int(255 * level[i + 1]), width=7)
+                   fill=int(255 * level[i + 1]), width=8)
 
     add_glow(img, draw, (sx.min() - pad, sy.min() - pad, sx.max() + pad, sy.max() + pad),
-             [(1.5, CORE, 0.8), (10, TERRACOTTA, 0.35), (34, TERRACOTTA, 0.16)], "line", 7)
+             [(1.5, CORE, 1.0), (10, TERRACOTTA, 0.6), (34, TERRACOTTA, 0.25)], "line", 8)
 
 
 def pulse_layer(img, t):
     """The pulse head, smeared over the shutter interval in screen space."""
     lvl = pulse_level(t)
-    flash = 0.9 * math.exp(-((t - T_ARRIVE - 0.04) / 0.1) ** 2)
+    flash = 1.4 * math.exp(-((t - T_ARRIVE - 0.04) / 0.1) ** 2)
     if lvl < 0.01 and flash < 0.01:
         return
     ts = t - np.linspace(0, SHUTTER / FPS, 6)
@@ -499,13 +499,13 @@ def pulse_layer(img, t):
     pad = 260
 
     def draw(d, ox, oy):
-        d.line([(x - ox, y - oy) for x, y in zip(xs, ys)], fill=255, width=9, joint="curve")
-        d.ellipse([xs[0] - ox - 7, ys[0] - oy - 7, xs[0] - ox + 7, ys[0] - oy + 7], fill=255)
+        d.line([(x - ox, y - oy) for x, y in zip(xs, ys)], fill=255, width=11, joint="curve")
+        d.ellipse([xs[0] - ox - 9, ys[0] - oy - 9, xs[0] - ox + 9, ys[0] - oy + 9], fill=255)
 
     a = max(lvl, flash)
     add_glow(img, draw, (xs.min() - pad, ys.min() - pad, xs.max() + pad, ys.max() + pad),
-             [(2, HOT, 1.0 * a), (7, CORE, 0.9 * a), (26, TERRACOTTA, 0.5 * a), (80, TERRACOTTA, 0.2 * a)],
-             "dot", 7)
+             [(2, HOT, 1.0 * a), (7, CORE, 1.0 * a), (26, TERRACOTTA, 0.85 * a), (80, TERRACOTTA, 0.35 * a)],
+             "dot", 9)
 
 
 def screen_layer(img, t, cam):
@@ -523,7 +523,7 @@ def screen_layer(img, t, cam):
         def scr(d, ox, oy):
             d.polygon([(x - ox, y - oy) for x, y in quad], fill=255)
         add_glow(img, scr, (min(xs) - 120, min(ys) - 120, max(xs) + 120, max(ys) + 160),
-                 [(3, np.array([20, 26, 32], np.float32), lift), (60, np.array([30, 38, 46], np.float32), 0.5 * lift)])
+                 [(3, np.array([26, 34, 42], np.float32), lift), (60, np.array([30, 38, 46], np.float32), 0.7 * lift)])
 
     row, length = NEW_LINE
     lx, ly = to_screen(TERM_X, TERM_Y + row * TERM_PITCH, cam)
@@ -555,7 +555,7 @@ def render(src, t, grain_rng):
 
     # sun glint drifting across the cells, catching the busbars hardest
     if t < 1.4:
-        gx, gy = to_screen(40 + 600 * t, 760 + 200 * t, cam)
+        gx, gy = to_screen(200 + 520 * t, 700 + 220 * t, cam)
         c, s = math.cos(-0.56), math.sin(-0.56)
         u = ((xx - gx) * c + (yy - gy) * s) / (380 * z)
         v = (-(xx - gx) * s + (yy - gy) * c) / (140 * z)
@@ -563,7 +563,7 @@ def render(src, t, grain_rng):
         edge = to_screen(0, FRAME_Y, cam)[1]
         g *= np.clip((edge - yy) / 6, 0, 1) * smooth(-0.4, 0.3, t)
         lum = img.mean(-1) / 255
-        img += (g * (0.5 + 1.3 * lum) * 80)[..., None] * np.array([1.0, 0.88, 0.7])
+        img += (g * (0.5 + 1.3 * lum) * 110)[..., None] * np.array([1.0, 0.88, 0.7])
 
     trail_layer(img, t, cam)
 
