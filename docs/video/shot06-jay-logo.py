@@ -205,7 +205,7 @@ def rooftop_plate():
 
     vx, vy = pw * 0.5, hz + 40  # vanishing point of the roof
     near = ph * 1.04 - vy       # perspective scale: depth k sits at y = vy + near * k
-    edge = vy + near * 0.14     # far edge of the roof (parapet)
+    edge = vy + near * 0.16     # far edge of the roof (parapet)
 
     # the city beyond the parapet: three layers of low blocks, hazier the farther they are
     d.rectangle([0, vy - 10, pw, edge], fill=(170, 150, 143, 255))
@@ -225,8 +225,8 @@ def rooftop_plate():
     d.rectangle([0, edge - 6, pw, edge + 4], fill=(178, 168, 156, 255))
 
     # a utility box on the deck, left of Jay: says "building roof", gives the scale
-    k0, k1 = 1 / 2.4, 1 / 2.9  # depth of its front and back faces
-    bx0, bx1, bh = -1100, -800, 380
+    k0, k1 = 1 / 2.5, 1 / 3.0  # depth of its front and back faces
+    bx0, bx1, bh = -1150, -880, 300
     fy, by = vy + near * k0, vy + near * k1
     d.polygon([(vx + bx0 * k0, fy - bh * k0), (vx + bx1 * k0, fy - bh * k0),
                (vx + bx1 * k1, by - bh * k1), (vx + bx0 * k1, by - bh * k1)], fill=(196, 188, 176, 255))
@@ -234,12 +234,13 @@ def rooftop_plate():
                (vx + bx1 * k1, by - bh * k1), (vx + bx1 * k1, by)], fill=(150, 144, 136, 255))
     d.rectangle([vx + bx0 * k0, fy - bh * k0, vx + bx1 * k0, fy], fill=(172, 164, 152, 255))
 
-    # three rows of five panels, an even pitch apart: a roof-sized array, not a field
-    for z in (2.78, 1.95, 1.12):  # distance of each row's front edge; far rows first
-        ka = 1 / z           # scale of the row's front edge
-        kb = 1 / (z + 0.42)  # and of its back edge
+    # three rows of eight panels, an even pitch apart, off to the right of Jay so they
+    # show beside him: a roof-sized array that visibly ends, not a field
+    for z in (3.3, 2.6, 1.9):  # distance of each row's front edge; far rows first
+        ka = 1 / z          # scale of the row's front edge
+        kb = 1 / (z + 0.5)  # and of its back edge
         y_near, y_top = vy + near * ka, vy + near * kb
-        for c in range(-2, 3):
+        for c in range(-2, 6):
             xa = vx + (c * 230 - 102.5) * ka
             xb = xa + 205 * ka
             quad = [(xa, y_near), (xb, y_near), (vx + (xb - vx) * kb / ka, y_top), (vx + (xa - vx) * kb / ka, y_top)]
@@ -280,9 +281,9 @@ def plate_frame(base, shade, t):
     gx, gy = guide(d, (*PAPER, 200))
     # the label on the same espresso pill as the placeholder notice: pale sky is no backing
     f = ImageFont.truetype(FONT_BOLD, 30)
-    x0, y0, x1, y1 = d.textbbox((gx - 280, gy - 182), "JAY: to camera", font=f)
+    x0, y0, x1, y1 = d.textbbox((gx - 272, gy - 182), "JAY: to camera", font=f)
     d.rounded_rectangle([x0 - 12, y0 - 9, x1 + 12, y1 + 9], radius=8, fill=(*ESPRESSO, 120))
-    d.text((gx - 280, gy - 182), "JAY: to camera", font=f, fill=(*PAPER, 230))
+    d.text((gx - 272, gy - 182), "JAY: to camera", font=f, fill=(*PAPER, 230))
     # placeholder notice, just above the caption zone
     s = ImageFont.truetype(FONT_BOOK, 24)
     label = "PLACEHOLDER · replace with real footage"

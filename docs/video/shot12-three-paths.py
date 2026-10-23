@@ -89,6 +89,7 @@ TR_Y0, TR_Y1 = 1000, 1170              # translator card
 OUT_Y0, OUT_Y1 = 1250, 1390            # output card
 R = 22                                 # corner radius of the lines
 LINE_W = 6
+BLUR = 12                              # motion-blur samples per travelling head
 BOX = (400, 380, 940, 1270)            # region the strokes live in
 
 # timeline, s
@@ -337,7 +338,7 @@ def output_glow():
 def title_layer():
     img = Image.new("RGBA", (800, 150), PAPER + (0,))
     d = ImageDraw.Draw(img)
-    d.text((0, 0), KICKER, font=font(FM, 28), fill=mix(TERRA_LIGHT, ESPRESSO, .85) + (255,))
+    d.text((0, 0), KICKER, font=font(FM, 30), fill=mix(TERRA_LIGHT, ESPRESSO, .85) + (255,))
     d.text((-3, 44), TITLE, font=font(FB, 64), fill=PAPER + (255,))
     return as_layer(img, X0, 168)
 
@@ -374,7 +375,7 @@ def arrowhead(d, p, u, ox, oy):
 
 
 def heads_alpha(heads, shape):
-    """Arrowheads with motion blur: each one is drawn at 5 instants across half a
+    """Arrowheads with motion blur: each one is drawn at BLUR instants across half a
     frame's shutter and averaged, on a small supersampled patch around it."""
     bx0, by0 = BOX[:2]
     acc = np.zeros(shape, np.float32)
@@ -476,7 +477,8 @@ def main():
             alpha = 1.0 if a is None else 1 - ease(a, a + 0.18, t)
             if alpha <= 0:
                 continue
-            samples = [p.at(p.length * glide(s0, s0 + dur, t - shutter * j / 4)) for j in range(4, -1, -1)]
+            samples = [p.at(p.length * glide(s0, s0 + dur, t - shutter * j / (BLUR - 1)))
+                       for j in range(BLUR - 1, -1, -1)]
             heads.append((samples, alpha))
             if t < s0 + dur + 0.25:
                 glows.append((samples[-1][0], alpha * (1 - ease(s0 + dur, s0 + dur + 0.25, t))))
