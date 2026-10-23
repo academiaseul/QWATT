@@ -27,8 +27,8 @@ function test(name, fn) { tests.push({ name, fn }); }
 function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
 function eq(a, b, w) { assert(a === b, `${w}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
-/* V3-5 carries each interval's raw payloads out of band under this registered symbol. It is
-   non-enumerable, so today's pipeline ignores it; once V3-5 lands, these intervals pass its door. */
+/* V3-5 carries each interval's raw payloads out of band under this registered symbol (non-enumerable,
+   so it never enters the record's canonical JSON). The pipeline's door requires them. */
 const RAW = Symbol.for('qwatt.raw_payloads');
 const DT = 300, T0 = Date.parse('2026-09-20T15:00:00Z');
 const iv = (i) => {
@@ -403,6 +403,33 @@ test('forward-compatible with V3-5: a listed batch that carries samples_root is 
   target.isPushed = (rel) => !rel.startsWith('raw/') && inner.isPushed(rel);   // the batch is out, its raw file not yet
   const r3 = PF.publishOnce({ kind: 'evidence', feed: w2.feed, run: 'run', target });
   eq(JSON.stringify(r3.phase2), '[]', 'the proposal waits for the raw file on the remote');
+});
+
+/* V3-5's publisher test, carried onto this publisher at integration: the pipeline itself writes the
+   raw file and the batch's samples_root (nothing hand-made), and the published copy re-derives. */
+test('a pending proposal is published only once its batch and its raw file are both in the published tree (the pipeline\'s own raw file and samples_root)', () => {
+  const w = setup();
+  w.add(12);
+  const raw = w.f('raw', 'pub-000000.jsonl');
+  assert(fs.existsSync(raw), 'the pipeline wrote the raw file');
+  const keep = fs.readFileSync(raw);
+  const batch = JSON.parse(fs.readFileSync(w.f('batches', 'pub-000000.json'), 'utf8'));
+  eq(batch.samples_root, E.samplesRoot(keep.toString('utf8').trim().split('\n').map((l) => JSON.parse(l))), 'the batch\'s samples_root is the root of its raw file');
+  fs.unlinkSync(raw);                                                   // as if the tick listed raw/ before the file landed
+  fs.mkdirSync(w.f('pending'), { recursive: true });
+  fs.writeFileSync(w.f('pending', 'pub-000000.xdr'), 'XDR\n');
+  const r = PF.publishOnce(w.o);
+  eq(r.phase2.length, 0, 'held back without its raw file');
+  assert(!tree(w.remote).some((p) => p === 'run/batches/pub-000000.json' || p === 'run/pending/pub-000000.xdr'), `neither the batch nor its proposal on the remote: ${tree(w.remote).join(', ')}`);
+  fs.writeFileSync(raw, keep);
+  const r2 = PF.publishOnce(w.o);
+  assert(r2.phase1.includes('raw/pub-000000.jsonl') && r2.phase1.includes('batches/pub-000000.json'), `the raw file with its batch in phase 1: ${r2.phase1}`);
+  eq(JSON.stringify(r2.phase2), JSON.stringify(['pending/pub-000000.xdr']), 'then the proposal');
+  assert(show(w.remote, 'run/raw/pub-000000.jsonl').equals(keep), 'the raw file published byte for byte');
+  const clone = path.join(w.root, 'clone');
+  git(['clone', '--quiet', '--branch', 'main', w.remote, clone]);
+  const out = verifyFeed(path.join(clone, 'run'));
+  assert(out.ok, `the published run re-derives, samples_root included: ${out.problems.join(' | ')}`);
 });
 
 test('the history audit passes the publisher\'s history and names every rewrite, deletion, shrink, merge and early proposal; --since catches a force-push', () => {
