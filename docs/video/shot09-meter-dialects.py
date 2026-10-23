@@ -12,11 +12,12 @@ words:
   2.0-3.0  units      what one raw count of power and of the energy counter is
                       worth (type x scale -> unit), then a calm hold for the cut
 
-Terracotta marks what differs. A circle badge between the cards says it in one
-glyph: "≠" where the two values differ, "=" where they are the same. Nothing is
-typed in by hand: the values are read from ingest/maps/pzem-017.json and
-ingest/maps/epever-tracer.json at render time, and the highlights come from
-comparing them, so the graphic always matches the repo. The EPEver addresses
+Terracotta marks each value that differs. A circle badge between the cards
+sums up the row in one glyph: "≠" where anything shown on it differs, "=" where
+all of it is the same. Nothing is typed in by hand: the values are read from
+ingest/maps/pzem-017.json and ingest/maps/epever-tracer.json at render time,
+and the highlights come from comparing them, so the graphic always matches the
+repo. The EPEver addresses
 still have to be confirmed against the controller's manual (ingest/README.md),
 so beats 2 and 3 carry a source line and make no claim of a hardware check.
 
@@ -74,7 +75,8 @@ FR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
 FM = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 FMB = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
 
-# Layout. Safe area: below y=120, left of x=940, above y=1500.
+# Layout. Safe area: below y=120, left of x=940, above y=1500. All text and shapes stay
+# inside it; only the cards' soft drop shadow (at most ~10 levels darker) reaches ~30 px past x=940.
 LEFT = 64
 CARD_W, CARD_H = 418, 1010
 CARD_X = (LEFT, 940 - CARD_W)  # 64 and 522: a 40 px gutter for the badges
@@ -90,7 +92,9 @@ SOURCE_Y = CARD_Y + CARD_H + 22  # source line under the cards, above the captio
 STAGGER = 1.25  # between rows arriving
 RIGHT_LAG = 1.0  # right card's row lands a frame after the left one
 IN_DUR, OUT_DUR = 6, 4
-OUT_LEAD = 3  # outgoing rows start leaving this many frames before the cut
+# outgoing rows start leaving this many frames before the cut into beat 2 and beat 3; beat 2's
+# rows go earlier so they have cleared before beat 3's blocks land in the same place
+OUT_LEAD = (3, 5)
 SLIDE_IN, SLIDE_OUT = 150, 120
 SHUTTER = 0.5  # motion blur length as a fraction of the per-frame move (180-degree shutter)
 
@@ -184,7 +188,7 @@ def load_maps():
 def bus(m):
     """The bus is only stated in the description, e.g. "RS-485 Modbus RTU"."""
     hit = re.search(r"RS-?485", m["description"])
-    return "RS-485" if hit else None
+    return hit.group(0) if hit else None  # as written in the map
 
 
 def wiring_rows(maps):
@@ -257,7 +261,7 @@ def beat_times(beat, group, side):
     """Arrival and departure frames for one row of one beat."""
     start = beat * BEAT * FPS + (3 if beat == 0 else 0)  # beat 1 waits for the cards
     t_in = start + group * STAGGER + side * RIGHT_LAG
-    t_out = None if beat == len(NOUNS) - 1 else (beat + 1) * BEAT * FPS - OUT_LEAD + group * 0.5
+    t_out = None if beat == len(NOUNS) - 1 else (beat + 1) * BEAT * FPS - OUT_LEAD[beat] + group * 0.5
     return t_in, t_out
 
 
@@ -346,19 +350,20 @@ def beat_wiring(maps, photos):
                       clip=card_clip(side)))
     row_h, y0 = 108, BODY_Y + INNER + 22
     fl, fv = font(FB, 29), font(FMB, 54)
+    vx = INNER - ROW_M  # values end here, so a highlight pill ends on the column edge
     for g, (label, *vals) in enumerate(wiring_rows(maps), start=1):
-        same = vals[0] == vals[1]
+        same = len({re.sub(r"\W", "", v).upper() for v in vals}) == 1  # spelling aside: "RS485" = "RS-485"
         sprites, pills = [], []
         for v in vals:
             s = row_sprite(row_h)
             if g > 1:
                 s.line(1, PAPER, 0.10)
             s.text((0, row_h / 2), label, fl, MUTED, 1.0, anchor="lm", track=2)
-            s.text((INNER, row_h / 2), v, fv, PAPER if same else TERRA_LT,
+            s.text((vx, row_h / 2), v, fv, PAPER if same else TERRA_LT,
                    0.82 if same else 1.0, anchor="rm")
             sprites.append(s.px)
             vw = fv.getlength(v)
-            pills.append(None if same else pill(row_h, [INNER - vw - 14, 20, INNER + 14, row_h - 20]))
+            pills.append(None if same else pill(row_h, [vx - vw - ROW_M, 20, INNER, row_h - 20]))
         add_row(els, 0, g, sprites, y0 + (g - 1) * row_h, row_h / 2, same, pills)
     return els
 
@@ -368,32 +373,36 @@ def beat_registers(maps):
     fl, fv = font(FB, 29), font(FMB, 48)
     fn = [f"{m['protocol']['function']:02d}" for m in maps]
     head_h = 92
-    sprites = []
+    same = fn[0] == fn[1]
+    vx = INNER - ROW_M  # as in beat 1: a pill ends on the column edge
+    sprites, pills = [], []
     for v in fn:
         s = row_sprite(head_h)
         s.text((0, head_h / 2), "FUNCTION", fl, MUTED, 1.0, anchor="lm", track=2)
-        s.text((INNER, head_h / 2), v, fv, PAPER, 0.82, anchor="rm")
+        s.text((vx, head_h / 2), v, fv, PAPER if same else TERRA_LT, 0.82 if same else 1.0, anchor="rm")
         sprites.append(s.px)
-    add_row(els, 1, 0, sprites, BODY_Y - 6, head_h / 2, fn[0] == fn[1])
+        pills.append(None if same else pill(head_h, [vx - fv.getlength(v) - ROW_M, 16, INNER, head_h - 16]))
+    add_row(els, 1, 0, sprites, BODY_Y - 6, head_h / 2, same, pills)
 
     row_h, y0 = 172, BODY_Y + head_h
-    fk, fa, ft = font(FM, 28), font(FMB, 58), font(FM, 26)
+    fk, fa, fd, ft = font(FM, 28), font(FMB, 58), font(FM, 28), font(FM, 26)
     for g, pair in enumerate(register_rows(maps), start=1):
-        same = pair[0]["address"] == pair[1]["address"]
+        same_addr = pair[0]["address"] == pair[1]["address"]
+        same_kind = (pair[0]["type"], pair[0]["words"]) == (pair[1]["type"], pair[1]["words"])
         sprites, pills = [], []
         for r in pair:
             s = row_sprite(row_h)
             s.line(1, PAPER, 0.10)
             s.text((0, 18), r["key"], fk, MUTED, 1.0)
             hexa = f"0x{r['address']:04X}"
-            s.text((0, 112), hexa, fa, PAPER if same else TERRA_LT, 1.0, anchor="ls")
+            s.text((0, 112), hexa, fa, PAPER if same_addr else TERRA_LT, 1.0, anchor="ls")
+            s.text((INNER, 112), f"({r['address']})", fd, MUTED, 0.9, anchor="rs")  # decimal, as stored in the map
             s.text((0, 134), f"{r['type']} · {r['words']} word{'s' if r['words'] > 1 else ''}",
-                   ft, MUTED, 0.9)
-            s.text((INNER, 134), f"dec {r['address']}", ft, MUTED, 0.9, anchor="ra")  # as stored in the map
+                   ft, *((MUTED, 0.9) if same_kind else (TERRA_LT, 1.0)))
             sprites.append(s.px)
             hw = fa.getlength(hexa)
-            pills.append(None if same else pill(row_h, [-12, 58, hw + 12, 126]))
-        add_row(els, 1, g, sprites, y0 + (g - 1) * row_h, 92, same, pills)
+            pills.append(None if same_addr else pill(row_h, [-12, 58, hw + 12, 126]))
+        add_row(els, 1, g, sprites, y0 + (g - 1) * row_h, 92, same_addr and same_kind, pills)
     return els
 
 
@@ -408,8 +417,11 @@ def beat_units(maps):
     fl, fk, fx, fc, fh = font(FB, 29), font(FM, 28), font(FMB, 40), font(FR, 30), font(FMB, 92)
     blk_h, gap = 330, 84
     for g, (label, pair) in enumerate(blocks):
-        same = pair[0]["scale"] == pair[1]["scale"]
-        hi = (PAPER, 0.9) if same else (TERRA_LT, 1.0)
+        # each of type, scale and unit is marked on its own where the two differ
+        diff = {k: pair[0][k] != pair[1][k] for k in ("type", "scale", "unit")}
+        def tint(k, plain=(PAPER, 0.85)):
+            return (TERRA_LT, 1.0) if diff[k] else plain
+        hero_diff = diff["scale"] or diff["unit"]
         sprites, pills = [], []
         for r in pair:
             s = row_sprite(blk_h + gap)
@@ -417,15 +429,16 @@ def beat_units(maps):
                 s.line(blk_h + gap // 2, PAPER, 0.10)
             s.text((0, 6), label, fl, TERRA_LT, 1.0, track=2)
             s.text((0, 52), r["key"], fk, MUTED, 1.0)
-            s.runs((0, 140), [(r["type"], PAPER, 0.85), (" × ", MUTED, 1.0), (r["scale"], *hi),
-                              (" → ", MUTED, 1.0), (r["unit"], PAPER, 0.85)], fx)
+            s.runs((0, 140), [(r["type"], *tint("type")), (" × ", MUTED, 1.0),
+                              (r["scale"], *tint("scale", (PAPER, 0.9))),
+                              (" → ", MUTED, 1.0), (r["unit"], *tint("unit"))], fx)
             s.text((0, 170), "1 raw count =", fc, MUTED, 1.0)
             hero = f"{r['scale']} {r['unit']}"
-            s.text((0, 302), hero, fh, *hi, anchor="ls")
+            s.text((0, 302), hero, fh, *((TERRA_LT, 1.0) if hero_diff else (PAPER, 0.9)), anchor="ls")
             sprites.append(s.px)
             hw = fh.getlength(hero)
-            pills.append(None if same else pill(blk_h + gap, [-12, 222, hw + 12, 318]))
-        add_row(els, 2, g * 2, sprites, BODY_Y + g * (blk_h + gap), 270, same, pills)
+            pills.append(pill(blk_h + gap, [-12, 222, hw + 12, 318]) if hero_diff else None)
+        add_row(els, 2, g * 2, sprites, BODY_Y + g * (blk_h + gap), 270, not any(diff.values()), pills)
     return els
 
 
@@ -455,8 +468,9 @@ def heading():
     for beat, noun in enumerate(NOUNS):
         s = Sprite(860, 140)
         s.text((0, 100), noun, font(FB, 104), PAPER, 1.0, anchor="ls")
-        t_in, t_out = beat_times(beat, 0, 0)
-        t_out = None if t_out is None else t_out - 1  # gone on the cut, so two nouns never overlap
+        t_in, _ = beat_times(beat, 0, 0)
+        # leaves 4 frames before the cut and is gone on it, so two nouns never overlap
+        t_out = None if beat == len(NOUNS) - 1 else (beat + 1) * BEAT * FPS - 4
         els.append(El(s.px, LEFT - 4, 196, t_in - (2 if beat == 0 else 1), t_out, slide=90, slide_out=70,
                       clip=(LEFT - 6, 190, 940, 336)))
     return els

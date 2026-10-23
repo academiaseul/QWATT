@@ -6,20 +6,22 @@ Diego's footage is real and has to be filmed; this renders the parts around it.
 The founders shot vertically, so this is also where the lower third gets its
 vertical layout. It keeps the approved look from shot 2 (terracotta bar that
 grows from the middle, then name and role wiped in left to right over a soft
-espresso panel) re-laid-out for a phone: left-aligned at x = 72, bottom edge at
-y = 1470, clear of the platform/caption band (bottom 420 px), the right 140 px
-and the top 120 px. Name 68 px bold, role 40 px. Modes:
+espresso panel) re-laid-out for a phone: left-aligned at x = 72, panel edge at
+y = 1470 (soft edge to ~1475), clear of the platform/caption band (bottom 420 px),
+the right 140 px and the top 120 px. Name 68 px bold, role 40 px. Modes:
 
   diego  (default) the lower third alone, with transparency, 4.0 s: bar grows
          0.3-0.7 s, text wipe 0.5-1.1 s, out 3.3-3.9 s, clear before Diego's
          close-ups start at 0:44
   jay    Jay Kim · Co-founder, QWATT in the same vertical layout, 5.0 s with
          shot 2's timing (in 0.3-1.1 s, out 4.2-4.8 s); replaces shot 2's
-         horizontal overlay now that the footage is vertical
+         horizontal QWATT-week1-shot02-lower-third.mov now that the footage is
+         vertical
   plate  a stand-in bench for the rough cut until the real take exists: wall and
          desk in soft side light, the edge of an open laptop showing only
          abstract bars, a framing guide where Diego sits, plus his lower third.
-         No person and no meters: the meters are not on the desk yet.
+         No person and no meters: the meters are not on the desk yet, and like
+         the real bench the desk holds the laptop only.
 
 Colour is converted and tagged as BT.709 so editors read the terracotta right.
 Writes raw RGBA frames to stdout. Needs numpy and Pillow. Render with:
@@ -58,12 +60,15 @@ ROLE = "Co-founder, QWATT"  # both founders; never CEO
 
 # Vertical safe zones: the platform UI and our burned-in captions own these bands
 SAFE_TOP, SAFE_RIGHT, SAFE_BOTTOM = 120, 140, 420
+LT_LOWEST = H - SAFE_BOTTOM - 10  # 1490: the lower third may not reach below this
 
 # Lower-third geometry (shot 2's layout scaled ~1.17x for a phone screen)
 LT_X = 72  # left edge of the terracotta bar
-LT_Y = 1312  # top of the text block; panel spans LT_Y-8 .. LT_Y+158 = 1470
+LT_Y = 1312  # top of the text block
+PANEL_TOP, PANEL_BOTTOM = LT_Y - 8, LT_Y + 158  # 1304 .. 1470; the blur softens it to ~1475
+PANEL_BLUR = 2
 BAR_W, BAR_H = 12, 150
-PANEL_PAD = 82  # panel width beyond the longer line
+PANEL_PAD = 72  # panel width beyond the longer line: ~37 px clear after it, as before the text
 
 # mode: (name, duration in s, start of the out move in s, stand-in plate under it?)
 MODES = {
@@ -81,6 +86,10 @@ def ease(a, b, t):
     return 1 - (1 - x) ** 3  # ease-out cubic
 
 
+def panel_width(name, role):
+    return max(F_NAME.getlength(name), F_ROLE.getlength(role)) + PANEL_PAD
+
+
 def lower_third(t, name, role, out_start):
     """RGBA lower third: bar grows 0.3-0.7 s, text wipes in 0.5-1.1 s, hold, then
     both retract over out_start .. out_start + 0.6 s."""
@@ -94,20 +103,21 @@ def lower_third(t, name, role, out_start):
         return img
 
     bar_h = BAR_H * grow
-    panel_w = max(d.textlength(name, font=F_NAME), d.textlength(role, font=F_ROLE)) + PANEL_PAD
 
     # soft dark panel behind the text so it reads on a bright wall or window
-    pw = int(panel_w * wipe)
+    pw = int(panel_width(name, role) * wipe)
     if pw > 0:
         shade = Image.new("RGBA", (W, H), (0, 0, 0, 0))
-        ImageDraw.Draw(shade).rectangle([x0 + BAR_W, y0 - 8, x0 + BAR_W + pw, y0 + 158],
+        ImageDraw.Draw(shade).rectangle([x0 + BAR_W, PANEL_TOP, x0 + BAR_W + pw, PANEL_BOTTOM],
                                         fill=(*ESPRESSO, int(150 * wipe)))
-        img = Image.alpha_composite(img, shade.filter(ImageFilter.GaussianBlur(2)))
+        img = Image.alpha_composite(img, shade.filter(ImageFilter.GaussianBlur(PANEL_BLUR)))
         d = ImageDraw.Draw(img)
 
-    # terracotta bar grows from the middle
+    # terracotta bar grows from the middle; under 1 px it is gone, or PIL would
+    # still draw a 2-row dash for a few frames after the panel has cleared
     mid = y0 + BAR_H / 2
-    d.rectangle([x0, mid - bar_h / 2, x0 + BAR_W, mid + bar_h / 2], fill=(*TERRACOTTA, 255))
+    if bar_h >= 1:
+        d.rectangle([x0, mid - bar_h / 2, x0 + BAR_W, mid + bar_h / 2], fill=(*TERRACOTTA, 255))
 
     # text revealed left to right
     txt = Image.new("RGBA", (W, H), (0, 0, 0, 0))
@@ -134,6 +144,19 @@ def side_light(xf):
 
 def lit(rgb, xf, k=1.0):
     return tuple(int(min(255, c * side_light(xf) * k)) for c in rgb)
+
+
+def aa_mask(size, pts, ss=4):
+    """Polygon coverage mask drawn ss times larger and boxed down, so slanted edges
+    come out smooth instead of stair-stepped."""
+    xs, ys = zip(*pts)
+    x0, y0 = math.floor(min(xs)) - 1, math.floor(min(ys)) - 1
+    bw, bh = math.ceil(max(xs)) + 2 - x0, math.ceil(max(ys)) + 2 - y0
+    big = Image.new("L", (bw * ss, bh * ss), 0)
+    ImageDraw.Draw(big).polygon([((x - x0) * ss, (y - y0) * ss) for x, y in pts], fill=255)
+    m = Image.new("L", size, 0)
+    m.paste(big.resize((bw, bh), Image.Resampling.BOX), (x0, y0))
+    return m
 
 
 def persp_coeffs(dst, src):
@@ -223,24 +246,22 @@ def bench_plate():
     sh = Image.new("L", (pw, ph), 0)
     sd = ImageDraw.Draw(sh)
     sd.polygon(S((820, 1400), (1160, 1445), (1160, 1570), (810, 1505)), fill=150)
-    sd.polygon(S((120, 1548), (440, 1528), (462, 1652), (112, 1676)), fill=120)
     sh = np.asarray(sh.filter(ImageFilter.GaussianBlur(18)), float) / 255
     a = np.asarray(img, float) * (1 - 0.55 * sh)[..., None]
     img = Image.fromarray(np.clip(a, 0, 255).astype(np.uint8), "RGB")
-    d = ImageDraw.Draw(img, "RGBA")
 
-    # a closed notebook and a pen at the front left of the desk
-    d.polygon(S((110, 1540), (420, 1520), (440, 1640), (96, 1664)), fill=lit((58, 70, 78), 260))
-    d.line(S((380, 1523), (396, 1645)), fill=lit(TERRACOTTA, 380, 0.9), width=8)  # elastic band
-    d.line(S((470, 1560), (640, 1610)), fill=lit((30, 30, 34), 560), width=7)
-
-    # laptop at the right edge: keyboard deck, then the open lid seen at an angle
+    # laptop at the right edge, the only thing on the desk (as on the real bench):
+    # keyboard deck, its lit front edge, then the open lid seen at an angle
+    size = (pw, ph)
     deck = S((860, 1392), (1160, 1430), (1150, 1548), (805, 1488))
-    d.polygon(deck, fill=lit((172, 174, 178), 950, 1.05))
-    d.polygon(S((882, 1410), (1160, 1446), (1155, 1500), (856, 1452)), fill=lit((58, 60, 64), 980))
-    d.line([deck[2], deck[3]], fill=lit((214, 216, 220), 950), width=3)
+    img.paste(lit((172, 174, 178), 950, 1.05), (0, 0, pw, ph), aa_mask(size, deck))
+    img.paste(lit((58, 60, 64), 980), (0, 0, pw, ph),
+              aa_mask(size, S((882, 1410), (1160, 1446), (1155, 1500), (856, 1452))))
+    (ax, ay), (bx, by) = deck[2], deck[3]
+    img.paste(lit((214, 216, 220), 950), (0, 0, pw, ph),
+              aa_mask(size, [(ax, ay - 1.5), (bx, by - 1.5), (bx, by + 1.5), (ax, ay + 1.5)]))
     lid = S((882, 1102), (1170, 1048), (1160, 1430), (860, 1392))
-    d.polygon(lid, fill=(26, 28, 32))
+    img.paste((26, 28, 32), (0, 0, pw, ph), aa_mask(size, lid))
     # display, inset in the bezel
     p = np.array(lid, float)
     c = p.mean(axis=0)
@@ -248,8 +269,7 @@ def bench_plate():
     tex = screen_texture(rng)
     coeffs = persp_coeffs(disp, [(0, 0), (tex.width, 0), (tex.width, tex.height), (0, tex.height)])
     warped = tex.transform((pw, ph), Image.Transform.PERSPECTIVE, tuple(coeffs), Image.Resampling.BICUBIC)
-    dm = Image.new("L", (pw, ph), 0)
-    ImageDraw.Draw(dm).polygon(disp, fill=255)
+    dm = aa_mask(size, disp)
     img.paste(warped, (0, 0), dm)
     # the screen spills a little cool light onto the desk and the wall
     glow = np.asarray(dm.filter(ImageFilter.GaussianBlur(70)), float) / 255
@@ -267,8 +287,8 @@ def plate_frame(base, t):
     ox = M + 14 * math.sin(t * 0.55) + 4 * math.sin(t * 1.9 + 0.7)  # gentle handheld drift
     oy = M + 10 * math.sin(t * 0.7 + 1) + 3 * math.sin(t * 2.3)
     frame = base.transform((W, H), Image.Transform.AFFINE, (1, 0, ox, 0, 1, oy),
-                           Image.Resampling.BILINEAR).convert("RGBA")
-    d = ImageDraw.Draw(frame)
+                           Image.Resampling.BILINEAR)
+    d = ImageDraw.Draw(frame, "RGBA")  # an RGB frame with an RGBA draw, so the alphas below blend
     # where Diego sits: centred, eyes on the upper-third line, face well above the lower third
     gx, gy = W // 2, H // 3
     f = ImageFont.truetype(FONT_BOLD, 30)
@@ -279,12 +299,17 @@ def plate_frame(base, t):
         d.line([(gx + dx, gy - 30 + dx), (gx + dx, gy + 30 + dx)], fill=col, width=3)
         d.text((gx - 300 + dx, gy - 264 + dx), "DIEGO: at the bench, to camera", font=f, fill=col)
         d.text((LT_X + dx, SAFE_TOP + 30 + dx), "PLACEHOLDER · replace with real footage", font=s, fill=col)
-    return frame
+    return frame.convert("RGBA")
 
 
 def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else "diego"
+    if mode not in MODES:
+        sys.exit("usage: shot08-diego-lower-third.py [diego | jay | plate]")
     name, dur, out_start, with_plate = MODES[mode]
+    soft = 3 * PANEL_BLUR  # how far the blurred panel edge reaches
+    assert PANEL_TOP - soft >= SAFE_TOP and PANEL_BOTTOM + soft <= LT_LOWEST
+    assert LT_X + BAR_W + panel_width(name, ROLE) + soft <= W - SAFE_RIGHT
     base = bench_plate() if with_plate else None
     for i in range(round(dur * FPS)):
         t = i / FPS
