@@ -7,6 +7,7 @@
  * Adapters never construct records by hand.
  *
  *   const b = new IntervalBuilder({ site_id, node_id, dt_s: 300, adapter: 'modbus-tcp',
+ *                                   clock: () => Date.now(),     // or 'replay'
  *                                   meters: { a: { id, class, energy: 'integrate' }, b: {...} } });
  *   b.push('a', { ts, power_w, energy_wh }, rawPayload)   // → closed interval records, if any
  *   b.flush()                                             // → every open interval, on shutdown
@@ -21,7 +22,15 @@
  * end — or, so a dead meter cannot stall the node forever, when any meter is a
  * full interval past it (the lagging meter then closes with what it had, and the
  * gates judge that). Units in the record are INTEGER milliwatt-hours and
- * milliwatts (freeze §1). No dependencies.
+ * milliwatts (freeze §1).
+ *
+ * Receive time (V3-6): every record carries clock_skew_s = receive time − ts_end,
+ * in whole seconds, stamped when the interval closes. The receive time comes from
+ * the builder's clock: a function (a real clock, read once per closed interval:
+ * the gateway's clock on a live path) or 'replay' (the latest sample timestamp
+ * pushed so far, for a replay faster than real time). An interval flushed before
+ * its end (shutdown, end of file) gets a negative value; G0 judges the magnitude.
+ * No dependencies.
  */
 
 'use strict';
@@ -48,6 +57,12 @@ class IntervalBuilder {
     this.seq = opts.seq0 || 0;
     this.spec_version = opts.spec_version || SPEC.spec_version;
     this.onInterval = opts.onInterval || null;
+    /* V3-6: where the receive time for clock_skew_s comes from. 'replay' = the latest sample
+       timestamp pushed (a replay faster than real time); a function = a real clock, read when an
+       interval closes. */
+    if (opts.clock !== 'replay' && typeof opts.clock !== 'function') throw new Error('IntervalBuilder: clock must be "replay" or a function returning ms since the epoch (V3-6)');
+    this.clock = opts.clock;
+    this.replayMs = -Infinity;
     this.meters = {};
     for (const k of ['a', 'b']) {
       const m = opts.meters[k];
@@ -94,6 +109,7 @@ class IntervalBuilder {
     const k = this.gridIndex(sample.ts);
     const b = this._bucket(k);
     if (raw != null) b.raw.update(typeof raw === 'string' ? Buffer.from(raw, 'utf8') : raw);
+    if (sample.ts > this.replayMs) this.replayMs = sample.ts;   // the replay clock: only forward, only accepted samples
 
     /* A meter returning after a gap that outlived the intervals it spanned: those intervals were
        already closed without it, so integration restarts at this sample. Energy is never
@@ -155,6 +171,8 @@ class IntervalBuilder {
       meters[key] = rec;
     }
     const tsStart = k * this.dtMs;
+    const receivedMs = this.clock === 'replay' ? this.replayMs : this.clock();
+    if (!Number.isFinite(receivedMs)) throw new Error('IntervalBuilder: the clock gave no finite receive time');
     const record = {
       spec_version: this.spec_version,
       schema_version: SCHEMA_VERSION,
@@ -164,6 +182,7 @@ class IntervalBuilder {
       ts_start: new Date(tsStart).toISOString(),
       ts_end: new Date(tsStart + this.dtMs).toISOString(),
       dt_s: this.dt_s,
+      clock_skew_s: Math.round((receivedMs - (tsStart + this.dtMs)) / 1000) || 0,   // V3-6; || 0 folds -0 into 0
       meters,
       source: { adapter: this.adapter, raw_sha256: c.raw.digest('hex') },
     };

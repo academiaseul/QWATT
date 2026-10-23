@@ -12,15 +12,15 @@ CSV file     ──► adapters/csv.js    ──┘        integer mWh · grid-a
 | Path | Role |
 |---|---|
 | `lib/registermap.js` | Loads and validates `maps/*.json`; decodes u16/i16/u32/i32/f32 with word order and scale; computes read blocks; encodes for simulators. |
-| `lib/normalize.js` | `IntervalBuilder`: samples in, schema-valid interval records out. Trapezoidal integration split exactly at grid boundaries, or counter deltas. Integer units. Throws rather than emit an invalid record. |
+| `lib/normalize.js` | `IntervalBuilder`: samples in, schema-valid interval records out. Trapezoidal integration split exactly at grid boundaries, or counter deltas. Integer units. Stamps `clock_skew_s` from its clock when an interval closes ([clock_skew_s](#clock_skew_s-v3-6)). Throws rather than emit an invalid record. |
 | `adapters/modbus.js` | Modbus TCP client (no deps), Modbus RTU client (needs `serialport` on the gateway), `pollOnce`, continuous `start`, and a TCP **simulator** for tests. |
-| `adapters/http.js` | `POST /samples`, `POST /intervals` (validated; timestamps rewritten from any RFC 3339 spelling to canonical UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`, with the request hash kept in `source.raw_sha256` when a spelling changed; 400 `ingest.off_grid` when off the `dt_s` grid; `clock_skew_s` stamped), `POST /flush`, `GET /health`. |
-| `adapters/csv.js` | Replay at fast or real-time pace; raw payload: see [raw_sha256](#raw_sha256) below. |
+| `adapters/http.js` | `POST /samples` (intervals stamped by the builder's clock), `POST /intervals` (validated; timestamps rewritten from any RFC 3339 spelling to canonical UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`, with the request hash kept in `source.raw_sha256` when a spelling changed; 400 `ingest.off_grid` when off the `dt_s` grid; `clock_skew_s` stamped by the gateway), `POST /flush`, `GET /health`. |
+| `adapters/csv.js` | Replay at fast, factor or real-time pace; a replay faster than real time needs a builder on the replay clock; raw payload: see [raw_sha256](#raw_sha256) below. |
 | `maps/pzem-017.json` | Bench meter A. 9600 8N2. Every field matches the manufacturer's protocol document ([sources](#register-map-sources)). |
 | `maps/epever-tracer.json` | Bench meter B. 115200 8N1. PV and energy-counter registers match the EPEver protocol document; the two battery registers (0x3104, 0x3105) need a live read first ([sources](#register-map-sources)). |
 | `harness.js` | **Acceptance test:** two simulated hours of solar data (10 s samples, two meters) through all three adapters must produce byte-identical records (minus `source`) and identical verdicts. The Modbus path polls a local simulator. |
 | `capture-evidence.js` | Saves the harness and test output of one commit as evidence: `node ingest/capture-evidence.js <commit>` → `evidence/harness/harness-<commit>.txt`. |
-| `cli.js` | Run an adapter and print intervals as JSON lines. |
+| `cli.js` | Run an adapter and print intervals as JSON lines. Modbus and HTTP stamp `clock_skew_s` from the host clock; CSV from the host clock at `--pace realtime` and from the replay clock otherwise. |
 
 ```bash
 node ingest/ingest.test.js          # unit tests + the acceptance harness
@@ -29,6 +29,36 @@ node ingest/cli.js modbus --a pzem-017@192.168.1.50:502 --b epever-tracer@192.16
 node ingest/cli.js csv --file day.csv --a a_w --b b_w --pace fast
 node ingest/cli.js http --port 8080
 ```
+
+## clock_skew_s (V3-6)
+
+Every interval record carries `clock_skew_s` = receive time − `ts_end`, in whole seconds. The
+`IntervalBuilder` stamps it when it closes the interval, from the clock it was built with
+(`clock` is a required option):
+
+- a function returning ms since the epoch: a real clock, read once per closed interval;
+- `'replay'`: the replay clock, the latest sample timestamp pushed so far (across both meters,
+  only forward, never moved by a refused sample).
+
+| Path | Clock | What `clock_skew_s` measures |
+|---|---|---|
+| Modbus (TCP or RTU) | Gateway clock | Poll lateness: how long after `ts_end` the poll that closed the interval ran. |
+| CSV at real-time pace | Host clock | How far the replay runs behind (or ahead of) the host clock. |
+| CSV at fast or factor pace | Replay clock | Replayed time only; a wall clock is refused before the file is opened. |
+| Live run (`live/run.js`) | Host clock in real time; replay clock for `fast` and every numeric speed | See `live/README.md`. |
+| HTTP `POST /samples` | Gateway clock | Gateway time against the node's own timestamps: node clock error plus latency. |
+| HTTP `POST /intervals` | Gateway clock (`config.now`) | Unchanged: stamped by the gateway on records posted whole. |
+
+On the replay clock the value is 0 when the interval is closed by a sample exactly at `ts_end`,
+n sample periods when that sample is missing, +`dt_s` (300) when the one-interval grace closes it
+(a meter a full interval past its end), and negative at `flush()`: an interval flushed before its
+end (shutdown, end of file) is received before it ended. The schema sets no minimum, and G0 judges
+the magnitude: |`clock_skew_s`| ≤ `clock_max_skew_s` (7500 s on the bench profile), otherwise
+`plausibility.skew`. The guard vectors `bench-clock-skew-negative` and `bench-clock-skew-early` in
+`protocol/conformance/cases.json` pin that.
+
+`clock_skew_s` is the gateway's own observation. The verifier re-judges G0 on the published value;
+it cannot re-derive a real-time receive time.
 
 ## Adding a meter
 
