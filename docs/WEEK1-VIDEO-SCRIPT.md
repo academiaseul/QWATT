@@ -4,7 +4,7 @@
 **Deliverable:** Instawards sprint, Deliverable 1 — meter-agnostic ingestion (`docs/SOW-INSTAWARD-v3.md` §4)
 **On camera:** Jay Kim and Diego Ostertag, co-founders
 **Audience:** Stellar community, program reviewers, solar installers, possible design partners
-**Spoken length:** ≈ 2:50 · **Hard stop:** 3:00 · **Language:** English (a Spanish cut can reuse every shot)
+**Spoken length:** ≈ 2:50 · **Hard stop:** 3:00 · **Language:** English
 
 **The feeling we want:** people meet two builders who care about a real, small problem, see it solved
 in front of them with nothing hidden, and leave wanting to try it or help.
@@ -38,7 +38,7 @@ single meter in a stairwell, a hand holding an electricity bill with one kWh fig
 ## 0:40 – 1:05 · The problem nobody sees
 
 *Cut to Diego at the workbench. Lower third: "Diego Ostertag · Co-founder, QWATT". On the
-desk: the bench meters if you have them, otherwise product photos composited on screen.*
+desk: laptop only; the meters are not on the desk yet, so product photos are composited on screen.*
 
 > **DIEGO:** Here's the hidden problem. Every meter speaks its own dialect. Different wiring,
 > different registers, different units. Most systems handle that by writing new code for every
@@ -127,7 +127,7 @@ qwatt.org · github.com/academiaseul/QWATT · "Testnet".*
 | Jay walk-and-talk | A rooftop with panels, Santiago | Late afternoon or golden hour; lavalier mic, wind cover |
 | Shared-roof B-roll | Apartment building roof, stairwell meter | Get permission from the building; no faces of neighbors without consent |
 | Bill close-up | A real bill with personal data covered, or a mock-up | Blur names, account numbers and address |
-| Diego at the bench | Desk with laptop and meters | Soft side light; meters only if physically there |
+| Diego at the bench | Desk with laptop | Soft side light; meters are not on the desk yet, use product photos |
 | Terminal run | Screen capture, fresh clone | 125 % zoom, dark theme, one take, no edits to numbers |
 | Two-shot close | Same rooftop | Shoot several takes; keep the most natural one |
 
