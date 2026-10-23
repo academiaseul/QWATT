@@ -31,7 +31,7 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `tx.js` | The deterministic anchoring transaction (anchor hash · cumulative total · nominal payment · memo `QW#<seq>`) and `matchPending`, the verifier's rebuild-and-compare. |
 | `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. `walkToHead` checks what a batch inherits against the on-chain head. |
 | `proposer.js` | Proposer service: runs the verifier's walk over its own feed, signs the next published, self-verified batch and writes `pending/<id>.xdr`; otherwise it reports `blocked` with the verifier's reason. Never submits. |
-| `verifier.js` | Verifier service: feed URL in, co-signature out. Refusals in `<state>/refusals.jsonl`, served read-only with `--port`. |
+| `verifier.js` | Verifier service: feed URL in, co-signature out. Every decision in `<state>/decisions.jsonl` (`signed` with the hash of the transaction it signed, logged before the submission; `refused` with the reasons), every refusal also in `<state>/refusals.jsonl`, and `<state>/status.json` replaced each tick. `qwatt-verifier-log.service` publishes them to `academiaseul/qwatt-verifier-log/<run>/`; `--port` serves them on 127.0.0.1 only, for the operator. |
 | `feed-client.js` | HTTP(S) reader for the public feed — the verifier's only input path. |
 | `static-server.js` | Read-only static server for a feed directory (local runs, tests). |
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
@@ -89,7 +89,16 @@ node proposer.js --feed ../feed --config config.json --sign-with-key qwatt-propo
 node verifier.js --feed https://<public feed> --config config.json --sign-with-key qwatt-verifier --port 8090
 # both accept --max-walk N (default 168); see ../docs/RUNBOOK.md before using it
 # both accept --stellar-bin <path> when stellar is not on PATH
+# --port listens on 127.0.0.1 only; the public copy of its state (default ./verifier-state) is the verifier log:
+node ../ops/publish-feed.js --kind verifier-log --feed verifier-state --run <run> --remote <qwatt-verifier-log URL> --status-every 300
 ```
+
+**The verifier's public log** (`academiaseul/qwatt-verifier-log/<run>/`, written only from the verifier
+host): `decisions.jsonl` and `refusals.jsonl` only grow; `status.json` is replaced on each
+publication, at most every 5 minutes when nothing else changed. Freeze v3 (V3-7) lists only
+`index.json` and a pending envelope as published files that change, so replacing `status.json` is
+recorded as deviation **DV-8**, for the founders to sign. The decision counts in `status.json` are
+read back from the logs at start, so a restart never resets them.
 
 **What the reconciliation checks from Horizon** (`../assets/qwatt-reconcile.js`, shared by
 `reconcile-cli.js`, `../reconcile.html`, `../ops/writeup.js`, `../ops/watch.js` and
