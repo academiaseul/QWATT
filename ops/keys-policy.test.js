@@ -198,6 +198,17 @@ test('the third signer\'s brief exists, names no one, uses stellar-cli and sends
   eq(seedsIn(t).length, 0, 'no secret seed');
 });
 
+test('the runbook has the backup drill (V3-8c): restored identities sign a throwaway transaction with keys.js before the real account exists, and each host runs keys.js check, with the identity store closed to others', () => {
+  const runbook = read('docs/RUNBOOK.md');
+  const at = runbook.search(/^## Backup drill \(once, before the freeze\)/m);
+  assert(at >= 0, 'section "Backup drill (once, before the freeze)"');
+  const drill = runbook.slice(at, runbook.indexOf('\n## ', at + 1) < 0 ? undefined : runbook.indexOf('\n## ', at + 1));
+  for (const s of ['keys.js drill-xdr', 'keys.js drill-submit', '-restored', 'stellar keys rm', 'stellar.expert']) assert(drill.includes(s), `the drill section says ${s}`);
+  assert(/keys\.js check --sign-with-key qwatt-proposer/.test(runbook) && /keys\.js check --sign-with-key qwatt-verifier/.test(runbook), 'each host checks its identity with keys.js check');
+  assert(exists('anchor/keys.js'), 'anchor/keys.js exists');
+  assert(/chmod -R go-rwx ~qwatt\/\.config\/stellar/.test(runbook), 'the identity store is closed to group and others, its files included (directory 700, files 600, as keys.js check expects)');
+});
+
 (async () => {
   console.log('\nkey policy (V3-8)');
   for (const t of tests) {

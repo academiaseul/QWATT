@@ -301,6 +301,210 @@ test('capture: a submitted envelope is stored with Horizon\'s full response and 
   eq(fake.submissions, n0 + 1, 'never retried');
 });
 
+/* ── keys check and the backup drill (V3-8c) ──────────────────────────────────
+ * Each holder's offline backup is proved once by restoring it into a
+ * `-restored` stellar-cli identity and co-signing a throwaway transaction with
+ * a high-threshold operation, which lands only with all three keys. */
+
+const SETUP = require('./setup-account');
+const ROLES = ['proposer', 'verifier', 'third'];
+/** The three holders' keys: the stellar-cli identities qwatt-proposer, qwatt-verifier and qwatt-third. */
+const holders = () => Object.fromEntries(ROLES.map((r) => [r, keyOf(`qwatt-${r}`).publicKey()]));
+/** A throwaway 2/2/3 account G_D on the fake network, set up the way the drill account is (setup-account.js build and submit). */
+async function drillAccount() {
+  const fake = new FakeHorizon({ clock });
+  const D = keyOf('qwatt-drill-setup').publicKey();
+  fake.fund(D);
+  const roles = holders();
+  const o = { ...SETUP.DEFAULTS, account: D, ...roles };
+  const r = await SETUP.submitSetup(fake, await SETUP.buildSetupTx(fake, o), o, { signer: fakeSigner('qwatt-drill-setup') });
+  assert(r.ok, `drill account set up: ${JSON.stringify(r)}`);
+  return { fake, account: D, roles };
+}
+/** Each holder signs the drill transaction separately with the identity restored from their backup. */
+async function restoredEnvelopes(xdr, roles = ROLES) {
+  const out = {};
+  for (const role of roles) out[role] = (await (await fakeSigner(`qwatt-${role}-restored`).init()).sign(new S.Transaction(xdr, TESTNET))).toEnvelope().toXDR('base64');
+  return out;
+}
+
+test('backup drill: a throwaway transaction with a high-threshold operation lands only when the three restored keys, each signing separately, are merged; two of three is not submitted and the result names the missing role', async () => {
+  const K = require('./keys');
+  freshLog();
+  const d = await drillAccount();
+  const unsigned = await K.buildDrillTx(d.fake, d.account, '2026-10-28');
+  eq(unsigned.signatures.length, 0, 'drill-xdr is unsigned');
+  eq(unsigned.memo.value.toString(), 'QWATT backup drill', 'memo');
+  eq(JSON.stringify(unsigned.operations.map((op) => op.type)), JSON.stringify(['manageData', 'setOptions']), 'manageData + setOptions');
+  eq(unsigned.operations[1].highThreshold, 3, 'a high-threshold operation (it leaves high at 3)');
+  const xdr = unsigned.toEnvelope().toXDR('base64');
+  const env = await restoredEnvelopes(xdr);
+  for (const role of ROLES) {
+    const t = new S.Transaction(env[role], TESTNET);
+    eq(t.signatures.length, 1, `${role}: one signature`);
+    assert(S.Keypair.fromPublicKey(d.roles[role]).verify(t.hash(), t.signatures[0].signature()), `${role}: the restored identity holds the key that was sent`);
+  }
+  /* the network side: two of the three keys do not meet the high threshold */
+  const twoOnly = K.mergeSignatures(TESTNET, [env.proposer, env.verifier], Object.values(d.roles)).tx;
+  let codes = null;
+  try { await d.fake.submitTransaction(twoOnly); } catch (e) { codes = e.response.data.extras.result_codes; }
+  eq(JSON.stringify(codes), JSON.stringify({ transaction: 'tx_failed', operations: ['op_success', 'op_bad_auth'] }), 'two keys: refused, nothing applies');
+  const n0 = d.fake.submissions, txs0 = d.fake.txs.length;
+  const two = await K.submitDrill({ server: d.fake, account: d.account, envelopes: [env.proposer, env.verifier], roles: d.roles, evidenceDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-drill-')) });
+  eq(two.ok, false, 'two of three: not ok');
+  eq(JSON.stringify(two.missing), JSON.stringify(['third']), 'the missing role is named');
+  eq(d.fake.submissions, n0, 'two of three is never submitted');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-drill-'));
+  const all = await K.submitDrill({ server: d.fake, account: d.account, envelopes: [env.third, env.proposer, env.verifier, env.proposer], roles: d.roles, evidenceDir: dir });
+  eq(all.ok, true, `three of three lands: ${JSON.stringify(all.codes || all.detail || null)}`);
+  eq(d.fake.txs.length, txs0 + 1, 'one more transaction on the ledger');
+  const landed = d.fake.txs[d.fake.txs.length - 1];
+  eq(landed.memo, 'QWATT backup drill', 'the drill landed');
+  eq(landed.signatures.length, 3, 'three signatures, duplicates dropped');
+  const drill = JSON.parse(fs.readFileSync(path.join(dir, 'drill.json'), 'utf8'));
+  eq(JSON.stringify(drill.signed_by), JSON.stringify(d.roles), 'drill.json: signed by the three roles');
+  eq(drill.account, d.account, 'drill.json: account');
+  eq(drill.link, 'https://stellar.expert/explorer/testnet/tx/' + drill.tx_hash, 'drill.json: stellar.expert link');
+  eq(drill.ok, true, 'drill.json: ok');
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  for (const f of ['drill.unsigned.xdr', 'drill.proposer.xdr', 'drill.verifier.xdr', 'drill.third.xdr', 'drill.merged.xdr', 'drill.horizon.json', 'drill.json']) {
+    eq(index.files[f], sha256(fs.readFileSync(path.join(dir, f))), `${f}: SHA-256 in index.json`);
+  }
+});
+
+test('drill merge refuses an envelope for another transaction and a signature from a key that is not a signer; a backup that restores another key is caught before anything is sent', async () => {
+  const K = require('./keys');
+  freshLog();
+  const d = await drillAccount();
+  const signers = Object.values(d.roles);
+  const xdr = (await K.buildDrillTx(d.fake, d.account, '2026-10-28')).toEnvelope().toXDR('base64');
+  const other = (await K.buildDrillTx(d.fake, d.account, '2026-10-29')).toEnvelope().toXDR('base64');
+  const env = await restoredEnvelopes(xdr);
+  const [envOther] = Object.values(await restoredEnvelopes(other, ['third']));
+  let m = '';
+  try { K.mergeSignatures(TESTNET, [env.proposer, envOther], signers); } catch (e) { m = e.message; }
+  assert(/another transaction/.test(m), `an envelope for another transaction: ${m}`);
+  const stranger = new S.Transaction(xdr, TESTNET);
+  stranger.sign(S.Keypair.random());
+  m = '';
+  try { K.mergeSignatures(TESTNET, [env.proposer, stranger.toEnvelope().toXDR('base64')], signers); } catch (e) { m = e.message; }
+  assert(/not a signer/.test(m), `a signature from a key that is not a signer: ${m}`);
+  let bad;
+  try { process.env.FAKE_STELLAR_MODE = 'badbackup'; bad = await restoredEnvelopes(xdr, ['third']); } finally { delete process.env.FAKE_STELLAR_MODE; }
+  const n0 = d.fake.submissions;
+  m = '';
+  try { await K.submitDrill({ server: d.fake, account: d.account, envelopes: [env.proposer, env.verifier, bad.third], roles: d.roles }); } catch (e) { m = e.message; }
+  assert(/not a signer/.test(m), `the third signer's backup restores another key: ${m}`);
+  eq(d.fake.submissions, n0, 'nothing submitted');
+});
+
+test('drill-xdr refuses an account that is not configured like the anchoring account', async () => {
+  const K = require('./keys');
+  const keys = ROLES.map(() => S.Keypair.random().publicKey());
+  const cases = {
+    'thresholds 1/2/3': (a) => new FakeHorizon({ account: a, signers: keys, thresholds: { low: 1, med: 2, high: 3 }, clock }),
+    'two signers': (a) => new FakeHorizon({ account: a, signers: keys.slice(0, 2), clock }),
+    'a fresh account (master weight 1)': (a) => { const f = new FakeHorizon({ clock }); f.fund(a); return f; },
+  };
+  for (const [what, mk] of Object.entries(cases)) {
+    const a = S.Keypair.random().publicKey();
+    let m = '';
+    try { await K.buildDrillTx(mk(a), a, '2026-10-28'); } catch (e) { m = e.message; }
+    assert(m, `${what}: refused`);
+  }
+});
+
+test('keys check: resolves the identity through stellar-cli, signs offline, matches --expect and reports whether the key is a weight-1 signer of --account', async () => {
+  const K = require('./keys');
+  const log = freshLog();
+  const roles = holders();
+  const account = S.Keypair.random().publicKey();
+  const fake = new FakeHorizon({ account, signers: Object.values(roles), clock });
+  const ok = await K.checkIdentity({ signer: fakeSigner('qwatt-proposer'), expect: roles.proposer, account, server: fake });
+  eq(ok.ok, true, `the proposer identity checks out: ${JSON.stringify(ok.warnings)}`);
+  eq(ok.publicKey, roles.proposer, 'public key');
+  eq(ok.is_signer, true, 'a weight-1 signer of the account');
+  eq(ok.stellar_cli_version, '28.1.0', 'stellar-cli version');
+  assert(log().some((a) => a[0] === 'tx' && a[1] === 'sign'), 'it signed offline');
+  const wrong = await K.checkIdentity({ signer: fakeSigner('qwatt-proposer'), expect: roles.verifier });
+  eq(wrong.ok, false, 'a wrong --expect fails');
+  const stranger = await K.checkIdentity({ signer: fakeSigner('qwatt-stranger'), account, server: fake });
+  eq(stranger.is_signer, false, 'an identity that is not a signer');
+  eq(stranger.ok, false, 'and the check fails');
+  eq(fake.submissions, 0, 'nothing submitted');
+  /* the CLI, as the runbook runs it on a host */
+  const run = (expect) => require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'keys.js'), 'check', '--sign-with-key', 'qwatt-proposer', '--expect', expect, '--stellar-bin', FIXTURE], { encoding: 'utf8', env: { ...process.env }, timeout: 60000 });
+  const good = run(roles.proposer), bad = run(roles.verifier);
+  eq(good.status, 0, `keys.js check exits 0: ${good.stderr}`);
+  assert(/\bOK\b/.test(good.stdout), `prints OK: ${good.stdout}`);
+  eq(bad.status, 1, `keys.js check with a wrong --expect exits 1: ${bad.stderr}`);
+});
+
+test('keys check never reads the identity file: it only stats it, and on POSIX warns when others can read it (run in a fresh process whose fs is guarded before any module loads)', async () => {
+  const { spawnSync } = require('child_process');
+  freshLog();
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-xdg-'));
+  const idFile = path.join(home, 'stellar', 'identity', 'qwatt-proposer.toml');
+  fs.mkdirSync(path.dirname(idFile), { recursive: true });
+  fs.writeFileSync(idFile, '# a stand-in identity file: keys.js must never open it\n');
+  fs.chmodSync(idFile, 0o644);
+  /* the guard is preloaded, so fs functions a module binds when it loads are guarded too */
+  const GUARD = path.join(__dirname, 'test-fixtures', 'fs-guard.js');
+  const inGuardedNode = (script) => {
+    const r = spawnSync(process.execPath, ['--require', GUARD, '-e', script], { cwd: __dirname, encoding: 'utf8', env: { ...process.env, XDG_CONFIG_HOME: home }, timeout: 60000 });
+    const line = (r.stderr || '').split(/\r?\n/).find((l) => l.startsWith('FS_GUARD ')) || '';
+    let touched = null;
+    try { touched = JSON.parse(line.slice('FS_GUARD '.length)).touched; } catch (e) { /* no guard line: the child did not run */ }
+    return { ...r, touched };
+  };
+  /* the guard itself: a read through a binding taken at load time is caught */
+  const control = inGuardedNode(`const { readFileSync: rfs } = require('fs'); rfs(${JSON.stringify(idFile)}, 'utf8');`);
+  eq(control.touched ? control.touched.length : null, 1, `control: the guard sees a read of the identity file through a binding taken at load time (${control.stderr.trim()})`);
+  const check = inGuardedNode([
+    `const K = require(${JSON.stringify(path.join(__dirname, 'keys.js'))});`,
+    `const { cliSigner } = require(${JSON.stringify(path.join(__dirname, 'signer.js'))});`,
+    `K.checkIdentity({ signer: cliSigner({ identity: 'qwatt-proposer', passphrase: ${JSON.stringify(TESTNET)}, command: process.execPath, commandArgs: [${JSON.stringify(FIXTURE)}] }) })`,
+    '  .then((r) => process.stdout.write(JSON.stringify(r)), (e) => { process.stderr.write(`CHECK FAILED ${e.message}\\n`); process.exitCode = 1; });',
+  ].join('\n'));
+  eq(check.status, 0, `checkIdentity ran: ${check.stderr.trim()}`);
+  assert(Array.isArray(check.touched), `the guard reported: ${check.stderr.trim()}`);
+  eq(check.touched.length, 0, `the identity file was opened, read, copied or moved: ${JSON.stringify(check.touched)}`);
+  const r = JSON.parse(check.stdout);
+  eq(r.ok, true, 'the check itself passes');
+  eq(r.publicKey, keyOf('qwatt-proposer').publicKey(), 'the identity\'s key');
+  if (process.platform !== 'win32') assert(r.warnings.some((w) => /readable by group or others/.test(w)), `a 644 identity file is reported: ${JSON.stringify(r.warnings)}`);
+});
+
+test('the drill account\'s setup writes no public config: setup submit writes anchor.json and prints the funding step only with --out (the real account)', async () => {
+  const o = { ...SETUP.DEFAULTS, account: keyOf('qwatt-drill-setup').publicKey(), ...holders() };
+  const landed = { ok: true, hash: 'ab'.repeat(32), ledger: 7 };
+  const drill = SETUP.afterSetup(o, landed, { identity: 'qwatt-drill-setup' });
+  eq(drill.config, null, 'without --out: no config to write (it would replace the anchor.json the services read)');
+  const text = drill.lines.join('\n');
+  assert(!/fund-xdr|config written/.test(text), `no funding step and no config for the drill: ${text}`);
+  assert(/stellar keys rm qwatt-drill-setup/.test(text), `the setup identity to remove is the one that signed: ${text}`);
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-setup-out-')), 'anchor.json');
+  const real = SETUP.afterSetup(o, landed, { out, identity: 'qwatt-anchor-setup' });
+  eq(real.config && real.config.file, path.resolve(out), '--out: the config goes there');
+  eq(JSON.stringify(real.config.json.signers), JSON.stringify(holders()), 'signers by role');
+  assert(/fund-xdr --account/.test(real.lines.join('\n')), `the real account's next step is the funding: ${real.lines.join('\n')}`);
+});
+
+test('keys.js CLI: an unknown subcommand, drill-xdr without --out and drill-submit without envelopes print the usage and exit 2', async () => {
+  const { spawnSync } = require('child_process');
+  const R = holders(), G = S.Keypair.random().publicKey();
+  const cases = {
+    'an unknown subcommand': ['frobnicate'],
+    'drill-xdr without --out': ['drill-xdr', '--account', G],
+    'drill-submit without envelopes': ['drill-submit', '--account', G, '--proposer', R.proposer, '--verifier', R.verifier, '--third', R.third, '--evidence', fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-drill-cli-'))],
+  };
+  for (const [what, args] of Object.entries(cases)) {
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'keys.js'), ...args, '--horizon', 'https://127.0.0.1:9'], { encoding: 'utf8', env: { ...process.env }, timeout: 60000 });
+    eq(r.status, 2, `${what}: exit status (${(r.stderr || '').trim().split('\n')[0]})`);
+    assert(/usage/.test(r.stderr), `${what}: prints the usage`);
+  }
+});
+
 (async () => {
   console.log('\nanchor keys: signing through stellar-cli (V3-8)');
   for (const t of tests) {
