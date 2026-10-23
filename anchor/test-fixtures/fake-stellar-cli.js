@@ -12,7 +12,9 @@
  * Keys are derived, never stored: an identity's key is
  *   Keypair.fromRawEd25519Seed(sha256(FAKE_STELLAR_SALT + ':' + id))
  * so no secret string appears in the environment, in argv or in a file. A test
- * derives the same key with `derive()` to check a signature.
+ * derives the same key with `derive()` to check a signature. An identity named
+ * `<id>-restored` stands for <id> restored from its paper backup: it derives
+ * <id>'s key (FAKE_STELLAR_MODE=badbackup makes the backup restore another key).
  *
  * FAKE_STELLAR_LOG   append each argv as one JSON line (what the tools asked stellar-cli to do)
  * FAKE_STELLAR_MODE  misbehave on `tx sign`:
@@ -25,6 +27,8 @@
  *                      hang     never answer
  *                    or on `keys address`:
  *                      unknown  the identity does not exist for this user (exit 1)
+ *                    or on a `-restored` identity:
+ *                      badbackup  the paper backup restores a different key
  *
  * Run it as `node anchor/test-fixtures/fake-stellar-cli.js …`, or pass the file
  * as --stellar-bin to a tool (a .js stellar-bin is run with the current Node).
@@ -41,6 +45,13 @@ const VERSION = '28.1.0';
 /** The key a fake identity stands for. */
 function derive(salt, id) {
   return S.Keypair.fromRawEd25519Seed(crypto.createHash('sha256').update(`${salt || ''}:${id}`).digest());
+}
+
+/** The key behind an identity as this fake stellar-cli sees it: a `-restored` identity is its original, from the backup. */
+function keyFor(salt, id, mode) {
+  const restored = /-restored$/.test(id);
+  if (restored && mode === 'badbackup') return derive(salt, `${id}:a backup that restores another key`);
+  return derive(salt, restored ? id.replace(/-restored$/, '') : id);
 }
 
 function fail(msg, code = 1) {
@@ -70,7 +81,7 @@ async function main() {
     const id = argv[2];
     if (!id) fail('the following required arguments were not provided: <NAME>', 2);
     if (mode === 'unknown') fail(`Failed to find config identity for ${id}`);
-    process.stdout.write(derive(salt, id).publicKey() + '\n');
+    process.stdout.write(keyFor(salt, id, mode).publicKey() + '\n');
     return;
   }
 
@@ -95,7 +106,7 @@ async function main() {
     const tx = new S.Transaction(env, passphrase);
     if (mode === 'replace' && tx.signatures.length) tx.signatures[0] = derive(salt, `${id}:other`).signDecorated(tx.hash());
     if (mode === 'strip') tx.signatures.length = 0;
-    tx.sign(derive(salt, mode === 'wrongkey' ? `${id}:another-key` : id));
+    tx.sign(mode === 'wrongkey' ? derive(salt, `${id}:another-key`) : keyFor(salt, id, mode));
     process.stdout.write(tx.toEnvelope().toXDR('base64') + '\n');
     return;
   }
@@ -105,4 +116,4 @@ async function main() {
 
 if (require.main === module) main();
 
-module.exports = { derive, VERSION };
+module.exports = { derive, keyFor, VERSION };
