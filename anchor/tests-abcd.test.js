@@ -304,6 +304,48 @@ test('changing signers still needs all three keys', async () => {
   eq(a.fake.signers.length, 4, 'the signer was added');
 });
 
+test('V3-9: the reconciliation reads the fake network back: the real proposer + verifier are normal, the third signer standing in for the verifier is STAND-IN, verifier + third is BROKEN', async () => {
+  const R = require('../assets/qwatt-reconcile.js');
+  const { serveHorizon } = require('./fake-horizon-http');
+  /* the run's faults.json as live/run.js publishes it: the fixed label and the three public keys */
+  const declare = (w) => {
+    const signers = { proposer: w.K.proposer.publicKey(), verifier: w.K.verifier.publicKey(), third: w.K.third.publicKey() };
+    fs.writeFileSync(path.join(w.feedDir, 'faults.json'), JSON.stringify({ label: 'Simulated input · assurance A0 · Stellar testnet', anchoring: { network: 'testnet', signers }, faults: [] }));
+    return signers;
+  };
+  const w = await world(await configuredAccount());   // the account exactly as setup-account.js leaves it
+  const account = w.cfg.anchor_account;
+  declare(w);
+  const hz = await serveHorizon({ account, record: () => w.fake.restRecord(), anchors: () => w.fake.restAnchors() });
+  hosts.push(hz);
+  for (let i = 0; i < 2; i++) { await w.proposer.tick(); eq((await w.verifier.tick()).action, 'anchored', `batch ${i} anchored by proposer + verifier`); }
+  /* the verifier is down: the third signer runs the same verifier code against the public feed */
+  const standIn = new Verifier({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.third, stateDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-t-')), server: w.fake });
+  await w.proposer.tick();
+  eq((await standIn.tick()).action, 'anchored', 'batch 2 anchored by proposer + third');
+  const { report } = await R.check({ feed: w.host.url, horizon: hz.url, account });   // roles from the published faults.json
+  eq(report.verdict, 'RECONCILED', report.problems.join('; '));
+  eq(report.summary.roles_source, 'faults.json', 'roles source');
+  eq(report.summary.signatures.normal, 2, 'two normal');
+  eq(report.summary.signatures.stand_in, 1, 'one stand-in');
+  eq(JSON.stringify(report.summary.stand_in_batches), JSON.stringify([report.rows[2].batch_id]), 'batch 2 is the stand-in');
+  eq(report.summary.account.ok, true, 'the account as setup-account.js leaves it: 2/2/3, master 0, three signers');
+
+  /* verifier + third, without the proposer: the network accepts it (weight 2), the reconciliation does not */
+  const v = await world();
+  const vroles = declare(v);
+  const listed = new (require('../batch/feed').Feed)(v.feedDir).readLedger('batches');
+  const b0 = new (require('../batch/feed').Feed)(v.feedDir).readBatch(listed[0].batch_id);
+  const tx = require('./tx').buildAnchorTx(b0, v.cfg, require('./tx').proposalParams(v.fake.sequence.toString()));
+  tx.sign(v.K.verifier, v.K.third);
+  await v.fake.submitTransaction(tx);
+  const vhz = await serveHorizon({ account: v.cfg.anchor_account, record: () => v.fake.restRecord(), anchors: () => v.fake.restAnchors() });
+  hosts.push(vhz);
+  const bad = (await R.check({ feed: v.host.url, horizon: vhz.url, account: v.cfg.anchor_account, roles: vroles })).report;
+  eq(bad.verdict, 'BROKEN', 'verifier + third');
+  assert(bad.problems.some((p) => /signed by verifier\+third/.test(p)), bad.problems.join('; '));
+});
+
 (async () => {
   console.log('\nanchor tests A–D (real-account tool) and the anchoring account\'s thresholds');
   for (const t of tests) {

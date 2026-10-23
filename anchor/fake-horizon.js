@@ -196,7 +196,8 @@ class FakeHorizon {
     this.ledger += 1;
     const hash = tx.hash().toString('hex');
     const memo = tx.memo && tx.memo.value !== null && tx.memo.value !== undefined ? tx.memo.value.toString() : undefined;
-    this.txs.push({ hash, successful: true, memo_type: tx.memo ? tx.memo.type : 'none', memo, ledger_attr: this.ledger, created_at: new Date(now * 1000).toISOString(), signatures: tx.signatures.map((x) => x.signature().toString('base64')) });
+    this.txs.push({ hash, successful: true, memo_type: tx.memo ? tx.memo.type : 'none', memo, ledger_attr: this.ledger, created_at: new Date(now * 1000).toISOString(), signatures: tx.signatures.map((x) => x.signature().toString('base64')),
+      data: tx.operations.filter((op) => op.type === 'manageData').map((op) => ({ name: op.name, value: op.value == null ? null : op.value.toString('ascii') })) });
     if (mode === 'timeout-after') throw Object.assign(new Error('timeout of 60000ms exceeded (fake, but it landed)'), { code: 'ECONNABORTED' });
     return { hash, ledger: this.ledger };
   }
@@ -216,6 +217,26 @@ class FakeHorizon {
       },
     };
     return q;
+  }
+
+  /** GET /accounts/<id> as Horizon's REST API returns it (served by fake-horizon-http.js), or null before the account exists. */
+  restRecord() {
+    if (!this.account) return null;
+    return {
+      id: this.account, account_id: this.account, sequence: this.sequence.toString(),
+      thresholds: { low_threshold: this.thresholds.low, med_threshold: this.thresholds.med, high_threshold: this.thresholds.high },
+      signers: [...this.signers.map((s) => ({ weight: s.weight, key: s.key, type: s.type || 'ed25519_public_key' })), { weight: this.masterWeight, key: this.account, type: 'ed25519_public_key' }],
+      data: { ...this.data },
+    };
+  }
+
+  /** Every landed transaction that wrote qwatt.anchor.sha256, oldest first, in the shape fake-horizon-http.js serves. */
+  restAnchors() {
+    const val = (t, n) => { const d = (t.data || []).find((x) => x.name === n); return d ? d.value : null; };
+    return this.txs.filter((t) => t.successful && val(t, 'qwatt.anchor.sha256') != null).map((t) => ({
+      tx_hash: t.hash, ledger: t.ledger_attr, created_at: t.created_at, memo: t.memo_type === 'text' ? t.memo : null,
+      sha256: val(t, 'qwatt.anchor.sha256'), cumulative_mwh: Number(val(t, 'qwatt.cumulative_mwh')), signatures: t.signatures,
+    }));
   }
 
   ledgers() {
