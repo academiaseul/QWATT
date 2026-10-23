@@ -15,13 +15,16 @@
  * removed. The gate engine's verdict and counted energy for every interval must match too.
  * Every record must carry an integer clock_skew_s (V3-6): the three paths push
  * the same samples in the same order into builders on the replay clock, so the
- * receive time, and with it clock_skew_s, is the same on every path.
+ * receive time, and with it clock_skew_s, is the same on every path. Every
+ * record must also carry its raw payloads (V3-5), and on every path they must
+ * hash (each entry's bytes n times, in order) to its own source.raw_sha256.
  *
  * Run: node ingest/harness.js        (exit 1 on any difference)
  */
 
 'use strict';
 
+const crypto = require('crypto');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -135,12 +138,26 @@ async function viaModbus(samples) {
 
 const strip = (r) => { const c = JSON.parse(JSON.stringify(r)); delete c.source; return canonical(c); };
 
+/** SHA-256 of a record's raw payload stream (V3-5), computed here, apart from protocol/evidence.js; null without payloads. */
+const RAW = Symbol.for('qwatt.raw_payloads');
+function rawStream(rec) {
+  const ps = rec[RAW];
+  if (!Array.isArray(ps) || ps.length === 0) return null;
+  const h = crypto.createHash('sha256');
+  for (const p of ps) { const b = p.hex != null ? Buffer.from(p.hex, 'hex') : Buffer.from(String(p.utf8), 'utf8'); for (let i = 0; i < p.n; i++) h.update(b); }
+  return h.digest('hex');
+}
+
 async function run() {
   const samples = synthDay();
   const [A, B, C] = await Promise.all([viaCsv(samples), viaHttp(samples), viaModbus(samples)]);
   const n = A.length;
   let diffs = 0;
   if (B.length !== n || C.length !== n) { console.error(`interval counts differ: csv ${n}, http ${B.length}, modbus ${C.length}`); diffs++; }
+  for (const [p, recs] of [['csv', A], ['http', B], ['modbus', C]]) {
+    const bad = recs.filter((r) => rawStream(r) !== r.source.raw_sha256);
+    if (bad.length) { diffs += bad.length; console.error(`${p}: ${bad.length} interval(s) whose raw payloads are missing or do not hash to source.raw_sha256 (V3-5), first ${bad[0].ts_start}`); }
+  }
   for (let i = 0; i < Math.min(n, B.length, C.length); i++) {
     const a = strip(A[i]), b = strip(B[i]), c = strip(C[i]);
     const unstamped = [['csv', A[i]], ['http', B[i]], ['modbus', C[i]]].filter(([, r]) => !Number.isInteger(r.clock_skew_s)).map(([p]) => p);

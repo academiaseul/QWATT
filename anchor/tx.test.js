@@ -24,13 +24,14 @@ const DT = 300;
 function iv(i) {
   const t = T0 + i * DT * 1000;
   const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
-  return {
+  const rec = {
     spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION,
     site_id: 'bench-santiago', node_id: 'test-node', seq: i,
     ts_start: new Date(t).toISOString(), ts_end: new Date(t + DT * 1000).toISOString(), dt_s: DT,
     meters: { a: m('pzem-017:1', 100), b: m('epever-tracer:2', 99) },
     source: { adapter: 'simulator', raw_sha256: E.sha256('raw-' + i) },
   };
+  return Object.defineProperty(rec, Symbol.for('qwatt.raw_payloads'), { value: [{ n: 1, utf8: 'raw-' + i }], enumerable: false, configurable: true });
 }
 
 function batches(n = 2) {
