@@ -131,6 +131,105 @@ test('the audit catches a fault that was not refused, a gap, and an altered samp
   assert(a.problems.some((p) => /does not hash/.test(p)), 'altered sample file reported');
 });
 
+/* ───────────── week 2 (V3-9): the fixed label, who signs, and the code the run was started from ───────────── */
+
+const LABEL = 'Simulated input · assurance A0 · Stellar testnet';
+const FHH = require('../anchor/fake-horizon-http');   // throwaway in-memory keys only; no network
+const SIGNERS = { proposer: FHH.throwawayKey().G, verifier: FHH.throwawayKey().G, third: FHH.throwawayKey().G };
+const REPO = path.join(__dirname, '..');
+const gitHead = () => require('child_process').execFileSync('git', ['rev-parse', 'HEAD'], { cwd: REPO, encoding: 'utf8' }).trim();
+const run = require('./run');
+const readDef = (dir) => JSON.parse(fs.readFileSync(path.join(dir, 'faults.json'), 'utf8'));
+async function throwsLike(fn, re, what) {
+  let err = null;
+  try { await fn(); } catch (e) { err = e; }
+  assert(err && re.test(err.message), `${what}: expected an error matching ${re}, got ${err ? JSON.stringify(err.message) : 'none'}`);
+}
+
+test('V3-9: faults.json carries the fixed label "Simulated input · assurance A0 · Stellar testnet" and the three signer roles it was given', async () => {
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 3600e3, signers: SIGNERS });
+  const def = readDef(dir);
+  eq(def.label, LABEL, 'label');
+  eq(JSON.stringify(def.anchoring), JSON.stringify({ network: 'testnet', signers: SIGNERS }), 'anchoring');
+  const keys = Object.keys(def);
+  eq(keys.indexOf('label'), keys.indexOf('description') + 1, 'the label comes right after the description');
+  assert(!/"S[A-Z2-7]{55}"/.test(JSON.stringify(def)), 'no secret key in faults.json');
+});
+
+test('V3-9: faults.json names the code commit the run was started from (freeze v3 §7: "the frozen commit, named in the feed")', async () => {
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 3600e3, signers: SIGNERS });
+  const inCheckout = fs.existsSync(path.join(REPO, '.git'));   // a ZIP or `git archive` copy has no .git: the commit is then null
+  eq(readDef(dir).code_commit, inCheckout ? gitHead() : null, 'code_commit = HEAD of this checkout');
+  const given = 'f'.repeat(40), other = tmp();
+  await runLive({ feedDir: other, days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 3600e3, codeCommit: given });
+  eq(readDef(other).code_commit, given, 'an explicit commit is recorded as given');
+  await throwsLike(() => runLive({ feedDir: tmp(), days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 3600e3, codeCommit: 'v1.0' }), /40/, 'a commit that is not 40 hex characters');
+  /* a real-time run publishes which code it runs: from outside a checkout, with no commit given, it does not start */
+  const s = Date.now() - 2 * 86400e3, nowhere = tmp();
+  await throwsLike(() => runLive({ feedDir: nowhere, days: 1, startMs: s, seed: 3, speed: 'realtime', log: quiet, stopAtMs: s + 3600e3, signers: SIGNERS, repoDir: tmp() }), /commit/, 'real time without a code commit');
+  assert(!fs.existsSync(path.join(nowhere, 'faults.json')), 'nothing is published when the run refuses to start');
+});
+
+test('V3-9: a resumed run refuses a faults.json without the fixed label, and refuses other signer keys', async () => {
+  const dir = tmp();
+  const o = { feedDir: dir, days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 3600e3 };
+  await runLive({ ...o, signers: SIGNERS });
+  await throwsLike(() => runLive({ ...o, signers: { ...SIGNERS, verifier: SIGNERS.third, third: SIGNERS.verifier } }), /signer keys/, 'verifier and third swapped');
+  await runLive({ ...o, stopAtMs: START + 2 * 3600e3, signers: SIGNERS });   // the same keys resume
+  const def = readDef(dir);
+  delete def.label;
+  fs.writeFileSync(path.join(dir, 'faults.json'), JSON.stringify(def, null, 2) + '\n');
+  await throwsLike(() => runLive({ ...o, signers: SIGNERS }), /fixed label/, 'a faults.json without the label');
+  fs.writeFileSync(path.join(dir, 'faults.json'), JSON.stringify({ ...def, label: 'Simulated input · Stellar testnet' }, null, 2) + '\n');
+  await throwsLike(() => runLive({ ...o, signers: SIGNERS }), /fixed label/, 'a faults.json with the week-1 label');
+});
+
+test('V3-9: a real-time run will not start without the three signer roles, and refuses a bad or repeated key', async () => {
+  const s = Date.now() - 2 * 86400e3;
+  const rt = (dir, signers) => runLive({ feedDir: dir, days: 1, startMs: s, seed: 3, speed: 'realtime', log: quiet, stopAtMs: s + 3600e3, signers });
+  const none = tmp();
+  await throwsLike(() => rt(none, undefined), /--proposer/, 'no signers');
+  assert(!fs.existsSync(path.join(none, 'faults.json')), 'no faults.json is written');
+  await throwsLike(() => rt(tmp(), { ...SIGNERS, proposer: 'GBAD' }), /proposer/, 'a proposer key that is not a G… address');
+  await throwsLike(() => rt(tmp(), { ...SIGNERS, verifier: SIGNERS.proposer }), /different keys/, 'one key in two roles');
+  await throwsLike(() => rt(tmp(), { ...SIGNERS, third: SIGNERS.verifier }), /different keys/, 'verifier and third the same key');
+  const flipped = SIGNERS.third.slice(0, 55) + (SIGNERS.third[55] === 'A' ? 'B' : 'A');
+  await throwsLike(() => rt(tmp(), { ...SIGNERS, third: flipped }), /third/, 'a third key with a wrong checksum');
+  assert(typeof run.signersArg === 'function', 'signersArg is exported');
+  await throwsLike(() => run.signersArg(['--proposer', SIGNERS.proposer]), /together/, 'one role flag alone');
+  eq(run.signersArg([]), null, 'no role flags');
+  eq(JSON.stringify(run.signersArg(['--proposer', SIGNERS.proposer, '--verifier', SIGNERS.verifier, '--third', SIGNERS.third])), JSON.stringify(SIGNERS), 'all three flags');
+});
+
+test('V3-9: a run\'s feed reconciles with what its faults.json publishes: label present, roles read from it, proposer + verifier anchors normal', async () => {
+  const R = require('../assets/qwatt-reconcile.js');
+  const E = require('../protocol/evidence');
+  const { Feed } = require('../batch/feed');
+  const K = { proposer: FHH.throwawayKey(), verifier: FHH.throwawayKey(), third: FHH.throwawayKey() };
+  const roles = { proposer: K.proposer.G, verifier: K.verifier.G, third: K.third.G };
+  const account = FHH.throwawayKey().G;
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 6 * 3600e3, signers: roles });
+  /* the feed exactly as fetchFeed returns it, read from disk */
+  const f = new Feed(dir);
+  const listed = f.readLedger('batches');
+  const feed = { index: f.readIndex(), run: readDef(dir), listed, batches: Object.fromEntries(listed.map((e) => [e.batch_id, f.readBatch(e.batch_id)])), rejected: f.readLedger('rejected') };
+  const anchors = listed.filter((e) => e.status === 'accepted').map((e, i) => {
+    const h = E.sha256('live-tx' + e.seq);
+    return { tx_hash: h, ledger: 100 + i, created_at: new Date(START + i * 3600e3).toISOString(), memo: `QW#${e.seq}`, sha256: e.sha256,
+      cumulative_mwh: feed.batches[e.batch_id].cumulative_mwh, signatures: [K.proposer.sign(h), K.verifier.sign(h)] };
+  });
+  assert(anchors.length >= 3, `a few anchored batches (${anchors.length})`);
+  const record = FHH.accountRecord({ account, signers: [roles.proposer, roles.verifier, roles.third] });
+  const rep = await R.reconcile(feed, anchors, { account, record, roles: null });
+  eq(rep.verdict, 'RECONCILED', rep.problems.join('; '));
+  eq(rep.summary.label_in_feed, true, 'the label is in faults.json');
+  eq(rep.summary.roles_source, 'faults.json', 'roles read from faults.json');
+  eq(rep.summary.signatures.normal, anchors.length, 'every anchor is proposer + verifier');
+});
+
 (async () => {
   console.log('\nlive run');
   for (const t of tests) {
