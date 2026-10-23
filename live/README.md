@@ -9,10 +9,12 @@ simulator.js ──► samples/<day>.csv (+ SHA-256 in samples/manifest.jsonl, p
    ▲ faults from schedule.js (published first as faults.json)
    │
 run.js ──► CSV replay adapter, real-time pace ──► interval builder ──► gates ──► batch pipeline ──► feed
-                                                                                        │
+                                                                                        │   (raw/<batch_id>.jsonl:
+                                                                                        │    each batch's raw payloads)
                         proposer (anchor/proposer.js) signs ◄──────────────────────────┘
                         verifier (anchor/verifier.js, other host) co-signs from the public feed
 audit.js ──► every fault refused for its reason · every 5-minute slot judged once · samples hash-intact
+             · every raw payload is a published samples row
 ```
 
 | File | Role |
@@ -20,8 +22,8 @@ audit.js ──► every fault refused for its reason · every 5-minute slot jud
 | `simulator.js` | The Phase 1 bench rig as numbers: 150 Wp in Santiago, real sun position, deterministic clouds, two DC meters at their real resolutions, 10 s samples. A pure function of (seed, time), so any minute regenerates identically. |
 | `schedule.js` | Eight injections, each of the four SOW kinds twice. Grid-aligned whole intervals, placed by solar position. |
 | `run.js` | Runs or resumes the run. Publishes `faults.json` first; refuses a restart with a different seed or length. In real time it resumes at *now* (gaps stay visible, never backfilled) and never emits a sample before its timestamp. `faults.json` carries the fixed label "Simulated input · assurance A0 · Stellar testnet", the commit of the code the run was started from (`code_commit`) and the three signer public keys (`anchoring.signers`), which the reconciliation reads to tell who signed each anchor. A real-time run needs `--proposer G… --verifier G… --third G…` (public keys) and a git checkout (or `--code-commit`). A restart refuses a `faults.json` without the label or with other keys. |
-| `audit.js` | The acceptance check, from the published feed alone. |
-| `live.test.js` | Accelerated multi-day runs, crash/restart, tamper detection, and what `faults.json` must carry (label, signer keys, code commit) (CI). |
+| `audit.js` | The acceptance check, from the published feed alone. Since V3-5 it also ties every payload in `raw/<batch_id>.jsonl` (what each batch's `samples_root` commits to) to a row of a published samples file, so nothing in `raw/` was made up. |
+| `live.test.js` | Accelerated multi-day runs, crash/restart, tamper detection, the raw-payload audit, and what `faults.json` must carry (label, signer keys, code commit) (CI). |
 
 | Fault | Injection | Expected reason |
 |---|---|---|
