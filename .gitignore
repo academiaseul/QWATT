@@ -14,3 +14,6 @@ mining-rig/node_modules/
 *.mp4
 *.mov
 __pycache__/
+
+# Local video working folder (shot packs, exports); media stays out of git
+/video/
