@@ -19,6 +19,7 @@
 const fs = require('fs');
 const path = require('path');
 const R = require('../assets/qwatt-reconcile.js');
+const TH = require('../anchor/thresholds');
 
 const EXPLORER = 'https://stellar.expert/explorer/testnet';
 /* Fixed label next to every energy figure: this sprint's readings are simulated, and the network is testnet. */
@@ -31,7 +32,12 @@ function testsSection(file) {
   if (!file || !fs.existsSync(file)) return '_Tests A–D: evidence file not supplied (run `node anchor/rehearse.js` on the real account and pass `--tests`)._\n';
   const ev = JSON.parse(fs.readFileSync(file, 'utf8'));
   const s = ev.steps || {};
-  const codes = (x) => (x && x.codes ? `\`${x.codes.transaction}\` / ops \`${(x.codes.operations || []).join(', ')}\`` : '—');
+  /* under 2/2/3 a single signature is refused as tx_bad_auth with no operation codes: print " / ops" only when there are some */
+  const codes = (x) => {
+    if (!x || !x.codes) return '—';
+    const ops = x.codes.operations || [];
+    return `\`${x.codes.transaction}\`` + (ops.length ? ` / ops \`${ops.join(', ')}\`` : '');
+  };
   const rows = [
     ['A', 'proposer signs alone', 'refused by the network', s.A_proposer_alone ? codes(s.A_proposer_alone) : '—', 'envelope in the evidence file (never landed in a ledger)'],
     ['B', 'verifier signs alone', 'refused by the network', s.B_verifier_alone ? codes(s.B_verifier_alone) : '—', 'envelope in the evidence file (never landed in a ledger)'],
@@ -66,8 +72,44 @@ function auditSection(feedDir) {
   ].join('\n');
 }
 
+/** The account as Horizon reports it now (GET /accounts/<id>), or { error } when it cannot be loaded. */
+async function fetchAccount(horizon, account) {
+  const url = `${String(horizon).replace(/\/+$/, '')}/accounts/${encodeURIComponent(account)}`;
+  try {
+    const r = await fetch(url, { cache: 'no-store' });
+    if (!r.ok) return { error: `HTTP ${r.status}` };
+    return JSON.parse(await r.text());
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+/**
+ * The anchoring account's line, from the values Horizon returned, never from a constant.
+ * The "no single key" sentence is printed only when the account really is 2/2/3 with
+ * master weight 0 and exactly three signers of weight 1.
+ */
+function accountSection(account, acct) {
+  const head = `- Anchoring account: [\`${account}\`](${EXPLORER}/account/${account})`;
+  if (!acct || acct.error || !acct.thresholds || !Array.isArray(acct.signers)) {
+    return [`${head}: could not be loaded from Horizon (${(acct && acct.error) || 'no thresholds or signers in the response'}), so its signature rules are not stated here.`];
+  }
+  const t = acct.thresholds;
+  const master = acct.signers.find((s) => s.key === account);
+  const masterWeight = master ? master.weight : 0;
+  const others = acct.signers.filter((s) => s.key !== account);
+  const values = `thresholds ${t.low_threshold}/${t.med_threshold}/${t.high_threshold} (low/medium/high), master weight ${masterWeight}, ` +
+    `${others.length} signer(s): ${others.map((s) => `\`${s.key}\` weight ${s.weight}`).join(', ') || 'none'}`;
+  const ok = TH.matches(t) && masterWeight === 0 && others.length === 3 && others.every((s) => s.weight === 1);
+  if (ok) return [`${head} — as loaded from Horizon at generation time: ${values}. No single key can send any transaction for it, anchoring needs 2 of the 3 keys, changing signers needs all 3.`];
+  return [
+    `${head} — as loaded from Horizon at generation time: ${values}.`,
+    `- ✗ These values do not match ${TH.LABEL} (thresholds low ${TH.THRESHOLDS.low} / medium ${TH.THRESHOLDS.med} / high ${TH.THRESHOLDS.high}, master weight 0, exactly three signers of weight 1).`,
+  ];
+}
+
 async function build(o) {
-  const [feed, anchors] = await Promise.all([R.fetchFeed(o.feed), R.fetchAnchors(o.horizon, o.account)]);
+  const [feed, anchors, acct] = await Promise.all([R.fetchFeed(o.feed), R.fetchAnchors(o.horizon, o.account), fetchAccount(o.horizon, o.account)]);
   const rep = await R.reconcile(feed, anchors);
   const s = rep.summary;
   const now = new Date().toISOString();
@@ -86,7 +128,7 @@ async function build(o) {
     `- First anchor ${s.first_anchor_at || '—'} · last anchor ${s.last_anchor_at || '—'}.`,
     `- Energy anchored (cumulative): **${kwh(s.anchored_cumulative_mwh)} kWh** · published: ${kwh(s.published_cumulative_mwh)} kWh · _${INPUT_LABEL}_.`,
     `- Intervals refused by the gates: **${s.rejected_intervals}** — ${Object.entries(s.rejected_by_reason).map(([k, v]) => `\`${k}\` ×${v}`).join(', ') || 'none'}.`,
-    `- Anchoring account: [\`${o.account}\`](${EXPLORER}/account/${o.account}) — three signers of weight 1, thresholds 1/2/3, master weight 0.`,
+    ...accountSection(o.account, acct),
     ...(rep.problems.length ? ['', '**Reconciliation problems:**', ...rep.problems.map((p) => `- ${p}`)] : []),
     '',
     '## Multi-party authorization: tests A–D',
@@ -138,4 +180,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('writeup failed:', e.message); process.exitCode = 1; });
 
-module.exports = { build };
+module.exports = { build, accountSection };

@@ -38,3 +38,5 @@ jobs:
         run: node ops/watch.test.js
       - name: Feed publisher (two-phase, append-only) against a local bare remote
         run: node ops/publish-feed.test.js
+      - name: Write-up generator — account rules stated from Horizon, never from a constant (fetch stubbed)
+        run: node ops/writeup.test.js

@@ -8,9 +8,12 @@
  * Testnet only. In one run:
  *   1. a fresh account is created and funded with test XLM (Friendbot);
  *   2. ONE atomic, master-signed transaction adds the QWATT trustline, the three
- *      signers (weight 1 each), thresholds low 1 / medium 2 / high 3, and sets the
- *      master key's weight to 0 — after it, no single key can do anything that matters,
- *      and changing signers needs all three;
+ *      signers (weight 1 each), thresholds low 2 / medium 2 / high 3 (thresholds.js)
+ *      and master weight 0. After it, no single key can send any transaction for
+ *      the account: every transaction needs the LOW threshold (2) for its fee and
+ *      sequence, so the network rejects a one-key transaction as tx_bad_auth,
+ *      BumpSequence included. Anchoring needs two of the three keys; changing
+ *      signers or thresholds needs all three;
  *   3. it prints the UNSIGNED funding transaction (1 QWATT from the treasury to the
  *      new account) for the treasury key holder to sign themselves — this tool never
  *      sees the treasury secret;
@@ -29,6 +32,7 @@
 const fs = require('fs');
 const path = require('path');
 const S = require('@stellar/stellar-sdk');
+const TH = require('./thresholds');
 
 const DEFAULTS = {
   horizon_url: 'https://horizon-testnet.stellar.org',
@@ -59,7 +63,7 @@ async function createAndConfigure(server, o) {
     .addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: o.proposer, weight: 1 } }))
     .addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: o.verifier, weight: 1 } }))
     .addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: o.third, weight: 1 } }))
-    .addOperation(S.Operation.setOptions({ masterWeight: 0, lowThreshold: 1, medThreshold: 2, highThreshold: 3 }))
+    .addOperation(S.Operation.setOptions({ masterWeight: 0, ...TH.setOptionsFields() }))
     .addMemo(S.Memo.text('QWATT anchoring 2-of-3'))
     .setTimeout(300)
     .build();
@@ -85,7 +89,7 @@ async function verifyAccount(server, o, account) {
   const weights = Object.fromEntries(a.signers.map((s) => [s.key, s.weight]));
   const line = a.balances.find((b) => b.asset_code === o.asset_code && b.asset_issuer === o.asset_issuer);
   const checks = [
-    ['thresholds 1/2/3', a.thresholds.low_threshold === 1 && a.thresholds.med_threshold === 2 && a.thresholds.high_threshold === 3],
+    [`thresholds ${TH.LABEL}`, TH.matches(a.thresholds)],
     ['master weight 0', (weights[account] ?? 0) === 0],
     ['exactly three signers of weight 1', a.signers.filter((s) => s.key !== account && s.weight === 1).length === 3 && a.signers.filter((s) => s.key !== account).length === 3],
     ['proposer is a signer', weights[o.proposer] === 1],
@@ -127,7 +131,8 @@ async function cli() {
 
   const { account, setup_tx } = await createAndConfigure(server, o);
   console.log(`anchoring account ${account}`);
-  console.log(`  configured in ${setup_tx} (trustline, three signers, thresholds 1/2/3, master weight 0)`);
+  console.log(`  configured in ${setup_tx} (trustline, three signers, thresholds ${TH.LABEL}, master weight 0)`);
+  console.log('  no single key can send any transaction for it; anchoring needs 2 of the 3 keys; changing signers needs all 3');
   const out = path.resolve(opt('--out', path.join(__dirname, 'config.json')));
   fs.writeFileSync(out, JSON.stringify(configFor(o, account), null, 2) + '\n');
   console.log(`  public config written to ${out}`);

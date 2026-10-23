@@ -7,7 +7,8 @@
  * Creates five fresh random keys (account master, proposer, verifier, third
  * signer, payment destination), funds the account and the destination with
  * Friendbot, configures native multisig exactly as the freeze specifies
- * (three signers × weight 1, thresholds 1/2/3, master weight 0), then submits
+ * (three signers × weight 1, thresholds 2/2/3 from thresholds.js, master
+ * weight 0), then submits
  * a real anchoring transaction for a real batch:
  *
  *   A  proposer signs alone             → must be rejected by the network
@@ -22,10 +23,12 @@
  * QWATT issuer or treasury. The payment uses native XLM, since the throwaway
  * account holds no QWATT.
  *
- * Notes for the write-up, learned from the first live run:
- *   - One weight-1 signature meets the LOW threshold, so the transaction itself
- *     is authorized; the manageData anchor needs MEDIUM (2), so Horizon answers
- *     tx_failed with op_bad_auth on that operation and nothing applies.
+ * Notes for the write-up:
+ *   - Under 2/2/3 one weight-1 signature does not meet the LOW threshold (2), so
+ *     the network rejects the transaction itself as tx_bad_auth and nothing
+ *     applies. (The first live run, 8 Oct 2026, used 1/2/3: there one signature
+ *     met LOW and the manageData anchor, which needs MEDIUM, failed as tx_failed
+ *     with op_bad_auth. Both are auth refusals; the evidence keeps the codes.)
  *   - A, B and C have the SAME transaction hash: Stellar hashes exclude
  *     signatures. A and B never enter a ledger (C later succeeds on the same
  *     sequence), so never cite their hash; it resolves to C. Their evidence is
@@ -41,6 +44,7 @@ const E = require('../protocol/evidence');
 const V = require('../batch/verify');
 const { BatchAssembler } = require('../batch/assemble');
 const T = require('./tx');
+const TH = require('./thresholds');
 
 const HORIZON = 'https://horizon-testnet.stellar.org';
 const FRIENDBOT = 'https://friendbot.stellar.org';
@@ -103,13 +107,13 @@ async function main() {
   await friendbot(pub.account);
   await friendbot(pub.destination);
 
-  /* multisig: three signers × 1, thresholds 1/2/3, master 0 — one transaction, master-signed */
+  /* multisig: three signers × 1, thresholds 2/2/3 (thresholds.js), master 0 — one transaction, master-signed */
   let acct = await server.loadAccount(pub.account);
   const setup = new S.TransactionBuilder(acct, { fee: String(S.BASE_FEE), networkPassphrase: S.Networks.TESTNET })
     .addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: pub.proposer, weight: 1 } }))
     .addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: pub.verifier, weight: 1 } }))
     .addOperation(S.Operation.setOptions({ signer: { ed25519PublicKey: pub.third, weight: 1 } }))
-    .addOperation(S.Operation.setOptions({ masterWeight: 0, lowThreshold: 1, medThreshold: 2, highThreshold: 3 }))
+    .addOperation(S.Operation.setOptions({ masterWeight: 0, ...TH.setOptionsFields() }))
     .setTimeout(300).build();
   setup.sign(keys.account);
   const rs = await submit(setup);
@@ -119,8 +123,7 @@ async function main() {
   acct = await server.loadAccount(pub.account);
   const signerTable = acct.signers.map((s) => ({ key: s.key, weight: s.weight }));
   evidence.account_after_setup = { thresholds: acct.thresholds, signers: signerTable };
-  const t = acct.thresholds;
-  if (t.low_threshold !== 1 || t.med_threshold !== 2 || t.high_threshold !== 3) throw new Error('thresholds not as specified');
+  if (!TH.matches(acct.thresholds)) throw new Error(`thresholds not as specified (${TH.LABEL})`);
 
   const cfg = {
     network_passphrase: S.Networks.TESTNET,
@@ -180,7 +183,8 @@ async function main() {
   const onchain = Buffer.from(acct.data_attr[T.ANCHOR_KEY] || '', 'base64').toString('ascii');
   evidence.onchain_anchor_after = onchain;
 
-  /* an auth refusal is tx_bad_auth, or tx_failed carrying op_bad_auth (one signature meets low, not medium) */
+  /* an auth refusal is tx_bad_auth (under 2/2/3 one signature does not meet low), or tx_failed carrying
+     op_bad_auth (an account at 1/2/3, where one signature meets low but not medium) */
   const authRefused = (r) => !r.ok && !!r.codes && (r.codes.transaction === 'tx_bad_auth' ||
     (r.codes.transaction === 'tx_failed' && (r.codes.operations || []).includes('op_bad_auth')));
   const sameBody = rA.body_hash === rC.hash && rB.body_hash === rC.hash;
