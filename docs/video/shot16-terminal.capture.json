@@ -1,0 +1,147 @@
+{
+ "command": "node ingest/ingest.test.js",
+ "cwd": "repo root (working tree)",
+ "commit": "3fce88503b461b222853cf87bb45e5ae4760ec51",
+ "ingest_uncommitted": [],
+ "ingest_diff_sha256": null,
+ "ingest_files_sha256": "62f97d40184379071d589496febf3c688e39118d63c9640c583d4c930044211e",
+ "node": "v22.22.0",
+ "platform": "linux x86_64",
+ "captured_utc": "2026-10-23T04:22:16Z",
+ "captured_with": "python3 docs/video/shot16-terminal.py capture",
+ "timing": "t = seconds from spawning node to reading the line's newline from the tty",
+ "exit_code": 0,
+ "exit_t": 0.4403,
+ "tty_bytes": 2139,
+ "tty_sha256": "ceef140b93b711ba36df6b7898117d6add5b6e4d6d4fbb47e118df673ed54169",
+ "lines": [
+  {
+   "t": 0.0385,
+   "text": ""
+  },
+  {
+   "t": 0.0385,
+   "text": "ingest"
+  },
+  {
+   "t": 0.0385,
+   "text": "  ✓ both shipped register maps load and validate"
+  },
+  {
+   "t": 0.0387,
+   "text": "  ✓ u16 with power-of-ten scale decodes to the same double as parsing the decimal string"
+  },
+  {
+   "t": 0.0388,
+   "text": "  ✓ u32 word order: lo_hi vs hi_lo"
+  },
+  {
+   "t": 0.039,
+   "text": "  ✓ i16 and i32 are signed; f32 decodes IEEE-754"
+  },
+  {
+   "t": 0.04,
+   "text": "  ✓ encode → decode round-trips every field of both maps"
+  },
+  {
+   "t": 0.0403,
+   "text": "  ✓ blocks never exceed 125 registers and cover every field"
+  },
+  {
+   "t": 0.0405,
+   "text": "  ✓ register map validation rejects a bad type"
+  },
+  {
+   "t": 0.0409,
+   "text": "  ✓ documented example frames decode with the shipped maps (PZEM-003/017 §2.3 reply; EPEver v2.5 32-bit L/H example)"
+  },
+  {
+   "t": 0.0437,
+   "text": "  ✓ constant 100 W for 10 min → two intervals of exactly 8333 mWh, boundary split exact"
+  },
+  {
+   "t": 0.0452,
+   "text": "  ✓ energy is conserved across a boundary with a sloping ramp"
+  },
+  {
+   "t": 0.0456,
+   "text": "  ✓ counter mode uses the instrument’s own delta"
+  },
+  {
+   "t": 0.0458,
+   "text": "  ✓ a gap in samples yields empty intervals rather than silently skipping them"
+  },
+  {
+   "t": 0.0462,
+   "text": "  ✓ a configured second meter that never reports delays closing by one interval, then closes with zero samples"
+  },
+  {
+   "t": 0.0463,
+   "text": "  ✓ out-of-order samples are refused"
+  },
+  {
+   "t": 0.0466,
+   "text": "  ✓ every emitted record validates against interval.schema.json and is integer-only"
+  },
+  {
+   "t": 0.047,
+   "text": "  ✓ raw_sha256 depends on the raw payload, not on the decoded values"
+  },
+  {
+   "t": 0.0471,
+   "text": "  ✓ canonical JSON sorts keys and drops undefined"
+  },
+  {
+   "t": 0.0474,
+   "text": "  ✓ CSV: quoted fields, epoch and ISO timestamps"
+  },
+  {
+   "t": 0.0679,
+   "text": "  ✓ HTTP: /intervals accepts a valid record, stamps clock_skew_s, rejects an invalid one"
+  },
+  {
+   "t": 0.0822,
+   "text": "  ✓ Modbus TCP: client reads the simulator, exception codes surface as errors"
+  },
+  {
+   "t": 0.0822,
+   "text": "  ✓ Modbus RTU CRC matches the reference vector"
+  },
+  {
+   "t": 0.0822,
+   "text": "  ✓ Modbus RTU: request framing, chunked replies, exception codes and CRC mismatch through ModbusRtu on an in-memory port (no hardware)"
+  },
+  {
+   "t": 0.0999,
+   "text": "  ✓ raw_sha256 is recomputable from the input alone: a CSV line once per meter it feeds, an HTTP /samples body once per sample"
+  },
+  {
+   "t": 0.1033,
+   "text": "  ✓ HTTP: GET /health answers ok with the next sequence number"
+  },
+  {
+   "t": 0.1976,
+   "text": "  ✓ CSV: a pace factor waits the scaled gap between rows; fast pace does not wait"
+  },
+  {
+   "t": 0.4366,
+   "text": "harness: 720 samples × 2 meters → 24 intervals per path · 24/24 accepted · 240.9 Wh basis · BYTE-IDENTICAL across csv, http, modbus"
+  },
+  {
+   "t": 0.4366,
+   "text": "  ✓ Deliverable 1 acceptance: csv, http and modbus paths are byte-identical"
+  },
+  {
+   "t": 0.4366,
+   "text": ""
+  },
+  {
+   "t": 0.4366,
+   "text": "26 passed, 0 failed"
+  },
+  {
+   "t": 0.4366,
+   "text": ""
+  }
+ ]
+}

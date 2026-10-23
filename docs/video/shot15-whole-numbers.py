@@ -44,7 +44,7 @@ and that the energies each side reads from its own copy of the record agree.
 The bytes line is the head of each side's own canonical output, cut to fit and
 ending in "…". The runtime versions in the labels are the ones that rendered.
 
-With the repo at ce9fb45 (ingest code as committed), Node 22.22.0 and Python 3.13.16:
+With the repo at 3fce885, Node 22.22.0 and Python 3.13.16:
 
     record     seq 0, 2026-09-20T15:00:00.000Z-15:05:00.000Z, modbus-tcp path
     energy     meters.a.mwh 9180, meters.b.mwh 9041 (integers, milliwatt-hours)
@@ -59,7 +59,8 @@ shot, in two languages. What is generated: the background, the laptop glyphs, th
 labels, the badge, the motion and the grain. No person, desk, meter, brand mark or
 other product's interface is drawn. The audio is a near-silent bed: low room tone,
 two soft air swishes (headline, laptops) and a soft two-note tick on the match;
-peak about -15 dBFS. Music comes in the edit.
+peak about -20 dBFS on the tick, swishes about -30, bed about -40. Music comes in
+the edit.
 
 Vertical-platform safe zones are kept clear: the top 120 px, the right 140 px and
 the bottom 420 px. Colour is converted and tagged as BT.709.
@@ -71,11 +72,11 @@ repo root with:
       -s 1080x1920 -r 30 -i - \\
       -f lavfi -i "anoisesrc=d=9:c=brown:r=48000:a=0.02:seed=15" \\
       -f lavfi -i "anoisesrc=d=0.7:c=pink:r=48000:a=0.1:seed=51" \\
-      -f lavfi -i "aevalsrc='0.05*sin(2*PI*784*t)*exp(-30*t)*(1-exp(-2500*t))':d=0.4:s=48000" \\
-      -f lavfi -i "aevalsrc='0.045*sin(2*PI*1175*t)*exp(-26*t)*(1-exp(-2500*t))':d=0.4:s=48000" \\
+      -f lavfi -i "aevalsrc='0.1*sin(2*PI*784*t)*exp(-30*t)*(1-exp(-2500*t))':d=0.4:s=48000" \\
+      -f lavfi -i "aevalsrc='0.09*sin(2*PI*1175*t)*exp(-26*t)*(1-exp(-2500*t))':d=0.4:s=48000" \\
       -filter_complex "[1]lowpass=f=300,afade=t=in:st=0:d=0.3,afade=t=out:st=8.5:d=0.5[bed];\\
     [2]highpass=f=700,lowpass=f=2600,afade=t=in:st=0:d=0.14,afade=t=out:st=0.14:d=0.56,\\
-    asplit=2[w0][w1];[w0]adelay=1950:all=1,volume=0.6[w0d];[w1]adelay=2600:all=1,volume=0.8[w1d];\\
+    asplit=2[w0][w1];[w0]adelay=1950:all=1,volume=0.9[w0d];[w1]adelay=2600:all=1,volume=1.0[w1d];\\
     [3]lowpass=f=3000,adelay=6500:all=1[t0];[4]lowpass=f=3500,adelay=6590:all=1[t1];\\
     [bed][w0d][w1d][t0][t1]amix=inputs=5:normalize=0:duration=first[a]" \\
       -map 0:v -map "[a]" -vf scale=out_color_matrix=bt709:out_range=tv \\
