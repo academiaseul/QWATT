@@ -18,3 +18,9 @@ feed/
 live-state/
 ops-state/
 .claude/
+
+# Video renders and the local video working folder (shot packs, exports): media stays out of git
+*.mp4
+*.mov
+__pycache__/
+/video/
