@@ -22,7 +22,7 @@ interval ──► assemble.js (judge: ingest checks + gates G0–G3) ──► 
 | `feed.js` | The on-disk evidence feed: atomic file writes, append-only fsynced ledgers. |
 | `pipeline.js` | Restart-safe wiring of assembler + feed. State is rebuilt from the feed, never from memory. |
 | `verify-cli.js` | Re-derive a whole published feed from its files alone. |
-| `scale.js` | One month through the CSV adapter and the pipeline; chain verified; run twice, identical head. |
+| `scale.js` | One month through the CSV adapter and the pipeline; chain verified; run twice, identical head. `--sample-s` (default 60, the cadence of both shipped sources) is the input's sample period: no energy is interpolated across a gap longer than three of them (V3-10, `ingest/README.md`); the summary states the value used. |
 | `batch.test.js` | Unit, tamper, restart and determinism tests; pinned fixture in `protocol/conformance/batch-cases.json`. |
 
 What `verify.js` checks (the proposer's self-check and the independent verifier run the same function):
@@ -57,7 +57,7 @@ that holds time is zero-length at the floor (`1970-01-01T00:00:00.000Z` before a
 
 ```bash
 node batch/batch.test.js                 # tests (part of npm test and CI)
-node batch/scale.js                      # synthetic month; or --csv file.csv --a a_w --b b_w
+node batch/scale.js                      # synthetic month; or --csv file.csv --a a_w --b b_w [--sample-s 60]
 node batch/verify-cli.js <feed-dir>      # verify any published feed
 node batch/batch.test.js --write         # regenerate the pinned fixture (only on a deliberate rule change)
 ```
