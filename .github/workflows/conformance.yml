@@ -52,6 +52,9 @@ jobs:
       - name: Anchoring real-account A–D tool and thresholds (Deliverable 3)
         if: ${{ !cancelled() }}
         run: node anchor/tests-abcd.test.js
+      - name: Anchoring keys — signing through stellar-cli (V3-8)
+        if: ${{ !cancelled() }}
+        run: node anchor/keys.test.js
       - name: Reconciliation (Deliverable 4) — the logic reconcile.html runs in the browser
         if: ${{ !cancelled() }}
         run: node batch/reconcile.test.js
@@ -67,6 +70,9 @@ jobs:
       - name: Write-up generator — account rules stated from Horizon, never from a constant (fetch stubbed)
         if: ${{ !cancelled() }}
         run: node ops/writeup.test.js
+      - name: Key policy (V3-8) — no secret in env files, the repository or a browser
+        if: ${{ !cancelled() }}
+        run: node ops/keys-policy.test.js
       - name: "Site: stamped blocks and shared header/footer match status.json and ops/site-fragments"
         if: ${{ !cancelled() }}
         run: node ops/site-sync.js --check

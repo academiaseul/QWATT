@@ -11,6 +11,7 @@ const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
+const { spawnSync } = require('child_process');
 const S = require('@stellar/stellar-sdk');
 const E = require('../protocol/evidence');
 const V = require('../batch/verify');
@@ -21,6 +22,20 @@ const { FakeHorizon } = require('./fake-horizon');
 const { serveDir } = require('./static-server');
 const X = require('./tests-abcd');
 const SETUP = require('./setup-account');
+const { derive } = require('./test-fixtures/fake-stellar-cli');
+
+const FIXTURE = path.join(__dirname, 'test-fixtures', 'fake-stellar-cli.js');
+/* the fake stellar-cli derives each identity's key from this salt: no secret string exists anywhere */
+process.env.FAKE_STELLAR_SALT = process.env.FAKE_STELLAR_SALT || crypto.randomBytes(16).toString('hex');
+const keyOf = (id) => derive(process.env.FAKE_STELLAR_SALT, id);
+/** cliSigner over the fake stellar-cli, run with this Node (anchor/signer.js is loaded only when called). */
+const fakeSigner = (identity, passphrase = S.Networks.TESTNET) => require('./signer').cliSigner({ identity, passphrase, command: process.execPath, commandArgs: [FIXTURE] });
+/** A fresh, empty argv log for the fake stellar-cli; returns a reader. */
+function freshLog() {
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-cli-')), 'argv.jsonl');
+  process.env.FAKE_STELLAR_LOG = file;
+  return { file, calls: () => (fs.existsSync(file) ? fs.readFileSync(file, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []) };
+}
 
 let passed = 0, failed = 0;
 const hosts = [];   // every test server, closed at the end even when a test fails
@@ -81,9 +96,12 @@ const INT64_MAX = '9223372036854775807';
 /**
  * @param {object} [acct] an account from configuredAccount(); without it, a fake preconfigured with its default thresholds
  * @param {{low:number, med:number, high:number}} [thresholds] without acct: the fake account's thresholds instead of the default
+ * @param {object} [o]
+ * @param {object} [o.K]          keys to use without acct (e.g. the keys of stellar-cli identities)
+ * @param {object} [o.signers]    { proposer, verifier } signers for the two services instead of in-memory keypairs
  */
-async function world(acct, thresholds) {
-  const K = acct ? acct.K : newKeys();
+async function world(acct, thresholds, o = {}) {
+  const K = acct ? acct.K : (o.K || newKeys());
   const account = acct ? acct.account : K.account.publicKey();
   const fake = acct ? acct.fake : new FakeHorizon({ account, signers: [K.proposer.publicKey(), K.verifier.publicKey(), K.third.publicKey()], thresholds, clock });
   const cfg = { network_passphrase: S.Networks.TESTNET, horizon_url: 'http://fake', anchor_account: account, asset_code: 'native', payment_destination: K.dest.publicKey(), payment_amount: '0.0000001', base_fee: 100 };
@@ -92,8 +110,9 @@ async function world(acct, thresholds) {
   for (let i = 0; i < 36; i++) pipe.push(iv(i));
   const host = await serveDir(feedDir);
   hosts.push(host);
-  const proposer = new Proposer({ feedDir, cfg, keypair: K.proposer, server: fake });
-  const verifier = new Verifier({ feedUrl: host.url, cfg, keypair: K.verifier, stateDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-v-')), server: fake });
+  const sig = o.signers || {};
+  const proposer = new Proposer({ feedDir, cfg, ...(sig.proposer ? { signer: sig.proposer } : { keypair: K.proposer }), server: fake });
+  const verifier = new Verifier({ feedUrl: host.url, cfg, ...(sig.verifier ? { signer: sig.verifier } : { keypair: K.verifier }), stateDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-v-')), server: fake });
   return { K, fake, cfg, feedDir, host, proposer, verifier };
 }
 const tree = (dir) => {
@@ -344,6 +363,126 @@ test('V3-9: the reconciliation reads the fake network back: the real proposer + 
   const bad = (await R.check({ feed: v.host.url, horizon: vhz.url, account: v.cfg.anchor_account, roles: vroles })).report;
   eq(bad.verdict, 'BROKEN', 'verifier + third');
   assert(bad.problems.some((p) => /signed by verifier\+third/.test(p)), bad.problems.join('; '));
+});
+
+/* ── the services and tools sign through stellar-cli (freeze v3, V3-8) ───────
+ * The two services ask stellar-cli on their own host to sign; the tests run a
+ * fake stellar-cli (test-fixtures/fake-stellar-cli.js) whose identities derive
+ * their keys from a salt, so no secret string exists in env, argv or a file. */
+
+/** Keys of the stellar-cli identities qwatt-proposer and qwatt-verifier, with a fresh third key. */
+const cliKeys = () => ({ ...newKeys(), proposer: keyOf('qwatt-proposer'), verifier: keyOf('qwatt-verifier') });
+
+test('the proposer and verifier services sign through stellar-cli: a proposal signed by the proposer identity is co-signed by the verifier identity and anchors', async () => {
+  const { calls } = freshLog();
+  const w = await world(null, null, { K: cliKeys(), signers: { proposer: fakeSigner('qwatt-proposer'), verifier: fakeSigner('qwatt-verifier') } });
+  eq((await w.proposer.tick()).action, 'proposed', 'the proposer identity signed the proposal');
+  const pending = new S.Transaction(fs.readFileSync(path.join(w.feedDir, 'pending', 'abcd-000000.xdr'), 'utf8').trim(), w.cfg.network_passphrase);
+  eq(pending.signatures.length, 1, 'one signature on the published proposal');
+  assert(keyOf('qwatt-proposer').verify(pending.hash(), pending.signatures[0].signature()), 'it is the proposer identity\'s');
+  eq((await w.verifier.tick()).action, 'anchored', 'the verifier identity co-signed and submitted');
+  eq(w.fake.txs[0].signatures.length, 2, 'two signatures on the ledger');
+  const c = await X.testC({ cfg: w.cfg, server: w.fake });
+  eq(c.signatures, 2, 'test C reports two signatures');
+  const signs = calls().filter((a) => a[0] === 'tx').map((a) => a[3]);
+  eq(JSON.stringify(signs), JSON.stringify(['qwatt-proposer', 'qwatt-verifier']), 'stellar-cli signed once per identity');
+  await w.host.close();
+});
+
+test('a verifier whose stellar-cli cannot sign ends the tick as an error with reason signer: nothing is refused, signed or submitted', async () => {
+  freshLog();
+  const w = await world(null, null, { K: cliKeys(), signers: { proposer: fakeSigner('qwatt-proposer'), verifier: fakeSigner('qwatt-verifier') } });
+  eq((await w.proposer.tick()).action, 'proposed', 'proposed');
+  let r;
+  try { process.env.FAKE_STELLAR_MODE = 'exit1'; r = await w.verifier.tick(); } finally { delete process.env.FAKE_STELLAR_MODE; }
+  eq(r.action, 'error', 'an error, not a refusal');
+  eq(r.reason, 'signer', 'reason');
+  eq(w.fake.submissions, 0, 'nothing submitted');
+  assert(!fs.existsSync(w.verifier.refusalsFile), 'nothing written to the refusal log');
+  eq((await w.verifier.tick()).action, 'anchored', 'the next tick signs once stellar-cli works again');
+  await w.host.close();
+});
+
+/** A public-only config for the CLIs (no secret in it), written to a temp file. */
+function cliConfig(over = {}) {
+  const K = cliKeys();
+  const cfg = { network_passphrase: 'TESTNET', horizon_url: 'http://127.0.0.1:9', anchor_account: K.account.publicKey(), asset_code: 'native', payment_destination: K.dest.publicKey(), payment_amount: '0.0000001', base_fee: 100,
+    signers: { proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() }, ...over };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-cfg-'));
+  fs.writeFileSync(path.join(dir, 'anchor.json'), JSON.stringify(cfg, null, 2));
+  return { file: path.join(dir, 'anchor.json'), dir, cfg };
+}
+/** The three CLIs that sign, each as it runs on its host, with --once where it applies. */
+function signingClis(c) {
+  return [
+    ['proposer.js', 'QWATT_PROPOSER_SECRET', 'qwatt-proposer', ['--feed', fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-feed-')), '--config', c.file, '--once']],
+    ['verifier.js', 'QWATT_VERIFIER_SECRET', 'qwatt-verifier', ['--feed', 'http://127.0.0.1:9', '--config', c.file, '--state', path.join(c.dir, 'state'), '--once']],
+    ['tests-abcd.js', 'QWATT_VERIFIER_SECRET', 'qwatt-verifier', ['b', '--config', c.file, '--feed', 'http://127.0.0.1:9', '--out', path.join(c.dir, 'abcd.json')]],
+  ];
+}
+function cliEnv(extra = {}) {
+  const env = { ...process.env, ...extra };
+  for (const k of ['QWATT_PROPOSER_SECRET', 'QWATT_VERIFIER_SECRET', 'FAKE_STELLAR_MODE']) if (!(k in extra)) delete env[k];
+  return env;
+}
+const runCli = (file, args, env) => spawnSync(process.execPath, [path.join(__dirname, file), ...args], { env, encoding: 'utf8', timeout: 60000 });
+
+test('the service and test CLIs refuse a secret in the environment and require --sign-with-key (exit 2, before any network call)', async () => {
+  const c = cliConfig();
+  for (const [file, envName, identity, args] of signingClis(c)) {
+    const log = freshLog();
+    /* no secret and no flag */
+    const r0 = runCli(file, args, cliEnv());
+    eq(r0.status, 2, `${file} without --sign-with-key: exit status`);
+    assert(/--sign-with-key/.test(r0.stderr), `${file}: names --sign-with-key: ${r0.stderr.trim()}`);
+    /* each variable the CLI must refuse, set ALONE (the services refuse their own role's; the test tool refuses both) */
+    for (const name of file === 'tests-abcd.js' ? ['QWATT_PROPOSER_SECRET', 'QWATT_VERIFIER_SECRET'] : [envName]) {
+      const secretEnv = { [name]: S.Keypair.random().secret() };
+      /* 1. that secret in the environment and no flag */
+      const r1 = runCli(file, args, cliEnv(secretEnv));
+      eq(r1.status, 2, `${file} with ${name} set: exit status`);
+      assert(r1.stderr.includes(name) && /--sign-with-key/.test(r1.stderr), `${file}: names ${name} and --sign-with-key: ${r1.stderr.trim()}`);
+      /* 2. that secret in the environment AND a valid identity: still refused, and stellar-cli never runs */
+      const r2 = runCli(file, [...args, '--sign-with-key', identity, '--stellar-bin', FIXTURE], cliEnv(secretEnv));
+      eq(r2.status, 2, `${file} with ${name} set and --sign-with-key: exit status`);
+      assert(r2.stderr.includes(name) && /no longer accepted/.test(r2.stderr), `${file}: ${name} is refused even with a valid identity: ${r2.stderr.trim()}`);
+      for (const r of [r1, r2]) assert(!/S[A-Z2-7]{55}/.test(r.stdout + r.stderr), `${file}: no secret echoed`);
+    }
+    eq(log.calls().length, 0, `${file}: stellar-cli never ran`);
+    assert(!/S[A-Z2-7]{55}/.test(r0.stdout + r0.stderr), `${file}: no secret echoed`);
+  }
+});
+
+test('the CLIs hand stellar-cli the full network passphrase: anchor.json says TESTNET, stellar-cli gets "Test SDF Network ; September 2015"', async () => {
+  const c = cliConfig({ horizon_url: 'https://127.0.0.1:9' });           // unreachable: the first tick fails and --once exits
+  for (const [file, , identity, args] of signingClis(c).slice(0, 2)) {
+    const log = freshLog();
+    const r = runCli(file, [...args, '--sign-with-key', identity, '--stellar-bin', FIXTURE], cliEnv());
+    assert(r.status === 0, `${file}: started and ran one tick (status ${r.status}): ${r.stderr.trim()}`);
+    assert(r.stdout.includes(keyOf(identity).publicKey()), `${file}: logs its key once: ${r.stdout.trim()}`);
+    const signs = log.calls().filter((a) => a[0] === 'tx');
+    assert(signs.length >= 1, `${file}: stellar-cli was asked to sign at start`);
+    for (const a of signs) eq(a[a.indexOf('--network-passphrase') + 1], S.Networks.TESTNET, `${file}: passphrase given to stellar-cli`);
+    assert(!log.calls().flat().includes('TESTNET'), `${file}: the alias never reaches stellar-cli`);
+  }
+});
+
+test('each CLI checks that its stellar-cli identity is the config\'s signer for its role (exit 2, nothing signed)', async () => {
+  const k = cliKeys();
+  const swapped = cliConfig({ signers: { proposer: k.verifier.publicKey(), verifier: k.proposer.publicKey(), third: k.third.publicKey() } });
+  for (const [file, , identity, args] of signingClis(swapped)) {
+    const log = freshLog();
+    const r = runCli(file, [...args, '--sign-with-key', identity, '--stellar-bin', FIXTURE], cliEnv());
+    eq(r.status, 2, `${file}: exit status`);
+    assert(r.stderr.includes(keyOf(identity).publicKey()) && /signers\.(proposer|verifier)/.test(r.stderr), `${file}: names the identity's key and the config's role: ${r.stderr.trim()}`);
+    eq(log.calls().filter((a) => a[0] === 'tx').length, 0, `${file}: nothing signed`);
+  }
+  const unsigned = cliConfig({ signers: undefined });
+  for (const [file, , identity, args] of signingClis(unsigned)) {
+    const r = runCli(file, [...args, '--sign-with-key', identity, '--stellar-bin', FIXTURE], cliEnv());
+    eq(r.status, 2, `${file} with a config that names no signers: exit status`);
+    assert(/signers\./.test(r.stderr), `${file}: ${r.stderr.trim()}`);
+  }
 });
 
 (async () => {
