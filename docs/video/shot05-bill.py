@@ -68,9 +68,9 @@ def bill():
 
     y = 270
     lab, val = font(FR, 34), font(FB, 38)
-    for label, text in (("Cliente", "María Fernanda Soto Pérez"),
-                        ("Dirección", "Av. Los Leones 1234, Depto 52"),
-                        ("N° de cliente", "48213977-6")):
+    for label, text in (("Cliente", "Nombre Apellido Apellido"),
+                        ("Dirección", "Calle Ejemplo 123, Depto 0"),
+                        ("N° de cliente", "00000000-0")):
         d.text((L, y), label, font=lab, fill=MUTED)
         blurred_field(img, (L + 330, y - 12), text, val)
         y += 90
