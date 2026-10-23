@@ -23,7 +23,7 @@ function near(a, b, tol, w) { assert(Math.abs(a - b) <= tol, `${w}: expected ≈
 const H = 3600000;
 const T0 = Date.parse('2026-09-20T15:00:00Z');   // on the 300 s grid
 const meters2 = { a: { id: 'a', class: 'dc', energy: 'integrate' }, b: { id: 'b', class: 'dc', energy: 'integrate' } };
-const mk = (o = {}) => new IntervalBuilder(Object.assign({ site_id: 's', node_id: 'n', adapter: 'replay', dt_s: 300, meters: meters2, clock: 'replay' }, o));   // replay clock (V3-6)
+const mk = (o = {}) => new IntervalBuilder(Object.assign({ site_id: 's', node_id: 'n', adapter: 'replay', dt_s: 300, meters: meters2, clock: 'replay', sample_s: 10 }, o));   // replay clock (V3-6), 10 s samples (V3-10)
 const mk1 = (o = {}) => mk(Object.assign({ meters: { a: { id: 'a', class: 'dc', energy: 'integrate' } } }, o));   // single meter: closes on its own samples
 
 /* ───────────────────────── register maps ───────────────────────── */
@@ -110,7 +110,7 @@ test('constant 100 W for 10 min → two intervals of exactly 8333 mWh, boundary 
 });
 
 test('energy is conserved across a boundary with a sloping ramp', () => {
-  const b = mk1();
+  const b = mk1({ sample_s: 30 });   // one sample every 30 s
   const out = [];
   // 0 → 300 W over 10 min, samples every 30 s: total = average 150 W × (1/6) h = 25 Wh = 25000 mWh
   for (let t = 0; t <= 600000; t += 30000) out.push(...b.push('a', { ts: T0 + t, power_w: t / 2000 }));
@@ -133,15 +133,72 @@ test('counter mode uses the instrument’s own delta', () => {
   eq(out[1].meters.a.mwh, 8000, 'delta 1016−1008 Wh');
 });
 
-test('a gap in samples yields empty intervals rather than silently skipping them', () => {
+test('a gap in samples yields empty intervals rather than silently skipping them, and no energy is invented across it (V3-10)', () => {
   const b = mk1();
   const out = [];
   out.push(...b.push('a', { ts: T0, power_w: 100 }));
-  out.push(...b.push('a', { ts: T0 + 1000000, power_w: 100 }));   // 16.7 min later
+  out.push(...b.push('a', { ts: T0 + 1000000, power_w: 100 }));   // 16.7 min later: 100 sample periods
   eq(out.length, 3, 'intervals 0,1,2 closed');
   eq(out[1].meters.a.samples, 0, 'interval 1 has no samples');
-  eq(out[1].meters.a.mwh, 8333, 'but the trapezoid across it still carries energy');
+  for (const r of out) eq(r.meters.a.mwh, 0, `no trapezoid across the gap at ${r.ts_start}`);
   assert(out[1].meters.a.mw_mean === undefined, 'no mean without samples');
+});
+
+/* V3-10 fixture: constant 100 W, 10 s samples, 15:00–15:30, then flush. plan[k](ms) gives meter k's sample
+   offset at grid step ms, or null for no sample. Returns 'mwh/samples' per interval, one entry per meter. */
+function dropout(meters, plan, clock = 'replay') {
+  const b = mk({ meters, clock });
+  const out = [];
+  for (let ms = 0; ms <= 1800000; ms += 10000) for (const k of Object.keys(meters)) {
+    const at = plan[k](ms);
+    if (at != null) out.push(...b.push(k, { ts: T0 + at, power_w: 100 }));
+  }
+  out.push(...(b.flush() || []));
+  return out.map((r) => Object.keys(meters).map((k) => `${r.meters[k].mwh}/${r.meters[k].samples}`).join(' '));
+}
+const oneMeter = { a: meters2.a };
+const silent = (from, to) => (ms) => (ms > from && ms < to ? null : ms);   // no sample strictly between from and to
+const same = (a, b, w) => eq(JSON.stringify(a), JSON.stringify(b), w);
+
+test('V3-10: no energy is interpolated across a gap longer than three sample periods, wherever it starts', () => {
+  const tail = ['8056/29', '0/1'];   // 15:25 integrates from the returning sample at 15:25:10; the flush closes 15:30 with one sample
+  same(dropout(oneMeter, { a: silent(590000, 1510000) }), ['8333/30', '8056/30', '0/0', '0/0', '0/0', ...tail], 'one meter, gap starts off the grid (15:09:50)');
+  same(dropout(oneMeter, { a: silent(600000, 1510000) }), ['8333/30', '8333/30', '0/1', '0/0', '0/0', ...tail], 'one meter, gap starts on the grid (15:10:00)');
+  same(dropout(meters2, { a: silent(590000, 1510000), b: silent(590000, 1510000) }),
+    ['8333/30 8333/30', '8056/30 8056/30', '0/0 0/0', '0/0 0/0', '0/0 0/0', '8056/29 8056/29', '0/1 0/1'], 'both meters silent: the same rule for each, whichever is pushed first');
+  same(dropout({ b: meters2.b, a: meters2.a }, { a: silent(590000, 1510000), b: silent(590000, 1510000) }),
+    dropout(meters2, { a: silent(590000, 1510000), b: silent(590000, 1510000) }), 'push order b-then-a gives the same intervals');
+  same(dropout(meters2, { a: (ms) => ms, b: silent(580000, 890000) }).slice(0, 4),
+    ['8333/30 8333/30', '8333/30 7778/29', '8333/30 278/1', '8333/30 8333/30'], 'B silent 5 min, inside the one-interval grace');
+  same(dropout(meters2, { a: (ms) => ms, b: (ms) => (ms < 450000 ? null : ms) }).slice(0, 2),
+    ['8333/30 0/0', '8333/30 4167/15'], 'first sample: B starts at 15:07:30 and integrates from there, nothing before');
+  same(dropout(oneMeter, { a: silent(590000, 1510000) }, () => T0 + 99e6), dropout(oneMeter, { a: silent(590000, 1510000) }),
+    'the rule reads sample timestamps only: a wall clock and the replay clock give the same energy');
+});
+
+test('V3-10: a gap of exactly three sample periods is interpolated, split at the boundary it spans; one millisecond longer is not', () => {
+  const run = (back) => {
+    const b = mk1(); const out = [];
+    for (let s = 0; s <= 280; s += 10) out.push(...b.push('a', { ts: T0 + s * 1000, power_w: 100 }));
+    out.push(...b.push('a', { ts: T0 + back, power_w: 100 }));
+    for (let ms = 320000; ms <= 600000; ms += 10000) out.push(...b.push('a', { ts: T0 + ms, power_w: 100 }));
+    return out.map((r) => r.meters.a.mwh);
+  };
+  same(run(310000), [8333, 8333], 'gap 15:04:40 → 15:05:10 (30 s, three periods) interpolated and split at 15:05:00');
+  same(run(310001), [7778, 8056], 'gap of 30.001 s: neither interval gets any of it');
+  const frac = mk1({ sample_s: 2.5 }); const f = [];   // a 2500 ms poll: the limit is 7500 ms
+  for (const ms of [0, 7500, 15001, 300000]) f.push(...frac.push('a', { ts: T0 + ms, power_w: 3600 }));   // 3600 W: 1000 mWh per second
+  eq(f[0].meters.a.mwh, 7500, 'a fractional sample period (2.5 s): the 7.5 s gap is integrated, the 7.501 s gap and the rest are not');
+});
+
+test('V3-10: a builder needs a sample period', () => {
+  const base = { site_id: 's', node_id: 'n', adapter: 'replay', meters: meters2, clock: 'replay' };
+  for (const [o, w] of [[{}, 'missing'], [{ sample_s: 0 }, '0'], [{ sample_s: -10 }, '-10'], [{ sample_s: NaN }, 'NaN'], [{ sample_s: Infinity }, 'Infinity'], [{ sample_s: '10' }, 'a string']]) {
+    let msg = '';
+    try { new IntervalBuilder(Object.assign({}, base, o)); } catch (e) { msg = e.message; }
+    assert(/sample_s/.test(msg), `sample_s ${w}: expected a refusal naming sample_s, got "${msg}"`);
+  }
+  new IntervalBuilder(Object.assign({}, base, { sample_s: 2.5 }));   // fractions are fine
 });
 
 test('a configured second meter that never reports delays closing by one interval, then closes with zero samples', () => {
@@ -172,6 +229,21 @@ test('a meter that disconnects for 15 min and returns does not crash, and no ene
   assert(after.meters.b.mwh > 8000, 'B integrates normally once a full interval has passed since its return');
 });
 
+test('V3-10: a lagging meter whose interval the grace already closed restarts on a short gap: no throw, nothing booked into the closed interval', () => {
+  /* The week-1 B-1 restart, which the gap rule does not replace: meter b reports to 15:04:50 and lags; a runs on
+     to 15:10:00, so the one-interval grace closes 15:00 without b's last ten seconds. b returns at 15:05:10, only
+     20 s (two sample periods) later: a short gap, but it starts in an interval already closed. */
+  const b = mk(); const out = [];
+  for (let t = 0; t <= 290000; t += 10000) for (const k of ['a', 'b']) out.push(...b.push(k, { ts: T0 + t, power_w: 100 }));
+  for (let t = 300000; t <= 600000; t += 10000) out.push(...b.push('a', { ts: T0 + t, power_w: 100 }));
+  eq(out.length, 1, '15:00 closed by the grace');
+  eq(out[0].meters.b.mwh, 8056, '15:00: b from 15:00:00 to its last sample, 15:04:50');
+  for (let t = 310000; t <= 600000; t += 10000) out.push(...b.push('b', { ts: T0 + t, power_w: 100 }));   // must not throw
+  eq(out.length, 2, '15:05 closes once b reaches 15:10:00');
+  eq(out[1].meters.b.mwh, 8056, '15:05: b only from its returning sample at 15:05:10 (290 s); the 20 s gap is booked in neither interval');
+  eq(out[1].meters.a.mwh, 8333, '15:05: a unaffected');
+});
+
 test('out-of-order samples are refused', () => {
   const b = mk();
   b.push('a', { ts: T0 + 400000, power_w: 1 });
@@ -181,7 +253,7 @@ test('out-of-order samples are refused', () => {
 });
 
 test('every emitted record validates against interval.schema.json and is integer-only', () => {
-  const b = mk();
+  const b = mk({ sample_s: 300 });   // one sample per meter every 5 min
   b.push('a', { ts: T0, power_w: 12.34 }); b.push('b', { ts: T0, power_w: 12.3 });
   b.push('a', { ts: T0 + 300000, power_w: 12.34 });
   const [r] = b.push('b', { ts: T0 + 300000, power_w: 12.3 });   // closes once BOTH meters are past the boundary
@@ -193,8 +265,8 @@ test('every emitted record validates against interval.schema.json and is integer
 });
 
 test('raw_sha256 depends on the raw payload, not on the decoded values', () => {
-  const r1 = (() => { const b = mk1(); b.push('a', { ts: T0, power_w: 1 }, 'frame-A'); return b.push('a', { ts: T0 + 300000, power_w: 1 }, 'x')[0]; })();
-  const r2 = (() => { const b = mk1(); b.push('a', { ts: T0, power_w: 1 }, 'frame-B'); return b.push('a', { ts: T0 + 300000, power_w: 1 }, 'x')[0]; })();
+  const r1 = (() => { const b = mk1({ sample_s: 300 }); b.push('a', { ts: T0, power_w: 1 }, 'frame-A'); return b.push('a', { ts: T0 + 300000, power_w: 1 }, 'x')[0]; })();
+  const r2 = (() => { const b = mk1({ sample_s: 300 }); b.push('a', { ts: T0, power_w: 1 }, 'frame-B'); return b.push('a', { ts: T0 + 300000, power_w: 1 }, 'x')[0]; })();
   assert(r1.source.raw_sha256 !== r2.source.raw_sha256, 'different payload → different hash');
   eq(r1.meters.a.mwh, r2.meters.a.mwh, 'same energy');
 });
@@ -283,7 +355,7 @@ test('V3-6: G0 refuses a late interval on CSV input (real-time pace) and on Modb
 
 test('V3-6: a builder needs a clock ("replay" or a function); a fast replay refuses a wall clock', async () => {
   const fs = require('fs'), os = require('os');
-  const base = { site_id: 's', node_id: 'n', adapter: 'replay', meters: meters2 };
+  const base = { site_id: 's', node_id: 'n', adapter: 'replay', meters: meters2, sample_s: 10 };
   const refuses = (o, re, w) => {
     let msg = '';
     try { new IntervalBuilder(Object.assign({}, base, o)); } catch (e) { msg = e.message; }
@@ -396,7 +468,7 @@ test('Modbus RTU: request framing, chunked replies, exception codes and CRC mism
   try { await bad.read(1, 4, 0, 8); } catch (e) { err = e.message; }
   eq(err, 'Modbus RTU: CRC mismatch', 'a corrupted frame is refused');
   // the same pollOnce the TCP path uses, into an interval; its raw_sha256 is the poll's reply frame
-  const b = mk1({ adapter: 'modbus-rtu', register_map: 'pzem-017@1' });
+  const b = mk1({ adapter: 'modbus-rtu', register_map: 'pzem-017@1', sample_s: 300 });   // polled every 5 min
   await modbus.pollOnce(rtu, pzem, b, 'a', T0);
   const [rec] = await modbus.pollOnce(rtu, pzem, b, 'a', T0 + 300000);
   eq(rec.source.adapter, 'modbus-rtu', 'adapter'); eq(rec.meters.a.mwh, 8333, '100.0 W for 300 s');
@@ -472,7 +544,7 @@ function runCli(args, { done, onStderr } = {}) {
     const timer = setTimeout(() => { p.kill(); reject(new Error(`ingest/cli.js ${args[0]} timed out; stderr: ${err.trim()}`)); }, 20000);
     p.stdout.on('data', (d) => { out += d; if (done && done(recs())) p.kill(); });
     p.stderr.on('data', (d) => { err += d; if (onStderr) onStderr(err); });
-    p.on('exit', (code) => { clearTimeout(timer); resolve({ code, recs: recs(), err }); });
+    p.on('close', (code) => { clearTimeout(timer); resolve({ code, recs: recs(), err }); });   // after stdout and stderr are drained
   });
 }
 
@@ -531,6 +603,69 @@ test('V3-6: ingest/cli.js stamps clock_skew_s on every adapter it starts (csv fa
   try { mb = await runCli(['modbus', '--a', `pzem-017@127.0.0.1:${sim.port}`, '--dt', '1', '--poll', '200'], { done: (recs) => recs.length >= 2 }); } finally { await sim.close(); }
   assert(mb.recs.length >= 2, `modbus: intervals closed (${mb.err.trim()})`);
   for (const r of mb.recs) assert(Number.isInteger(r.clock_skew_s) && Math.abs(r.clock_skew_s) <= 2, `modbus: closed by a poll just after its end (clock_skew_s ${r.clock_skew_s})`);
+});
+
+test('V3-10: ingest/cli.js takes the sample period from --sample-s (csv, http; default 10 s, with one warning when the input is sparser) and from --poll (modbus)', async () => {
+  const fs = require('fs'), os = require('os');
+  const file = path.join(os.tmpdir(), `qwatt-cli-step-${process.pid}.csv`);
+  const rows = ['ts,a_w,b_w'];
+  for (let s = 0; s <= 600; s += 60) rows.push(`${new Date(T0 + s * 1000).toISOString()},100,99`);   // 1-minute data, like PVDAQ
+  fs.writeFileSync(file, rows.join('\n') + '\n');
+  const csvRun = (extra) => runCli(['csv', '--file', file, '--a', 'a_w', '--b', 'b_w', '--pace', 'fast', ...extra]);
+  const warned = (r) => r.err.split('\n').filter((l) => /gap/.test(l) && /--sample-s/.test(l));
+  let dflt, minute;
+  try { dflt = await csvRun([]); minute = await csvRun(['--sample-s', '60']); } finally { fs.unlinkSync(file); }
+  eq(dflt.recs.map((r) => r.meters.a.mwh).join(','), '0,0,0', 'csv, default 10 s: every 60 s gap is longer than three periods, so nothing is interpolated');
+  eq(warned(dflt).length, 1, `csv, default 10 s on one-minute data: one warning on stderr, not one per gap (${dflt.err.trim()})`);
+  assert(/\b60 s\b/.test(warned(dflt)[0]), `the warning names the gap it found: ${warned(dflt)[0]}`);
+  eq(minute.recs.map((r) => r.meters.a.mwh).join(','), '8333,8333,0', 'csv, --sample-s 60: one-minute samples integrate');
+  eq(warned(minute).length, 0, `csv, --sample-s 60: no warning (${minute.err.trim()})`);
+  const httpRun = async (extra) => {
+    let sent = false;
+    return runCli(['http', '--port', '0', ...extra], {
+      onStderr: (err) => {
+        const m = /listening on (\d+)/.exec(err);
+        if (!m || sent) return;
+        sent = true;
+        const list = [];
+        for (let s = 0; s <= 300; s += 60) list.push({ meter: 'a', ts: T0 + s * 1000, power_w: 100 }, { meter: 'b', ts: T0 + s * 1000, power_w: 99 });
+        httpAdapter.post(Number(m[1]), '/samples', list).catch(() => {});
+      },
+      done: (recs) => recs.length >= 1,
+    });
+  };
+  const h10 = await httpRun([]), h60 = await httpRun(['--sample-s', '60']);
+  eq(h10.recs[0].meters.a.mwh, 0, 'http, default 10 s: one-minute samples are dropouts');
+  eq(warned(h10).length, 1, `http, default 10 s: one warning (${h10.err.trim()})`);
+  eq(h60.recs[0].meters.a.mwh, 8333, 'http, --sample-s 60: integrated');
+  eq(warned(h60).length, 0, `http, --sample-s 60: no warning (${h60.err.trim()})`);
+  /* modbus: the period is --poll. One-second intervals polled every 200 ms (limit 600 ms); after three intervals
+     the meter stops answering for 2.5 s, then answers again. An interval inside the outage books nothing. */
+  const pzem = RM.load('pzem-017');
+  let downFrom = Infinity, downTo = Infinity;
+  const sim = await modbus.createSimulator({ provider: (uid, fc, addr, count) => {
+    if (Date.now() >= downFrom && Date.now() < downTo) throw Object.assign(new Error('busy'), { code: 6 });
+    const block = RM.encode(pzem, { voltage_v: 100, current_a: 1, power_w: 100, energy_wh: 0, alarm_high: 0, alarm_low: 0 }).find((blk) => addr >= blk.address && addr + count <= blk.address + blk.regs.length);
+    if (!block) throw Object.assign(new Error('address'), { code: 2 });
+    return block.regs.slice(addr - block.address, addr - block.address + count);
+  } });
+  let mb;
+  try {
+    mb = await runCli(['modbus', '--a', `pzem-017@127.0.0.1:${sim.port}`, '--dt', '1', '--poll', '200'], { done: (recs) => {
+      if (recs.length >= 3 && downFrom === Infinity) { downFrom = Date.now(); downTo = downFrom + 2500; }
+      return recs.filter((r) => Date.parse(r.ts_start) >= downTo + 1000).length >= 2;
+    } });
+  } finally { await sim.close(); }
+  const span = (r) => [Date.parse(r.ts_start), Date.parse(r.ts_end)];
+  const mwh = mb.recs.map((r) => `${r.ts_start.slice(17, 23)} ${r.meters.a.mwh}/${r.meters.a.samples}`).join(', ');
+  const inside = mb.recs.filter((r) => span(r)[0] >= downFrom && span(r)[1] <= downTo);
+  assert(inside.length >= 1, `modbus: an interval inside the outage closed (${mwh})`);
+  for (const r of inside) {
+    eq(r.meters.a.samples, 0, `modbus: no poll answered inside the outage (${mwh})`);
+    eq(r.meters.a.mwh, 0, `modbus, --poll 200: no energy interpolated across the 2.5 s outage (${mwh})`);
+  }
+  assert(mb.recs.some((r) => span(r)[1] <= downFrom && r.meters.a.mwh === 28), `modbus: before the outage a one-second interval carries 100 W × 1 s = 28 mWh (${mwh})`);
+  assert(mb.recs.some((r) => span(r)[0] >= downTo + 1000 && r.meters.a.mwh === 28), `modbus: and again once polls are answered (${mwh})`);
 });
 
 test('Deliverable 1 acceptance: csv, http and modbus paths are byte-identical', async () => {
