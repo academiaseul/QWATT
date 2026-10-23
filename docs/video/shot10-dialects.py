@@ -29,33 +29,44 @@ continuous 18 s motion graphic, cut into two files at 8.0 s.
                drops shut at 13.0 s (on "the rules that judge the energy")
     13.2-18.0  calm hold, slow push-in (0.8 % over 4.8 s) for the cut to shot 12
 
-The record is real, generated at render time: RECORD_JS (below) runs the
-acceptance harness's CSV path exactly as viaCsv in ingest/harness.js does
-(same synthetic morning from synthDay(), same IntervalBuilder settings, same
-CSV adapter) and returns the interval that starts at RECORD_TS. The screen
-shows a subset of its fields with their real key names and values, in the
-order the builder emits them, with raw_sha256 cut to 8 hex characters and
-"…". Meter ids are left out: they carry product names. The badge is read from
-assets/gates.generated.js: the number of gates the spec runs on a single
-interval (level "interval"), spec_version, and the first 8 hex characters of
-the spec digest that node protocol/gen.js --check prints. Rendered on
-23 Oct 2026 (HEAD 616b2d2), the screen reads:
+The record is real, generated at render time. RECORD_JS (below) reads the
+acceptance harness's own mkBuilder and viaCsv source out of ingest/harness.js
+(the module exports only run and synthDay) and runs it on the harness's
+synthetic morning from synthDay(), so the record is exactly what the
+harness's CSV path produces; it returns the interval that starts at
+RECORD_TS. The screen shows a subset of its fields with their real key names
+and values, in the order the builder emits them, with raw_sha256 cut to 8 hex
+characters and "…". Meter ids are left out: they carry product names. The
+badge is read from assets/gates.generated.js: the number of gates the spec
+runs on a single interval (level "interval": plausibility, nameplate ceiling,
+solar elevation, meter agreement, the four the public docs call "physics
+gates"), spec_version, and the first 8 hex characters of the spec digest that
+node protocol/gen.js --check prints. Rendered on 23 Oct 2026 (HEAD 83ee698),
+the screen reads:
 
     {"ts_start":"2026-09-20T15:30:00.000Z","dt_s":300,
      "meters":{"a":{"mwh":9085},"b":{"mwh":8947}},
      "source":{"raw_sha256":"ac3d50e4…"}}
     interval record · simulated test data
-    4 interval gates · spec 1.0.0 · 056f1b51
+    4 physics gates · spec 1.0.0 · 056f1b51
 
-Nothing implies a live meter or a real roof: the morning is the harness's
-simulation, and the source line says so.
+EXPECT (below) holds those values. Every render logs the full record and the
+badge to stderr, and stops before drawing a frame if the repo now yields
+anything else, so this docstring and the mp4 cannot drift apart: check the
+new values, then update EXPECT and the lines above. Nothing implies a live
+meter or a real roof: the morning is the harness's simulation, and the source
+line says so.
 
 Writes raw RGB frames to stdout for frames [START, END) of the 540-frame
-timeline (default: all of it). Every frame is a pure function of its index
-(grain is seeded per frame), so the two halves meet frame-exact. Both
-renders together take 2-6 minutes on a shared 4-core machine. Needs node,
-numpy and Pillow. Render from the repo root with:
+timeline (default: all of it); shot 11 starts at frame 240. Every frame is a
+pure function of its index (grain is seeded per frame), so the two halves meet
+frame-exact. Both renders together take 2-6 minutes on a shared 4-core
+machine. Needs node, numpy and Pillow. Render from the repo root (bash or
+zsh). Each part goes to a .part.mp4 that replaces the deliverable only when
+both python and ffmpeg succeed, so a failed run never overwrites a good file
+with an audio-only one:
 
+    set -o pipefail
     A="anoisesrc=d=18:c=pink:r=48000:a=0.6:seed=1010:nb_samples=64,highpass=f=1400,lowpass=f=4800,\\
     volume=eval=frame:volume='0.26*(0.3+0.7*pow(abs(sin(2*PI*2.6*t)*sin(2*PI*0.83*t+1.3)),0.6))\\
     *(1-0.4*min(1,max(0,(t-5.5)/0.6)))*min(1,t/0.4)*min(1,max(0,(8.4-t)/0.8))'[s];\\
@@ -65,15 +76,19 @@ numpy and Pillow. Render from the repo root with:
     +gte(t,13)*(0.14*exp(-max(t-13,0)*320)*sin(2*PI*2300*(t-13))+0.11*exp(-max(t-13,0)*90)*sin(2*PI*640*(t-13)))'[k];\\
     [s][k]amix=inputs=2:normalize=0[bed]"
     V="[0:v]scale=out_color_matrix=bt709:out_range=tv,format=yuv420p[v]"
-    ENC="-c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p -color_primaries bt709 \\
-      -color_trc bt709 -colorspace bt709 -movflags +faststart -c:a aac -b:a 192k"
 
     python3 docs/video/shot10-dialects.py 0 240 | ffmpeg -y -f rawvideo -pix_fmt rgb24 \\
       -s 1080x1920 -r 30 -i - -filter_complex "$V;$A;[bed]atrim=0:8,asetpts=PTS-STARTPTS[a]" \\
-      -map "[v]" -map "[a]" $ENC QWATT-week1-shot10-dialects.mp4
+      -map "[v]" -map "[a]" -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p \\
+      -color_primaries bt709 -color_trc bt709 -colorspace bt709 -movflags +faststart \\
+      -c:a aac -b:a 192k QWATT-week1-shot10-dialects.part.mp4 \\
+      && mv QWATT-week1-shot10-dialects.part.mp4 QWATT-week1-shot10-dialects.mp4
     python3 docs/video/shot10-dialects.py 240 540 | ffmpeg -y -f rawvideo -pix_fmt rgb24 \\
       -s 1080x1920 -r 30 -i - -filter_complex "$V;$A;[bed]atrim=8:18,asetpts=PTS-STARTPTS[a]" \\
-      -map "[v]" -map "[a]" $ENC QWATT-week1-shot11-one-line.mp4
+      -map "[v]" -map "[a]" -c:v libx264 -preset slow -crf 18 -pix_fmt yuv420p \\
+      -color_primaries bt709 -color_trc bt709 -colorspace bt709 -movflags +faststart \\
+      -c:a aac -b:a 192k QWATT-week1-shot11-one-line.part.mp4 \\
+      && mv QWATT-week1-shot11-one-line.part.mp4 QWATT-week1-shot11-one-line.mp4
 
 Both commands build the same 18 s audio bed (seeded noise, so identical) and
 keep their own slice of it, so the sound runs on across the seam too: a soft
@@ -93,7 +108,6 @@ from PIL import Image, ImageDraw, ImageFont
 FPS = 30
 DUR = 18.0
 N_FRAMES = int(DUR * FPS)  # 540
-SPLIT = 240                # first frame of shot 11 (8.0 s)
 W, H = 1080, 1920
 SS = 3                     # supersampling for every shape, stroke and moving text
 
@@ -119,6 +133,7 @@ CARD = (39, 28, 19)
 CARD_EDGE = (66, 50, 36)
 TOKEN = {"kw": (186, 121, 77), "name": (162, 149, 132), "expr": (130, 118, 104),
          "punct": (112, 99, 86), "hex": (172, 159, 142), "comment": (98, 83, 68)}
+BUG = (224, 108, 60)  # brand terracotta's hue lifted for the dark card: redder than the keyword bars
 # the record, the source line and the badge
 KEY, PUNCT, MUTED, LABEL = (196, 187, 172), (128, 118, 106), (150, 140, 126), (226, 219, 206)
 BAND = (52, 38, 26)
@@ -129,26 +144,29 @@ FM = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 
 REPO = Path(__file__).resolve().parents[2]
 RECORD_TS = "2026-09-20T15:30:00.000Z"  # seq 6 of the harness's 24 five-minute intervals
+# What the docstring quotes; setup() stops if the repo now yields anything else
+EXPECT = {"ts_start": RECORD_TS, "dt_s": 300, "mwh": [9085, 8947], "raw_sha256": "ac3d50e4",
+          "spec_version": "1.0.0", "digest": "056f1b51", "interval_gates": 4}
 
-# The harness's CSV path (viaCsv in ingest/harness.js), unchanged, plus the gate spec.
+# Runs the harness's own CSV path: mkBuilder and viaCsv are read from ingest/harness.js
+# (it exports only run and synthDay) and evaluated as they stand, so they cannot drift.
 RECORD_JS = r"""
 const fs = require('fs'), os = require('os'), path = require('path');
 const { synthDay } = require('./ingest/harness');
 const { IntervalBuilder } = require('./ingest/lib/normalize');
 const csv = require('./ingest/adapters/csv');
 const SPEC = require('./assets/gates.generated.js');
+const src = fs.readFileSync('./ingest/harness.js', 'utf8');
+const grab = (re, what) => {
+  const m = src.match(re);
+  if (!m) throw new Error('cannot find ' + what + ' in ingest/harness.js; update RECORD_JS to match it');
+  return m[0];
+};
+const viaCsv = new Function('fs', 'os', 'path', 'IntervalBuilder', 'csv',
+  grab(/const mkBuilder = [\s\S]*?\n\}\);\n/, 'mkBuilder')
+  + grab(/async function viaCsv\(samples\) \{[\s\S]*?\n\}\n/, 'viaCsv') + 'return viaCsv;')(fs, os, path, IntervalBuilder, csv);
 (async () => {
-  const samples = synthDay();
-  const file = path.join(os.tmpdir(), 'qwatt-shot10-' + process.pid + '.csv');
-  const lines = ['ts,a_w,a_wh,b_w,b_wh'];
-  for (const s of samples) lines.push(`${new Date(s.ts).toISOString()},${s.a.toFixed(1)},${s.ea},${s.b.toFixed(2)},${s.eb}`);
-  fs.writeFileSync(file, lines.join('\n') + '\n');
-  const out = [];
-  const b = new IntervalBuilder({ site_id: 'bench-santiago', node_id: 'harness', adapter: 'csv', dt_s: 300,
-    meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } } });
-  b.onInterval = (r) => out.push(r);
-  await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w', energy_wh: 'a_wh' }, b: { power_w: 'b_w', energy_wh: 'b_wh' } }, pace: 'fast' }, b);
-  fs.unlinkSync(file);
+  const out = await viaCsv(synthDay());
   const record = out.find((r) => r.ts_start === process.argv[1]);
   if (!record) throw new Error('no interval starts at ' + process.argv[1]);
   console.log(JSON.stringify({ record, spec_version: SPEC.spec_version, digest: SPEC.digest,
@@ -201,6 +219,9 @@ DRIFT_C = (CX, 800)
 
 N_PER_BUBBLE = 1500                # ink particles per bubble
 SUBSTEPS, SHUTTER = 10, 0.6        # motion blur for the particles (fraction of a frame)
+HEAD = 0.4                         # share of a particle's ink on its leading sample; the rest is its blur tail
+FLIGHT_BOOST = 2.2                 # extra ink in flight so the streams read on a phone; eases to 1 on landing
+SPREAD = (30, 20, (1.5, 4.5))      # control-point sigma x, y and sway range (px): ribbons, not haze
 GRAIN = 2.4                        # film grain sigma, as in shot 9
 
 
@@ -586,7 +607,8 @@ def render_card(c):
 
 
 def make_bugs(rng):
-    """Eight small terracotta marks: a squiggle under a token, or a dot after it."""
+    """Eight small terracotta marks: a squiggle under a token, centred in the gap
+    to the next line, or a dot after the line's last token."""
     order = [1, 3, 0, 2, 3, 1, 0, 2]
     used, bugs = set(), []
     for k, c in enumerate(order):
@@ -598,7 +620,11 @@ def make_bugs(rng):
                 break
         used.add((c, l))
         squiggle = rng.random() < 0.65
-        plain = [tk for tk in toks if tk[2] != "kw"]  # a squiggle would vanish under a terracotta keyword
+        span = float(rng.uniform(30, 50))
+        below = [tk for tk in CODES[c][l + 1] if tk[2] == "kw"] if l < 9 else []
+        # a squiggle never sits on a terracotta keyword or right above one, where the two would merge
+        plain = [tk for tk in toks if tk[2] != "kw" and
+                 not any(bx < tk[0] + min(tk[1], span) + 4 and tk[0] - 4 < bx + bl for bx, bl, _ in below)]
         if squiggle and plain:
             x, ln, kd = plain[int(rng.integers(len(plain)))]
         else:  # a dot sits after the line's last token, never between two
@@ -606,14 +632,15 @@ def make_bugs(rng):
             x, ln, kd = CODES[c][l][-1]
         y = y0 + LINE_Y0 + l * LINE_PITCH
         xa = x0 + CODE_X + x
-        v = Vec(xa - 4, y - 4, xa + ln + 16, y + BAR_H + 10)
+        v = Vec(xa - 4, y - 4, xa + ln + 16, y + LINE_PITCH + 2)
         if squiggle:
-            span = min(ln, rng.uniform(30, 50))
+            span = min(ln, span)
             xs = np.linspace(xa + 2, xa + span, 48)
-            v.line(list(zip(xs, y + BAR_H + 4.6 + 2.0 * np.sin((xs - xa) / 6.5 * 2 * math.pi))), TERRA_LIGHT, 2.5)
+            mid = y + (BAR_H + LINE_PITCH) / 2  # halfway between this bar and the next
+            v.line(list(zip(xs, mid + 2.4 * np.sin((xs - xa) / 6.5 * 2 * math.pi))), BUG, 2.5)
             x_end = xa + span + 2
         else:
-            v.circle((xa + ln + 8, y + BAR_H / 2), 3.8, fill=TERRA_LIGHT)
+            v.circle((xa + ln + 8, y + BAR_H / 2), 3.8, fill=BUG)
             xa, x_end = xa + ln + 3, xa + ln + 13
         bugs.append((c, BUG_T0 + k * BUG_DT, v.done(), xa, x_end))
     return bugs
@@ -630,9 +657,26 @@ def masked(sprite, mask, opacity):
 # ── the record ────────────────────────────────────────────────────────────
 
 def load_record():
-    out = subprocess.run(["node", "-e", RECORD_JS, RECORD_TS], cwd=REPO, check=True,
-                         capture_output=True, text=True).stdout
+    try:
+        out = subprocess.run(["node", "-e", RECORD_JS, RECORD_TS], cwd=REPO, check=True,
+                             capture_output=True, text=True).stdout
+    except FileNotFoundError:
+        sys.exit("shot10: needs Node.js ('node' on PATH) to generate the interval record from ingest/harness.js")
+    except subprocess.CalledProcessError as e:
+        sys.exit(f"shot10: node failed while generating the record (repo root {REPO}):\n{e.stderr}")
     return json.loads(out)
+
+
+def check_record(data):
+    """Stop unless the repo still yields what the docstring quotes (EXPECT)."""
+    rec = data["record"]
+    got = {"ts_start": rec["ts_start"], "dt_s": rec["dt_s"], "mwh": [rec["meters"][k]["mwh"] for k in "ab"],
+           "raw_sha256": rec["source"]["raw_sha256"][:8], "spec_version": data["spec_version"],
+           "digest": data["digest"][:8], "interval_gates": data["interval_gates"]}
+    diff = [f"  {k}: expected {EXPECT[k]!r}, got {got[k]!r}" for k in EXPECT if got[k] != EXPECT[k]]
+    if diff:
+        sys.exit("shot10: the repo no longer yields the record and spec this docstring quotes:\n"
+                 + "\n".join(diff) + "\nCheck the new values, then update EXPECT and the docstring to match.")
 
 
 def record_text(rec):
@@ -737,11 +781,11 @@ def build_particles(rng, layer):
         P["tx"].append(tx[seg]); P["ty"].append(ty[seg]); P["tc"].append(tc[seg])
         P["slot"].append(np.full(N_PER_BUBBLE, s))
         P["fly"].append(FLY + rng.uniform(-FLY_JIT, FLY_JIT, N_PER_BUBBLE))
-        P["wob"].append(rng.uniform(2, 7, N_PER_BUBBLE))
+        P["wob"].append(rng.uniform(*SPREAD[2], N_PER_BUBBLE))
         P["ph"].append(rng.uniform(0, 1, N_PER_BUBBLE))
     P = {k: np.concatenate(v) for k, v in P.items()}
-    P["cxo"] = rng.normal(0, 46, n_all)  # control points bunch near the centre column
-    P["cyo"] = rng.normal(0, 30, n_all)
+    P["cxo"] = rng.normal(0, SPREAD[0], n_all)  # control points bunch near the centre column
+    P["cyo"] = rng.normal(0, SPREAD[1], n_all)
     P["tarr"] = P["tdep"] + P["fly"]
     # a character turns crisp once most of its ink has landed
     tchar = np.full(layer["nchar"], np.nan)
@@ -766,7 +810,12 @@ def particle_positions(t):
     slot, rx, ry = P["slot"][act], P["rx"][act], P["ry"][act]
     tx, ty = P["tx"][act], P["ty"][act]
     xs, ys, ws = [], [], []
-    fade = (1 - smooth(P["tarr"][act], P["tarr"][act] + 0.28, t)) / SUBSTEPS
+    # a bright head and a fading tail; in flight the ink is boosted, back to 1 as it lands
+    tail = np.linspace(1, 0.2, SUBSTEPS - 1)
+    sub_w = np.concatenate([[HEAD], tail * (1 - HEAD) / tail.sum()])
+    u_now = clamp((t - P["tdep"][act]) / P["fly"][act])
+    boost = 1 + (FLIGHT_BOOST - 1) * (1 - smooth(0.7, 1.0, u_now))
+    fade = (1 - smooth(P["tarr"][act], P["tarr"][act] + 0.28, t)) * boost
     # the start point follows the bubble at frame time: only the flight itself is
     # motion-blurred, since the bubble the ink leaves is drawn sharp
     p0x, p0y = np.empty(len(act)), np.empty(len(act))
@@ -786,7 +835,7 @@ def particle_positions(t):
         sway = P["wob"][act] * np.sin(math.pi * e) * np.sin(2 * math.pi * (1.5 * e + P["ph"][act]))
         xs.append(a * p0x + b * cx + cc * tx - dy / ln * sway)
         ys.append(a * p0y + b * cy + cc * ty + dx / ln * sway)
-        ws.append(fade)
+        ws.append(fade * sub_w[j])
     return np.concatenate(xs), np.concatenate(ys), np.concatenate(ws)
 
 
@@ -878,7 +927,7 @@ def source_sprite():
 def badge_parts():
     """[(text, font, colour)] for the badge: Sans labels, Mono values."""
     fs, fm = font(FR, 28 * SS), font(FM, 28 * SS)
-    return [(f"{DATA['interval_gates']} interval gates", fs, LABEL), ("  ·  spec ", fs, MUTED),
+    return [(f"{DATA['interval_gates']} physics gates", fs, LABEL), ("  ·  spec ", fs, MUTED),
             (DATA["spec_version"], fm, TERRA_LIGHT), ("  ·  ", fs, MUTED), (DATA["digest"][:8], fm, TERRA_LIGHT)]
 
 
@@ -961,7 +1010,7 @@ def render(i, cache):
             xr = xa - 6 + (xb - xa + 8) * p
             r0, r1 = int(y - oy - 3), int(y - oy + BAR_H + 3)
             mask[r0:r1] = np.clip((xr - cols) / 4 + 0.5, 0, 1)
-            mask[r0:r1, :int(xa - ox - 10)] = 1 if p > 0 else 0  # gutter dot shows with its line
+            mask[r0:r1, :int(xa - ox - 10)] = 1  # gutter dot shows with its line
         put(frame, masked(code, mask, 1.0), cin)
         for bc, tb, spr, xa, xb in BUGS:
             if bc != c or t < tb:
@@ -1032,11 +1081,39 @@ def _meter_sprite(c, mx, my, s):
     return v.done()
 
 
+def check_safe_zones():
+    """Stop if anything that matters reaches into the platform's bands (with the
+    full push-in applied, which only grows things)."""
+    def bbox(sprite):
+        img, x, y = sprite
+        b = img.getchannel("A").getbbox()
+        return b[0] + x, b[1] + y, b[2] + x, b[3] + y
+
+    boxes = {"source line": bbox(SOURCE), "badge": bbox(draw_badge(DUR)), "links": bbox(draw_links(DUR))}
+    ys, xs = np.nonzero(LAYER["alpha"] > 0)
+    boxes["record"] = (LAYER["x"] + xs.min(), LAYER["y"] + ys.min(), LAYER["x"] + xs.max() + 1, LAYER["y"] + ys.max() + 1)
+    for c in range(4):
+        boxes[f"card {c}"] = bbox(CARDS[c][0])
+        for t in (2.5, 12.0):  # in the grid, then small in the top row
+            mx, my, ms, _ = (float(v) for v in meter_state(c, t))
+            boxes[f"meter {c} at {t} s"] = bbox(_meter_sprite(c, mx, my, ms))
+        mx, my, ms, _ = (float(v) for v in meter_state(c, 2.5))
+        boxes[f"bubble {c}"] = bbox(draw_bubble(c, mx, my, ms, 1.0, -1.0, 1.0))
+    z, (cx, cy) = 1 + DRIFT[2], DRIFT_C
+    for name, (x0, y0, x1, y1) in boxes.items():
+        x1, y0, y1 = cx + (x1 - cx) * z, cy + (y0 - cy) * z, cy + (y1 - cy) * z
+        if y0 < SAFE_TOP or x1 > W - SAFE_RIGHT or y1 > H - SAFE_BOTTOM:
+            sys.exit(f"shot10: the {name} reaches into a safe zone: x up to {x1:.0f}, y {y0:.0f}-{y1:.0f}")
+
+
 def setup():
     global DATA, RECORD_ONE, RECORD_LINES, LAYER, SCRIPTS, CODES, CARDS, BUGS, PARTS, TCHAR
     global BG, VIGNETTE, SOURCE
     DATA = load_record()
+    check_record(DATA)
     RECORD_ONE, RECORD_LINES = record_text(DATA["record"])
+    print("shot10: record", json.dumps(DATA["record"], ensure_ascii=False), file=sys.stderr)
+    print("shot10: on screen", RECORD_ONE, "|", "".join(s for s, _, _ in badge_parts()), file=sys.stderr)
     LAYER = build_record_layer(RECORD_LINES, syntax_colours(RECORD_ONE))
     SCRIPTS = [prepare_script(k, np.random.default_rng(40 + c)) for c, k in enumerate(SCRIPT)]
     CODES = [code_lines(st, np.random.default_rng(60 + c)) for c, st in enumerate(CODE_STYLE)]
@@ -1045,6 +1122,7 @@ def setup():
     PARTS, TCHAR = build_particles(np.random.default_rng(10), LAYER)
     BG, VIGNETTE = background()
     SOURCE = source_sprite()
+    check_safe_zones()
 
 
 def main():
