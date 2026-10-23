@@ -13,6 +13,9 @@
  * and the resulting interval records must be byte-identical once the `source`
  * block (adapter name and raw-payload hash, which differ by construction) is
  * removed. The gate engine's verdict and counted energy for every interval must match too.
+ * Every record must carry an integer clock_skew_s (V3-6): the three paths push
+ * the same samples in the same order into builders on the replay clock, so the
+ * receive time, and with it clock_skew_s, is the same on every path.
  *
  * Run: node ingest/harness.js        (exit 1 on any difference)
  */
@@ -61,7 +64,7 @@ function synthDay() {
 }
 
 const mkBuilder = (adapter, register_map) => new IntervalBuilder({
-  site_id: 'bench-santiago', node_id: 'harness', adapter, register_map, dt_s: 300,
+  site_id: 'bench-santiago', node_id: 'harness', adapter, register_map, dt_s: 300, clock: 'replay',
   meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } },
 });
 
@@ -140,6 +143,8 @@ async function run() {
   if (B.length !== n || C.length !== n) { console.error(`interval counts differ: csv ${n}, http ${B.length}, modbus ${C.length}`); diffs++; }
   for (let i = 0; i < Math.min(n, B.length, C.length); i++) {
     const a = strip(A[i]), b = strip(B[i]), c = strip(C[i]);
+    const unstamped = [['csv', A[i]], ['http', B[i]], ['modbus', C[i]]].filter(([, r]) => !Number.isInteger(r.clock_skew_s)).map(([p]) => p);
+    if (unstamped.length) { diffs++; console.error(`interval ${i}: no clock_skew_s on ${unstamped.join(', ')} (V3-6)`); continue; }
     if (a !== b || a !== c) { diffs++; console.error(`interval ${i}: records differ\n  csv    ${a}\n  http   ${b}\n  modbus ${c}`); continue; }
     const va = G.evaluateInterval(A[i], SPEC.profiles.bench, SPEC), vb = G.evaluateInterval(B[i], SPEC.profiles.bench, SPEC), vc = G.evaluateInterval(C[i], SPEC.profiles.bench, SPEC);
     const key = (v) => v.verdict + '|' + (v.basis_wh == null ? '-' : v.basis_wh) + '|' + v.failures.map((f) => f.id).join(',');
