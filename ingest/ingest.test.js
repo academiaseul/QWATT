@@ -75,6 +75,23 @@ test('register map validation rejects a bad type', () => {
   assert(threw, 'should throw');
 });
 
+/* The manufacturers' own worked examples, copied from the protocol documents cited in ingest/README.md
+   ("Register-map sources"). They are documented frames, not frames captured from our hardware. */
+const PZEM_DOC_REPLY = Buffer.from('010410' + '2710' + '0064' + '03e8' + '0000' + '0000' + '0000' + '0000' + '0000', 'hex');   // PZEM-003/017 §2.3 reply, without its CRC
+
+test('documented example frames decode with the shipped maps (PZEM-003/017 §2.3 reply; EPEver v2.5 32-bit L/H example)', () => {
+  const regs = [];
+  for (let i = 3; i < PZEM_DOC_REPLY.length; i += 2) regs.push(PZEM_DOC_REPLY.readUInt16BE(i));
+  const pz = RM.decode(RM.load('pzem-017'), [{ address: 0, regs }]);
+  near(pz.voltage_v, 100, 1e-9, 'PZEM voltage 0x2710 → 100.00 V');
+  near(pz.current_a, 1, 1e-9, 'PZEM current 0x0064 → 1.00 A');
+  near(pz.power_w, 100, 1e-9, 'PZEM power 0x000003E8, low word first → 100.0 W');
+  eq(pz.energy_wh, 0, 'PZEM energy 0 Wh'); eq(pz.alarm_high, 0, 'no high-voltage alarm'); eq(pz.alarm_low, 0, 'no low-voltage alarm');
+  // EPEver v2.5, characteristic 5: 3000 at multiple 100 is L = 0x93E0 (lower address), H = 0x0004.
+  const ep = RM.load('epever-tracer');
+  near(RM.decodeField(ep.fields.power_w, [0x93e0, 0x0004], ep.fields.power_w.address), 3000, 1e-9, 'EPEver power_w type, word order and scale');
+});
+
 /* ───────────────────────── normalization ───────────────────────── */
 
 test('constant 100 W for 10 min → two intervals of exactly 8333 mWh, boundary split exact', () => {
@@ -265,6 +282,106 @@ test('Modbus TCP: client reads the simulator, exception codes surface as errors'
 test('Modbus RTU CRC matches the reference vector', () => {
   // Classic example: 01 04 00 00 00 02 → CRC 71 CB (little-endian on the wire: 71 CB)
   eq(modbus.crc16(Buffer.from([0x01, 0x04, 0x00, 0x00, 0x00, 0x02])), 0xcb71, 'crc');
+});
+
+/** In-memory serial port for ModbusRtu: answers each request with reply(request) plus its CRC (or a wrong
+    one) and delivers the bytes a few at a time, as a UART does. No `serialport` package, no hardware. */
+function fakeSerial(reply, { badCrc = false, chunk = 3 } = {}) {
+  const port = new (require('events').EventEmitter)();
+  port.isOpen = true; port.close = () => { port.isOpen = false; }; port.written = [];
+  port.write = (req) => {
+    port.written.push(Buffer.from(req));
+    const body = reply(req);
+    const frame = Buffer.concat([body, Buffer.alloc(2)]);
+    frame.writeUInt16LE(modbus.crc16(body) ^ (badCrc ? 0xffff : 0), body.length);
+    let i = 0;
+    const next = () => { if (i < frame.length) { port.emit('data', frame.subarray(i, i + chunk)); i += chunk; setImmediate(next); } };
+    setImmediate(next);
+  };
+  return port;
+}
+
+test('Modbus RTU: request framing, chunked replies, exception codes and CRC mismatch through ModbusRtu on an in-memory port (no hardware)', async () => {
+  const crypto = require('crypto');
+  const pzem = RM.load('pzem-017');
+  const rtu = new modbus.ModbusRtu({ path: 'in-memory', timeoutMs: 1000 });
+  rtu.port = fakeSerial((req) => (req.readUInt16BE(2) === 0 && req.readUInt16BE(4) === 8 ? PZEM_DOC_REPLY : Buffer.from([req[0], req[1] | 0x80, 0x02])));
+  const r = await rtu.read(1, 4, 0, 8);
+  eq(rtu.port.written[0].toString('hex'), '010400000008f1cc', 'request: slave 1, function 4, 8 registers from 0x0000, CRC low byte first');
+  eq(JSON.stringify(r.regs), JSON.stringify([0x2710, 0x0064, 0x03e8, 0, 0, 0, 0, 0]), 'registers of the documented reply');
+  eq(r.raw.length, PZEM_DOC_REPLY.length + 2, 'raw is the whole reply frame, CRC included');
+  let err = '';
+  try { await rtu.read(1, 4, 500, 2); } catch (e) { err = e.message; }
+  assert(/exception 2/.test(err), `exception 2 surfaced (${err})`);
+  const bad = new modbus.ModbusRtu({ path: 'in-memory', timeoutMs: 1000 });
+  bad.port = fakeSerial(() => PZEM_DOC_REPLY, { badCrc: true });
+  err = '';
+  try { await bad.read(1, 4, 0, 8); } catch (e) { err = e.message; }
+  eq(err, 'Modbus RTU: CRC mismatch', 'a corrupted frame is refused');
+  // the same pollOnce the TCP path uses, into an interval; its raw_sha256 is the poll's reply frame
+  const b = mk1({ adapter: 'modbus-rtu', register_map: 'pzem-017@1' });
+  await modbus.pollOnce(rtu, pzem, b, 'a', T0);
+  const [rec] = await modbus.pollOnce(rtu, pzem, b, 'a', T0 + 300000);
+  eq(rec.source.adapter, 'modbus-rtu', 'adapter'); eq(rec.meters.a.mwh, 8333, '100.0 W for 300 s');
+  const frame = Buffer.concat([PZEM_DOC_REPLY, Buffer.alloc(2)]); frame.writeUInt16LE(modbus.crc16(PZEM_DOC_REPLY), PZEM_DOC_REPLY.length);
+  eq(rec.source.raw_sha256, crypto.createHash('sha256').update(frame).digest('hex'), 'raw_sha256 = SHA-256 of the reply frame');
+});
+
+test('raw_sha256 is recomputable from the input alone: a CSV line once per meter it feeds, an HTTP /samples body once per sample', async () => {
+  const fs = require('fs'), os = require('os'), crypto = require('crypto');
+  const digest = (parts) => { const h = crypto.createHash('sha256'); parts.forEach((p) => h.update(p)); return h.digest('hex'); };
+  const inside = (r, ts) => ts >= Date.parse(r.ts_start) && ts < Date.parse(r.ts_end);
+  const file = path.join(os.tmpdir(), `qwatt-raw-${process.pid}.csv`);
+  const lines = ['ts,a_w,b_w'];
+  for (let s = 0; s < 900; s += 10) lines.push(`${new Date(T0 + s * 1000).toISOString()},${100 + (s % 7)},${s >= 400 && s < 500 ? '' : 99 + (s % 5)}`);   // B blank 400–490 s: no sample, so not hashed for B
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  const cb = mk(); const fromCsv = []; cb.onInterval = (r) => fromCsv.push(r);
+  await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' }, b: { power_w: 'b_w' } }, pace: 'fast' }, cb);
+  fs.unlinkSync(file);
+  eq(fromCsv.length, 3, 'three CSV intervals');
+  for (const r of fromCsv) {
+    const mine = lines.slice(1).filter((l) => inside(r, Date.parse(l.split(',')[0])));
+    eq(r.source.raw_sha256, digest(mine.flatMap((l) => (l.endsWith(',') ? [l + '\n'] : [l + '\n', l + '\n']))), `CSV ${r.ts_start}`);
+  }
+  const fromHttp = [];
+  const srv = await httpAdapter.start({ port: 0 }, mk(), (r) => fromHttp.push(r));
+  const bodies = [];
+  for (let s = 0; s < 630; s += 90) {   // 90 s per request, so some requests straddle an interval boundary
+    const list = [];
+    for (let t = s; t < s + 90; t += 10) list.push({ meter: 'a', ts: T0 + t * 1000, power_w: 100 }, { meter: 'b', ts: T0 + t * 1000, power_w: 99 });
+    bodies.push({ list, raw: Buffer.from(JSON.stringify(list)) });
+    eq((await httpAdapter.post(srv.port, '/samples', list)).status, 200, 'pushed');
+  }
+  await httpAdapter.post(srv.port, '/flush', {});
+  await srv.close();
+  eq(fromHttp.length, 3, 'three HTTP intervals');
+  for (const r of fromHttp) {
+    eq(r.source.raw_sha256, digest(bodies.flatMap(({ list, raw }) => list.filter((x) => inside(r, x.ts)).map(() => raw))), `HTTP ${r.ts_start}`);
+  }
+});
+
+test('HTTP: GET /health answers ok with the next sequence number', async () => {
+  const b = mk1();
+  const srv = await httpAdapter.start({ port: 0 }, b);
+  await httpAdapter.post(srv.port, '/samples', [{ meter: 'a', ts: T0, power_w: 100 }, { meter: 'a', ts: T0 + 300000, power_w: 100 }]);
+  const health = await new Promise((resolve, reject) => require('http').get({ host: '127.0.0.1', port: srv.port, path: '/health' }, (res) => {
+    let s = ''; res.on('data', (d) => { s += d; }); res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(s) }));
+  }).on('error', reject));
+  await srv.close();
+  eq(health.status, 200, 'status'); eq(health.body.ok, true, 'ok'); eq(health.body.seq, 1, 'one interval closed, next seq 1');
+});
+
+test('CSV: a pace factor waits the scaled gap between rows; fast pace does not wait', async () => {
+  const fs = require('fs'), os = require('os');
+  const file = path.join(os.tmpdir(), `qwatt-pace-${process.pid}.csv`);
+  const lines = ['ts,a_w'];
+  for (let s = 0; s <= 90; s += 10) lines.push(`${new Date(T0 + s * 1000).toISOString()},100`);
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  const time = async (pace) => { const t = Date.now(); await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' } }, pace }, mk1()); return Date.now() - t; };
+  const paced = await time(1000), fast = await time('fast');
+  fs.unlinkSync(file);
+  assert(paced >= 75, `90 s of data at ×1000 waits about 90 ms (${paced} ms)`);
+  assert(fast < paced, `fast pace is faster (${fast} ms vs ${paced} ms)`);
 });
 
 test('Deliverable 1 acceptance: csv, http and modbus paths are byte-identical', async () => {

@@ -13,7 +13,10 @@
  *   }
  *   await replay(config, builder)   → { rows, intervals }
  *
- * The raw payload hashed into each interval is the exact CSV line. No dependencies.
+ * Each sample's raw payload is its CSV line as read (without its line ending) plus
+ * "\n". A line feeds one sample per meter column with a reading (an empty power
+ * cell is no sample), so it enters the interval's raw_sha256 once per meter it
+ * feeds (ingest/README.md, "raw_sha256"). No dependencies.
  */
 
 'use strict';

@@ -91,7 +91,11 @@ class ModbusTcp {
 
 /* ───────────────────────────── RTU client ────────────────────────── */
 
-/** RTU over a serial port. Requires the `serialport` package on the gateway. Untested without hardware. */
+/**
+ * RTU over a serial port. Requires the `serialport` package on the gateway. Framing (request and CRC,
+ * replies arriving in pieces, exception codes, CRC mismatch) is tested in CI against an in-memory port
+ * (ingest.test.js); no physical device has been read through it.
+ */
 class ModbusRtu {
   constructor({ path, baud = 9600, dataBits = 8, parity = 'none', stopBits = 1, timeoutMs = 1000 }) {
     Object.assign(this, { path, baud, dataBits, parity, stopBits, timeoutMs });
@@ -101,7 +105,7 @@ class ModbusRtu {
   async connect() {
     let SerialPort;
     try { ({ SerialPort } = require('serialport')); }
-    catch (e) { throw new Error('Modbus RTU needs the `serialport` package (npm i serialport), or use an RTU-over-TCP gateway with the tcp transport'); }
+    catch (e) { throw new Error('Modbus RTU needs the `serialport` package (npm i serialport), or use a protocol-converting gateway (RTU in, Modbus TCP out) with the tcp transport'); }
     const p = { none: 'none', N: 'none', even: 'even', E: 'even', odd: 'odd', O: 'odd' }[this.parity] || 'none';
     this.port = new SerialPort({ path: this.path, baudRate: this.baud, dataBits: this.dataBits, parity: p, stopBits: this.stopBits, autoOpen: false });
     await new Promise((res, rej) => this.port.open((e) => (e ? rej(e) : res())));

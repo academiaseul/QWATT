@@ -6,8 +6,9 @@
  *   "the same input, delivered through all three adapters, produces
  *    byte-identical verification output"
  *
- * One synthetic two-hour solar morning on the bench (two DC meters, 10 s
- * samples) is delivered three ways — a CSV file replayed, HTTP pushes, and a
+ * Two simulated hours of bench solar data (12:00–14:00 America/Santiago on
+ * 20 Sep 2026, generated from a fixed seed; two DC meters, 10 s samples) are
+ * delivered three ways — a CSV file replayed, HTTP pushes, and a
  * Modbus TCP simulator polled through the PZEM-017 and EPEver register maps —
  * and the resulting interval records must be byte-identical once the `source`
  * block (adapter name and raw-payload hash, which differ by construction) is

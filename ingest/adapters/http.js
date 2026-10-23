@@ -18,7 +18,9 @@
  *   GET  /health     { ok, seq }
  *
  * Every accepted interval is delivered through onInterval(record).
- * The raw payload hashed into an interval is the exact request body. No dependencies.
+ * For POST /samples, each sample's raw payload is the exact request body it arrived
+ * in, so a body carrying n samples of one interval enters that interval's
+ * raw_sha256 n times (ingest/README.md, "raw_sha256"). No dependencies.
  */
 
 'use strict';
