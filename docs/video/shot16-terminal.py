@@ -1,55 +1,58 @@
 """QWATT week 1 video, shot 16 (1:40-1:57), vertical 1080x1920: the proof
-moment. Diego types the test command and presses Enter, the real output scrolls
-by at the speed it really printed, and the harness line is frozen and
-highlighted under "So here's the test. One simulated solar morning, two meters,
+moment. Diego types the test command and presses Enter, the real output comes
+out at the speed it really printed, and the harness line is frozen and
+highlighted, under "So here's the test. One simulated solar morning, two meters,
 720 readings, sent down all three roads." ... "Byte-identical. Every path, the
 same answer, down to the last character."
 
   0.0-0.4 s   a terminal card, prompt and blinking cursor; music is fully out
-  0.4-2.6 s   "node ingest/ingest.test.js" types in, one keystroke at a time,
-              in bursts (a beat after "node ", small hesitations before "/" and "."),
+  0.4-2.6 s   "node ingest/ingest.test.js" types in one keystroke at a time, in
+              bursts (a beat after "node ", small hesitations before "/" and "."),
               one key sound each
   2.72 s      Enter. The captured output appears line by line at the times it
-              really printed, measured from the moment node was started; the
-              view follows the newest line with an eased scroll (motion blur
-              while it moves fast) and settles with the harness line in view
-  ~3.2 s      node exits; a new prompt, cursor blinking
+              really printed, counted from the moment node was started: 32 lines
+              in 0.44 s. The view glides after the newest line like a
+              smooth-scrolling terminal (eased in and out, motion blur while it
+              moves) and settles at 4.2 s with the harness line in view
+  3.16 s      node exits; the next prompt, cursor blinking
   10.0 s      freeze: the cursor goes, the harness line gets a terracotta bar,
-              row by row a few frames apart, and everything else steps back;
-              a very slow push-in on it begins (1.0 to 1.025 by 17.0 s)
-  10.0-12.0   total silence
+              row by row three frames apart, and everything else steps back; a
+              very slow push-in on it begins (1.0 to 1.025 by 17.0 s)
+  10.0-12.0   total silence (in fact silent from 3.0 s to the end, as measured)
   12.3 s      the summary line brightens and is underlined; hold to 17.0 s
 
 What is real: every character of output on the card is a line from one genuine
 run of `node ingest/ingest.test.js`, kept verbatim. The capture mode of this
 script made that run under a pseudo-terminal, from the repo root, and stored
 every line with its time since spawn in shot16-terminal.capture.json, next to
-this file, along with the sha256 of the raw tty bytes, node's version, git HEAD
-and whether ingest/ had uncommitted changes. The render reads only that file:
-it re-checks the sha256 against the stored lines, finds the harness line and
-the summary line by their shape, and stops if either is missing, so a failing
-or changed run can never be dressed up as this one. Re-capture with
+this file, along with the sha256 of the raw tty bytes, node's version, the
+commit, whether ingest/ had uncommitted changes and a sha256 over every file in
+ingest/. The render reads only that file: it re-checks the tty sha256 against
+the stored lines, requires exit code 0, finds the harness line and the summary
+line by their shape, and stops if any of that fails, so an edited, failing or
+different run can never be dressed up as this one. Re-capture with
 
     python3 docs/video/shot16-terminal.py capture          # repo root, working tree
-    python3 docs/video/shot16-terminal.py capture c1ae630  # a git archive of a commit
+    python3 docs/video/shot16-terminal.py capture 3fce885  # a git archive of a commit
 
-The run in the capture file (2026-10-23T04:24:52Z, node v22.22.0, linux x64,
-HEAD ce9fb45 with uncommitted changes in ingest/, exit 0, 0.45 s) prints 24 test
-lines, then
+The run in the capture file: 2026-10-23T04:22:16Z, node v22.22.0, linux x86_64,
+commit 3fce885 with ingest/ clean, exit 0 after 0.44 s. A clean git archive of
+3fce885 prints the same 32 lines. It prints 26 test lines, then
 
     harness: 720 samples × 2 meters → 24 intervals per path · 24/24 accepted ·
     240.9 Wh basis · BYTE-IDENTICAL across csv, http, modbus
 
-and "24 passed, 0 failed". The storyboard line "21 passed, 0 failed" is what
-98b281a (and HEAD ce9fb45, committed) print; main (c1ae630) prints
-"24 passed, 0 failed" with a different set of 24 tests. The harness line is the
-same on all three. The test data is the harness's simulated morning (fixed seed)
-and a simulated Modbus bus; the label "Test data: simulated" stays on screen.
+and "26 passed, 0 failed". The storyboard's "21 passed, 0 failed" is what
+98b281a prints (21 tests); later commits added tests. The harness line is the
+same at both commits. The test data is the harness's simulated morning (fixed
+seed) on a simulated Modbus bus, and the label "Test data: simulated" stays on
+screen: no live meter, no real roof.
 
 What is styled here, not printed: the card, its tab, the "$" prompt (a stand-in
-for any shell's), the cursor, the terracotta check marks and bold weights, the
-wrapping (44 columns, word breaks, a hanging indent of 4 under a test name and 2
-under anything else; a break replaces one space and nothing is cut, reordered or
+for any shell's), the cursor, the terracotta check marks, the bold weight on
+the bar and the revealed summary, the wrapping (44 columns, word breaks that
+keep "·"/"→" phrases whole, a hanging indent of 4 under a test name and 2 under
+anything else; a break replaces one space and nothing is cut, reordered or
 abbreviated, which the render asserts), the dimming, the bar, the underline and
 the camera. The summary line is drawn dimmed from the moment it prints and
 brightened at 12.3 s: a change of emphasis on text that genuinely printed, never
@@ -59,12 +62,13 @@ No person, hand, meter, desk or other product's interface is drawn.
 Audio: keystrokes only, made with ffmpeg's aevalsrc from the same key times as
 the picture (`keys` mode prints the source): a short filtered noise click with a
 low thock per key and a softer release tick, a heavier Enter, and digital
-silence everywhere else, so 10.0-12.0 s is silent. Mono, peak -15.3 dBFS as
-measured. Music returns in the edit.
+silence everywhere else. Mono, peak -15.0 dBFS as measured. Music returns in
+the edit.
 
 Vertical-platform safe zones are kept clear: nothing in the top 120 px, the
-right 140 px (text, label and card stay left of x = 940, also at full push-in)
-or the bottom 420 px. Colour is converted and tagged as BT.709.
+right 140 px (text, bar and label stay left of x = 940 at full push-in; only the
+card's empty right margin passes it) or the bottom 420 px (the card ends at
+1462). Colour is converted and tagged as BT.709.
 
 Writes raw RGB frames to stdout. Needs numpy and Pillow (node only to capture).
 Render from the repo root with:
@@ -138,15 +142,15 @@ LABEL_RIGHT = 922  # frame px; keeps the label inside the safe line at full push
 KEY_T = (0.40, 2.60)  # first and last character
 ENTER_T = 2.72
 BLINK = 0.53
-SCROLL_W = 20.0  # scroll spring, rad/s (critically damped)
+SCROLL_V, SCROLL_A = 1.5, 0.2  # view glide: rows per frame, rows per frame per frame
 FREEZE_T = 10.0
-CURSOR_OUT = (10.0, 10.25)
-DIM_T = (10.0, 10.5)
-BAND_T0, BAND_LEN, BAND_STEP = 10.0, 0.36, 3 / FPS
-GLOW_T = (10.3, 10.9)
+CURSOR_OUT = (FREEZE_T, FREEZE_T + 0.25)
+DIM_T = (FREEZE_T, FREEZE_T + 0.5)
+BAND_T0, BAND_LEN, BAND_STEP = FREEZE_T, 0.36, 3 / FPS  # bar, row by row
+GLOW_T = (FREEZE_T + 0.3, FREEZE_T + 0.9)
 REVEAL_T = (12.3, 12.75)
 UNDER_T = (12.4, 12.95)
-PUSH_T, PUSH = (10.0, 17.0), 1.025
+PUSH_T, PUSH = (FREEZE_T, DUR), 1.025
 ANCHOR_X = 560  # push-in centre, frame px; y is the bar's centre
 
 
@@ -356,7 +360,7 @@ def strip(spans, bold=False):
 
 def row_spans(kind, ind, text):
     pad = " " * ind
-    if kind in ("test",) and text[2:3] in ("✓", "✗"):
+    if kind == "test" and text[2:3] in ("✓", "✗"):
         return [(pad + text[:2], TEXT), (text[2], TERRA_LIGHT), (text[3:], TEXT)]
     if kind == "plain" and text.strip() == "ingest":
         return [(pad + text, PAPER)]
@@ -441,9 +445,9 @@ class Terminal:
         self.scroll = self._scroll_track()
 
         # the bar: one rounded block over the harness rows, and its soft glow
-        bh = P(self.n_hot * ROW_H + 8)
+        bh = P(self.n_hot * ROW_H)
         bw = P(COLS * ADV + 28)
-        self.band_off = (-P(14), -P(4))  # from the first column and the first bar row
+        self.band_off = (-P(14), P(1))  # from the first column and the first bar row
         m = Image.new("L", (bw, bh), 0)
         ImageDraw.Draw(m).rounded_rectangle([0, 0, bw - 1, bh - 1], radius=P(10), fill=255)
         self.band = np.asarray(m, np.float32) / 255.0
@@ -455,18 +459,24 @@ class Terminal:
 
     # where the view is, in rows, frame by frame
     def _scroll_track(self):
-        n = int(DUR * FPS) + 1
-        pos, vel, out = 0.0, 0.0, []
-        sub = 8
-        for i in range(n):
-            t = i / FPS
+        """The view glides after the newest line like a smooth-scrolling terminal:
+        the output arrives faster than it can scroll, so it accelerates to a
+        steady speed and brakes into place; a light causal filter rounds the
+        corners. The lines themselves still appear at their captured times."""
+        sub, dt = 8, 1 / 8  # substeps per frame; time in frames
+        pos, vel, soft, out = 0.0, 0.0, 0.0, []
+        for i in range(int(DUR * FPS) + 1):
             for k in range(sub):
-                ts = t + k / (FPS * sub)
-                target = max(0, self.cursor_row(ts) - (ROWS - 1))
-                acc = SCROLL_W ** 2 * (target - pos) - 2 * SCROLL_W * vel
-                vel += acc / (FPS * sub)
-                pos += vel / (FPS * sub)
-            out.append(pos)
+                target = max(0, self.cursor_row((i + k * dt) / FPS) - (ROWS - 1))
+                dist = target - pos
+                want = math.copysign(min(SCROLL_V, math.sqrt(2 * SCROLL_A * abs(dist))), dist)
+                vel += max(-SCROLL_A * dt, min(SCROLL_A * dt, want - vel))
+                pos = target if abs(dist) < 1e-3 and abs(vel) < 0.02 else pos + vel * dt
+                vel = 0.0 if pos == target else vel
+            soft += (pos - soft) * 0.45
+            out.append(soft)
+        last = max(0, self.cursor_row(DUR) - (ROWS - 1))
+        assert max(out) <= last + 1e-3 and abs(out[-1] - last) < 1e-3, "view must settle, no bounce"
         return out
 
     def printed(self, t):
@@ -540,9 +550,7 @@ class Terminal:
             cols = np.arange(bw, dtype=np.float32)
             reach = np.empty((bh, 1), np.float32)
             for j, p in enumerate(bands):  # each row's share of the block wipes in on its own
-                r0 = 0 if j == 0 else P(4) + j * P(ROW_H)
-                r1 = bh if j == self.n_hot - 1 else P(4) + (j + 1) * P(ROW_H)
-                reach[r0:r1] = p * (bw + P(24))
+                reach[j * P(ROW_H):(j + 1) * P(ROW_H)] = p * (bw + P(24))
             wipe = np.clip((reach - cols[None, :]) / P(24), 0, 1)
             a = (self.band * wipe)[..., None]
             put(a * np.array(TERRACOTTA, np.float32), a, bx, by)
@@ -580,7 +588,7 @@ class Terminal:
 
         # the underline under the summary, swept in left to right
         if under > 0:
-            y = y_of(self.sum_row) + P(ROW_H / 2 + CODE_PX * 0.52)
+            y = y_of(self.sum_row) + P(ROW_H / 2 + CODE_PX * 0.66)  # under the descenders
             x0 = self.tx
             x1 = x0 + int(self.sum_len * P(ADV) * under)
             win[y:y + P(2.5), x0:x1] = TERRA_LIGHT
@@ -684,8 +692,8 @@ def keys():
             f"(2*random(0)-1)*(0.55*exp(-1300*{d})+0.16*exp(-{body}*{d}))"
             f"+0.30*sin({thock:.1f}*{d})*exp(-110*{d})"
             f"+0.22*gte({d},{rel:.3f})*(2*random(0)-1)*exp(-1700*({d}-{rel:.3f}))),0)")
-    expr = "0.11*(" + "+".join(terms) + ")"
-    print(f"aevalsrc='{expr}':s=48000:d={DUR:g},highpass=f=180,lowpass=f=7500")
+    expr = "0.28*(" + "+".join(terms) + ")"
+    print(f"aevalsrc='{expr}':s=48000:d={DUR:g},highpass=f=90,lowpass=f=7500")
 
 
 if __name__ == "__main__":
