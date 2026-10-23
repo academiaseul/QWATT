@@ -8,8 +8,10 @@ Wants=network-online.target
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
-ExecStart=/usr/bin/node anchor/verifier.js --feed ${QWATT_FEED_URL} --config /etc/qwatt/anchor.json --state /var/lib/qwatt/verifier --interval 30 --port 8090
-# QWATT_VERIFIER_SECRET=S… and QWATT_FEED_URL=https://… live only here (chmod 600, owner root)
+ExecStart=/usr/bin/node anchor/verifier.js --feed ${QWATT_FEED_URL} --config /etc/qwatt/anchor.json --sign-with-key qwatt-verifier --state /var/lib/qwatt/verifier --interval 30 --port 8090
+# verifier.env holds only QWATT_FEED_URL=https://… (public). The verifier key is the stellar-cli identity
+# qwatt-verifier of user qwatt (~qwatt/.config/stellar), generated on this host (freeze v3, V3-8);
+# stellar must be on PATH (/usr/local/bin). A QWATT_VERIFIER_SECRET in the environment stops the service.
 EnvironmentFile=/etc/qwatt/verifier.env
 Restart=always
 RestartSec=10

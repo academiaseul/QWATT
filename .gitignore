@@ -12,6 +12,8 @@ mining-rig/node_modules/
 
 # anchoring services: local config and verifier state (public keys only, but host-specific)
 anchor/config.json
+# stellar-cli local config: older releases write identities (keys) to ./.stellar/ in the working directory
+.stellar/
 verifier-state/
 # live run output (published from the hosts, not committed)
 feed/

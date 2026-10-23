@@ -25,6 +25,7 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 |---|---|
 | `thresholds.js` | The anchoring account's thresholds (2/2/3), read by every tool that sets, checks or describes them. |
 | `setup-account.js` | Creates and configures the real anchoring account in one master-signed transaction; `--verify` re-checks it, thresholds included. |
+| `signer.js` | Signing through stellar-cli (V3-8): `cliSigner` hands stellar-cli the transaction on stdin with `--sign-with-key <identity>` and accepts only the same transaction with one more signature, from that identity's key; `signerForRole` is the CLIs' start-up check (no secret in the environment, the identity is the config's signer for its role, one offline test signature). `keypairSigner` is for tests and throwaway rehearsals only. |
 | `tx.js` | The deterministic anchoring transaction (anchor hash · cumulative total · nominal payment · memo `QW#<seq>`) and `matchPending`, the verifier's rebuild-and-compare. |
 | `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. `walkToHead` checks what a batch inherits against the on-chain head. |
 | `proposer.js` | Proposer service: runs the verifier's walk over its own feed, signs the next published, self-verified batch and writes `pending/<id>.xdr`; otherwise it reports `blocked` with the verifier's reason. Never submits. |
@@ -34,8 +35,9 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
 | `e2e.js` | Throwaway-account end-to-end run of both services: chain, restart, independence test, test D. |
 | `reconcile-cli.js` | The reconciliation from the command line (the logic `../reconcile.html` runs, from `../assets/qwatt-reconcile.js`); see below. |
-| `tx.test.js` · `recovery.test.js` · `tests-abcd.test.js` | Offline tests (no network), against `fake-horizon.js`, which applies Stellar's signature rules. |
 | `fake-horizon-http.js` | Test double: a fake Horizon REST API on 127.0.0.1 (the account, its operations joined with their transactions, `/transactions/<hash>`) and throwaway in-memory Ed25519 keys. No dependencies, so `../batch/reconcile.test.js` stays install-free. |
+| `tx.test.js` · `recovery.test.js` · `tests-abcd.test.js` · `keys.test.js` | Offline tests (no network), against `fake-horizon.js`, which applies Stellar's signature rules. |
+| `test-fixtures/` | Test-only stand-ins: `fake-stellar-cli.js` answers `keys address`, `tx sign` and `version` with keys derived from a salt, so no secret exists anywhere in a test. |
 
 **What the verifier checks before it co-signs.** Any failure is a refusal with a reason code
 registered in `../protocol/reasons.json`, and nothing is signed:
@@ -77,9 +79,10 @@ node tx.test.js                               # offline tests (CI)
 node rehearse.js                              # testnet rehearsal → ../evidence/rehearsal/
 node e2e.js                                   # testnet end-to-end → ../evidence/e2e/
 
-QWATT_PROPOSER_SECRET=S… node proposer.js --feed ../feed --config config.json
-QWATT_VERIFIER_SECRET=S… node verifier.js --feed https://<public feed> --config config.json --port 8090
+node proposer.js --feed ../feed --config config.json --sign-with-key qwatt-proposer
+node verifier.js --feed https://<public feed> --config config.json --sign-with-key qwatt-verifier --port 8090
 # both accept --max-walk N (default 168); see ../docs/RUNBOOK.md before using it
+# both accept --stellar-bin <path> when stellar is not on PATH
 ```
 
 **What the reconciliation checks from Horizon** (`../assets/qwatt-reconcile.js`, shared by
@@ -122,8 +125,17 @@ For code that builds on it: `R.check({ feed, horizon, account, roles?, feedOptio
 caller that reconciles pieces it fetched itself passes the chain as the third argument,
 `R.reconcile(feed, anchors, { account, record, roles })`; with two arguments it throws.
 
-Secrets come from the environment only and are never written, logged or committed. `config.json`
-(copy `config.example.json`) holds public values only and stays out of git because it is host-specific.
+No secret enters a browser, a chat, an env file or the repository. Each service asks stellar-cli on
+its own host to sign (`stellar tx sign --sign-with-key <identity>`), receives the signed envelope and
+checks that the new signature is from the key it expects. Node never reads a secret. At start each
+CLI refuses a `QWATT_*_SECRET` in the environment, checks that the identity's key is the config's
+`signers.proposer` or `signers.verifier`, and signs one throwaway transaction offline (it expired in
+1970 and is never submitted), so a missing stellar-cli, a missing identity or a swapped key stops it
+with exit 2 instead of failing later on the network. The anchor config's `TESTNET` is mapped to the
+full passphrase before stellar-cli sees it. `config.json` (copy `config.example.json`) holds public
+values only, `signers` included, and stays out of git because it is host-specific. The stellar-cli
+command forms (`stellar keys address <id>`, `stellar tx sign` with the XDR on stdin and no RPC URL,
+`stellar version --only-version`) are to confirm with stellar-cli 28.1.0 (founder step 0).
 
 **Evidence notes for the write-up:**
 - under 2/2/3 a single signature is refused as `tx_bad_auth`: it does not meet the low threshold,
