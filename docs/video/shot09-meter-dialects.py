@@ -27,15 +27,17 @@ photos the team took itself or has the rights to use.
 
 Writes raw RGB frames to stdout. Needs numpy and Pillow. Render with:
 
-    python3 docs/video/shot09-meter-dialects.py [--pzem PHOTO] [--epever PHOTO] | ffmpeg -y \\
-      -f rawvideo -pix_fmt rgb24 -s 1080x1920 -r 30 -i - -f lavfi -i "aevalsrc=\\
-    '0.2*(1-exp(-900*mod(t,1)))*exp(-45*mod(t,1))*(0.7*sin(2*PI*1250*t)+0.3*sin(2*PI*620*t))'\\
-    :s=48000:d=3" -filter_complex "[1]lowpass=f=5000[a]" -map 0:v -map "[a]" -c:v libx264 \\
-      -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 192k -shortest \\
+    python3 docs/video/shot09-meter-dialects.py | ffmpeg -y -f rawvideo -pix_fmt rgb24 \\
+      -s 1080x1920 -r 30 -i - -f lavfi -i "aevalsrc='st(0,mod(t,1));\\
+    0.2*(1-exp(-900*ld(0)))*exp(-45*ld(0))*(0.7*sin(2*PI*1250*t)+0.3*sin(2*PI*620*t))':s=48000:d=3" \\
+      -filter_complex "[1]lowpass=f=5000[a]" -map 0:v -map "[a]" -c:v libx264 -preset slow \\
+      -crf 18 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 192k -shortest \\
       QWATT-week1-shot09-meter-dialects.mp4
 
+With photos, add --pzem PHOTO --epever PHOTO after the script name.
+
 The audio is three soft UI ticks, one on each beat change (0.0, 1.0, 2.0 s),
-peaking near -14 dBFS.
+peaking around -16 dBFS.
 """
 import argparse
 import json
@@ -85,7 +87,7 @@ BODY_Y = CARD_Y + 152
 SOURCE_Y = CARD_Y + CARD_H + 22  # source line under the cards, above the caption zone
 
 # Motion, in frames
-STAGGER = 1.5  # between rows arriving
+STAGGER = 1.25  # between rows arriving
 RIGHT_LAG = 1.0  # right card's row lands a frame after the left one
 IN_DUR, OUT_DUR = 6, 4
 OUT_LEAD = 3  # outgoing rows start leaving this many frames before the cut
@@ -253,7 +255,7 @@ def card_clip(side):
 
 def beat_times(beat, group, side):
     """Arrival and departure frames for one row of one beat."""
-    start = beat * BEAT * FPS + (4 if beat == 0 else 0)  # beat 1 waits for the cards
+    start = beat * BEAT * FPS + (3 if beat == 0 else 0)  # beat 1 waits for the cards
     t_in = start + group * STAGGER + side * RIGHT_LAG
     t_out = None if beat == len(NOUNS) - 1 else (beat + 1) * BEAT * FPS - OUT_LEAD + group * 0.5
     return t_in, t_out
@@ -441,7 +443,7 @@ def card(side, m):
     m2 = Image.new("L", (s.w, s.h), 0)
     ImageDraw.Draw(m2).line([(M + 2, M + 134), (M + CARD_W - 2, M + 134)], fill=255, width=2)
     s.over(m2, PAPER, 0.12)
-    return El(s.px, CARD_X[side] - M, CARD_Y - M, side * RIGHT_LAG, slide=44, axis=0)
+    return El(s.px, CARD_X[side] - M, CARD_Y - M, side * RIGHT_LAG - 1, slide=44, axis=0)  # already rising on frame 0
 
 
 def heading():
@@ -449,11 +451,12 @@ def heading():
     els = []
     k = Sprite(560, 70)
     k.text((0, 54), "Different", font(FB, 46), TERRA_LT, 1.0, anchor="ls")
-    els.append(El(k.px, LEFT, 128, 0, slide=0))
+    els.append(El(k.px, LEFT, 128, -1, slide=0))
     for beat, noun in enumerate(NOUNS):
         s = Sprite(860, 140)
         s.text((0, 100), noun, font(FB, 104), PAPER, 1.0, anchor="ls")
         t_in, t_out = beat_times(beat, 0, 0)
+        t_out = None if t_out is None else t_out - 1  # gone on the cut, so two nouns never overlap
         els.append(El(s.px, LEFT - 4, 196, t_in - (2 if beat == 0 else 1), t_out, slide=90, slide_out=70,
                       clip=(LEFT - 6, 190, 940, 336)))
     return els
@@ -532,7 +535,7 @@ def progress(canvas, f):
         col = np.array(PAPER, np.float32) * (1 - on) + np.array(TERRA_LT, np.float32) * on
         col = col * (1 - past) + np.array(PAPER, np.float32) * past
         a = (0.18 * (1 - on) + on) * (1 - past) + 0.45 * past
-        a *= clamp01(f / 4)
+        a *= clamp01((f + 1) / 4)
         sl = canvas[y:y + 6, x0 + i * (bw + gap):x0 + i * (bw + gap) + bw]
         sl *= 1 - a
         sl += col * a

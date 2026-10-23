@@ -19,7 +19,7 @@ Writes raw RGB frames to stdout. Needs numpy and Pillow. Render with:
       -s 1080x1920 -r 30 -i - -f lavfi -i "anoisesrc=d=3:c=pink:r=48000:a=0.5:s=7" \\
       -filter_complex "[1]afftfilt=real='re*$G':imag='im*$G',highpass=f=120,\\
     volume='0.1+0.9*exp(-pow((t-1.35)/0.55,2))':eval=frame,afade=t=in:st=0:d=0.4,\\
-    afade=t=out:st=2.45:d=0.55,volume=0.55[a]" -map 0:v -map "[a]" -c:v libx264 \\
+    afade=t=out:st=2.45:d=0.55,volume=0.5[a]" -map 0:v -map "[a]" -c:v libx264 \\
       -preset slow -crf 18 -pix_fmt yuv420p -movflags +faststart -c:a aac -b:a 192k \\
       -shortest QWATT-week1-shot07-roof-to-bench.mp4
 
@@ -368,7 +368,7 @@ def draw_screen(img):
     inside = np.asarray(inside, np.float32)[..., None] / 255
     centre = np.exp(-((xx - 300) / 420) ** 2 - ((yy - 3950) / 300) ** 2)[..., None]
     spill = np.exp(-((xx - 300) / 420) ** 2 - ((yy - 4240) / 150) ** 2)[..., None] * (yy > 4200)[..., None]
-    a += inside * centre * np.array([8, 12, 16]) + spill * np.array([10, 13, 16])
+    a += inside * centre * np.array([14, 20, 27]) + spill * np.array([14, 18, 22])
     img.paste(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)), (int((x0 + MX) * SS), int(y0 * SS)))
 
     d = ImageDraw.Draw(img)
@@ -560,7 +560,7 @@ def render(src, t, grain_rng):
         u = ((xx - gx) * c + (yy - gy) * s) / (380 * z)
         v = (-(xx - gx) * s + (yy - gy) * c) / (140 * z)
         r2 = ((xx - gx) ** 2 + (yy - gy) ** 2) / (z * z)
-        g = (0.35 * np.exp(-u * u - v * v) + 0.6 * np.exp(-r2 / 70 ** 2) + 1.6 * np.exp(-r2 / 16 ** 2)
+        g = (0.5 * np.exp(-u * u - v * v) + 0.8 * np.exp(-r2 / 70 ** 2) + 1.6 * np.exp(-r2 / 16 ** 2)
              + 0.35 * np.exp(-((yy - gy) / (5 * z)) ** 2 - ((xx - gx) / (240 * z)) ** 2))  # faint lens streak
         edge = to_screen(0, FRAME_Y, cam)[1]
         g *= np.clip((edge - yy) / 6, 0, 1) * smooth(-0.4, 0.3, t)
