@@ -71,7 +71,7 @@ async function runOnce(csvFile, cols, feedDir, run = BENCH_RUN) {
   fs.rmSync(feedDir, { recursive: true, force: true });
   const pipe = new Pipeline({ dir: feedDir, site_id: run.site_id, node_id: 'scale', profile: run.profile });
   const builder = new IntervalBuilder({
-    site_id: run.site_id, node_id: 'scale', adapter: 'csv', dt_s: 300,
+    site_id: run.site_id, node_id: 'scale', adapter: 'csv', dt_s: 300, clock: 'replay',   // V3-6: a fast replay's receive time is the replayed time
     meters: { a: { ...run.meters.a, energy: 'integrate' }, b: { ...run.meters.b, energy: 'integrate' } },
     onInterval: (rec) => pipe.push(rec),
   });
