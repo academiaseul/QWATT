@@ -2,7 +2,7 @@
 
 QWATT es un verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet.
 
-**Sprint Instawards Chile, desde el 19 oct 2026** · Jay Kim y Diego Ostertag, Santiago · Lo hecho cada semana: [CHANGELOG.md](CHANGELOG.md) · Trabajo previo (antes del 19 oct): [docs/PRIOR-WORK.md](docs/PRIOR-WORK.md)
+**Sprint Instawards Chile, desde el 19 oct 2026** · Jay Kim y Diego Ostertag, Santiago · Lo hecho cada semana: [CHANGELOG.es.md](CHANGELOG.es.md) · Trabajo previo (antes del 19 oct): [docs/PRIOR-WORK.md](docs/PRIOR-WORK.md)
 
 Pruébalo (solo necesitas Node.js 20 o superior y git):
 
@@ -54,7 +54,7 @@ npm run scale                                 # un mes de datos públicos NREL P
 
 QWATT is an open-source verifier that turns solar meter readings into independently verifiable records on Stellar testnet.
 
-**Instawards Chile sprint, since 19 Oct 2026** · Jay Kim and Diego Ostertag, Santiago · What was done each week: [CHANGELOG.md](CHANGELOG.md) (Spanish) · Prior work (before 19 Oct): [docs/PRIOR-WORK.md](docs/PRIOR-WORK.md)
+**Instawards Chile sprint, since 19 Oct 2026** · Jay Kim and Diego Ostertag, Santiago · What was done each week: [CHANGELOG.md](CHANGELOG.md) · Prior work (before 19 Oct): [docs/PRIOR-WORK.md](docs/PRIOR-WORK.md)
 
 Try it (you only need Node.js 20 or later and git). No test connects to Stellar testnet: anchoring is tested against a simulated Horizon with throwaway keys generated in memory.
 
