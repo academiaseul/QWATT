@@ -7,7 +7,7 @@
 | Source | NREL, *Photovoltaic Data Acquisition (PVDAQ) Public Datasets*, OEDI Data Lake, DOI [10.25984/1846021](https://dx.doi.org/10.25984/1846021) |
 | Licence | **CC BY 4.0.** Attribution: *Data: National Renewable Energy Laboratory (NREL), PVDAQ, CC BY 4.0. Converted by QWATT.* |
 | System | 4902 `NIST_Ground_1`, NIST campus, Gaithersburg MD (39.1319, −77.2141), 270.7 kWp, ground mount 20° tilt, one 260 kW central inverter |
-| Resolution | 1 minute, 43,178 rows (22 minutes absent in the source; kept as gaps) |
+| Resolution | 1 minute, 43,178 rows (22 minutes absent in the source; kept as gaps). Each absent minute is one missing sample: 120 s between samples, within the scale run's three-period dropout limit (180 s at `sample_s` 60, V3-10), so it is still integrated. Findings 1–2 below are unchanged. |
 | Meter a (DC) | `dc_power_inv_14538` — inverter-reported DC power |
 | Meter b (AC) | `ac_power_meter_1864_5` — separate AC revenue meter |
 | Reproduce | `node batch/datasets/pvdaq.js` → identical CSV; SHA-256 of every source file and of the output in `provenance.json` |
