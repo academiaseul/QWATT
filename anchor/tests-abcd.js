@@ -4,10 +4,14 @@
  * ---------------------------------------------------------------------------
  * The keys live on different hosts by design, so each test runs where its key is:
  *
- *   proposer host:  QWATT_PROPOSER_SECRET=S… node anchor/tests-abcd.js a --config /etc/qwatt/anchor.json --feed-dir /var/lib/qwatt/feed
- *   verifier host:  QWATT_VERIFIER_SECRET=S… node anchor/tests-abcd.js b --config /etc/qwatt/anchor.json --feed <public feed URL>
- *   verifier host:                           node anchor/tests-abcd.js d --config /etc/qwatt/anchor.json --feed <public feed URL>
- *   anywhere:                                node anchor/tests-abcd.js c --config /etc/qwatt/anchor.json
+ *   proposer host:  node anchor/tests-abcd.js a --config /etc/qwatt/anchor.json --feed-dir /var/lib/qwatt/feed --sign-with-key qwatt-proposer
+ *   verifier host:  node anchor/tests-abcd.js b --config /etc/qwatt/anchor.json --feed <public feed URL> --sign-with-key qwatt-verifier
+ *   verifier host:  node anchor/tests-abcd.js d --config /etc/qwatt/anchor.json --feed <public feed URL>
+ *   anywhere:       node anchor/tests-abcd.js c --config /etc/qwatt/anchor.json
+ *
+ * The keys are stellar-cli identities on their hosts (freeze v3, V3-8; anchor/signer.js): stellar-cli
+ * signs, Node never reads a secret, and a secret in the environment is refused (exit 2). The identity's
+ * key must be the config's signer for that role.
  *
  *   A  the pending proposal, proposer signature only, submitted → the network must refuse it
  *   B  the same transaction rebuilt from the published batch, verifier signature only → refused
@@ -38,6 +42,7 @@ const { Feed } = require('../batch/feed');
 const { makeFeedClient } = require('./feed-client');
 const { loadConfig } = require('./proposer');
 const TH = require('./thresholds');
+const SG = require('./signer');
 
 /**
  * A single-signature submission counts as refused only when the network answered
@@ -63,8 +68,11 @@ async function submitExpectRefusal(server, tx, th) {
   }
 }
 
+/** The signer a test signs with: stellar-cli (signer), or an in-memory keypair in the offline tests. */
+const signerOf = (signer, keypair) => signer || (keypair && SG.keypairSigner(keypair));
+
 /** A — proposer host: submit the proposer-signed pending transaction alone. */
-async function testA({ feedDir, cfg, keypair, server }) {
+async function testA({ feedDir, cfg, signer, keypair, server }) {
   const feed = new Feed(feedDir);
   const th = await accountThresholds(server, cfg.anchor_account);   // loaded first: the evidence records what the account was
   const listed = feed.readLedger('batches');
@@ -72,14 +80,13 @@ async function testA({ feedDir, cfg, keypair, server }) {
   const next = C.nextToAnchor(listed, C.anchoredPrefix(listed, head.anchor_sha256));
   if (!next) throw new Error('no batch awaiting anchor: run test A while the pipeline is running');
   const batch = feed.readBatch(next.batch_id);
-  const tx = T.buildAnchorTx(batch, cfg, T.proposalParams(head.sequence));
-  tx.sign(keypair);
+  const tx = await signerOf(signer, keypair).sign(T.buildAnchorTx(batch, cfg, T.proposalParams(head.sequence)));
   const r = await submitExpectRefusal(server, tx, th);
   return { ...r, batch_id: next.batch_id, expect: 'refused', envelope_xdr: tx.toEnvelope().toXDR('base64') };
 }
 
 /** B — verifier host: rebuild from the published batch, sign with the verifier key only, submit. */
-async function testB({ feedUrl, cfg, keypair, server }) {
+async function testB({ feedUrl, cfg, signer, keypair, server }) {
   const feed = makeFeedClient(feedUrl);
   const th = await accountThresholds(server, cfg.anchor_account);   // loaded first: the evidence records what the account was
   const listed = await feed.batches();
@@ -87,8 +94,7 @@ async function testB({ feedUrl, cfg, keypair, server }) {
   const next = C.nextToAnchor(listed, C.anchoredPrefix(listed, head.anchor_sha256));
   if (!next) throw new Error('no batch awaiting anchor: run test B while the pipeline is running');
   const batch = await feed.batch(next.batch_id);
-  const tx = T.buildAnchorTx(batch, cfg, T.proposalParams(head.sequence));
-  tx.sign(keypair);
+  const tx = await signerOf(signer, keypair).sign(T.buildAnchorTx(batch, cfg, T.proposalParams(head.sequence)));
   const r = await submitExpectRefusal(server, tx, th);
   return { ...r, batch_id: next.batch_id, expect: 'refused', envelope_xdr: tx.toEnvelope().toXDR('base64') };
 }
@@ -147,13 +153,21 @@ async function cli() {
   const args = process.argv.slice(2);
   const which = (args[0] || '').toLowerCase();
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
-  if (!STEP[which]) { console.error('usage: node anchor/tests-abcd.js a|b|c|d --config anchor.json [--feed URL | --feed-dir DIR] [--out evidence/abcd/abcd.json]'); process.exit(2); }
+  const usage = 'usage: node anchor/tests-abcd.js a|b|c|d --config anchor.json [--feed URL | --feed-dir DIR] [--sign-with-key <identity> (a, b)] [--stellar-bin stellar] [--out evidence/abcd/abcd.json]';
+  if (!STEP[which]) { console.error(usage); process.exit(2); }
+  const env = SG.refuseEnvSecrets(['QWATT_PROPOSER_SECRET', 'QWATT_VERIFIER_SECRET']);
+  if (env) { console.error(env); process.exit(2); }
+  const role = { a: 'proposer', b: 'verifier' }[which];
+  if (role && !args.includes('--sign-with-key')) { console.error(`--sign-with-key <identity> is required: test ${which.toUpperCase()} runs on the host that holds the ${role} key, as its stellar-cli identity (qwatt-${role})\n${usage}`); process.exit(2); }
   const cfg = loadConfig(opt('--config', path.join(__dirname, 'config.json')));
+  let signer = null;
+  if (role) {
+    const r = await SG.signerForRole({ args, cfg, role, envNames: ['QWATT_PROPOSER_SECRET', 'QWATT_VERIFIER_SECRET'] });
+    if (r.error) { console.error(`${r.error}\n${usage}`); process.exit(2); }
+    signer = r.signer;
+  }
   const server = new S.Horizon.Server(cfg.horizon_url);
-  const secretFor = { a: 'QWATT_PROPOSER_SECRET', b: 'QWATT_VERIFIER_SECRET' }[which];
-  if (secretFor && !process.env[secretFor]) { console.error(`${secretFor} is not set; test ${which.toUpperCase()} runs on the host that holds that key`); process.exit(2); }
-  const keypair = secretFor ? S.Keypair.fromSecret(process.env[secretFor]) : null;
-  const run = { a: () => testA({ feedDir: path.resolve(opt('--feed-dir', 'feed')), cfg, keypair, server }), b: () => testB({ feedUrl: opt('--feed'), cfg, keypair, server }), c: () => testC({ cfg, server }), d: () => testD({ feedUrl: opt('--feed'), cfg }) }[which];
+  const run = { a: () => testA({ feedDir: path.resolve(opt('--feed-dir', 'feed')), cfg, signer, server }), b: () => testB({ feedUrl: opt('--feed'), cfg, signer, server }), c: () => testC({ cfg, server }), d: () => testD({ feedUrl: opt('--feed'), cfg }) }[which];
   const result = await run();
   const ev = merge(path.resolve(opt('--out', path.join(__dirname, '..', 'evidence', 'abcd', 'abcd.json'))), cfg.anchor_account, which, result);
   console.log(`test ${which.toUpperCase()}: ${JSON.stringify({ ...result, envelope_xdr: undefined })}`);
