@@ -75,7 +75,7 @@
 - `http.start(config, builder, onInterval)`
 - `csv.replay(config, builder)`
 
-Records reach the caller through the `IntervalBuilder`'s `onInterval`, and through `http.start`'s `onInterval` callback. Every record is validated against the interval schema before it is delivered, so the guarantee §3 states holds; only the signature differs. Freezes v2 and v3 do not mention the adapter interface.
+Records reach the caller through the `IntervalBuilder`'s `onInterval`, and through `http.start`'s `onInterval` callback. Every record is validated against the interval schema before it is delivered, so the guarantee §3 states holds; only the signature differs. Freezes v2 and v3 do not change the adapter interface, so v1 §3 still holds.
 
 The freeze rule asks for deviations to be documented in the write-up, so it is recorded here. The three signatures were not changed because the harness, the CLI and `main`'s tests call them as they are. The founders decide whether the sprint write-up adopts this deviation or asks for thin `start(config, emit)` wrappers.
 
@@ -84,7 +84,7 @@ The freeze rule asks for deviations to be documented in the write-up, so it is r
 - **No hardware, simulated input only.** The harness generates its input from a fixed seed (mulberry32, 20260920): 10 s samples from 2026-09-20 15:00 to 17:00 UTC, which is 12:00–14:00 America/Santiago. Its Modbus path polls a local Modbus TCP simulator. This shows that the three adapters agree. It does not show that any installation produced energy or that any meter is accurate.
 - **Modbus RTU** needs the `serialport` package on the gateway. It is not a dependency, and `connect()` says so when it is missing. Framing is tested, but no physical device has been read through it. With the `tcp` transport, only gateways that convert RTU to Modbus TCP work.
 - **Register maps.**
-  - **PZEM-017:** every field matches PZ1. The bench still has to settle the default unit id, the current-range register 0x0003 against the fitted shunt, and the 5 V supply.
+  - **PZEM-017:** every field matches PZ1. The bench still has to settle the default unit id, the current-range register 0x0003 against the fitted shunt, and the 5 V power source.
   - **EPEver:** 0x3104 and 0x3105 are not confirmed. They share the PV-power read block, so a refusal from the controller would lose PV power on every poll.
   - **Documents:** the ones read are third-party copies, because the manufacturer sites were unreachable; their hashes are recorded. The documented-frame test decodes the manufacturers' worked examples, not frames captured from our devices.
 - **Raw payloads are not stored,** so only someone holding the original input can recompute `raw_sha256`. Freeze v3 plans `samples_root` and published raw lines (V3-5).
@@ -94,10 +94,10 @@ The freeze rule asks for deviations to be documented in the write-up, so it is r
 
 1. **Confirm the SOW wording.** SOW final v4 is not in the repository. Confirm that its Deliverable 1 lists the same four evidence items as v3 §6.
 2. **EPEver battery registers.** On the bench controller, read 0x3100 × 6 and 0x331A. If 0x3104/0x3105 are refused or disagree, approve moving or dropping those two fields. Optionally, ask EPEver support for the "XTRA, TRIRON, TracerAN Series Controller Communication Instruction".
-3. **PZEM-017 bench settings.** Check the unit id, check that register 0x0003 matches the fitted shunt, and provide a separate 5 V supply over 100 mA (PZ1 §5).
+3. **PZEM-017 bench settings.** Check the unit id, check that register 0x0003 matches the fitted shunt, and provide a separate 5 V power source over 100 mA (PZ1 §5).
 4. **Deviation D1-1.** Adopt it in the write-up, or ask for the wrappers.
-5. **Public wording.** Public text should call the ingestion prior work (9 Sep), as `docs/PRIOR-WORK.md` does. Confirming who did what is the founders' call, since every week-1 commit on `main` is authored by `academiaseul`.
-6. **Repository visibility: nothing to decide.** The SOW asks for a public GitHub repository, and it is public, so the "Repository is private" blocker in `docs/PREFLIGHT-AUDIT.md` (9 Sep) no longer applies. One optional repository setting: the GitHub description still reads "QWATT Crypto", and could be changed to match the README.
+5. **Public wording.** Public text should call the ingestion prior work (9 Sep), as `docs/PRIOR-WORK.md` does. Confirming who did what is the founders' call, since every week-1 non-merge commit on `main` is authored by `academiaseul` (the PR merges are by "Jay", with the same address).
+6. **Repository visibility: nothing to decide.** The SOW asks for a public GitHub repository, and it is public, so the "Repository is private" blocker in the 9 Sep pre-flight audit (`8749adc`; no longer tracked since `772b8f3`) no longer applies. One optional repository setting: the GitHub description still reads "QWATT Crypto", and could be changed to match the README.
 
 ## Reproduce
 

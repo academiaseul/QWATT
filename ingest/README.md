@@ -15,7 +15,7 @@ CSV file     ──► adapters/csv.js    ──┘        integer mWh · grid-a
 | `lib/normalize.js` | `IntervalBuilder`: samples in, schema-valid interval records out. Trapezoidal integration split exactly at grid boundaries, or counter deltas. Integer units. Throws rather than emit an invalid record. |
 | `adapters/modbus.js` | Modbus TCP client (no deps), Modbus RTU client (needs `serialport` on the gateway), `pollOnce`, continuous `start`, and a TCP **simulator** for tests. |
 | `adapters/http.js` | `POST /samples`, `POST /intervals` (validated; timestamps rewritten from any RFC 3339 spelling to canonical UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`, with the request hash kept in `source.raw_sha256` when a spelling changed; 400 `ingest.off_grid` when off the `dt_s` grid; `clock_skew_s` stamped), `POST /flush`, `GET /health`. |
-| `adapters/csv.js` | Replay at fast or real-time pace; the CSV line is the raw payload. |
+| `adapters/csv.js` | Replay at fast or real-time pace; raw payload: see [raw_sha256](#raw_sha256) below. |
 | `maps/pzem-017.json` | Bench meter A. 9600 8N2. Every field matches the manufacturer's protocol document ([sources](#register-map-sources)). |
 | `maps/epever-tracer.json` | Bench meter B. 115200 8N1. PV and energy-counter registers match the EPEver protocol document; the two battery registers (0x3104, 0x3105) need a live read first ([sources](#register-map-sources)). |
 | `harness.js` | **Acceptance test:** two simulated hours of solar data (10 s samples, two meters) through all three adapters must produce byte-identical records (minus `source`) and identical verdicts. The Modbus path polls a local simulator. |
@@ -90,7 +90,7 @@ decodes with this map to the document's 100.00 V, 1.00 A, 100.0 W and 0 Wh (test
 example frames…"). Three things the document does not settle need the bench device: the factory
 unit id (PZ1 gives the range 0x01–0xF7 and uses 0x01 in its example, but states no default); the
 current-range holding register 0x0003 (100, 50, 200 or 300 A), which must match the fitted shunt or
-current and power read wrong; and the 5 V supply over 100 mA that the RS-485 side needs (PZ1 §5).
+current and power read wrong; and the 5 V power source over 100 mA that the RS-485 side needs (PZ1 §5).
 
 **`maps/epever-tracer.json`: every field matches EP25 except the two battery fields.** Serial
 115200 8N1 and unit id 1 (EP25 characteristics 2–3; the older EP23 says address 0x00); function 4;

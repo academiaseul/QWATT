@@ -375,12 +375,12 @@ test('CSV: a pace factor waits the scaled gap between rows; fast pace does not w
   const fs = require('fs'), os = require('os');
   const file = path.join(os.tmpdir(), `qwatt-pace-${process.pid}.csv`);
   const lines = ['ts,a_w'];
-  for (let s = 0; s <= 90; s += 10) lines.push(`${new Date(T0 + s * 1000).toISOString()},100`);
+  for (let s = 0; s <= 540; s += 60) lines.push(`${new Date(T0 + s * 1000).toISOString()},100`);
   fs.writeFileSync(file, lines.join('\n') + '\n');
   const time = async (pace) => { const t = Date.now(); await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' } }, pace }, mk1()); return Date.now() - t; };
   const paced = await time(1000), fast = await time('fast');
   fs.unlinkSync(file);
-  assert(paced >= 75, `90 s of data at ×1000 waits about 90 ms (${paced} ms)`);
+  assert(paced >= 450, `540 s of data at ×1000 waits about 540 ms (${paced} ms)`);
   assert(fast < paced, `fast pace is faster (${fast} ms vs ${paced} ms)`);
 });
 
