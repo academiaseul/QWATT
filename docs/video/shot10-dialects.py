@@ -594,11 +594,17 @@ def make_bugs(rng):
             if toks and (c, l) not in used and (c, l - 1) not in used and (c, l + 1) not in used:
                 break
         used.add((c, l))
-        x, ln, kd = toks[int(rng.integers(len(toks)))]
+        squiggle = rng.random() < 0.65
+        plain = [tk for tk in toks if tk[2] != "kw"]  # a squiggle would vanish under a terracotta keyword
+        if squiggle and plain:
+            x, ln, kd = plain[int(rng.integers(len(plain)))]
+        else:  # a dot sits after the line's last token, never between two
+            squiggle = False
+            x, ln, kd = CODES[c][l][-1]
         y = y0 + LINE_Y0 + l * LINE_PITCH
         xa = x0 + CODE_X + x
         v = Vec(xa - 4, y - 4, xa + ln + 16, y + BAR_H + 10)
-        if rng.random() < 0.65 and kd != "kw":  # a squiggle would vanish under a terracotta keyword
+        if squiggle:
             span = min(ln, rng.uniform(30, 50))
             xs = np.linspace(xa + 2, xa + span, 48)
             v.line(list(zip(xs, y + BAR_H + 4.6 + 2.0 * np.sin((xs - xa) / 6.5 * 2 * math.pi))), TERRA_LIGHT, 2.5)
