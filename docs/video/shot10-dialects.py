@@ -114,10 +114,11 @@ BUBBLE_EDGE = (118, 97, 76)
 INK = (240, 233, 220)
 CARD = (39, 28, 19)
 CARD_EDGE = (66, 50, 36)
-TOKEN = {"kw": (170, 112, 72), "name": (142, 130, 115), "expr": (114, 103, 90),
-         "punct": (98, 86, 74), "hex": (154, 142, 126), "comment": (84, 70, 56)}
+TOKEN = {"kw": (186, 121, 77), "name": (162, 149, 132), "expr": (130, 118, 104),
+         "punct": (112, 99, 86), "hex": (172, 159, 142), "comment": (98, 83, 68)}
 # the record, the source line and the badge
 KEY, PUNCT, MUTED, LABEL = (196, 187, 172), (128, 118, 106), (150, 140, 126), (226, 219, 206)
+BAND = (52, 38, 26)
 LINK = (112, 96, 80)
 
 FR = "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf"
@@ -375,49 +376,45 @@ def dot(x, y, r=1.3):
 
 def script_strokes(kind, rng):
     """Abstract marks in reading order, as (points, width) in bubble-inner coords
-    (196 x 112). None of them is a letter: loops rise and dip on both sides of
-    the line, zig-zags run long and uneven, dashes ride a wave, hexagons are
-    always broken and spoked."""
-    iw = INNER[2]
+    (196 x 112). None of them is a letter: coils overlap and wander off the
+    line, the jagged line spikes both ways like a trace, dashes ride a wave,
+    and the hexagons come in broken honeycomb clusters."""
+    iw, ih = INNER[2], INNER[3]
     out = []
-    if kind == "loops":
-        for base in (42, 92):
-            x = rng.uniform(2, 10)
-            while x < iw - 46:
-                n = int(rng.integers(3, 6))
-                pts = [(x - 5, base + 3)]
-                up = 1
+    if kind == "loops":  # overlapping coils, like a pen testing itself
+        for base in (40, 88):
+            x = rng.uniform(2, 8)
+            while x < iw - 40:
+                n = int(rng.integers(4, 8))
+                pts = [(x - 4, base + 4)]
+                up = 1.0
                 for _ in range(n):
-                    adv = rng.uniform(10, 15)
-                    h = rng.uniform(10, 26) * up if rng.random() < 0.8 else rng.uniform(5, 9) * up
-                    r = rng.uniform(3.2, 5.5)
-                    th = np.linspace(0, 2 * math.pi, 30)[1:]
-                    slant = rng.uniform(0.15, 0.35)
-                    yy = base - h * (1 - np.cos(th)) / 2
-                    xx = x + adv * th / (2 * math.pi) + r * np.sin(th) * np.sign(up) + slant * (base - yy)
+                    adv = rng.uniform(5.5, 8.5)
+                    h = rng.uniform(9, 22) * up
+                    r = rng.uniform(5.5, 8.5)
+                    th = np.linspace(0, 2 * math.pi, 34)[1:]
+                    drift = 3 * math.sin(x / 17)
+                    yy = base + drift - h * (1 - np.cos(th)) / 2
+                    xx = x + adv * th / (2 * math.pi) + r * np.sin(th) * np.sign(up)
                     pts += list(zip(xx, yy))
                     x += adv
-                    if rng.random() < 0.35:
-                        up = -0.6 * up  # the next loop hangs below the line
-                    elif up < 0:
-                        up = 1
-                pts.append((x + 6, base - 2))
-                out.append((pts, 3.0))
-                x += rng.uniform(16, 24)
-    elif kind == "zigzag":
-        for base in (32, 68, 102):
-            x = rng.uniform(0, 8)
-            while x < iw - 30:
-                n = int(rng.integers(6, 11))
-                pts = [(x, base)]
-                for k in range(n):
-                    x += rng.uniform(4.5, 9.5)
-                    y = base - rng.uniform(9, 22) if k % 2 == 0 else base - rng.uniform(0, 4)
-                    pts.append((x, y))
-                    if rng.random() < 0.15:
-                        x += rng.uniform(5, 9)
-                        pts.append((x, y))
+                    up = -0.55 if (up > 0 and rng.random() < 0.3) else 1.0
+                pts.append((x + 9, base + 2 * math.sin(x / 17)))
                 out.append((pts, 2.8))
+                x += rng.uniform(22, 30)
+    elif kind == "zigzag":  # a jagged trace with spikes up and down
+        for base in (30, 66, 100):
+            x = rng.uniform(0, 6)
+            while x < iw - 30:
+                pts, end = [(x, base)], min(iw - 2, x + rng.uniform(60, 110))
+                while x < end:
+                    x += rng.uniform(2.5, 5.5)
+                    r = rng.random()
+                    y = base - (rng.uniform(10, 17) if r < 0.3 else -rng.uniform(4, 8) if r < 0.5
+                                else rng.uniform(-2, 3))
+                    pts.append((min(x, end), y))
+                pts.append((min(x + 4, iw - 1), base))
+                out.append((pts, 2.6))
                 x += rng.uniform(12, 18)
     elif kind == "dotdash":
         for row, base in enumerate((30, 66, 100)):
@@ -428,34 +425,48 @@ def script_strokes(kind, rng):
                     out.append((dot(x + 2, wave(x + 2) + rng.choice([0, 0, -7])), 4.4))
                     x += rng.uniform(9, 12)
                 else:
-                    ln = rng.uniform(8, 24)
+                    ln = min(rng.uniform(8, 24), iw - 2 - x)
                     xs = np.linspace(x, x + ln, 8)
                     out.append(([(u, wave(u)) for u in xs], 4.0))
                     x += ln + rng.uniform(7, 10)
                 if rng.random() < 0.18:
                     x += 10
-    else:  # broken hexagons, each with a spoke or a seed
-        R = 10
+    else:  # broken honeycomb clusters: 2-4 cells, some walls missing, one cell seeded
+        R = 9.5
+        hx, hy = 1.5 * R, math.sqrt(3) * R  # flat-top lattice steps
         for base in (34, 86):
-            x = rng.uniform(3, 10)
-            while x < iw - 2 * R:
-                for _ in range(int(rng.integers(2, 5))):
-                    if x > iw - 2 * R:
-                        break
-                    cx, cy = x + R, base - R
-                    rot = math.radians(rng.choice([0, 30]) + rng.uniform(-8, 8))
-                    vx = [(cx + R * math.cos(rot + k * math.pi / 3), cy + R * math.sin(rot + k * math.pi / 3))
+            x = rng.uniform(4, 10)
+            while x < iw - 3 * R:
+                cells = [(0, 0)]
+                for _ in range(int(rng.integers(1, 4))):
+                    ci, cj = cells[int(rng.integers(len(cells)))]
+                    di, dj = [(1, 0), (1, -1), (0, 1), (0, -1)][int(rng.integers(4))]
+                    if (ci + di, cj + dj) not in cells:
+                        cells.append((ci + di, cj + dj))
+                edges = {}
+                for ci, cj in cells:
+                    cx = x + R + ci * hx
+                    cy = base - hy / 2 + (cj + (ci % 2) * 0.5) * hy - hy / 2
+                    vx = [(round(cx + R * math.cos(k * math.pi / 3), 2), round(cy + R * math.sin(k * math.pi / 3), 2))
                           for k in range(6)]
-                    e0, ne = int(rng.integers(6)), int(rng.integers(3, 5))
-                    out.append(([vx[(e0 + k) % 6] for k in range(ne + 1)], 2.8))
-                    if rng.random() < 0.65:  # spoke to the vertex opposite the gap
-                        vtx = vx[(e0 + ne + (6 - ne) // 2 + 3) % 6]
-                        out.append(([(cx, cy), vtx], 2.8))
-                    else:
-                        out.append((dot(cx, cy, 1.0), 3.6))
-                    x += 2 * R + rng.uniform(4, 7)
-                x += rng.uniform(9, 14)
-    return out
+                    for k in range(6):
+                        e = tuple(sorted((vx[k], vx[(k + 1) % 6])))
+                        edges[e] = edges.get(e, 0) + 1
+                keep = [e for e in edges if rng.random() > 0.28]
+                for a, b in keep:
+                    out.append(([a, b], 2.6))
+                ci, cj = cells[int(rng.integers(len(cells)))]
+                cx = x + R + ci * hx
+                cy = base - hy / 2 + (cj + (ci % 2) * 0.5) * hy - hy / 2
+                out.append((dot(cx, cy, 1.2), 4.0))
+                x += 2 * R + hx * max(ci for ci, _ in cells) + rng.uniform(10, 15)
+    # keep every mark inside the bubble whatever the dice said
+    allp = np.concatenate([np.asarray(p, float) for p, _ in out])
+    kx = min(1.0, (iw - 3) / max(allp[:, 0].max(), 1))
+    y0, y1 = allp[:, 1].min(), allp[:, 1].max()
+    ky = min(1.0, (ih - 6) / max(y1 - y0, 1))
+    oy = 3 - y0 * ky if (y0 < 3 or y1 > ih - 3) else 0.0
+    return [([(px * kx, py * (ky if oy else 1) + oy) for px, py in p], w) for p, w in out]
 
 
 def prepare_script(kind, rng):
@@ -594,7 +605,7 @@ def make_bugs(rng):
         if rng.random() < 0.65:
             span = min(ln, rng.uniform(26, 46))
             xs = np.linspace(xa + 2, xa + span, 40)
-            v.line(list(zip(xs, y + BAR_H + 4.2 + 1.6 * np.sin((xs - xa) / 6 * 2 * math.pi))), TERRA_LIGHT, 2.0)
+            v.line(list(zip(xs, y + BAR_H + 4.3 + 1.8 * np.sin((xs - xa) / 6 * 2 * math.pi))), TERRA_LIGHT, 2.2)
             x_end = xa + span + 2
         else:
             v.circle((xa + ln + 7, y + BAR_H / 2), 3.2, fill=TERRA_LIGHT)
@@ -705,7 +716,7 @@ def build_particles(rng, layer):
     order = np.argsort(tx + 0.001 * ty, kind="stable")
     tx, ty, tc = tx[order], ty[order], tc[order]
 
-    P = {k: [] for k in ("rx", "ry", "tdep", "fly", "tx", "ty", "tc", "slot", "off", "wob", "ph")}
+    P = {k: [] for k in ("rx", "ry", "tdep", "fly", "tx", "ty", "tc", "slot", "wob", "ph")}
     for c in range(4):
         s = SLOT[c]
         d = np.concatenate([st[0] for st in SCRIPTS[c]])
@@ -721,22 +732,11 @@ def build_particles(rng, layer):
         P["tx"].append(tx[seg]); P["ty"].append(ty[seg]); P["tc"].append(tc[seg])
         P["slot"].append(np.full(N_PER_BUBBLE, s))
         P["fly"].append(FLY + rng.uniform(-FLY_JIT, FLY_JIT, N_PER_BUBBLE))
-        P["off"].append(rng.normal(0, 34, N_PER_BUBBLE) - (s - 1.5) * 30)  # streams bow outward
         P["wob"].append(rng.uniform(2, 7, N_PER_BUBBLE))
         P["ph"].append(rng.uniform(0, 1, N_PER_BUBBLE))
     P = {k: np.concatenate(v) for k, v in P.items()}
-    # where each particle leaves from: its bubble, wherever the meter is at that moment
-    p0x, p0y = np.zeros(n_all), np.zeros(n_all)
-    for c in range(4):
-        m = P["slot"] == SLOT[c]
-        mx, my, ms, _ = meter_state(c, P["tdep"][m])
-        p0x[m], p0y[m] = mx + ms * P["rx"][m], my + ms * P["ry"][m]
-    P["p0x"], P["p0y"] = p0x, p0y
-    dx, dy = P["tx"] - p0x, P["ty"] - p0y
-    ln = np.hypot(dx, dy) + 1e-6
-    P["nx"], P["ny"] = -dy / ln, dx / ln
-    P["cx"] = (p0x + P["tx"]) / 2 + P["nx"] * P["off"]
-    P["cy"] = (p0y + P["ty"]) / 2 + P["ny"] * P["off"]
+    P["cxo"] = rng.normal(0, 46, n_all)  # control points bunch near the centre column
+    P["cyo"] = rng.normal(0, 30, n_all)
     P["tarr"] = P["tdep"] + P["fly"]
     # a character turns crisp once most of its ink has landed
     tchar = np.full(layer["nchar"], np.nan)
@@ -751,20 +751,34 @@ def build_particles(rng, layer):
 
 
 def particle_positions(t):
+    """Each particle leaves from its point on the (moving) bubble and rides a
+    quadratic curve whose control point sits near the centre column, so the
+    four streams bow inward and funnel into the line."""
     P = PARTS
     act = np.nonzero((t >= P["tdep"]) & (t < P["tarr"] + 0.3))[0]
     if not len(act):
         return None
+    slot, rx, ry = P["slot"][act], P["rx"][act], P["ry"][act]
+    tx, ty = P["tx"][act], P["ty"][act]
     xs, ys, ws = [], [], []
     fade = (1 - smooth(P["tarr"][act], P["tarr"][act] + 0.28, t)) / SUBSTEPS
     for j in range(SUBSTEPS):
         tj = t - j * SHUTTER / FPS / (SUBSTEPS - 1)
+        p0x, p0y = np.empty(len(act)), np.empty(len(act))
+        for c in range(4):
+            m = slot == SLOT[c]
+            mx, my, ms, _ = meter_state(c, max(tj, DEP0))
+            p0x[m], p0y[m] = mx + ms * rx[m], my + ms * ry[m]
+        cx = CX + P["cxo"][act]
+        cy = (p0y + ty) / 2 + P["cyo"][act]
         u = clamp((tj - P["tdep"][act]) / P["fly"][act])
         e = ease_io(0, 1, u)
         a, b, cc = (1 - e) ** 2, 2 * (1 - e) * e, e * e
+        dx, dy = tx - p0x, ty - p0y
+        ln = np.hypot(dx, dy) + 1e-6
         sway = P["wob"][act] * np.sin(math.pi * e) * np.sin(2 * math.pi * (1.5 * e + P["ph"][act]))
-        xs.append(a * P["p0x"][act] + b * P["cx"][act] + cc * P["tx"][act] + P["nx"][act] * sway)
-        ys.append(a * P["p0y"][act] + b * P["cy"][act] + cc * P["ty"][act] + P["ny"][act] * sway)
+        xs.append(a * p0x + b * cx + cc * tx - dy / ln * sway)
+        ys.append(a * p0y + b * cy + cc * ty + dx / ln * sway)
         ws.append(fade)
     return np.concatenate(xs), np.concatenate(ys), np.concatenate(ws)
 
@@ -800,14 +814,12 @@ def band(img, t):
         return
     y0, y1 = int(round(LAYER["top"])), int(round(LAYER["bottom"]))
     xa, xb = int(CX - k * (CX + 2)), int(CX + k * (W - CX + 2))
-    ramp = np.ones(y1 - y0, np.float32)
-    e = 10
-    ramp[:e] = np.linspace(0, 1, e)
-    ramp[-e:] = np.linspace(1, 0, e)
-    a = (0.92 * ramp)[:, None, None]
+    yy = np.arange(y0, y1) + 0.5
+    ramp = smooth(0, 22, yy - y0) * smooth(0, 22, y1 - yy)  # soft top and bottom edges
+    a = (0.9 * ramp).astype(np.float32)[:, None, None]
     reg = img[y0:y1, max(xa, 0):min(xb, W)]
     reg *= 1 - a
-    reg += np.array(COFFEE, np.float32) * a
+    reg += np.array(BAND, np.float32) * a
     tick = float(smooth(10.0, 10.5, t))
     if tick > 0:  # terracotta tick at the left end, like a highlighted line
         reg2 = img[y0 + 20:y1 - 20, 24:29]
