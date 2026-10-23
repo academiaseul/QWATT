@@ -94,9 +94,11 @@ async function main() {
   const iv = (i) => {
     const ts = T0 + i * DT * 1000;
     const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
-    return { spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION, site_id: 'asset-rehearsal', node_id: 'ar', seq: i,
+    const rec = { spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION, site_id: 'asset-rehearsal', node_id: 'ar', seq: i,
       ts_start: new Date(ts).toISOString(), ts_end: new Date(ts + DT * 1000).toISOString(), dt_s: DT,
       meters: { a: m('a', 100), b: m('b', 99) }, source: { adapter: 'simulator', raw_sha256: E.sha256('ar-' + i) } };
+    /* the raw payload its raw_sha256 hashes, out of band as the IntervalBuilder attaches it (V3-5) */
+    return Object.defineProperty(rec, E.RAW, { value: [{ n: 1, utf8: 'ar-' + i }], enumerable: false });
   };
   const feedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-asset-feed-'));
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-asset-ver-'));

@@ -6,7 +6,7 @@
   },
   "label": "prototipo",
   "prior": false,
-  "batch_schema": "1.0.0",
+  "batch_schema": "1.1.0",
   "source": {
     "es": "Un día simulado (20 sep 2026, de 06:00 a 14:00 hora de Chile) armado con el código del repositorio, con fallas a propósito. No está anclado.",
     "en": "A simulated day (20 Sep 2026, 06:00 to 14:00 Chile time) built with the repository's code, with deliberate faults. Not anchored."

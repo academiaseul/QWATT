@@ -7,19 +7,19 @@ published — accepted or rejected — and only accepted batches are ever anchor
 interval ──► assemble.js (judge: ingest checks + gates G0–G3) ──► ledger line (accepted | rejected + reasons)
                     │ every 12 intervals or on restart
                     ▼
-              close(): canonical JSON · intervals_root · prev_hash · energy · cumulative · sha256
+              close(): canonical JSON · intervals_root · samples_root · prev_hash · energy · cumulative · sha256
                     │ self-check with verify.js (the same function the verifier runs)
                     ▼
-              feed.js: batches/<id>.json · ledger/*.jsonl · index.json
+              feed.js: raw/<id>.jsonl · batches/<id>.json · ledger/*.jsonl · index.json
 ```
 
 | File | Role |
 |---|---|
-| `../protocol/evidence.js` | Canonical JSON (integers only, enforced), SHA-256, Merkle root, batch hash, batch id, basis energy. The one definition of the hash rules. |
+| `../protocol/evidence.js` | Canonical JSON (integers only, enforced), SHA-256, Merkle roots (`intervals_root`, and `samples_root` over the raw payloads), batch hash, batch id, basis energy. The one definition of the hash rules. |
 | `../protocol/reasons.json` | Registry of every non-gate reason code. Unregistered codes fail the tests. |
 | `assemble.js` | `BatchAssembler`: judge intervals, close windows into batches. Pure. |
 | `verify.js` | `verifyBatch`: re-derive everything a batch claims. Pure. Shared with the Deliverable 3 verifier. |
-| `feed.js` | The on-disk evidence feed: atomic file writes, append-only fsynced ledgers. |
+| `feed.js` | The on-disk evidence feed: atomic file writes, append-only fsynced ledgers. Each batch's raw lines are written to `raw/<batch_id>.jsonl` (once, atomically) before the batch file. |
 | `pipeline.js` | Restart-safe wiring of assembler + feed. State is rebuilt from the feed, never from memory. |
 | `verify-cli.js` | Re-derive a whole published feed from its files alone. |
 | `scale.js` | One month through the CSV adapter and the pipeline; chain verified; run twice, identical head. `--sample-s` (default 60, the cadence of both shipped sources) is the input's sample period: no energy is interpolated across a gap longer than three of them (V3-10, `ingest/README.md`); the summary states the value used. |
@@ -27,7 +27,14 @@ interval ──► assemble.js (judge: ingest checks + gates G0–G3) ──► 
 
 What `verify.js` checks (the proposer's self-check and the independent verifier run the same function):
 
-- schema, spec and schema versions, `batch_id`, `sha256`, `intervals_root`;
+- schema (batch schema 1.1.0: `samples_root` required), spec and schema versions, `batch_id`,
+  `sha256`, `intervals_root`;
+- raw payloads (V3-5), from the published `raw/<batch_id>.jsonl`: `samples_root` recomputed from it
+  (`batch.samples_root_mismatch`); one line per judged interval, in time order, the accepted lines
+  matching the batch's intervals one by one and every accepted or gate-refused interval's payloads
+  hashing to its `source.raw_sha256` (`batch.raw_mismatch`); a missing file is
+  `batch.raw_missing`. The rules (R1–R4) are in `protocol/batch.schema.json` and
+  `ingest/README.md`;
 - chain: `prev_hash` and `seq` continue the previous batch, or the batch is a valid genesis. The
   previous batch, and the floor below, must rehash to their own `sha256` before anything is read
   from them (`batch.chain_break`);
@@ -50,7 +57,9 @@ At the door, `assemble.js` applies the same rule before the gates, so an honest 
 defect and one bad line never sinks a batch: an interval from another site or node
 (`ingest.site_mismatch`), off the grid (`ingest.off_grid`), a duplicate, out of order, or starting
 before the latest interval that holds time ends (`ingest.overlap`: a change of `dt_s`, or an interval
-inside another) is refused on its own line. On restart that point resumes from the floor. A batch
+inside another), or one that came without its raw payloads or with payloads that do not hash to its
+`source.raw_sha256` (`ingest.raw_missing`, `ingest.raw_mismatch`) is refused on its own line. Its
+line is still published in `raw/<batch_id>.jsonl`, with what came with it. On restart that point resumes from the floor. A batch
 window spans only intervals that hold time: accepted ones, and gate-refused ones no longer than the
 profile's `interval_max_dt_s`. Lines refused at the door never set a window; a window with nothing
 that holds time is zero-length at the floor (`1970-01-01T00:00:00.000Z` before anything is accepted).
@@ -58,6 +67,7 @@ that holds time is zero-length at the floor (`1970-01-01T00:00:00.000Z` before a
 ```bash
 node batch/batch.test.js                 # tests (part of npm test and CI)
 node batch/scale.js                      # synthetic month; or --csv file.csv --a a_w --b b_w [--sample-s 60]
+npm run scale                            # PVDAQ month, --expect: must reproduce evidence/scale/scale-pvdaq-4902-2017-09.json
 node batch/verify-cli.js <feed-dir>      # verify any published feed
 node batch/batch.test.js --write         # regenerate the pinned fixture (only on a deliberate rule change)
 ```

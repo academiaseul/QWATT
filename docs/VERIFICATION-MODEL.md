@@ -85,8 +85,13 @@ Two properties matter:
 
 - **`prev_hash` chains the batches.** Removing or editing a past batch breaks every hash after
   it, so the record is append-only in practice, not just by convention.
-- **`sample_root` is a Merkle root over the raw 10-second samples.** The batch stays small
-  enough to anchor, while any individual sample can still be proven to belong to it later.
+- **`sample_root` commits to the raw readings.** In the batch schema the field is
+  `samples_root` (required since batch schema 1.1.0): a Merkle root over the SHA-256 of each raw
+  payload (a CSV row, an HTTP request body, the reply frames of one Modbus poll), published next
+  to the batch at `raw/<batch_id>.jsonl`. The batch stays small enough to anchor, while any
+  published payload can later be proven to belong to it. How many samples a payload carried is not
+  in the root: that count is bound through each interval's `raw_sha256` (rules R1–R4 in
+  `protocol/batch.schema.json`).
 
 **Anchoring — one atomic Stellar transaction, three operations:**
 

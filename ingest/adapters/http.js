@@ -25,7 +25,13 @@
  * clock_skew_s (V3-6): intervals built from POST /samples are stamped by the
  * IntervalBuilder's own clock when they close (the gateway's wall clock against
  * the node's sample timestamps, so node clock error plus latency); records posted
- * whole to POST /intervals are stamped here, from config.now. No dependencies.
+ * whole to POST /intervals are stamped here, from config.now.
+ *
+ * Raw payloads (V3-5): a /samples body is handed to the builder as text when its
+ * bytes round-trip as UTF-8, otherwise as the bytes (published as hex); either way
+ * the same bytes enter raw_sha256. A record posted whole to /intervals carries its
+ * request body as its one raw payload, out of band (Symbol.for('qwatt.raw_payloads')).
+ * No dependencies.
  */
 
 'use strict';
@@ -36,6 +42,10 @@ const crypto = require('crypto');
 const { validate } = require(path.join(__dirname, '..', '..', 'protocol', 'schema-lite.js'));
 const SCHEMA = require(path.join(__dirname, '..', '..', 'protocol', 'interval.schema.json'));
 const { offGrid } = require(path.join(__dirname, '..', '..', 'batch', 'verify.js'));
+
+const RAW = Symbol.for('qwatt.raw_payloads');
+/** A request body as a raw payload: its text when the bytes are UTF-8, else the bytes (the same bytes either way). */
+const asPayload = (buf) => { const t = buf.toString('utf8'); return Buffer.from(t, 'utf8').equals(buf) ? t : buf; };
 
 const RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/;
 
@@ -84,10 +94,11 @@ function start(config, builder, onInterval) {
       try { body = JSON.parse(raw.toString('utf8')); } catch (e) { return send(res, 400, { error: 'invalid JSON' }); }
       if (req.url === '/samples') {
         const list = Array.isArray(body) ? body : [body];
+        const payload = asPayload(raw);
         let closed = 0;
         for (const s of list) {
           if (!s || !['a', 'b'].includes(s.meter)) return send(res, 400, { error: 'meter must be "a" or "b"' });
-          const recs = builder.push(s.meter, { ts: s.ts, power_w: s.power_w, energy_wh: s.energy_wh }, raw);
+          const recs = builder.push(s.meter, { ts: s.ts, power_w: s.power_w, energy_wh: s.energy_wh }, payload);
           closed += recs.length;
           if (onInterval) recs.forEach(onInterval);
         }
@@ -107,6 +118,9 @@ function start(config, builder, onInterval) {
         const why = offGrid(body);
         if (why) return send(res, 400, { error: 'ingest.off_grid', detail: why });
         body.clock_skew_s = Math.round((now() - Date.parse(body.ts_end)) / 1000);
+        /* a record posted whole: its raw payload is the request body it arrived in */
+        const p = asPayload(raw);
+        Object.defineProperty(body, RAW, { value: [typeof p === 'string' ? { n: 1, utf8: p } : { n: 1, hex: p.toString('hex') }], enumerable: false });
         if (onInterval) onInterval(body);
         return send(res, 202, { accepted: true, seq: body.seq, clock_skew_s: body.clock_skew_s });
       }
