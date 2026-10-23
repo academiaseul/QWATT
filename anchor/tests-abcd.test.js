@@ -67,12 +67,19 @@ async function friendbotFor(fake) {
   return `http://127.0.0.1:${srv.address().port}/`;
 }
 
-/** The anchoring account exactly as setup-account.js configures it (its own transaction), on the fake network. */
+/**
+ * The anchoring account exactly as setup-account.js configures it, on the fake network: Friendbot funds
+ * the setup identity's account, build makes the unsigned setup transaction from the public keys, the
+ * setup identity signs it through (fake) stellar-cli, and submit re-derives and sends it.
+ */
 async function configuredAccount() {
   const K = newKeys();
   const fake = new FakeHorizon({ clock });
-  const o = { ...SETUP.DEFAULTS, friendbot_url: await friendbotFor(fake), proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() };
-  const { account } = await SETUP.createAndConfigure(fake, o);
+  const account = keyOf('qwatt-anchor-setup').publicKey();
+  await SETUP.friendbot({ friendbot_url: await friendbotFor(fake) }, account);
+  const o = { ...SETUP.DEFAULTS, account, proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() };
+  const r = await SETUP.submitSetup(fake, await SETUP.buildSetupTx(fake, o), o, { signer: fakeSigner('qwatt-anchor-setup') });
+  if (!r.ok) throw new Error(`setup not accepted: ${JSON.stringify(r)}`);
   return { K, fake, o, account };
 }
 
