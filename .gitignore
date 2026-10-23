@@ -9,3 +9,6 @@ mining-rig/node_modules/
 
 .vercel
 .env*
+
+# Rendered video files (large; re-render from docs/video/)
+*.mp4
