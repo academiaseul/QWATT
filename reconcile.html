@@ -299,11 +299,11 @@
     $('runBtn').disabled = true;
     var prog = $('progress');
     try {
-      prog.textContent = 'Downloading the evidence feed and reading the anchoring account from Horizon…';
-      var both = await Promise.all([R.fetchFeed(feedUrl), R.fetchAnchors(horizon, account)]);
-      prog.textContent = 'Recomputing ' + both[0].listed.length + ' batch hashes in your browser…';
-      var rep = await R.reconcile(both[0], both[1]);
-      render(rep, horizon); windows(both[0], rep); renderReasons(rep.summary);
+      prog.textContent = 'Reading the anchoring account and every anchoring transaction from Horizon, then downloading the evidence feed…';
+      /* Horizon first, then the feed (R.check); signer roles from the run's faults.json */
+      var res = await R.check({ feed: feedUrl, horizon: horizon, account: account });
+      var rep = res.report;
+      render(rep, horizon); windows(res.feed, rep); renderReasons(rep.summary);
       $('result').hidden = false;
       prog.textContent = 'Checked ' + rep.rows.length + ' batches and ' + rep.summary.anchor_transactions + ' anchoring transactions at ' + new Date().toISOString().slice(11, 19) + ' UTC.';
     } catch (e) {
