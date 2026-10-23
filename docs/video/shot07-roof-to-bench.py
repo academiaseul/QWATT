@@ -559,7 +559,9 @@ def render(src, t, grain_rng):
         c, s = math.cos(-0.56), math.sin(-0.56)
         u = ((xx - gx) * c + (yy - gy) * s) / (380 * z)
         v = (-(xx - gx) * s + (yy - gy) * c) / (140 * z)
-        g = 0.5 * np.exp(-u * u - v * v) + 0.9 * np.exp(-((xx - gx) ** 2 + (yy - gy) ** 2) / (48 * z) ** 2)
+        r2 = ((xx - gx) ** 2 + (yy - gy) ** 2) / (z * z)
+        g = (0.35 * np.exp(-u * u - v * v) + 0.6 * np.exp(-r2 / 70 ** 2) + 1.6 * np.exp(-r2 / 16 ** 2)
+             + 0.35 * np.exp(-((yy - gy) / (5 * z)) ** 2 - ((xx - gx) / (240 * z)) ** 2))  # faint lens streak
         edge = to_screen(0, FRAME_Y, cam)[1]
         g *= np.clip((edge - yy) / 6, 0, 1) * smooth(-0.4, 0.3, t)
         lum = img.mean(-1) / 255
