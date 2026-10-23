@@ -90,8 +90,8 @@ TERM_ROWS = 12              # the last row is a fresh prompt with a waiting curs
 # Base colour down the world (y, rgb); pairs one pixel apart make hard edges
 ROWS = [
     (0, (206, 196, 180)), (FRAME_Y, (206, 196, 180)),           # backsheet between cells
-    (FRAME_Y + 1, (64, 58, 56)), (1500, (80, 71, 64)),           # open shade under the panel, sky-lit
-    (1740, (90, 79, 69)), (1772, (150, 124, 98)),                # low sun on the gravel
+    (FRAME_Y + 1, (84, 76, 71)), (1500, (100, 89, 80)),          # open shade under the panel, sky-lit
+    (1740, (112, 97, 84)), (1772, (160, 131, 102)),              # low sun on the gravel
     (PARAPET_Y, (166, 136, 108)),
     (PARAPET_Y + 1, (224, 200, 168)), (PARAPET_Y + 60, (204, 180, 150)),  # parapet cap
     (PARAPET_Y + 61, (86, 68, 56)), (PARAPET_Y + 84, (170, 140, 112)),    # drip shadow
@@ -229,7 +229,7 @@ def draw_panel(img):
             v = rng.normal(0, 3)
             d.polygon([P(x0 + ch, y0), P(x1 - ch, y0), P(x1, y0 + ch), P(x1, y1 - ch), P(x1 - ch, y1),
                        P(x0 + ch, y1), P(x0, y1 - ch), P(x0, y0 + ch)],
-                      fill=(int(30 + v), int(42 + v), int(76 + 1.4 * v)))
+                      fill=(int(26 + v), int(40 + v), int(82 + 1.4 * v)))
             for fy in np.arange(y0 + 6, y1 - 3, 9):  # fine grid fingers
                 inset = max(0, ch - min(fy - y0, y1 - fy)) + 2
                 d.line([P(x0 + inset, fy), P(x1 - inset, fy)], fill=(50, 64, 98), width=1)
@@ -251,8 +251,9 @@ def draw_panel(img):
     d.rounded_rectangle(box(747, 1320, 777, 1344), radius=5 * SS, fill=(34, 35, 38))
     d.line([P(749, 1330), P(775, 1330)], fill=(64, 64, 66), width=SS)
 
-    # sheen on the glass: brighter toward the low sun, plus the bright hazy sky it
-    # reflects (a screen blend, so busbars keep their detail), warmer near the top
+    # sheen on the glass: brighter toward the low sun, a light haze of reflected sky,
+    # and warm veiling glare spreading in from the sun at the upper right (screen
+    # blends, so the busbars keep their detail)
     top = (FRAME_Y + 53) * SS
     a = np.asarray(img.crop((0, 0, WW * SS, top)), np.float32)
     yy, xx = np.mgrid[0:top, 0:WW * SS].astype(np.float32) / SS
@@ -260,10 +261,12 @@ def draw_panel(img):
     sun = np.exp(-((xx - 980) / 700) ** 2 - ((yy - 200) / 900) ** 2)
     a = a * (0.94 + 0.30 * sun)[..., None]
     up = np.clip(1 - yy / FRAME_Y, 0, 1)
-    sky = (34 + 16 * up + 14 * sun) * (yy < FRAME_Y)
-    tint = (np.array([1.0, 0.97, 0.94], np.float32) * (1 - 0.3 * up[..., None])
-            + np.array([1.12, 0.98, 0.78], np.float32) * (0.3 * up[..., None]))
-    a = 255 - (255 - a) * (255 - sky[..., None] * tint) / 255
+    glass = (yy < FRAME_Y)[..., None]
+    sky = (14 + 10 * up)[..., None] * np.array([0.92, 0.98, 1.06], np.float32)
+    glare = np.clip(0.55 + 0.5 * (xx / W - yy / FRAME_Y), 0, 1) ** 1.6
+    glare = (92 * glare + 30 * sun)[..., None] * np.array([1.0, 0.79, 0.54], np.float32)
+    for veil in (sky, glare):
+        a = 255 - (255 - a) * (255 - veil * glass) / 255
     img.paste(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)), (0, 0))
 
 
@@ -593,7 +596,7 @@ def render(src, t, grain_rng):
 
     # light: late-afternoon sun cooling into the bench's neutral side light
     k = smooth(0.25, 0.85, p)
-    img *= (WARM * (1 - k) + COOL * k) * (1.03 - 0.04 * k)
+    img *= (WARM * (1 - k) + COOL * k) * (1.11 - 0.12 * k)  # the sunlit roof a touch brighter
     img *= VIGNETTE
     img += grain_rng.normal(0, 2.8, (H, W, 1)).astype(np.float32)
     return np.clip(img, 0, 255).astype(np.uint8)
