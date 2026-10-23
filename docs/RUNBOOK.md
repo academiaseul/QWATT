@@ -8,8 +8,8 @@ Node 20, and the systemd units in `ops/deploy/`. What the founders must provide 
 
 | Host | Runs | Holds | Must never |
 |---|---|---|---|
-| **Proposer host** (always on; a VPS, not a laptop) | `qwatt-live` · `qwatt-proposer` · `qwatt-publish` | proposer secret · feed deploy key | hold the verifier secret |
-| **Verifier host** (different provider, operated by the other founder) | `qwatt-verifier` · `qwatt-watch` | verifier secret | be given any path or address of the proposer |
+| **Proposer host** (always on; a VPS, not a laptop) | `qwatt-live` · `qwatt-proposer` · `qwatt-publish` | proposer secret · the `qwatt-evidence` deploy key | hold the verifier secret or the `qwatt-verifier-log` deploy key |
+| **Verifier host** (different provider, operated by the other founder) | `qwatt-verifier` · `qwatt-verifier-log` · `qwatt-watch` | verifier secret · the `qwatt-verifier-log` deploy key | be given any path or address of the proposer, or the `qwatt-evidence` deploy key |
 | **Third signer** (a person, off-team) | nothing | their key, on their own device | send anyone their secret |
 
 The watchdog runs on the verifier host so it survives a proposer outage. A watchdog that dies with
@@ -44,14 +44,58 @@ what it watches cannot report that it died.
    with the treasury key → submit). Then run
    `node anchor/setup-account.js --verify G… --proposer G… --verifier G… --third G…`;
    every check must pass, `thresholds 2/2/3` included.
-5. **Feed host:** in the repository settings, GitHub Pages serves the `feed` branch at the root.
-   Add the proposer host's deploy key with write access. Note the Pages URL (it is case-sensitive:
-   check whether it is `…github.io/QWATT/` or `…/qwatt/`). That URL is `QWATT_FEED_URL`.
+5. **The two evidence repositories** (freeze v3, V3-7; the repositories and their rulesets by
+   Tue 27 Oct, the deploy keys by Wed 28 Oct, before the first anchor on the real account). Each is
+   a public history written by one host only. What they hold, file by file: `protocol/FEED-FORMAT.md`.
+   - Jay Kim (owner of `academiaseul`) creates `academiaseul/qwatt-evidence` and
+     `academiaseul/qwatt-verifier-log` at github.com/new: Public, with a README (the agreed text),
+     no .gitignore, the licence per decision D2 (proposal: MIT). Edit README.md and LICENSE now,
+     before the first publisher run. After it, nobody but the host's publisher commits to either
+     repository: the publisher replays its own unpushed commits on top of a commit that only edits
+     README.md or LICENSE, and refuses anything else (*When the publisher refuses*, item 6).
+   - On each repository, Settings → Rules → Rulesets → New branch ruleset, twice, both targeting the
+     default branch: **(1) "public history"**: Active, empty bypass list, *Restrict deletions*,
+     *Block force pushes*, *Require linear history*; **(2) "only the host key writes"**: Active,
+     bypass list = *Deploy keys* (always), *Restrict updates*. They are separate because a bypass
+     actor bypasses every rule of its ruleset, so the deploy key can push but never force-push or
+     delete. If *Deploy keys* is not offered as a bypass actor, keep only (1) and say in the
+     write-up that the owner account can also push.
+   - Each deploy key is generated on its own host, as user `qwatt`, and only its `.pub` file is
+     sent to Jay: `sudo -u qwatt mkdir -p -m 700 /home/qwatt/.ssh`, then on the proposer host
+     `sudo -u qwatt ssh-keygen -t ed25519 -N "" -C "qwatt-evidence deploy key, proposer host" -f /home/qwatt/.ssh/qwatt-evidence`
+     and on the verifier host
+     `sudo -u qwatt ssh-keygen -t ed25519 -N "" -C "qwatt-verifier-log deploy key, verifier host" -f /home/qwatt/.ssh/qwatt-verifier-log`.
+     The private file never leaves its host and is never pasted anywhere.
+   - Jay adds each public key under Settings → Deploy keys → *Allow write access*: the proposer
+     host's key on `qwatt-evidence` only, the verifier host's key on `qwatt-verifier-log` only.
+   - On each host, pin GitHub's host key:
+     `sudo -u qwatt sh -c 'ssh-keyscan -t ed25519 github.com >> /home/qwatt/.ssh/known_hosts'`; check
+     `ssh-keygen -lf /home/qwatt/.ssh/known_hosts` against GitHub's published ED25519 fingerprint
+     `SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU`; then
+     `sudo -u qwatt ssh -i /home/qwatt/.ssh/qwatt-evidence -o IdentitiesOnly=yes -T git@github.com`
+     greets `Hi academiaseul/qwatt-evidence!` (exit status 1 is normal). The same with
+     `qwatt-verifier-log` on the verifier host.
+   - Run names: `QWATT_RUN=run` for the seven-day live run, `rehearsal-YYYY-MM-DD` for a rehearsal,
+     the same in `publish.env` (proposer host) and `verifier-log.env` (verifier host). Each run
+     starts with an empty feed directory and an empty verifier state directory.
+     `QWATT_FEED_URL` is `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>`.
+   - Optional: Settings → Pages on `qwatt-evidence` → Deploy from a branch → `main` / (root), so
+     the github.io address opens in a browser. No service reads Pages.
+   - Smoke test on the proposer host, with a run name and a feed directory of its own
+     (`rehearsal-2026-10-28`, `/var/lib/qwatt/smoke-feed`; T1 keeps `rehearsal-2026-10-29`):
+     `sudo -u qwatt node ops/publish-feed.js --kind evidence --feed /var/lib/qwatt/smoke-feed --run rehearsal-2026-10-28 --remote git@github.com:academiaseul/qwatt-evidence.git --work /var/lib/qwatt/evidence-repo --ssh-key /home/qwatt/.ssh/qwatt-evidence --once`
+     exits 0. A published run name is never reused, because the public history is never
+     rewritten: a T1 published under the smoke test's name would be refused (`PUBLISH REFUSED`).
+     Any restart from an empty feed gets a new run name. Then, from any machine,
+     `git clone https://github.com/academiaseul/qwatt-evidence && node ops/evidence-audit.js qwatt-evidence`
+     prints `public history intact`.
 6. **Rehearse on the real account:** `node anchor/rehearse.js` produces tests A–D and the
    third-signer liveness check on a throwaway account. For the real account, the same sequence runs
    as the first proposals. Keep the evidence file for the write-up (`--tests`).
 7. Install the units: `cp ops/deploy/*.service /etc/systemd/system/`, fill in `/etc/qwatt/*.env`
-   from `ops/deploy/env.example`, then `systemctl daemon-reload`.
+   from `ops/deploy/env.example` (`publish.env` on the proposer host, `verifier-log.env` on the
+   verifier host), then `systemctl daemon-reload`. `qwatt-publish` runs only on the proposer host,
+   `qwatt-verifier-log` only on the verifier host.
 
 ## Starting the run (Day 21, latest Day 23)
 
@@ -59,9 +103,9 @@ Start in this order, checking each before the next:
 
 | Step | Host | Command | Check |
 |---|---|---|---|
-| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min |
+| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min |
 | 2 | proposer | `systemctl enable --now qwatt-live` | `feed/faults.json` exists; `journalctl -u qwatt-live` shows "replaying …" |
-| 3 | proposer | `systemctl enable --now qwatt-publish` | `QWATT_FEED_URL/index.json` loads in a browser (Pages may take a few minutes) |
+| 3 | proposer | `systemctl enable --now qwatt-publish` | `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>/index.json` (`<run>` = `QWATT_RUN`, `run` for the live run) loads (the CDN may lag up to 5 minutes); `journalctl -u qwatt-publish` shows `published …` |
 | 4 | proposer | `systemctl enable --now qwatt-proposer` | within an hour, the first batch shows **anchored** on the reconciliation page |
 
 Reconciliation page:
@@ -75,6 +119,11 @@ Reconciliation page:
    fault that is due shows *refused as expected*.
 3. Glance at the alert channel. No message is expected on a good day; the watchdog sends one only
    when something starts, repeats every 6 h, or clears.
+4. History audit, from any machine with this repository, on a fresh clone of each public
+   repository: `git clone https://github.com/academiaseul/qwatt-evidence /tmp/qe && node ops/evidence-audit.js /tmp/qe --since <yesterday's head>`
+   and `git clone https://github.com/academiaseul/qwatt-verifier-log /tmp/qv && node ops/evidence-audit.js /tmp/qv --kind verifier-log --since <yesterday's head>`.
+   Both must print `public history intact`. Note today's heads (`git -C /tmp/qe rev-parse HEAD`,
+   the same for `/tmp/qv`) for tomorrow's check and the write-up.
 
 ## When an alert arrives
 
@@ -83,10 +132,68 @@ Reconciliation page:
 | `VERIFIER_SILENT` | verifier host down or process crashed | `systemctl status qwatt-verifier`; restart it. Batches wait as *published, not anchored* and catch up in order on their own. Nothing to repair. |
 | `BACKLOG` | verifier is up but not signing | Check the verifier's `/refusals.jsonl`. A refusal means it found a real mismatch: **do not** work around it; see `NEW_REFUSAL`. With no refusal, check `journalctl -u qwatt-proposer` for `blocked`: the proposer runs the verifier's checks first and does not propose what the verifier would refuse. `blocked` with `verifier.walk_too_long`: see *A long run of rejected batches* below. |
 | `NEW_REFUSAL` | the verifier refused a proposal | Read the reason. `verifier.not_published` is usually feed lag and resolves itself. `verifier.hash_mismatch`, `verifier.head_mismatch` or `batch.*` means the published evidence and the proposal disagree: stop `qwatt-proposer`, investigate, and record it in the write-up. `verifier.walk_too_long` is not a disagreement: see *A long run of rejected batches* below. |
-| `FEED_STALE` | the live run stopped | `systemctl status qwatt-live`. Restart it. The minutes it was down stay a visible gap; they are never backfilled. Note the gap for the write-up. A runner that is alive but has fallen more than 7500 s behind the host clock (stalled process, suspended VM) gets `plausibility.skew` on every interval, because each interval's `clock_skew_s` is read from the host clock (V3-6): restart it the same way; it resumes at *now*. |
-| `NO_ANCHOR` | proposer, publisher or Horizon problem | Check `qwatt-proposer` and `qwatt-publish` logs, then `https://status.stellar.org`. |
+| `FEED_STALE` | the live run stopped, or nothing new reaches the public repository | `systemctl status qwatt-live`. Restart it. The minutes it was down stay a visible gap; they are never backfilled. Note the gap for the write-up. A runner that is alive but has fallen more than 7500 s behind the host clock (stalled process, suspended VM) gets `plausibility.skew` on every interval, because each interval's `clock_skew_s` is read from the host clock (V3-6): restart it the same way; it resumes at *now*. If `qwatt-live` is fine, check `journalctl -u qwatt-publish`: see *When the publisher refuses* below. |
+| `NO_ANCHOR` | proposer, publisher or Horizon problem | Check `qwatt-proposer` and `qwatt-publish` logs (`PUBLISH REFUSED`: see below), then `https://status.stellar.org`. |
 | `BROKEN` | the chain and the feed disagree, or the account or an anchor's signatures break §3 | Treat as an incident. Do not edit any published file. Capture the reconciliation output (`node anchor/reconcile-cli.js --feed <QWATT_FEED_URL> --account <anchoring account>`) and investigate. The problem lines name what was read from Horizon: an account deviation (for example `thresholds 1/2/3`, `master weight 1`, `4 signer(s)`), a signature pair other than proposer + verifier or proposer + third (for example `signed by verifier+third`), a missing or different fixed label in `faults.json`, or signer roles missing or not matching the account. A STAND-IN anchor (proposer + third) is reported but is not BROKEN. |
 | `SOURCE_DOWN` | Horizon or the feed host unreachable | Usually transient. If Horizon is down, nothing can anchor; it resumes by itself when Horizon returns. |
+
+## When the publisher refuses (`PUBLISH REFUSED`)
+
+**When you see it.** `journalctl -u qwatt-publish` (or `-u qwatt-verifier-log` on the verifier
+host) shows `PUBLISH REFUSED (nothing pushed): …`; `FEED_STALE` or `NO_ANCHOR` follow, because
+nothing new reaches the public repository. The refusal is deliberate: a local file disagrees
+with what is already public, or someone else wrote to the repository, and the publisher stops
+rather than publish the change.
+
+**Never** edit, force-push or delete anything in the public repositories to get past it. The
+history audit shows any such change, and the published copy is the record.
+
+**Do** (paths for the proposer host; on the verifier host use `/var/lib/qwatt/verifier-log-repo`
+and `/var/lib/qwatt/verifier`):
+
+1. Read the problem. Each names `<run>/<path>` and one of: *published file would be rewritten*,
+   *does not extend its published bytes*, *looks like a secret key; never published*,
+   *would be deleted* or *outside the run's layout*; or it names the repository and a commit
+   *not made by this host*.
+2. A rewritten or shrunk file: compare the local file with the published copy,
+   `git -C /var/lib/qwatt/evidence-repo show HEAD:run/<path> | diff - /var/lib/qwatt/feed/<path>`,
+   and find out why the local copy changed (an edit, a restore from an old backup, a disk fault).
+   Stop the service that writes the file (`qwatt-live` for batches and ledgers, `qwatt-proposer`
+   for `anchored/`), restore the local file from the published copy
+   (`git -C /var/lib/qwatt/evidence-repo show HEAD:run/<path> > /var/lib/qwatt/feed/<path>`), start
+   the service again and check that the next tick publishes. Record the cause and the restore in
+   the write-up.
+3. A secret key: nothing was pushed. Stop the service that wrote it, remove the key from the file,
+   and tell both founders at once: that key is treated as exposed on the host.
+4. *would be deleted*: put the file back in the worktree,
+   `git -C /var/lib/qwatt/evidence-repo checkout -- run/<path>`.
+5. *outside the run's layout*: a stray file in the worktree; remove it from
+   `/var/lib/qwatt/evidence-repo/run/`.
+6. *… not made by this host; only README.md and LICENSE edits are replayed*: someone pushed to
+   the repository from elsewhere (a commit that does more than add or edit README.md or LICENSE,
+   a merge, or a rewritten history). This host's commits wait, unpushed. Do not force-push. Look at what
+   landed: `sudo -u qwatt git -C /var/lib/qwatt/evidence-repo fetch origin`, then
+   `git -C /var/lib/qwatt/evidence-repo log --stat HEAD..origin/main`; run the history audit on a
+   fresh clone (daily checks, step 4) and tell both founders. The outside commit stays in the
+   public history and the audit names it: record it in the write-up. Once both founders agree to
+   continue on top of it, `sudo -u qwatt git -C /var/lib/qwatt/evidence-repo rebase origin/main`
+   replays this host's commits there, and the next tick pushes them.
+
+## A host rebuilt from scratch
+
+The publisher's worktree (`/var/lib/qwatt/evidence-repo`, `/var/lib/qwatt/verifier-log-repo`)
+can be lost: the next tick clones it again and the history continues. The feed directory and the
+verifier state directory cannot: started empty, they would produce files that do not extend what
+is already public, and the publisher refuses them (correct, but the run stops until someone acts).
+
+1. Generate a new deploy key on the new host (setup step 5); Jay adds it and deletes the old one
+   from the repository's deploy keys.
+2. Before starting `qwatt-live` and `qwatt-proposer`, restore the feed from the published copy:
+   `git clone https://github.com/academiaseul/qwatt-evidence /tmp/qe && cp -a /tmp/qe/run/. /var/lib/qwatt/feed/ && chown -R qwatt: /var/lib/qwatt/feed`;
+   then `node batch/verify-cli.js /var/lib/qwatt/feed` must print `OK`.
+3. On a rebuilt verifier host, before starting `qwatt-verifier`, restore its state the same way
+   from `qwatt-verifier-log` into `/var/lib/qwatt/verifier`.
+4. Start the services, and record the rebuild and the minutes the host was down in the write-up.
 
 ## A long run of rejected batches (`verifier.walk_too_long`)
 
@@ -143,4 +250,5 @@ The feed is off-chain and complete, so a reset loses no evidence.
 3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --json > evidence/live-audit.json`.
 4. Generate the write-up:
    `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/rehearsal/<file>.json --out WRITEUP.md`.
-5. Stop the services. The feed branch and the chain remain as the permanent public record.
+5. Stop the services. The two repositories and the chain remain as the public history. After the
+   write-up is submitted, Jay may archive both repositories (Settings → Archive this repository).

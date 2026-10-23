@@ -1,0 +1,80 @@
+# The public evidence feed: format and rules
+
+What anyone can download to check a QWATT run (SOW Deliverable 2, the evidence manifest format for
+public download). Two public repositories, each written by one host only (freeze v3, V3-7):
+
+| Repository | Written from | Published by |
+|---|---|---|
+| `academiaseul/qwatt-evidence` | the proposer host | `ops/publish-feed.js --kind evidence` (`qwatt-publish.service`) |
+| `academiaseul/qwatt-verifier-log` | the verifier host | `ops/publish-feed.js --kind verifier-log` (`qwatt-verifier-log.service`) |
+
+Each run lives under `<run>/` on branch `main`: `run` for the seven-day live run,
+`rehearsal-YYYY-MM-DD` for a rehearsal. The repository root holds `.gitattributes` (`* -text`: the
+bytes are served exactly as written), `.nojekyll`, and the owner's `README.md` and `LICENSE`. Read
+the files from a clone, or over HTTPS at
+`https://raw.githubusercontent.com/academiaseul/<repository>/main/<run>/<path>` (a CDN copy, which
+can lag up to 5 minutes).
+
+## `qwatt-evidence/<run>/`
+
+| Path | Written by | Content | Once published |
+|---|---|---|---|
+| `index.json` | pipeline (`batch/feed.js`) | the head: `latest_batch_id`, `latest_seq`, `head_sha256`, `cumulative_mwh`, `spec_version`, `schema_version`, `last_ts_start`, `site_id` | replaced (it only points at the head) |
+| `batches/<batch_id>.json` | pipeline | one batch, accepted or rejected, in canonical JSON (`protocol/batch.schema.json`; hash rules in `protocol/evidence.js`) | written once |
+| `ledger/batches.jsonl` | pipeline | one line per published batch: `batch_id`, `seq`, `sha256`, `status` (`accepted` or `rejected`), `reasons` | grows only |
+| `ledger/accepted.jsonl` | pipeline | one line per accepted interval: `batch_id`, `verdict` (`accept`), `reasons` (empty), `interval` (the normalized record, `protocol/interval.schema.json`), `basis_mwh` | grows only |
+| `ledger/rejected.jsonl` | pipeline | one line per refused interval: `batch_id`, `verdict` (`reject`), `reasons` (codes in `protocol/gates.spec.json` and `protocol/reasons.json`), `interval`, and `detail` for some codes | grows only |
+| `raw/<batch_id>.jsonl` | pipeline (from V3-5) | the raw payloads of each interval judged in the batch's window, one line per interval; the batch's `samples_root` is their Merkle root | written once, published in the same commit as its batch |
+| `samples/<name>.csv` | the live run (`live/run.js`) | the samples replayed, one file per UTC day (or part of one) | written once |
+| `samples/manifest.jsonl` | the live run | one line per CSV: `file`, `from`, `to`, `rows`, `sha256`; a CSV is published only once a manifest line lists it | grows only |
+| `faults.json` | the live run | the run definition, published before the first sample: `description`, `site_id`, `node_id`, `seed`, `days`, `run_start`, `run_end`, `sample_step_s`, `interval_s`, `faults` (every fault window), `published_at` | written once |
+| `pending/<batch_id>.xdr` | proposer (`anchor/proposer.js`) | the proposal: the anchoring transaction for that batch, signed by the proposer, as base64 XDR | replaced only by a fresh proposal for the same batch; stays published after the proposer clears it locally |
+| `anchored/<batch_id>.json` | proposer | the anchor found on the chain: `batch_id`, `seq`, `sha256`, `tx_hash`, `ledger`, `anchored_at` | written once |
+
+V3-5 adds `samples_root` to every batch, the raw payloads to the interval lines and the `raw/` files;
+it states their line format in `protocol/batch.schema.json` and `batch/README.md`.
+
+## `qwatt-verifier-log/<run>/`
+
+| Path | Written by | Content | Once published |
+|---|---|---|---|
+| `decisions.jsonl` | verifier (`anchor/verifier.js`) | one line per decision, signed or refused (written by the verifier from V3-7b on) | grows only |
+| `refusals.jsonl` | verifier | one line per refusal: `at`, `batch_id`, `pending_tx_hash`, `reasons`, `detail` | grows only |
+| `status.json` | verifier | the verifier's last tick: `started_at`, `last_tick`, `last_result`, `signed`, `refused` | replaced (deviation DV-8, for the founders to sign) |
+
+## The rules every commit keeps
+
+`ops/publish-feed.js` checks them before each push and refuses the whole tick on any violation;
+`ops/evidence-audit.js` checks them over a whole history.
+
+- **Only this layout**, under `<run>/`. Nothing else in the host's directory is published.
+- **Written once** unless a table above says otherwise. Nothing published is ever deleted.
+- **Replaced**: `index.json`, a pending envelope for the same batch, and the verifier's `status.json`.
+- **Grows only**: every `.jsonl` except `raw/`. The published bytes stay the beginning of every
+  later version, and a line is published only once it is complete (ends with a newline).
+- **No secret keys**: a file that looks like a Stellar secret seed or a PEM private key stops the
+  publication, and the refusal never repeats the key.
+- **Consistent snapshots**: every commit is a feed that `node batch/verify-cli.js <clone>/<run>`
+  accepts. The publisher reads `index.json` first and cuts every ledger at the head it names, so a
+  batch closed during a publication never leaves a ledger line without its batch file.
+- **A proposal after its batch**: `pending/<batch_id>.xdr` is added only in a commit after the one
+  that published `batches/<batch_id>.json` (and `raw/<batch_id>.jsonl`, for a batch that carries
+  `samples_root`), so the verifier is never asked to sign what it cannot download.
+- **One writer, one line of history**: no merge commits and no force-push (the repository rulesets).
+  Only the host's publisher commits under `<run>/`. The owner may add and edit `README.md` and
+  `LICENSE`, never delete them.
+
+## Checking a repository
+
+```bash
+git clone https://github.com/academiaseul/qwatt-evidence
+node ops/evidence-audit.js qwatt-evidence --since <a head you recorded earlier>
+node batch/verify-cli.js qwatt-evidence/<run>
+git clone https://github.com/academiaseul/qwatt-verifier-log
+node ops/evidence-audit.js qwatt-verifier-log --kind verifier-log
+```
+
+The audit needs git and Node only (no network after the clone). It prints
+`<n> commits · public history intact`, or names each problem: a merge commit, a deleted, rewritten
+or shrunk file, a line added half-written, a file outside the layout, a proposal published before
+its batch or its raw file. `--since` also reports a force-push that removed a head you recorded.
