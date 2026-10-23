@@ -30,7 +30,7 @@ Publicado el viernes 23 de octubre. Todo corre solo en Stellar testnet y con ent
 
 **Congelación de la arquitectura v3.** Los dos fundadores la acordaron el miércoles 21 de octubre (Día 3), con los umbrales 2/2/3 para la cuenta de anclaje (OD-1). Está en [docs/ARCHITECTURE-FREEZE-v3.md](docs/ARCHITECTURE-FREEZE-v3.md) (`b304ddb`).
 
-**Umbrales 2/2/3 aplicados.** Ninguna llave sola puede enviar una transacción de la cuenta de anclaje. La prueba llegó antes que el cambio y falla sin él (`075b14e` prueba, `666c65b` cambio); `cad7c9a` ajusta la redacción de `docs/VERIFICATION-MODEL.md`. El CI pasó sobre `cad7c9a` en la [corrida #31](https://github.com/academiaseul/QWATT/actions/runs/39939377387). Fusionado el 23 oct en [#9](https://github.com/academiaseul/QWATT/pull/9); `main` quedó en verde en la [corrida #32](https://github.com/academiaseul/QWATT/actions/runs/39939391730), sobre `9183545`.
+**Umbrales 2/2/3 aplicados.** Ninguna clave sola puede enviar una transacción de la cuenta de anclaje. La prueba llegó antes que el cambio y falla sin él (`075b14e` prueba, `666c65b` cambio); `cad7c9a` ajusta la redacción de `docs/VERIFICATION-MODEL.md`. El CI pasó sobre `cad7c9a` en la [corrida #31](https://github.com/academiaseul/QWATT/actions/runs/39939377387). Fusionado el 23 oct en [#9](https://github.com/academiaseul/QWATT/pull/9); `main` quedó en verde en la [corrida #32](https://github.com/academiaseul/QWATT/actions/runs/39939391730), sobre `9183545`.
 
 **Entregable 1 (ingesta independiente del medidor): evidencia completa.** La ingesta es trabajo previo: `98b281a`, del 9 sep 2026. Esta semana se completó su evidencia (`cae00a6`), resumida con sus límites en [docs/DELIVERABLE-1-EVIDENCE.md](docs/DELIVERABLE-1-EVIDENCE.md):
 
