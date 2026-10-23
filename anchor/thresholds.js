@@ -18,6 +18,8 @@
  * Every tool that configures, checks or describes the account reads it from
  * here: setup-account.js, rehearse.js, e2e.js, live/dress-rehearsal.js,
  * live/soak.js, ops/writeup.js and the fake Horizon used by the tests.
+ * assets/qwatt-reconcile.js (ACCOUNT_RULES) keeps a browser copy, held equal
+ * to these values by batch/reconcile.test.js.
  * No dependencies, so ops/ can read it without installing anchor/.
  */
 

@@ -73,8 +73,8 @@ async function main() {
     idle = p.action === 'idle' && v.action === 'idle' ? idle + 1 : 0;
   }
 
-  const [feed, anchors] = await Promise.all([R.fetchFeed(host.url), R.fetchAnchors(HORIZON, pub.account)]);
-  const rec = await R.reconcile(feed, anchors);
+  /* Horizon first (account, anchors and their signatures), then the feed */
+  const { report: rec, anchors } = await R.check({ feed: host.url, horizon: HORIZON, account: pub.account, roles: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } });
   await host.close();
   log(`reconciliation: ${rec.verdict} · ${rec.summary.anchored_batches}/${rec.summary.accepted_batches} anchored · ${rec.summary.rejected_intervals} intervals refused`);
 

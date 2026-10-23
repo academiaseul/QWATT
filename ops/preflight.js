@@ -100,7 +100,9 @@ async function preflight(o) {
   if (o.feed && cfg) {
     try {
       const R = require(path.join(__dirname, '..', 'assets', 'qwatt-reconcile.js'));
-      const rep = await R.reconcile(await R.fetchFeed(o.feed), await R.fetchAnchors(horizon, cfg.anchor_account));
+      /* Horizon first (account, anchors and their signatures), then the feed; roles from the flags, else from faults.json */
+      const roles = o.proposer && o.verifier && o.third ? { proposer: o.proposer, verifier: o.verifier, third: o.third } : null;
+      const rep = (await R.check({ feed: o.feed, horizon, account: cfg.anchor_account, roles })).report;
       if (rep.summary.published_batches === 0) add('reconcile', 'nothing published yet to reconcile', null);
       else add('reconcile', `verdict ${rep.verdict} (${rep.summary.anchored_batches}/${rep.summary.accepted_batches} anchored)`, rep.verdict !== 'BROKEN', rep.problems.slice(0, 2).join(' | '));
     } catch (e) { add('reconcile', 'reconciliation ran', false, e.message); }

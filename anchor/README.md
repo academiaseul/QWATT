@@ -33,7 +33,9 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `static-server.js` | Read-only static server for a feed directory (local runs, tests). |
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
 | `e2e.js` | Throwaway-account end-to-end run of both services: chain, restart, independence test, test D. |
+| `reconcile-cli.js` | The reconciliation from the command line (the logic `../reconcile.html` runs, from `../assets/qwatt-reconcile.js`); see below. |
 | `tx.test.js` · `recovery.test.js` · `tests-abcd.test.js` | Offline tests (no network), against `fake-horizon.js`, which applies Stellar's signature rules. |
+| `fake-horizon-http.js` | Test double: a fake Horizon REST API on 127.0.0.1 (the account, its operations joined with their transactions, `/transactions/<hash>`) and throwaway in-memory Ed25519 keys. No dependencies, so `../batch/reconcile.test.js` stays install-free. |
 
 **What the verifier checks before it co-signs.** Any failure is a refusal with a reason code
 registered in `../protocol/reasons.json`, and nothing is signed:
@@ -79,6 +81,46 @@ QWATT_PROPOSER_SECRET=S… node proposer.js --feed ../feed --config config.json
 QWATT_VERIFIER_SECRET=S… node verifier.js --feed https://<public feed> --config config.json --port 8090
 # both accept --max-walk N (default 168); see ../docs/RUNBOOK.md before using it
 ```
+
+**What the reconciliation checks from Horizon** (`../assets/qwatt-reconcile.js`, shared by
+`reconcile-cli.js`, `../reconcile.html`, `../ops/writeup.js`, `../ops/watch.js` and
+`../ops/preflight.js`). Besides re-hashing every published batch against what was anchored, it
+reads the anchoring account and every anchor's signatures, never assuming them:
+
+- the account (`GET /accounts/<id>`) must be thresholds 2/2/3 (low/medium/high), master weight 0 and
+  exactly three `ed25519_public_key` signers of weight 1 (freeze v3 §3); anything else is BROKEN and
+  the problem names the value read;
+- each anchoring transaction's signatures (from the operations joined with their transactions, or
+  `GET /transactions/<hash>`) are verified with Ed25519 over the transaction hash, which is what
+  Stellar signs, against the three signer keys: proposer + verifier is **normal**, proposer + third
+  signer is **STAND-IN** (reported, still reconciles), anything else (verifier + third, one
+  signature, all three, a key that is not a signer) is **BROKEN**;
+- who is who comes from the run's `faults.json` (`anchoring.signers`, written by `../live/run.js`).
+  `--proposer G… --verifier G… --third G…` (all three or none) are only for a feed that does not
+  declare them; if both exist and differ, the verdict is BROKEN. Each role must be a signer of the
+  account;
+- the feed must publish `faults.json` with the fixed label "Simulated input · assurance A0 · Stellar
+  testnet"; a feed without it, or with another label, is BROKEN.
+
+```bash
+node reconcile-cli.js --feed <base URL> --account G… [--horizon URL] [--proposer G… --verifier G… --third G…] [--json]
+#   RECONCILED / PENDING (exit 0) or BROKEN (exit 1), then the label, the account as read,
+#   "signatures: N proposer+verifier · M stand-in (proposer+third) · K other" and any problems
+```
+
+It reads Horizon first (the account, then every anchor), then the feed: a batch is published before
+it is signed, so an anchor missing from a feed read afterwards is a defect, not a stale copy. A
+Horizon or feed error fails the check (exit 1, no verdict); it is never reported as BROKEN. The
+signer set is the one Horizon returns at the time of the check: if a signer were replaced during a
+run, earlier anchors signed by the removed key would read as BROKEN (`unknown key`). Ed25519
+verification needs WebCrypto Ed25519 (Node 20, or Chrome 137+, Firefox 129+, Safari 17+); without
+it the check stops with no verdict and points to this CLI.
+
+For code that builds on it: `R.check({ feed, horizon, account, roles?, feedOptions? })` returns
+`{ report, feed, anchors, account }`; `feedOptions` is passed to `fetchFeed(base, opt)` (today
+`{ timeoutMs }`), which is where pinned reads of the evidence repository add their options. A
+caller that reconciles pieces it fetched itself passes the chain as the third argument,
+`R.reconcile(feed, anchors, { account, record, roles })`; with two arguments it throws.
 
 Secrets come from the environment only and are never written, logged or committed. `config.json`
 (copy `config.example.json`) holds public values only and stays out of git because it is host-specific.
