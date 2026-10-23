@@ -126,8 +126,14 @@ this page where a form differs.
      `qwatt-verifier-log` on the verifier host.
    - Run names: `QWATT_RUN=run` for the seven-day live run, `rehearsal-YYYY-MM-DD` for a rehearsal,
      the same in `publish.env` (proposer host) and `verifier-log.env` (verifier host). Each run
-     starts with an empty feed directory and an empty verifier state directory.
-     `QWATT_FEED_URL` is `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>`.
+     starts with an empty feed directory and an empty verifier state directory. A run name, once
+     published, is taken for good (the public history is never rewritten), so a rehearsal never uses
+     `run`. `ops/deploy/env.example` carries the placeholder `rehearsal-YYYY-MM-DD`, which is not a
+     valid run name: `qwatt-publish` and `qwatt-verifier-log` exit 2 until it is replaced, in both
+     env files and in every URL below.
+     `QWATT_FEED_URL` is `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>`
+     (`verifier.env` and `watch.env`) and `QWATT_VERIFIER_LOG_URL` is
+     `https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>` (`watch.env`).
    - Optional: Settings → Pages on `qwatt-evidence` → Deploy from a branch → `main` / (root), so
      the github.io address opens in a browser. No service reads Pages.
    - Smoke test on the proposer host, with a run name and a feed directory of its own
@@ -142,8 +148,9 @@ this page where a form differs.
    third-signer liveness check on a throwaway account. For the real account, the same sequence runs
    as the first proposals. Keep the evidence file for the write-up (`--tests`).
 9. Install the units: `cp ops/deploy/*.service /etc/systemd/system/`, fill in `/etc/qwatt/*.env`
-   from `ops/deploy/env.example` (public values only; `publish.env` on the proposer host,
-   `verifier-log.env` on the verifier host), then `systemctl daemon-reload`. `qwatt-publish` runs
+   from `ops/deploy/env.example` (public values only, with the run name chosen in step 7;
+   `publish.env` on the proposer host, `verifier-log.env` on the verifier host), then
+   `systemctl daemon-reload`. `qwatt-publish` runs
    only on the proposer host, `qwatt-verifier-log` only on the verifier host. `stellar` must be on
    user `qwatt`'s PATH (`/usr/local/bin`) and the identity in that user's home, or the service
    exits 2 at start. On the proposer host,
@@ -154,6 +161,9 @@ this page where a form differs.
    started (`now` for the week-2 rehearsal on Thu 29 Oct; the live run's own start time for the
    live run) and give each run an empty feed directory. `/opt/qwatt` must be a git checkout of the
    commit being run: the run publishes it as `code_commit`.
+   When a unit file changes in this repository, copy it again, `systemctl daemon-reload` and restart
+   that service: editing only its env file is not enough. For example `qwatt-watch.service` now passes
+   `--verifier-log`, and `ops/watch.js` and `ops/preflight.js` exit 2 on the retired `--verifier-status`.
 
 ## Backup drill (once, before the freeze)
 
@@ -188,7 +198,7 @@ Start in this order, checking each before the next:
 
 | Step | Host | Command | Check |
 |---|---|---|---|
-| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min |
+| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min (port 8090 answers on the verifier host only); within 6 min `https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/status.json` shows it too (the CDN may lag up to 5 minutes more) |
 | 2 | proposer | `systemctl enable --now qwatt-live` | `feed/faults.json` exists, with `label` = "Simulated input · assurance A0 · Stellar testnet", `anchoring.signers` = the three public keys from setup step 2 and `code_commit` = `git -C /opt/qwatt rev-parse HEAD`; `journalctl -u qwatt-live` shows "replaying …" |
 | 3 | proposer | `systemctl enable --now qwatt-publish` | `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>/index.json` (`<run>` = `QWATT_RUN`, `run` for the live run) loads (the CDN may lag up to 5 minutes); `journalctl -u qwatt-publish` shows `published …` |
 | 4 | proposer | `systemctl enable --now qwatt-proposer` | within an hour, the first batch shows **anchored** on the reconciliation page |
@@ -214,9 +224,9 @@ Reconciliation page:
 
 | Alert | Likely cause | Do |
 |---|---|---|
-| `VERIFIER_SILENT` | verifier host down or process crashed | `systemctl status qwatt-verifier`; restart it. Batches wait as *published, not anchored* and catch up in order on their own. Nothing to repair. |
-| `BACKLOG` | verifier is up but not signing | Check the verifier's `/refusals.jsonl`. A refusal means it found a real mismatch: **do not** work around it; see `NEW_REFUSAL`. With no refusal, check `journalctl -u qwatt-proposer` for `blocked`: the proposer runs the verifier's checks first and does not propose what the verifier would refuse. `blocked` with `verifier.walk_too_long`: see *A long run of rejected batches* below. `journalctl -u qwatt-verifier` shows reason `signer`, or either service exits 2 at start and systemd restarts it in a loop: stellar-cli missing or identity not found for user qwatt (check with `sudo -u qwatt -H stellar keys address qwatt-verifier`, or `qwatt-proposer`). |
-| `NEW_REFUSAL` | the verifier refused a proposal | Read the reason. `verifier.not_published` is usually feed lag and resolves itself. `verifier.hash_mismatch`, `verifier.head_mismatch` or `batch.*` means the published evidence and the proposal disagree: stop `qwatt-proposer`, investigate, and record it in the write-up. `verifier.walk_too_long` is not a disagreement: see *A long run of rejected batches* below. |
+| `VERIFIER_SILENT` | the verifier's `status.json` in its public log is over 15 minutes old: the verifier host is down, `qwatt-verifier` crashed, or `qwatt-verifier-log` stopped publishing its log. (A healthy log can read up to about 11.5 minutes old: published at most every 5 minutes, plus the publisher's interval, the verifier's tick and up to 5 minutes of CDN cache.) | `systemctl status qwatt-verifier qwatt-verifier-log`; restart whichever stopped (`journalctl -u qwatt-verifier-log` for `PUBLISH REFUSED`: see below). Batches wait as *published, not anchored* and catch up in order on their own. Nothing to repair. |
+| `BACKLOG` | verifier is up but not signing | Read `refusals.jsonl` in the public verifier log (`https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/refusals.jsonl`; on the verifier host also `curl localhost:8090/refusals.jsonl`). A refusal means it found a real mismatch: **do not** work around it; see `NEW_REFUSAL`. With no refusal, check `journalctl -u qwatt-proposer` for `blocked`: the proposer runs the verifier's checks first and does not propose what the verifier would refuse. `blocked` with `verifier.walk_too_long`: see *A long run of rejected batches* below. `journalctl -u qwatt-verifier` shows reason `signer`, or either service exits 2 at start and systemd restarts it in a loop: stellar-cli missing or identity not found for user qwatt (check with `sudo -u qwatt -H stellar keys address qwatt-verifier`, or `qwatt-proposer`). |
+| `NEW_REFUSAL` | the verifier refused a proposal | Read the reason in `refusals.jsonl` of the public verifier log (the same refusal is a `refused` line in `decisions.jsonl`). `verifier.not_published` is usually feed lag and resolves itself. `verifier.hash_mismatch`, `verifier.head_mismatch` or `batch.*` means the published evidence and the proposal disagree: stop `qwatt-proposer`, investigate, and record it in the write-up. `verifier.walk_too_long` is not a disagreement: see *A long run of rejected batches* below. |
 | `FEED_STALE` | the live run stopped, or nothing new reaches the public repository | `systemctl status qwatt-live`. Restart it. The minutes it was down stay a visible gap; they are never backfilled. Note the gap for the write-up. A runner that is alive but has fallen more than 7500 s behind the host clock (stalled process, suspended VM) gets `plausibility.skew` on every interval, because each interval's `clock_skew_s` is read from the host clock (V3-6): restart it the same way; it resumes at *now*. If `qwatt-live` is fine, check `journalctl -u qwatt-publish`: see *When the publisher refuses* below. |
 | `NO_ANCHOR` | proposer, publisher or Horizon problem | Check `qwatt-proposer` and `qwatt-publish` logs (`PUBLISH REFUSED`: see below), then `https://status.stellar.org`. |
 | `BROKEN` | the chain and the feed disagree, or the account or an anchor's signatures break §3 | Treat as an incident. Do not edit any published file. Capture the reconciliation output (`node anchor/reconcile-cli.js --feed <QWATT_FEED_URL> --account <anchoring account>`) and investigate. The problem lines name what was read from Horizon: an account deviation (for example `thresholds 1/2/3`, `master weight 1`, `4 signer(s)`), a signature pair other than proposer + verifier or proposer + third (for example `signed by verifier+third`), a missing or different fixed label in `faults.json`, or signer roles missing or not matching the account. A STAND-IN anchor (proposer + third) is reported but is not BROKEN. |
@@ -238,8 +248,8 @@ and `/var/lib/qwatt/verifier`):
 
 1. Read the problem. Each names `<run>/<path>` and one of: *published file would be rewritten*,
    *does not extend its published bytes*, *looks like a secret key; never published*,
-   *would be deleted* or *outside the run's layout*; or it names the repository and a commit
-   *not made by this host*.
+   *would be deleted*, *outside the run's layout* or, on the verifier host, *this state directory
+   judged … not the run …*; or it names the repository and a commit *not made by this host*.
 2. A rewritten or shrunk file: compare the local file with the published copy,
    `git -C /var/lib/qwatt/evidence-repo show HEAD:run/<path> | diff - /var/lib/qwatt/feed/<path>`,
    and find out why the local copy changed (an edit, a restore from an old backup, a disk fault).
@@ -263,6 +273,10 @@ and `/var/lib/qwatt/verifier`):
    public history and the audit names it: record it in the write-up. Once both founders agree to
    continue on top of it, `sudo -u qwatt git -C /var/lib/qwatt/evidence-repo rebase origin/main`
    replays this host's commits there, and the next tick pushes them.
+7. *this state directory judged … not the run …*: the verifier's `status.json` names the feed of
+   another run (the state directory was reused, or `QWATT_FEED_URL` and `QWATT_RUN` disagree).
+   Each run has its own state directory: fix `verifier.env` / `verifier-log.env` so they name the
+   same run, or give the new run an empty `/var/lib/qwatt/verifier`.
 
 ## A host rebuilt from scratch
 
@@ -276,8 +290,10 @@ is already public, and the publisher refuses them (correct, but the run stops un
 2. Before starting `qwatt-live` and `qwatt-proposer`, restore the feed from the published copy:
    `git clone https://github.com/academiaseul/qwatt-evidence /tmp/qe && cp -a /tmp/qe/run/. /var/lib/qwatt/feed/ && chown -R qwatt: /var/lib/qwatt/feed`;
    then `node batch/verify-cli.js /var/lib/qwatt/feed` must print `OK`.
-3. On a rebuilt verifier host, before starting `qwatt-verifier`, restore its state the same way
-   from `qwatt-verifier-log` into `/var/lib/qwatt/verifier`.
+3. On a rebuilt verifier host, before starting `qwatt-verifier`, restore its log from the published
+   copy, so its counts continue and nothing it publishes rewrites what is public:
+   `git clone https://github.com/academiaseul/qwatt-verifier-log /tmp/qv && cp /tmp/qv/run/decisions.jsonl /tmp/qv/run/refusals.jsonl /var/lib/qwatt/verifier/ && chown -R qwatt: /var/lib/qwatt/verifier`
+   (`status.json` is rewritten on the first tick).
 4. Start the services, and record the rebuild and the minutes the host was down in the write-up.
 
 ## A long run of rejected batches (`verifier.walk_too_long`)
