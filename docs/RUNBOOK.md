@@ -144,9 +144,9 @@ this page where a form differs.
      Any restart from an empty feed gets a new run name. Then, from any machine,
      `git clone https://github.com/academiaseul/qwatt-evidence && node ops/evidence-audit.js qwatt-evidence`
      prints `public history intact`.
-8. **Rehearse on the real account:** `node anchor/rehearse.js` produces tests A–D and the
-   third-signer liveness check on a throwaway account. For the real account, the same sequence runs
-   as the first proposals. Keep the evidence file for the write-up (`--tests`).
+8. **Tests A–D and independence on the real account,** once, with the first live proposal: see the
+   section of that name below. Its `abcd.json` is the evidence file for the write-up (`--tests`).
+   (`node anchor/rehearse.js` remains the throwaway-account rehearsal of 8 Oct.)
 9. Install the units: `cp ops/deploy/*.service /etc/systemd/system/`, fill in `/etc/qwatt/*.env`
    from `ops/deploy/env.example` (public values only, with the run name chosen in step 7;
    `publish.env` on the proposer host, `verifier-log.env` on the verifier host), then
@@ -191,6 +191,33 @@ not a signer, that backup restores a different key: the holder generates a new k
 repeated, BEFORE the real account is created (afterwards the signer set could not change without
 that lost key). Each `-restored` identity is removed right after signing, so the secret stays only
 where it already was.
+
+## Tests A–D and independence on the real account
+
+Once, on the week-2 account, right after setup (Thu 29 Oct; Fri 30 is the buffer). A, B, D and I
+must run while the SAME proposal is live (its window is 24 h; 60 minutes once V3-11 lands) and the
+verifier service is stopped; C is the verifier service then anchoring that very proposal. A, B and C
+are therefore one transaction body with one hash, and the verdict checks it. `$FEED` is the public
+feed URL and `<G_A>` the anchoring account. Every file written is public data.
+
+| Step | Who, where | Do |
+|---|---|---|
+| T1 | Diego, proposer host; Jay, verifier host | Proposer host: in `/etc/qwatt/live.env` set `QWATT_RUN_START=now` (this week-2 run starts at once, as `ops/deploy/env.example` has it; the live run's November start is set only at the freeze, on a fresh feed; a restart keeps the start recorded in `faults.json`) and the three public keys `QWATT_PROPOSER_PUBLIC`, `QWATT_VERIFIER_PUBLIC` and `QWATT_THIRD_PUBLIC` (setup step 9). Set `QWATT_RUN` to a rehearsal name, for example `rehearsal-2026-10-29` (never the live run's `run`), in `/etc/qwatt/publish.env` and, on the verifier host, in `/etc/qwatt/verifier-log.env`; `QWATT_FEED_URL` and `QWATT_VERIFIER_LOG_URL` name that run (setup step 7). Start from an EMPTY `/var/lib/qwatt/feed` (the account starts at genesis). Verifier host: start from an EMPTY `/var/lib/qwatt/verifier` (no state from an earlier run carries over). Then, with the updated units (`--sign-with-key`), on the proposer host: `systemctl daemon-reload && systemctl enable --now qwatt-live qwatt-publish`. |
+| T2 | Jay, verifier host | `systemctl stop qwatt-verifier qwatt-watch`. They stay stopped until T8 (the watchdog would otherwise alert `VERIFIER_SILENT`). |
+| T3 | Diego, proposer host | `systemctl enable --now qwatt-proposer`, then wait for `journalctl -u qwatt-proposer` to show `"action":"proposed"` (the first batch closes about 60 min after the start at real-time pace). `curl -sf $FEED/pending/<batch_id>.xdr` must return it publicly. |
+| T4 | Diego, proposer host or own computer | `node anchor/tests-abcd.js a --config /etc/qwatt/anchor.json --feed $FEED --out ~/abcd-A/abcd.json` must report refused `tx_bad_auth`. It needs no key: it submits the published proposal as it is. |
+| T5 | Jay, verifier host | `sudo -u qwatt -H node /opt/qwatt/anchor/tests-abcd.js b --config /etc/qwatt/anchor.json --feed $FEED --sign-with-key qwatt-verifier --out /home/qwatt/abcd-V/abcd.json` must report refused `tx_bad_auth`. B first runs the verifier's own checks and signs nothing they would refuse. |
+| T6 | Jay, verifier host | `sudo -u qwatt -H node /opt/qwatt/anchor/tests-abcd.js d --config /etc/qwatt/anchor.json --feed $FEED --out /home/qwatt/abcd-V/abcd.json` must report refused `verifier.hash_mismatch`, with nothing submitted. |
+| T7 | Jay, verifier host | `sudo -u qwatt -H node /opt/qwatt/anchor/tests-abcd.js i --config /etc/qwatt/anchor.json --feed $FEED --out /home/qwatt/abcd-V/abcd.json` must report refused `verifier.not_published`, with nothing signed or submitted. The batch is withheld from the verifier's only input path by a local proxy on this host; the public feed is never touched (DV-7). |
+| T8 | Jay, verifier host | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch`. Within 30 s, `curl -s localhost:8090/status.json` must show `last_result.action` `anchored`. |
+| T9 | Either founder, any machine | `node anchor/tests-abcd.js c --config anchor.json --out ~/abcd-C/abcd.json` must report ok, pair `proposer+verifier`, and a stellar.expert link. |
+| T10 | Jay, own computer | Copy the three folders (public data), then `node anchor/tests-abcd.js combine --out evidence/account/<G_A>/abcd.json ~/abcd-A/abcd.json ~/abcd-V/abcd.json ~/abcd-C/abcd.json`: verdict PASS. It copies the raw A, B, C, D and I files beside it, each with its SHA-256 in `index.json`. Then `node anchor/capture.js account <G_A> --evidence evidence/account/<G_A>` (a final snapshot after C). |
+| T11 | Jay | Open the evidence PR. |
+| T12 | Both | Leave the week-2 account as it is. At the code freeze (Fri 6 Nov, OD-5) the run account is set up the same way (setup steps 4–6) with the same three public keys: no new keys and no new drill. After a testnet reset the keys survive; only the accounts are re-created. |
+
+If the proposal expires or is replaced between T4 and T7, the hashes no longer match and the verdict
+says FAIL: start again from T3 with the next proposal. A verdict of FAIL or INCOMPLETE is recorded as
+it is, never edited.
 
 ## Starting the run (Day 21, latest Day 23)
 
@@ -350,6 +377,6 @@ The feed is off-chain and complete, so a reset loses no evidence.
 2. Leave proposer and verifier running until the reconciliation page says **RECONCILED**.
 3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --json > evidence/live-audit.json`.
 4. Generate the write-up:
-   `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/rehearsal/<file>.json --out WRITEUP.md`.
+   `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/account/<G_A>/abcd.json --out WRITEUP.md`.
 5. Stop the services. The two repositories and the chain remain as the public history. After the
    write-up is submitted, Jay may archive both repositories (Settings → Archive this repository).

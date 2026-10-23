@@ -33,7 +33,8 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `proposer.js` | Proposer service: runs the verifier's walk over its own feed, signs the next published, self-verified batch and writes `pending/<id>.xdr`; otherwise it reports `blocked` with the verifier's reason. Never submits. |
 | `verifier.js` | Verifier service: feed URL in, co-signature out. Every decision in `<state>/decisions.jsonl` (`signed` with the hash of the transaction it signed, logged before the submission; `refused` with the reasons), every refusal also in `<state>/refusals.jsonl`, and `<state>/status.json` replaced each tick. `qwatt-verifier-log.service` publishes them to `academiaseul/qwatt-verifier-log/<run>/`; `--port` serves them on 127.0.0.1 only, for the operator. |
 | `feed-client.js` | HTTP(S) reader for the public feed — the verifier's only input path. |
-| `static-server.js` | Read-only static server for a feed directory (local runs, tests). |
+| `static-server.js` | Read-only static server for a feed directory (local runs, tests), and `withholdingFeed`, the proxy test I puts in front of the feed to withhold one batch from the verifier. |
+| `tests-abcd.js` | Tests A–D and independence (I) on the real account, each run on the host that holds its key or view; `combine` joins the evidence of the hosts into one `abcd.json` with its raw files. |
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
 | `e2e.js` | Throwaway-account end-to-end run of both services: chain, restart, independence test, test D. |
 | `reconcile-cli.js` | The reconciliation from the command line (the logic `../reconcile.html` runs, from `../assets/qwatt-reconcile.js`); see below. |
@@ -163,4 +164,21 @@ one-time setup), and the off-team third signer follows `../docs/THIRD-SIGNER.md`
   A and B count as refused only on `tx_bad_auth` with the account at 2/2/3, otherwise the A–D
   verdict is FAIL (`rehearse.js` keeps accepting `op_bad_auth` for the 8 Oct evidence);
 - tests A, B and C share one transaction hash because Stellar hashes exclude signatures — cite A
-  and B by envelope and result code, never by hash.
+  and B by envelope and Horizon's answer, never by hash. On the real account this holds by
+  construction: A submits the published proposal (`pending/<id>.xdr`) as it is, B re-signs that
+  same body with the verifier key alone (after running the verifier's own walk, `verifyBatch` and
+  `matchPending`), and C is the verifier service anchoring that very proposal. The verdict checks
+  `A.body_hash === B.body_hash === C.hash`. Before week 2, A and B rebuilt the transaction with
+  fresh time bounds, so their hash would not have been C's;
+- C names the two keys that signed by role (`pair`, from `signers` in the public config) and links
+  stellar.expert; only `proposer+verifier` is test C;
+- **I (independence)** runs the real verifier code with a local proxy on the verifier host that
+  withholds `batches/<id>.json` from the verifier's only input path, and the verifier refuses with
+  `verifier.not_published`; it is given a signer that can never sign. The public feed is never
+  touched: like D, which alters the batch in memory, I changes only what the verifier sees. This is
+  how V3-4's "batch not published" is built (deviation DV-7, for the founders to sign in freeze v3);
+  cite it as "withheld from the verifier's only input path", never as an unpublished batch;
+- each step writes its raw files beside `abcd.json` (A/B envelope and Horizon response, C's Horizon
+  record, the D and I pending envelopes, I's refusal log) with their SHA-256 in `index.json`;
+  `tests-abcd.js combine` joins the files of the hosts (`../docs/RUNBOOK.md`, *Tests A–D and
+  independence on the real account*).

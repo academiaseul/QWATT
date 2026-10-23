@@ -21,7 +21,12 @@
  *     everything else (manageData, payment, changeTrust, other setOptions) MEDIUM.
  *   - on success: the operations apply (manageData, changeTrust, setOptions,
  *     bumpSequence; a payment is recorded but moves no balance), the sequence is
- *     consumed, and a transaction record with memo and ledger is appended.
+ *     consumed, and a transaction record with memo, ledger, signatures and
+ *     envelope_xdr is appended; the answer carries hash, ledger, envelope_xdr and
+ *     successful: true.
+ *   - a refusal is answered as Horizon answers it: HTTP 400 with a problem JSON
+ *     (type …/transaction_failed, title, status, extras.envelope_xdr,
+ *     extras.result_codes, and extras.result_xdr for a transaction-level code).
  *
  * Without `account`, no account exists until `fund(id)` (what Friendbot does)
  * creates one the way the network does: master weight 1, thresholds 0/0/0, no
@@ -43,6 +48,8 @@ const { THRESHOLDS } = require('./thresholds');
 const DEFAULT_THRESHOLDS = { ...THRESHOLDS };
 const LOW_OPS = new Set(['bumpSequence', 'allowTrust', 'setTrustLineFlags']);
 const HIGH_FIELDS = ['signer', 'masterWeight', 'lowThreshold', 'medThreshold', 'highThreshold'];
+/* transaction-level result codes and their TransactionResult arms (result_xdr is built only for these) */
+const TX_RESULT_ARMS = { tx_bad_auth: 'txBadAuth', tx_bad_seq: 'txBadSeq', tx_too_late: 'txTooLate', tx_too_early: 'txTooEarly', tx_no_account: 'txNoAccount' };
 
 /** The threshold level Stellar requires for an operation: 'low', 'med' or 'high'. */
 function levelOf(op) {
@@ -117,9 +124,16 @@ class FakeHorizon {
     };
   }
 
-  _reject(codes) {
+  _reject(codes, tx) {
     const e = new Error('Request failed with status code 400');
-    e.response = { status: 400, data: { extras: { result_codes: codes } } };
+    const extras = { envelope_xdr: tx.toEnvelope().toXDR('base64'), result_codes: codes };
+    const arm = TX_RESULT_ARMS[codes.transaction];
+    if (arm && !codes.operations) {
+      extras.result_xdr = new S.xdr.TransactionResult({
+        feeCharged: S.xdr.Int64.fromString('0'), result: S.xdr.TransactionResultResult[arm](), ext: new S.xdr.TransactionResultExt(0),
+      }).toXDR('base64');
+    }
+    e.response = { status: 400, data: { type: 'https://stellar.org/horizon-errors/transaction_failed', title: 'Transaction Failed', status: 400, extras } };
     throw e;
   }
 
@@ -180,26 +194,27 @@ class FakeHorizon {
     this.submissions++;
     const mode = this.failNext; this.failNext = null;
     if (mode === 'timeout-before') throw Object.assign(new Error('timeout of 60000ms exceeded (fake, did not land)'), { code: 'ECONNABORTED' });
-    if (!this.account || tx.source !== this.account) this._reject({ transaction: 'tx_no_account' });
-    if (BigInt(tx.sequence) !== this.sequence + 1n) this._reject({ transaction: 'tx_bad_seq' });
+    if (!this.account || tx.source !== this.account) this._reject({ transaction: 'tx_no_account' }, tx);
+    if (BigInt(tx.sequence) !== this.sequence + 1n) this._reject({ transaction: 'tx_bad_seq' }, tx);
     const now = this.clock.now();
     const tb = tx.timeBounds || { minTime: '0', maxTime: '0' };
-    if (Number(tb.minTime) > now) this._reject({ transaction: 'tx_too_early' });
-    if (Number(tb.maxTime) !== 0 && Number(tb.maxTime) < now) this._reject({ transaction: 'tx_too_late' });
+    if (Number(tb.minTime) > now) this._reject({ transaction: 'tx_too_early' }, tx);
+    if (Number(tb.maxTime) !== 0 && Number(tb.maxTime) < now) this._reject({ transaction: 'tx_too_late' }, tx);
     const weight = this._weight(tx);
-    if (!this._meets(weight, 'low')) this._reject({ transaction: 'tx_bad_auth' });
+    if (!this._meets(weight, 'low')) this._reject({ transaction: 'tx_bad_auth' }, tx);
     const short = tx.operations.findIndex((op) => !this._meets(weight, levelOf(op)));
-    if (short >= 0) this._reject({ transaction: 'tx_failed', operations: tx.operations.map((op, i) => (i === short ? 'op_bad_auth' : 'op_success')) });
+    if (short >= 0) this._reject({ transaction: 'tx_failed', operations: tx.operations.map((op, i) => (i === short ? 'op_bad_auth' : 'op_success')) }, tx);
 
     this.sequence = BigInt(tx.sequence);
     for (const op of tx.operations) this._apply(op);
     this.ledger += 1;
     const hash = tx.hash().toString('hex');
     const memo = tx.memo && tx.memo.value !== null && tx.memo.value !== undefined ? tx.memo.value.toString() : undefined;
-    this.txs.push({ hash, successful: true, memo_type: tx.memo ? tx.memo.type : 'none', memo, ledger_attr: this.ledger, created_at: new Date(now * 1000).toISOString(), signatures: tx.signatures.map((x) => x.signature().toString('base64')),
+    const envelope_xdr = tx.toEnvelope().toXDR('base64');
+    this.txs.push({ hash, successful: true, memo_type: tx.memo ? tx.memo.type : 'none', memo, ledger_attr: this.ledger, created_at: new Date(now * 1000).toISOString(), signatures: tx.signatures.map((x) => x.signature().toString('base64')), envelope_xdr,
       data: tx.operations.filter((op) => op.type === 'manageData').map((op) => ({ name: op.name, value: op.value == null ? null : op.value.toString('ascii') })) });
     if (mode === 'timeout-after') throw Object.assign(new Error('timeout of 60000ms exceeded (fake, but it landed)'), { code: 'ECONNABORTED' });
-    return { hash, ledger: this.ledger };
+    return { hash, ledger: this.ledger, envelope_xdr, successful: true };
   }
 
   transactions() {
