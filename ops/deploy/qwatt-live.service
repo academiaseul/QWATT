@@ -7,7 +7,7 @@ Wants=network-online.target
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
-ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days 7 --start ${QWATT_RUN_START}
+ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days 7 --start ${QWATT_RUN_START} --proposer ${QWATT_PROPOSER_PUBLIC} --verifier ${QWATT_VERIFIER_PUBLIC} --third ${QWATT_THIRD_PUBLIC}
 EnvironmentFile=/etc/qwatt/live.env
 Restart=always
 RestartSec=10

@@ -19,9 +19,9 @@ audit.js ──► every fault refused for its reason · every 5-minute slot jud
 |---|---|
 | `simulator.js` | The Phase 1 bench rig as numbers: 150 Wp in Santiago, real sun position, deterministic clouds, two DC meters at their real resolutions, 10 s samples. A pure function of (seed, time), so any minute regenerates identically. |
 | `schedule.js` | Eight injections, each of the four SOW kinds twice. Grid-aligned whole intervals, placed by solar position. |
-| `run.js` | Runs or resumes the run. Publishes `faults.json` first; refuses a restart with a different seed or length. In real time it resumes at *now* (gaps stay visible, never backfilled) and never emits a sample before its timestamp. |
+| `run.js` | Runs or resumes the run. Publishes `faults.json` first; refuses a restart with a different seed or length. In real time it resumes at *now* (gaps stay visible, never backfilled) and never emits a sample before its timestamp. `faults.json` carries the fixed label "Simulated input · assurance A0 · Stellar testnet", the commit of the code the run was started from (`code_commit`) and the three signer public keys (`anchoring.signers`), which the reconciliation reads to tell who signed each anchor. A real-time run needs `--proposer G… --verifier G… --third G…` (public keys) and a git checkout (or `--code-commit`). A restart refuses a `faults.json` without the label or with other keys. |
 | `audit.js` | The acceptance check, from the published feed alone. |
-| `live.test.js` | Accelerated multi-day runs, crash/restart, and tamper detection (CI). |
+| `live.test.js` | Accelerated multi-day runs, crash/restart, tamper detection, and what `faults.json` must carry (label, signer keys, code commit) (CI). |
 
 | Fault | Injection | Expected reason |
 |---|---|---|
@@ -31,7 +31,7 @@ audit.js ──► every fault refused for its reason · every 5-minute slot jud
 | Implausible ramp | 0 → 400 W within one sample, 5 min | `nameplate.over` (dedicated ramp gate deferred to Instaward #2, freeze D-10) |
 
 ```bash
-node live/run.js --feed feed --days 7                      # the real run, real-time pace
+node live/run.js --feed feed --days 7 --proposer G… --verifier G… --third G…   # the real run, real-time pace
 node live/audit.js feed                                    # any time during or after the run
 node live/run.js --feed /tmp/f --days 7 --speed fast       # the whole week in seconds (rehearsal)
 ```

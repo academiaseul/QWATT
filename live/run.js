@@ -3,6 +3,7 @@
  * QWATT — seven-day live run (Deliverable 4)
  * ---------------------------------------------------------------------------
  *   node live/run.js --feed feed --days 7 [--start now|<ISO>] [--seed 20261103] [--speed realtime|fast|<N>]
+ *        [--proposer G… --verifier G… --third G…] [--code-commit <40-hex commit>]
  *
  * SOW: "the full pipeline anchoring every interval through the multisig at
  * real-time pace, fed by the solar simulator and the CSV replay adapter."
@@ -17,6 +18,16 @@
  * parameters and every fault window, so a reviewer can match each injection
  * against the rejection ledger. A restart reads its parameters back from that
  * file and refuses different ones, so a run cannot quietly change seed or schedule.
+ *
+ * faults.json also carries the fixed label "Simulated input · assurance A0 ·
+ * Stellar testnet" (freeze v3 V3-9), the commit of the code the run was started
+ * from (`code_commit`, freeze v3 §7: "the frozen commit, named in the feed") and,
+ * for every real-time run, the three signer public keys (`anchoring.signers`:
+ * proposer, verifier, third), which the reconciliation uses to tell normal
+ * anchors from STAND-IN and BROKEN ones. A real-time run does not start without
+ * the three keys or without a code commit. A restart refuses a faults.json
+ * without the label or one that names other keys. The file never changes:
+ * other keys, or another label, mean a new feed.
  *
  * Restart rule: in real time the run resumes at "now". Minutes the runner was
  * down stay a visible gap; they are never backfilled at speed (that would fake
@@ -33,6 +44,7 @@ const S = require('./schedule');
 const { IntervalBuilder } = require('../ingest/lib/normalize');
 const csv = require('../ingest/adapters/csv');
 const { Pipeline } = require('../batch/pipeline');
+const R = require('../assets/qwatt-reconcile.js');
 
 const SITE_ID = 'bench-santiago';
 const NODE_ID = 'live-sim';
@@ -58,6 +70,62 @@ function describeRun(days, speed) {
     (1 included: like any replay it resumes where the feed ends) use the replay clock. */
 const builderClock = (speed) => (speed === 'realtime' ? () => Date.now() : 'replay');
 
+/**
+ * The three signer public keys of a run ({ proposer, verifier, third }), checked: each a valid
+ * G… address (checksum included) and all three different. null/undefined → null.
+ */
+function checkSigners(s) {
+  if (s == null) return null;
+  for (const role of R.ROLE_NAMES) {
+    if (R.publicKeyBytes(s[role]) === null) throw new Error(`signers.${role}: a valid G… public key is required`);
+  }
+  if (new Set(R.ROLE_NAMES.map((r) => s[r])).size !== 3) throw new Error('the proposer, verifier and third signer must be three different keys');
+  return { proposer: s.proposer, verifier: s.verifier, third: s.third };
+}
+
+/** --proposer G… --verifier G… --third G…: all three (checked) or none (null). */
+function signersArg(args) {
+  const opt = (k) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : undefined; };
+  const given = R.ROLE_NAMES.filter((r) => opt(`--${r}`) !== undefined);
+  if (!given.length) return null;
+  if (given.length !== 3) throw new Error('pass --proposer, --verifier and --third together (public keys)');
+  return checkSigners({ proposer: opt('--proposer'), verifier: opt('--verifier'), third: opt('--third') });
+}
+
+const COMMIT = /^[0-9a-f]{40}$/;
+/**
+ * The commit checked out in `repoDir` (HEAD), read from the .git files so that it needs neither the
+ * git binary nor git's ownership checks (the service runs as another user than the one that
+ * cloned); `git rev-parse HEAD` is only the fallback. null when it is not a checkout.
+ * Local modifications are not detected: deploy a clean checkout of the frozen commit.
+ */
+function codeCommit(repoDir) {
+  const read = (f) => { try { return fs.readFileSync(f, 'utf8').trim(); } catch (e) { return null; } };
+  try {
+    let gitDir = path.join(repoDir, '.git');
+    if (fs.statSync(gitDir).isFile()) {   // a worktree or submodule: ".git" names the real directory
+      const m = /^gitdir:\s*(.+)$/m.exec(read(gitDir) || '');
+      if (!m) return null;
+      gitDir = path.resolve(repoDir, m[1].trim());
+    }
+    const common = read(path.join(gitDir, 'commondir'));
+    const commonDir = common ? path.resolve(gitDir, common) : gitDir;
+    const head = read(path.join(gitDir, 'HEAD')) || '';
+    if (COMMIT.test(head)) return head;   // detached, e.g. `git checkout <tag>`
+    const ref = /^ref:\s*(\S+)$/.exec(head);
+    if (ref) {
+      for (const d of [gitDir, commonDir]) { const v = read(path.join(d, ref[1])); if (v && COMMIT.test(v)) return v; }
+      const packed = read(path.join(commonDir, 'packed-refs')) || '';
+      const line = packed.split('\n').find((l) => l.endsWith(` ${ref[1]}`));
+      if (line && COMMIT.test(line.slice(0, 40))) return line.slice(0, 40);
+    }
+  } catch (e) { return null; }
+  try {
+    const out = require('child_process').execFileSync('git', ['-c', 'safe.directory=*', '-C', repoDir, 'rev-parse', 'HEAD'], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim();
+    return COMMIT.test(out) ? out : null;
+  } catch (e) { return null; }
+}
+
 /** Load or create the run definition (faults.json). */
 function runDefinition(feedDir, o) {
   const file = path.join(feedDir, 'faults.json');
@@ -66,13 +134,23 @@ function runDefinition(feedDir, o) {
     for (const k of ['seed', 'days']) {
       if (o[k] != null && o[k] !== def[k]) throw new Error(`this feed's run was defined with ${k}=${def[k]}; refusing ${k}=${o[k]} (start a new feed for a new run)`);
     }
+    if (def.label !== R.INPUT_LABEL) throw new Error(`this feed's run was published without the fixed label "${R.INPUT_LABEL}"; start a new feed for a new run`);
+    if (o.signers && JSON.stringify((def.anchoring && def.anchoring.signers) || null) !== JSON.stringify(o.signers)) {
+      throw new Error("this feed's run was defined with other signer keys (anchoring.signers); refusing them (start a new feed for a new run)");
+    }
     return { ...def, faults: S.revive(def.faults), resumed: true };
   }
+  /* checked before anything is written: a refused run publishes nothing */
+  if (o.speed === 'realtime' && !o.signers) throw new Error('a real-time run publishes who signs: pass --proposer, --verifier and --third (public keys)');
+  if (o.speed === 'realtime' && !o.codeCommit) throw new Error('a real-time run names the code it runs (code_commit, freeze v3 §7): start it from a git checkout of the frozen commit, or pass --code-commit <40-hex commit>');
   const startMs = Math.ceil(o.startMs / DT_MS) * DT_MS;
   const def = {
     description: describeRun(o.days, o.speed),
+    label: R.INPUT_LABEL,
     site_id: SITE_ID,
     node_id: NODE_ID,
+    ...(o.signers ? { anchoring: { network: 'testnet', signers: { proposer: o.signers.proposer, verifier: o.signers.verifier, third: o.signers.third } } } : {}),
+    code_commit: o.codeCommit || null,
     seed: o.seed,
     days: o.days,
     run_start: new Date(startMs).toISOString(),
@@ -96,12 +174,20 @@ function runDefinition(feedDir, o) {
  * @param {number} [o.seed=20261103]
  * @param {'realtime'|'fast'|number} [o.speed='realtime']
  * @param {number} [o.stopAtMs]   stop early (tests: simulate a crash/restart)
+ * @param {{proposer:string, verifier:string, third:string}} [o.signers]   public keys; required for a real-time run
+ * @param {string} [o.codeCommit]  the commit the run is started from; default: HEAD of the checkout at `o.repoDir`
+ * @param {string} [o.repoDir]     the checkout to name (default: this repository)
  * @param {function} [o.log]
  */
 async function runLive(o) {
   const log = o.log || ((...a) => console.log('[live]', ...a));
   const speed = o.speed ?? 'realtime';
-  const def = runDefinition(o.feedDir, { seed: o.seed ?? 20261103, days: o.days ?? 7, startMs: o.startMs ?? Date.now(), speed });
+  if (o.codeCommit != null && !COMMIT.test(o.codeCommit)) throw new Error(`code commit: a 40-hex commit id is required, got ${JSON.stringify(o.codeCommit)}`);
+  const commit = o.codeCommit || codeCommit(o.repoDir || path.join(__dirname, '..'));
+  const def = runDefinition(o.feedDir, { seed: o.seed ?? 20261103, days: o.days ?? 7, startMs: o.startMs ?? Date.now(), speed, signers: checkSigners(o.signers), codeCommit: commit });
+  if (def.resumed && commit && def.code_commit && commit !== def.code_commit) {
+    log(`note: this code is ${commit}, the run was started from ${def.code_commit} (faults.json code_commit); after the code freeze that is a numbered deviation for the write-up`);
+  }
   const runStart = Date.parse(def.run_start), runEnd = Date.parse(def.run_end);
   const pipe = new Pipeline({ dir: o.feedDir, site_id: def.site_id, node_id: def.node_id });
   const samplesDir = path.join(o.feedDir, 'samples');
@@ -152,15 +238,19 @@ async function cli() {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
   const sp = opt('--speed', 'realtime');
   const startArg = opt('--start', 'now');
+  let signers;
+  try { signers = signersArg(args); } catch (e) { console.error(e.message); process.exit(2); }
   await runLive({
     feedDir: path.resolve(opt('--feed', 'feed')),
     days: Number(opt('--days', 7)),
     seed: Number(opt('--seed', 20261103)),
     startMs: startArg === 'now' ? Date.now() : Date.parse(startArg),
     speed: sp === 'realtime' || sp === 'fast' ? sp : Number(sp),
+    signers,
+    codeCommit: opt('--code-commit'),
   });
 }
 
 if (require.main === module) cli().catch((e) => { console.error('[live] stopped:', e.message); process.exit(1); });
 
-module.exports = { runLive, SITE_ID, builderClock };
+module.exports = { runLive, SITE_ID, builderClock, checkSigners, signersArg, codeCommit };
