@@ -90,8 +90,8 @@ ROWS = [
     (SLAB_Y + 40, (30, 29, 30)), (2730, (116, 120, 124)),
     (2731, (196, 198, 198)), (2736, (132, 136, 140)),            # cornice catching room light
     (2900, (150, 154, 158)), (DESK_Y, (162, 165, 168)),          # bench wall, cool neutral
-    (DESK_Y + 1, (92, 88, 84)), (DESK_Y + 14, (156, 149, 139)),  # contact shadow, desk top
-    (WH, (138, 132, 124)),
+    (DESK_Y + 1, (92, 88, 84)), (DESK_Y + 14, (166, 156, 143)),  # contact shadow, desk top
+    (WH, (146, 138, 126)),
 ]
 
 
@@ -183,20 +183,20 @@ def base_tones():
     yy = ys[:, None]
     xx = np.arange(WW, dtype=np.float32)[None] - MX
     walls = (yy > PARAPET_Y + 84) & (yy < DESK_Y)
-    plaster = noise_field(rng, WH, WW, 26) * 4.0 + noise_field(rng, WH, WW, 5) * 2.0
+    rough = np.where(yy < SLAB_Y, 4.0, 1.6)  # sun-raked plaster outside, smooth paint inside
+    plaster = noise_field(rng, WH, WW, 26) * rough + noise_field(rng, WH, WW, 4) * 1.6
     gravel = (yy > FRAME_Y + 52) & (yy < PARAPET_Y)
     grit = rng.normal(0, 1, (WH, WW)).astype(np.float32)
     lum = np.where(walls, plaster, 0) + np.where(gravel, grit * (4 + 10 * (yy > 1760)), 0)
 
     # pale wood: grain streaks along x, bunching up toward the back edge (perspective)
-    depth = np.sqrt(np.clip((ys - DESK_Y) / (WH - DESK_Y), 0, 1)) * 380
-    streak = noise_field(rng, 400, WW, 1)
-    streak = np.asarray(Image.fromarray(rng.normal(0, 1, (400, WW // 70 + 3)).astype(np.float32), "F")
-                        .resize((WW, 400), Image.BICUBIC, box=(0, 0, WW / 70, 400))) + 0.3 * streak
-    r0 = np.minimum(depth.astype(int), 398)
+    depth = np.sqrt(np.clip((ys - DESK_Y) / (WH - DESK_Y), 0, 1)) * 900
+    streak = np.asarray(Image.fromarray(rng.normal(0, 1, (902, WW // 24 + 3)).astype(np.float32), "F")
+                        .resize((WW, 902), Image.BICUBIC, box=(0, 0, WW / 24, 902)))
+    r0 = np.minimum(depth.astype(int), 900)
     f = (depth - r0)[:, None]
     grain = streak[r0] * (1 - f) + streak[r0 + 1] * f
-    lum += np.where(yy > DESK_Y + 14, grain * 6.0, 0)
+    lum += np.where(yy > DESK_Y + 14, grain * 2.6, 0)
 
     # soft window light falling across the bench wall
     patch = np.exp(-(((xx + 0.45 * (yy - 3300)) - 140) / 300) ** 4 - ((yy - 3420) / 440) ** 4)
@@ -246,8 +246,8 @@ def draw_panel(img):
     a = np.asarray(img.crop((0, 0, WW * SS, top)), np.float32)
     yy, xx = np.mgrid[0:top, 0:WW * SS].astype(np.float32) / SS
     xx -= MX
-    m = 0.88 + 0.28 * np.exp(-((xx - 980) / 700) ** 2 - ((yy - 200) / 900) ** 2)
-    a = a * m[..., None] + (16 * np.clip(1 - yy / FRAME_Y, 0, 1))[..., None] * np.array([1.0, 0.85, 0.6])
+    m = 0.92 + 0.34 * np.exp(-((xx - 980) / 700) ** 2 - ((yy - 200) / 900) ** 2)
+    a = a * m[..., None] + (22 * np.clip(1 - yy / FRAME_Y, 0, 1))[..., None] * np.array([1.0, 0.82, 0.55])
     img.paste(Image.fromarray(np.clip(a, 0, 255).astype(np.uint8)), (0, 0))
 
 
@@ -347,8 +347,8 @@ def draw_cable(img):
     side = np.sign(np.sum(nrm * light_dir(xy[:, 1]), -1))[:, None]
     hl = xy + nrm * side * 3.6
     k = np.searchsorted(xy[:, 1], SLAB_Y)
-    d.line([P(x, y) for x, y in hl[:k:2]], fill=(176, 140, 104), width=7, joint="curve")
-    d.line([P(x, y) for x, y in hl[k::2]], fill=(128, 132, 138), width=7, joint="curve")
+    d.line([P(x, y) for x, y in hl[:k:2]], fill=(122, 98, 76), width=5, joint="curve")
+    d.line([P(x, y) for x, y in hl[k::2]], fill=(104, 108, 114), width=5, joint="curve")
     for y in CLIPS:
         x = clip_x(y)
         col = (210, 188, 158) if y < SLAB_Y else (212, 212, 208)
@@ -413,6 +413,24 @@ def vblur(a, n):
     return (c[n:n + a.shape[0]] - c[:a.shape[0]]) / n
 
 
+def box1d(a, n, axis):
+    h = n // 2
+    if axis == 0:
+        c = np.cumsum(np.pad(a, ((h + 1, h), (0, 0))), axis=0)
+        return (c[n:] - c[:-n]) / n
+    c = np.cumsum(np.pad(a, ((0, 0), (h + 1, h))), axis=1)
+    return (c[:, n:] - c[:, :-n]) / n
+
+
+def gblur(a, sigma):
+    """Gaussian blur in float (three box passes per axis): wide glows without 8-bit banding."""
+    n = int(round(math.sqrt(4 * sigma * sigma + 1))) | 1
+    for axis in (0, 1):
+        for _ in range(3):
+            a = box1d(a, n, axis)
+    return a
+
+
 _PEAK = {}
 
 
@@ -426,7 +444,7 @@ def peak(shape, size, radius):
             d.ellipse([400 - size, 400 - size, 400 + size, 400 + size], fill=255)
         else:
             d.line([(400, 0), (400, 800)], fill=255, width=size)
-        _PEAK[key] = max(np.asarray(m.filter(ImageFilter.GaussianBlur(radius))).max() / 255, 1e-3)
+        _PEAK[key] = gblur(np.asarray(m, np.float32) / 255, radius).max()
     return _PEAK[key]
 
 
@@ -438,8 +456,9 @@ def add_glow(img, draw, bbox, layers, shape=None, size=0):
         return
     m = Image.new("L", (x1 - x0, y1 - y0), 0)
     draw(ImageDraw.Draw(m), x0, y0)
+    m = np.asarray(m, np.float32) / 255
     for radius, colour, gain in layers:
-        g = np.asarray(m.filter(ImageFilter.GaussianBlur(radius)), np.float32) / 255
+        g = gblur(m, radius)
         if shape:
             g /= peak(shape, size, radius)
         img[y0:y1, x0:x1] += (g * gain)[..., None] * colour
@@ -520,62 +539,63 @@ def screen_layer(img, t, cam):
              [(0.6, np.array([214, 178, 150], np.float32), 1.0), (6, CORE, 0.25 * grow)])
 
 
+YY, XX = np.mgrid[0:H, 0:W].astype(np.float32)
+VIGNETTE = (1 - 0.28 * np.clip(((XX - W / 2) / (W / 2)) ** 2 + ((YY - H / 2) / (H / 2)) ** 2, 0, 1.6) ** 1.4)[..., None]
+WARM, COOL = np.array([1.07, 1.0, 0.87]), np.array([0.97, 1.0, 1.035])
+
+
+def render(src, t, grain_rng):
+    cam = camera(t)
+    cx, cy, z, p = cam
+    vw, vh = W / z, H / z
+    frame = src.resize((W, H), Image.LANCZOS,
+                       box=((cx - vw / 2 + MX) * SS, (cy - vh / 2) * SS, (cx + vw / 2 + MX) * SS, (cy + vh / 2) * SS))
+    img = np.asarray(frame, np.float32).copy()
+    xx, yy = XX, YY
+
+    # sun glint drifting across the cells, catching the busbars hardest
+    if t < 1.4:
+        gx, gy = to_screen(40 + 600 * t, 760 + 200 * t, cam)
+        c, s = math.cos(-0.56), math.sin(-0.56)
+        u = ((xx - gx) * c + (yy - gy) * s) / (380 * z)
+        v = (-(xx - gx) * s + (yy - gy) * c) / (140 * z)
+        g = 0.5 * np.exp(-u * u - v * v) + 0.9 * np.exp(-((xx - gx) ** 2 + (yy - gy) ** 2) / (48 * z) ** 2)
+        edge = to_screen(0, FRAME_Y, cam)[1]
+        g *= np.clip((edge - yy) / 6, 0, 1) * smooth(-0.4, 0.3, t)
+        lum = img.mean(-1) / 255
+        img += (g * (0.5 + 1.3 * lum) * 80)[..., None] * np.array([1.0, 0.88, 0.7])
+
+    trail_layer(img, t, cam)
+
+    # motion blur of the tilt itself (the pulse gets its own, below)
+    speed = abs(camera(t + 0.5 / FPS, False)[1] - camera(t - 0.5 / FPS, False)[1]) * z
+    img = vblur(img, speed * SHUTTER)
+
+    # shallow depth of field: a sharp band around the cable, softer top and bottom
+    fy = 1150 - 260 * p
+    focus = np.exp(-((yy - fy) / 820) ** 4)[..., None]
+    soft = Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(4))
+    img = img * focus + np.asarray(soft, np.float32) * (1 - focus)
+
+    pulse_layer(img, t)
+    screen_layer(img, t, cam)
+
+    # light: late-afternoon sun cooling into the bench's neutral side light
+    k = smooth(0.25, 0.85, p)
+    img *= (WARM * (1 - k) + COOL * k) * (1.03 - 0.04 * k)
+    img *= VIGNETTE
+    img += grain_rng.normal(0, 2.8, (H, W, 1)).astype(np.float32)
+    return np.clip(img, 0, 255).astype(np.uint8)
+
+
 def main():
-    still = len(sys.argv) > 1 and sys.argv[1] == "still"
     src = world()
-    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    r2 = ((xx - W / 2) / (W / 2)) ** 2 + ((yy - H / 2) / (H / 2)) ** 2
-    vignette = (1 - 0.28 * np.clip(r2, 0, 1.6) ** 1.4)[..., None]
     grain_rng = np.random.default_rng(37)
-    warm, cool = np.array([1.07, 1.0, 0.87]), np.array([0.97, 1.0, 1.035])
-    frames = [float(sys.argv[2]) * FPS] if still else range(int(DUR * FPS))
-
-    for i in frames:
-        t = i / FPS
-        cam = camera(t)
-        cx, cy, z, p = cam
-        vw, vh = W / z, H / z
-        frame = src.resize((W, H), Image.LANCZOS,
-                           box=((cx - vw / 2 + MX) * SS, (cy - vh / 2) * SS, (cx + vw / 2 + MX) * SS, (cy + vh / 2) * SS))
-        img = np.asarray(frame, np.float32).copy()
-
-        # sun glint drifting across the cells, catching the busbars hardest
-        if t < 1.4:
-            gx, gy = to_screen(160 + 380 * t, 700 - 40 * t, cam)
-            c, s = math.cos(-0.56), math.sin(-0.56)
-            u = ((xx - gx) * c + (yy - gy) * s) / (250 * z)
-            v = (-(xx - gx) * s + (yy - gy) * c) / (80 * z)
-            g = 0.55 * np.exp(-u * u - v * v) + 0.6 * np.exp(-((xx - gx) ** 2 + (yy - gy) ** 2) / (34 * z) ** 2)
-            edge = to_screen(0, FRAME_Y, cam)[1]
-            g *= np.clip((edge - yy) / 6, 0, 1)
-            lum = img.mean(-1) / 255
-            img += (g * (0.45 + 1.4 * lum) * 70)[..., None] * np.array([1.0, 0.9, 0.74])
-
-        trail_layer(img, t, cam)
-
-        # motion blur of the tilt itself (the pulse gets its own, below)
-        speed = abs(camera(t + 0.5 / FPS, False)[1] - camera(t - 0.5 / FPS, False)[1]) * z
-        img = vblur(img, speed * SHUTTER)
-
-        # shallow depth of field: a sharp band around the cable, softer top and bottom
-        fy = 1150 - 260 * p
-        focus = np.exp(-((yy - fy) / 820) ** 4)[..., None]
-        soft = np.asarray(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(4)), np.float32)
-        img = img * focus + soft * (1 - focus)
-
-        pulse_layer(img, t)
-        screen_layer(img, t, cam)
-
-        # light: late-afternoon sun cooling into the bench's neutral side light
-        k = smooth(0.25, 0.85, p)
-        img *= (warm * (1 - k) + cool * k) * (1.03 - 0.04 * k)
-        img *= vignette
-        img += grain_rng.normal(0, 2.8, (H, W, 1)).astype(np.float32)
-        out = np.clip(img, 0, 255).astype(np.uint8)
-        if still:
-            Image.fromarray(out).save(sys.argv[3])
-        else:
-            sys.stdout.buffer.write(out.tobytes())
+    if len(sys.argv) > 3 and sys.argv[1] == "still":
+        Image.fromarray(render(src, float(sys.argv[2]), grain_rng)).save(sys.argv[3])
+        return
+    for i in range(int(DUR * FPS)):
+        sys.stdout.buffer.write(render(src, i / FPS, grain_rng).tobytes())
 
 
 if __name__ == "__main__":

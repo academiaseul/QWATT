@@ -73,15 +73,15 @@ FMB = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
 
 # Layout. Safe area: below y=120, left of x=940, above y=1500.
 LEFT = 64
-CARD_W, CARD_H = 418, 1080
+CARD_W, CARD_H = 418, 1010
 CARD_X = (LEFT, 940 - CARD_W)  # 64 and 522: a 40 px gutter for the badges
 GUTTER_CX = (CARD_X[0] + CARD_W + CARD_X[1]) // 2
-CARD_Y = 340
+CARD_Y = 350
 PAD = 26
 INNER = CARD_W - 2 * PAD  # 366, the text column
 ROW_M = 14  # row sprites reach this far either side of the column, for the highlight pills
 BODY_Y = CARD_Y + 152
-SOURCE_Y = 1446
+SOURCE_Y = CARD_Y + CARD_H + 22  # source line under the cards, above the caption zone
 
 # Motion, in frames
 STAGGER = 1.5  # between rows arriving
@@ -322,7 +322,7 @@ def beat_wiring(maps, photos):
         t_in, t_out = beat_times(0, 0, side)
         els.append(El(photo_slot(photos[side]), CARD_X[side] + PAD, BODY_Y, t_in, t_out,
                       clip=card_clip(side)))
-    row_h, y0 = 106, BODY_Y + INNER + 22
+    row_h, y0 = 108, BODY_Y + INNER + 22
     fl, fv = font(FB, 27), font(FMB, 52)
     for g, (label, *vals) in enumerate(wiring_rows(maps), start=1):
         same = vals[0] == vals[1]
@@ -354,24 +354,24 @@ def beat_registers(maps):
         sprites.append(s.px)
     add_row(els, 1, 0, sprites, BODY_Y - 6, head_h / 2, fn[0] == fn[1])
 
-    row_h, y0 = 160, BODY_Y + head_h + 4
-    fk, fa, fd, ft = font(FM, 27), font(FMB, 58), font(FM, 30), font(FM, 25)
+    row_h, y0 = 172, BODY_Y + head_h
+    fk, fa, ft = font(FM, 27), font(FMB, 58), font(FM, 25)
     for g, pair in enumerate(register_rows(maps), start=1):
         same = pair[0]["address"] == pair[1]["address"]
         sprites, pills = [], []
         for r in pair:
             s = row_sprite(row_h)
             s.line(1, PAPER, 0.10)
-            s.text((0, 16), r["key"], fk, MUTED, 1.0)
+            s.text((0, 18), r["key"], fk, MUTED, 1.0)
             hexa = f"0x{r['address']:04X}"
-            s.text((0, 106), hexa, fa, PAPER if same else TERRA_LT, 1.0, anchor="ls")
-            s.text((INNER, 104), str(r["address"]), fd, PAPER, 0.62, anchor="rs")  # decimal, as stored
-            s.text((0, 120), f"{r['type']} · {r['words']} word{'s' if r['words'] > 1 else ''}",
+            s.text((0, 112), hexa, fa, PAPER if same else TERRA_LT, 1.0, anchor="ls")
+            s.text((0, 134), f"{r['type']} · {r['words']} word{'s' if r['words'] > 1 else ''}",
                    ft, MUTED, 0.9)
+            s.text((INNER, 134), f"dec {r['address']}", ft, MUTED, 0.9, anchor="ra")  # as stored in the map
             sprites.append(s.px)
             hw = fa.getlength(hexa)
-            pills.append(None if same else pill(row_h, [-12, 52, hw + 12, 120]))
-        add_row(els, 1, g, sprites, y0 + (g - 1) * row_h, 84, same, pills)
+            pills.append(None if same else pill(row_h, [-12, 58, hw + 12, 126]))
+        add_row(els, 1, g, sprites, y0 + (g - 1) * row_h, 92, same, pills)
     return els
 
 
@@ -399,7 +399,7 @@ def beat_units(maps):
             sprites.append(s.px)
             hw = fh.getlength(hero)
             pills.append(None if same else pill(blk_h, [-12, 214, hw + 12, 308]))
-        add_row(els, 2, g * 2, sprites, BODY_Y + g * (blk_h + 34), 262, same, pills)
+        add_row(els, 2, g * 2, sprites, BODY_Y + g * (blk_h + 44), 262, same, pills)
     return els
 
 
@@ -504,13 +504,14 @@ def progress(canvas, f):
     x0 = 940 - 3 * bw - 2 * gap
     for i in range(3):
         on = clamp01((f - i * BEAT * FPS) / 4)  # lights up as its beat starts
-        past = clamp01((f - (i + 1) * BEAT * FPS) / 4)
-        col = np.array(PAPER) * 0.16 * (1 - on) + np.array(TERRA_LT) * on
-        col = col * (1 - past) + np.array(PAPER) * 0.42 * past
-        a = clamp01(f / 4)
+        past = clamp01((f - (i + 1) * BEAT * FPS) / 4)  # then settles to paper
+        col = np.array(PAPER, np.float32) * (1 - on) + np.array(TERRA_LT, np.float32) * on
+        col = col * (1 - past) + np.array(PAPER, np.float32) * past
+        a = (0.18 * (1 - on) + on) * (1 - past) + 0.45 * past
+        a *= clamp01(f / 4)
         sl = canvas[y:y + 6, x0 + i * (bw + gap):x0 + i * (bw + gap) + bw]
         sl *= 1 - a
-        sl += col.astype(np.float32) * a
+        sl += col * a
 
 
 def background():
