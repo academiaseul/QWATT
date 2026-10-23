@@ -11,7 +11,12 @@
  *   2. coverage: every 5-minute slot from the run start to the last judged slot
  *      is judged exactly once (accepted or rejected). Gaps — the runner was
  *      down — and duplicates are listed;
- *   3. raw samples: every published samples/*.csv hashes to its manifest entry.
+ *   3. raw samples: every published samples/*.csv hashes to its manifest entry;
+ *   4. raw payloads: every payload entry in every raw/<batch_id>.jsonl (V3-5) is,
+ *      byte for byte, a data row of one of those files plus "\n", the way the
+ *      CSV replay adapter read it. So nothing a batch's samples_root commits to
+ *      was made up: it came from the published samples. Only this direction is
+ *      checked; a samples row need not appear in raw/ (the run's last open hour).
  * Exit 0 when all hold, 1 otherwise.
  */
 
@@ -85,6 +90,23 @@ function auditLive(feedDir) {
     if (h !== m.sha256) problems.push(`${m.file}: does not hash to its manifest entry`);
   }
 
+  /* 4. raw payloads: what each batch's samples_root commits to came from the published samples */
+  const rows = new Set();
+  for (const m of manifest) {
+    const f = path.join(feedDir, m.file);
+    if (fs.existsSync(f)) for (const l of fs.readFileSync(f, 'utf8').split(/\r?\n/).slice(1)) if (l.trim()) rows.add(l + '\n');   // as readline hands each row to the adapter
+  }
+  const rawDir = path.join(feedDir, 'raw');
+  const rawFiles = fs.existsSync(rawDir) ? fs.readdirSync(rawDir).filter((n) => n.endsWith('.jsonl')).sort() : [];
+  let payloads = 0;
+  const strays = [];
+  for (const name of rawFiles) {
+    for (const line of readJsonl(path.join(rawDir, name))) {
+      for (const p of line.payloads || []) { payloads++; if (typeof p.utf8 !== 'string' || !rows.has(p.utf8)) strays.push(`raw/${name} ${line.ts_start}`); }
+    }
+  }
+  if (strays.length) problems.push(`${strays.length} raw payload(s) not a row of a published samples file (first: ${strays[0]})`);
+
   const expectedSlots = keys.length ? (last - runStart) / DT_MS + 1 : 0;
   return {
     ok: problems.length === 0,
@@ -93,6 +115,7 @@ function auditLive(feedDir) {
     coverage: { judged_slots: keys.length, expected_slots: expectedSlots, gaps, duplicates, accepted: accepted.length, rejected: rejected.length },
     faults,
     samples: { files: manifest.length },
+    raw: { files: rawFiles.length, payloads },
   };
 }
 
@@ -104,6 +127,7 @@ if (require.main === module) {
   else {
     console.log(`live run ${r.run.start} → ${r.run.end}`);
     console.log(`  coverage: ${r.coverage.judged_slots}/${r.coverage.expected_slots} intervals judged · ${r.coverage.accepted} accepted · ${r.coverage.rejected} rejected · ${r.coverage.gaps.length} gaps`);
+    console.log(`  raw: ${r.raw.payloads} payload(s) in ${r.raw.files} raw file(s), each checked against the ${r.samples.files} published samples file(s)`);
     for (const f of r.faults) console.log(`  ${f.id.padEnd(24)} ${f.start.slice(0, 16)}Z  ${String(f.refused).padStart(2)}/${f.intervals} refused  ${f.status}  ${Object.keys(f.codes).join(', ')}`);
     for (const p of r.problems) console.log('  ✗ ' + p);
     console.log(r.ok ? 'OK' : 'FAILED');
