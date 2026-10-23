@@ -26,15 +26,15 @@ const ACCOUNT = 'G' + 'A'.repeat(55);
 const PROPOSER = 'G' + 'P'.repeat(55), VERIFIER = 'G' + 'V'.repeat(55), THIRD = 'G' + 'T'.repeat(55);
 
 /** A Horizon account response as GET /accounts/<id> returns it (only the fields the write-up reads). */
-function accountResponse({ low, med, high, master = 0, signers = [PROPOSER, VERIFIER, THIRD] }) {
+function accountResponse({ low, med, high, master = 0, signers = [PROPOSER, VERIFIER, THIRD], types = {} }) {
   return {
     id: ACCOUNT, account_id: ACCOUNT,
     thresholds: { low_threshold: low, med_threshold: med, high_threshold: high },
-    signers: [...signers.map((key) => ({ key, weight: 1, type: 'ed25519_public_key' })), { key: ACCOUNT, weight: master, type: 'ed25519_public_key' }],
+    signers: [...signers.map((key) => ({ key, weight: 1, type: types[key] || 'ed25519_public_key' })), { key: ACCOUNT, weight: master, type: 'ed25519_public_key' }],
   };
 }
 
-/** Replace global fetch: an empty feed, no anchoring operations, and the given account. Returns the URLs requested. */
+/** Replace global fetch: an empty feed, no anchoring operations, and the given account (a 404 when it is null). Returns the URLs requested. */
 function stubFetch(account) {
   const seen = [];
   const reply = (status, body) => ({ status, ok: status >= 200 && status < 300, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)), json: async () => (typeof body === 'string' ? JSON.parse(body) : body) });
@@ -43,7 +43,7 @@ function stubFetch(account) {
     seen.push(u);
     if (u.startsWith(FEED)) return reply(404, 'not found');
     if (u.startsWith(`${HORIZON}/accounts/${ACCOUNT}/operations`)) return reply(200, { _embedded: { records: [] }, _links: {} });
-    if (u.split('?')[0] === `${HORIZON}/accounts/${ACCOUNT}`) return reply(200, account);
+    if (u.split('?')[0] === `${HORIZON}/accounts/${ACCOUNT}`) return account ? reply(200, account) : reply(404, 'not found');
     return reply(404, 'not found');
   };
   return seen;
@@ -95,6 +95,42 @@ test('tests A–D table: a refusal with no operation codes (tx_bad_auth under 2/
   assert(row('A').includes('`tx_bad_auth`'), `A shows its code: ${row('A')}`);
   assert(!row('A').includes('/ ops'), `A has no operations part: ${row('A')}`);
   assert(row('B').includes('`tx_failed` / ops `op_bad_auth, op_success`'), `B keeps its operation codes: ${row('B')}`);
+});
+
+test('V3-9: the write-up reads Horizon first (the account, then every anchor), then the feed, as the reconciliation does: an anchor newer than the feed copy cannot read as BROKEN', async () => {
+  const seen = stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  await build(opts());
+  const firstFeed = seen.findIndex((u) => u.startsWith(FEED));
+  const lastHorizon = seen.map((u) => u.startsWith(HORIZON)).lastIndexOf(true);
+  assert(lastHorizon >= 0 && firstFeed > lastHorizon, `every Horizon read precedes the first feed read: ${JSON.stringify(seen)}`);
+});
+
+test('V3-9: an account Horizon cannot return is printed as unreadable and makes the verdict BROKEN; the write-up is still written', async () => {
+  stubFetch(null);
+  const { markdown, report } = await build(opts());
+  assert(/could not be loaded from Horizon/.test(markdown), markdown);
+  assert(report.verdict === 'BROKEN' && report.problems.some((p) => /could not be read from Horizon/.test(p)), `verdict ${report.verdict}: ${report.problems.join('; ')}`);
+});
+
+test('V3-9: a preauth_tx or sha256_hash signer (which lets a transaction through without any key): the write-up prints its type, says the values do not match 2/2/3, and does not claim that no single key can send a transaction', async () => {
+  for (const type of ['preauth_tx', 'sha256_hash']) {
+    stubFetch(accountResponse({ low: 2, med: 2, high: 3, types: { [THIRD]: type } }));
+    const { markdown, report } = await build(opts());
+    const line = accountLine(markdown);
+    assert(!/no single key can send any transaction/i.test(line), `${type}: no claim next to a BROKEN account: ${line}`);
+    assert(line.includes('do not match 2/2/3'), `${type}: mismatch stated: ${line}`);
+    assert(line.includes(type), `${type}: the signer type is printed: ${line}`);
+    assert(report.verdict === 'BROKEN' && report.problems.some((p) => p.includes(type)), `${type}: the reconciliation agrees: ${report.problems.join('; ')}`);
+  }
+});
+
+test('V3-9: roles given to the write-up (--proposer/--verifier/--third) reach the reconciliation', async () => {
+  const FHH = require('../anchor/fake-horizon-http');   // zero dependencies: valid G… keys, in memory
+  const roles = { proposer: FHH.throwawayKey().G, verifier: FHH.throwawayKey().G, third: FHH.throwawayKey().G };
+  stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  const { report } = await build(opts({ roles }));
+  assert(report.summary.roles_source === 'given', `roles source: ${report.summary.roles_source}`);
+  assert(JSON.stringify(report.summary.roles) === JSON.stringify(roles), `the roles as given: ${JSON.stringify(report.summary.roles)}`);
 });
 
 (async () => {
