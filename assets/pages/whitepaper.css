@@ -1,0 +1,130 @@
+/* QWATT · whitepaper.html (Documento técnico v3): a long document with a title page, a
+   two-column table of contents and a print stylesheet. Shared design values live in
+   /assets/site.css; the live widget styles (account cards, anchor slot) come from
+   /assets/pages/index.css. */
+
+html:not([data-lang="en"]) .q-en-note{display:none}
+
+/* title page */
+.q-title{border-bottom:1px solid var(--line);padding:64px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--copper) 7%,transparent),transparent 80%)}
+.q-title h1{max-width:20ch}
+.q-title .q-lead{max-width:62ch}
+.q-docmeta{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--ink-3);margin-top:14px;max-width:70ch;line-height:1.6}
+
+/* table of contents: two columns */
+.q-toc{margin-top:30px;max-width:900px}
+.q-toc-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+.q-toc ol{list-style:none;columns:2;column-gap:32px;border-top:1px solid var(--line)}
+@media(max-width:700px){.q-toc ol{columns:1}}
+.q-toc li{break-inside:avoid;border-bottom:1px solid var(--line)}
+.q-toc a{display:flex;gap:12px;align-items:baseline;padding:9px 0;min-height:44px;color:var(--ink);text-decoration:none;font-size:14px;line-height:1.4}
+.q-toc a:hover{color:var(--copper)}
+.q-toc-n{font-family:var(--mono);font-size:11px;color:var(--copper);min-width:2.2ch;text-align:right}
+
+/* the paper */
+.q-paper{padding-bottom:72px}
+.q-psec{max-width:900px;padding:48px 0 12px;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--nav-h) + 12px)}
+.q-psec:last-child{border-bottom:0}
+.q-psec>.q-head{margin-bottom:16px}
+.q-psec h2{display:flex;gap:14px;align-items:baseline;font-size:clamp(1.3rem,1.05rem + 1vw,1.8rem);font-weight:600;letter-spacing:-.01em;line-height:1.25}
+.q-psec-n{font-family:var(--mono);font-size:.62em;font-weight:500;color:var(--copper);min-width:1.6em}
+.q-psec h3{font-size:15.5px;margin:6px 0 10px;line-height:1.35}
+.q-psec>p:not(.q-src),.q-psec .q-cols p:not(.q-src){font-size:15.5px;line-height:1.72;color:var(--ink-2);margin-bottom:14px;max-width:72ch}
+.q-plist{margin:0 0 16px 1.1em;display:grid;gap:8px;max-width:72ch}
+.q-plist li{font-size:15px;line-height:1.62;color:var(--ink-2);padding-left:4px}
+.q-plist li::marker{color:var(--copper)}
+.q-plist b{color:var(--ink);font-weight:600}
+.q-plist .q-chip{margin-left:6px;vertical-align:1px}
+.q-cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 36px;margin:4px 0 8px}
+@media(max-width:760px){.q-cols{grid-template-columns:1fr}}
+
+.q-status-list{list-style:none;display:grid;gap:10px;margin:0 0 16px;max-width:72ch}
+.q-status-list li{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:baseline;font-size:15px;line-height:1.6;color:var(--ink-2)}
+@media(max-width:600px){.q-status-list li{grid-template-columns:1fr}}
+
+.q-pull{font-size:17px !important;line-height:1.6 !important;color:var(--ink) !important;border-left:2px solid var(--copper);padding-left:16px}
+
+/* layered pipeline */
+.q-pipe{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px 26px;margin:18px 0 26px;counter-reset:pipe}
+@media(max-width:900px){.q-pipe{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:520px){.q-pipe{grid-template-columns:1fr}}
+.q-pipe li{position:relative;background:var(--panel);border-top:2px solid var(--line);padding:12px 12px 14px;display:grid;gap:4px;counter-increment:pipe}
+.q-pipe li::before{content:counter(pipe,decimal-leading-zero);font-family:var(--mono);font-size:10px;color:var(--ink-3);letter-spacing:.1em}
+.q-pipe li:not(:last-child)::after{content:"→";position:absolute;right:-19px;top:50%;transform:translateY(-50%);color:var(--copper);font-size:14px}
+@media(max-width:520px){.q-pipe li:not(:last-child)::after{content:"↓";right:auto;left:16px;top:auto;bottom:-20px;transform:none}}
+.q-pipe b{font-size:14px;color:var(--ink);font-weight:600;line-height:1.3}
+.q-pipe small{font-size:12px;color:var(--ink-3);line-height:1.4}
+.q-pipe li.is-plan{border-top:2px dashed var(--copper)}
+@media(min-width:901px){.q-pipe li:nth-child(4n)::after{display:none}}
+@media(min-width:521px) and (max-width:900px){.q-pipe li:nth-child(2n)::after{display:none}}
+
+/* tables */
+.q-ptable td{font-size:13.5px;line-height:1.55;color:var(--ink-2)}
+.q-ptable th[scope="row"]{font-weight:600;color:var(--ink);min-width:9em}
+.q-ptable td .q-chip{margin:2px 4px 2px 0}
+.q-ptable code{font-size:12px}
+.q-addr code{word-break:break-all;font-size:12px}
+.q-addr td .q-src{margin-top:4px}
+
+/* figures with a source */
+.q-figs{background:var(--panel);border-left:2px solid var(--line);padding:12px 16px;margin:8px 0 16px;max-width:72ch}
+.q-figs p:not(.q-src){font-size:14.5px;line-height:1.6;color:var(--ink-2)}
+.q-figs .q-num{font-family:var(--mono);color:var(--ink);font-weight:500}
+.q-figs .q-ev-list{margin-top:8px}
+
+/* the disclaimer, set apart */
+.q-disc{border-left:2px solid var(--copper);background:var(--panel);padding:14px 16px;margin:6px 0 16px;display:grid;gap:8px;max-width:72ch}
+.q-disc p{font-size:13.5px;line-height:1.6;margin:0;color:var(--ink)}
+.q-disc p+p{color:var(--ink-2)}
+
+/* states of a batch */
+.q-states{list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:8px 0 20px;counter-reset:st}
+@media(max-width:900px){.q-states{grid-template-columns:1fr}}
+.q-states li{background:var(--panel);border-top:2px solid var(--line);padding:12px;display:grid;gap:4px;counter-increment:st}
+.q-states li::before{content:counter(st);font-family:var(--mono);font-size:18px;color:var(--copper);line-height:1}
+.q-states b{font-size:13.5px;color:var(--ink);font-weight:600;line-height:1.35}
+.q-states small{font-size:12px;color:var(--ink-3);line-height:1.4}
+.q-states li:last-child{border-top-color:var(--green)}
+
+.q-fields{font-family:var(--mono);font-size:12.5px !important;line-height:1.7 !important;color:var(--ink) !important;background:var(--panel);padding:10px 12px}
+
+/* public addresses and rehearsals */
+.q-acct-prior{border-top:2px solid var(--gold)}
+.q-plan-card{border-top:2px solid var(--copper)}
+.q-gold{border-top:2px solid var(--gold);background:color-mix(in srgb,var(--gold) 6%,var(--panel))}
+.q-rehearsals{list-style:none;border-top:1px solid var(--line)}
+.q-rehearsals li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 14px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;color:var(--ink-2)}
+@media(max-width:520px){.q-rehearsals li{grid-template-columns:minmax(0,1fr) auto}.q-rehearsals li>:first-child{grid-column:1 / -1}}
+.q-rehearsals .q-link{font-family:var(--mono);font-size:12px}
+.q-rehearsals .q-num{font-family:var(--mono);color:var(--ink)}
+.q-mini-h{font-family:var(--mono);font-size:10.5px;font-weight:500;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-top:6px;line-height:1.5}
+.q-weektx{margin:4px 0 0;max-width:72ch}
+.q-weektx .q-hl-live{font-size:14px;color:var(--ink-2)}
+.q-psec .q-route{margin-top:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,160px),1fr))}
+.q-psec .q-route-step{padding-left:12px}
+.q-psec .q-route-step:first-child{padding-left:0}
+@media(max-width:700px){.q-psec .q-route-step{padding-left:0}}
+.q-refs{margin-top:6px}
+
+/* print: a clean document */
+@media print{
+  html,body{background:#fff !important;color:#000 !important}
+  .q-title{background:none;padding-top:0}
+  .q-toc{display:block}
+  .q-toc a{min-height:0;padding:3px 0;color:#000}
+  .q-psec{break-inside:auto;padding-top:22px;border-bottom:0;max-width:none}
+  .q-psec h2{break-after:avoid}
+  .q-psec>p,.q-plist li,.q-ptable td,.q-figs p,.q-status-list li{color:#000 !important}
+  .q-pipe li,.q-states li,.q-figs,.q-disc,.q-fields,.q-card{background:none !important;border:1px solid #bbb !important}
+  .q-en-note,.q-weektx,[data-widget] .q-err{display:none !important}
+  a.q-link::after{content:" (" attr(href) ")";font-size:10px;color:#555}
+}
+
+/* phones: the layer and trust tables stack, one block per row, each cell with its column name */
+@media(max-width:600px){
+  .q-stack thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .q-stack tr{display:block;border-top:1px solid var(--line);padding:10px 0}
+  .q-stack th,.q-stack td{display:block;border-top:0;padding:4px 0}
+  .q-stack td[data-k-es]::before{content:attr(data-k-es);display:block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-bottom:2px}
+  html[data-lang="en"] .q-stack td[data-k-en]::before{content:attr(data-k-en)}
+}
