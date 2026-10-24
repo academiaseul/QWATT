@@ -34,7 +34,6 @@ red.html
 piloto.html
 whitepaper.html
 terminos.html
-backup.html
 # Files only those pages (or local tooling) use; index.html, verificacion.html and 404.html load none of them.
 qwatt-wallet.js
 assets/vendor
