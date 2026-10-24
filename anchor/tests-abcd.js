@@ -66,7 +66,7 @@ const CAP = require('./capture');
 
 const ROLES = ['proposer', 'verifier', 'third'];
 const STEP = { a: 'A_proposer_alone', b: 'B_verifier_alone', c: 'C_proposer_plus_verifier', d: 'D_altered_after_proposer_signed', i: 'I_withheld_refused' };
-const METHOD_I = 'the batch file is withheld from the verifier\'s only input path by a local proxy on the verifier host, and the real verifier code judges the live proposal; the public feed is never touched (DV-7)';
+const METHOD_I = 'the batch file is withheld from the verifier\'s only input path by a local proxy on the verifier host, which forwards every other file from one commit of the public evidence repository (feed_commit), and the real verifier code judges the live proposal; the public feed is never touched (DV-7)';
 const nowS = () => Math.floor(Date.now() / 1000);
 
 /**
@@ -100,9 +100,9 @@ async function submitExpectRefusal(server, tx, th, cfg) {
 const signerOf = (signer, keypair) => signer || (keypair && SG.keypairSigner(keypair));
 const verifies = (key, hash, sig) => { const kp = S.Keypair.fromPublicKey(key); return kp.signatureHint().equals(sig.hint()) && kp.verify(hash, sig.signature()); };
 
-/** The feed as a test reads it: the public URL, or the proposer's local directory (A only). */
-function feedOf({ feedUrl, feedDir }) {
-  if (feedUrl) return makeFeedClient(feedUrl);
+/** The feed as a test reads it: the public URL (read at one commit, V3-7c), or the proposer's local directory (A only). */
+function feedOf({ feedUrl, feedDir, feedOptions }) {
+  if (feedUrl) return makeFeedClient(feedUrl, feedOptions);
   if (!feedDir) throw new Error('--feed <public feed URL> (or, for A, --feed-dir DIR) is required');
   const f = new Feed(feedDir);
   return {
@@ -113,10 +113,11 @@ function feedOf({ feedUrl, feedDir }) {
   };
 }
 
-/** The next batch to anchor and its published proposal, found as the verifier finds them. */
+/** The next batch to anchor and its published proposal, found as the verifier finds them: Horizon first, then one commit of the feed. */
 async function liveProposal(feed, server, cfg) {
-  const listed = await feed.batches();
   const head = await C.getHead(server, cfg.anchor_account);
+  if (feed.snapshot) await feed.snapshot();
+  const listed = await feed.batches();
   const next = C.nextToAnchor(listed, C.anchoredPrefix(listed, head.anchor_sha256));
   return { head, next, pending: next ? await feed.pending(next.batch_id) : null };
 }
@@ -127,8 +128,8 @@ function requireProposal(which, next, pending) {
 }
 
 /** A — submit the published proposal, proposer signature only, unchanged. No key needed. */
-async function testA({ feedUrl, feedDir, cfg, server, now = nowS() }) {
-  const feed = feedOf({ feedUrl, feedDir });
+async function testA({ feedUrl, feedDir, feedOptions, cfg, server, now = nowS() }) {
+  const feed = feedOf({ feedUrl, feedDir, feedOptions });
   const th = await accountThresholds(server, cfg.anchor_account);   // loaded first: the evidence records what the account was
   const { next, pending } = await liveProposal(feed, server, cfg);
   requireProposal('A', next, pending);
@@ -145,8 +146,8 @@ async function testA({ feedUrl, feedDir, cfg, server, now = nowS() }) {
 }
 
 /** B — the published body, re-signed by the verifier key alone, after the verifier's own checks. */
-async function testB({ feedUrl, cfg, signer, keypair, server, maxWalk, now = nowS() }) {
-  const feed = makeFeedClient(feedUrl);
+async function testB({ feedUrl, feedOptions, cfg, signer, keypair, server, maxWalk, now = nowS() }) {
+  const feed = makeFeedClient(feedUrl, feedOptions);
   const th = await accountThresholds(server, cfg.anchor_account);   // loaded first: the evidence records what the account was
   const { head, next, pending } = await liveProposal(feed, server, cfg);
   requireProposal('B', next, pending);
@@ -213,8 +214,9 @@ function bodyHashOf(file) {
 }
 
 /** D — verifier host, in memory only: alter the published batch after the proposer signed. */
-async function testD({ feedUrl, cfg }) {
-  const feed = makeFeedClient(feedUrl);
+async function testD({ feedUrl, feedOptions, cfg }) {
+  const feed = makeFeedClient(feedUrl, feedOptions);
+  await feed.snapshot();                                             // one commit for the whole test (V3-7c)
   const listed = await feed.batches();
   for (let i = listed.length - 1; i >= 0; i--) {
     const e = listed[i];
@@ -249,8 +251,8 @@ const neverSigner = Object.freeze({
 });
 
 /** I — independence: the real verifier, with the live proposal's batch withheld from its only input path. */
-async function testI({ feedUrl, cfg, server, now = nowS() }) {
-  const feed = makeFeedClient(feedUrl);
+async function testI({ feedUrl, feedOptions, cfg, server, now = nowS() }) {
+  const feed = makeFeedClient(feedUrl, feedOptions);
   const base = { refused: false, reasons: [], submitted: false, method: METHOD_I, expect: 'verifier refuses (verifier.not_published); nothing signed or submitted' };
   const { next, pending } = await liveProposal(feed, server, cfg);
   const notLive = (why) => ({ ...base, ok: false, batch_id: next ? next.batch_id : null, detail: `${why}: run I while a live proposal is pending and the verifier service is stopped` });
@@ -258,7 +260,9 @@ async function testI({ feedUrl, cfg, server, now = nowS() }) {
   let ptx = null;
   try { ptx = new S.Transaction(pending, cfg.network_passphrase); } catch (e) { /* unparseable: the verifier judges it */ }
   if (ptx && ptx.timeBounds && Number(ptx.timeBounds.maxTime) !== 0 && Number(ptx.timeBounds.maxTime) <= now) return notLive('the pending proposal has expired');
-  const proxy = await withholdingFeed(feedUrl, `batches/${next.batch_id}.json`);
+  /* the proxy forwards from the commit liveProposal pinned (after Horizon), never from the branch path,
+     whose CDN copies could be older than the proposal: the verifier judges exactly that commit (V3-7c) */
+  const proxy = await withholdingFeed(feed.base, `batches/${next.batch_id}.json`);
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-test-i-'));
   let r;
   try {
@@ -270,7 +274,7 @@ async function testI({ feedUrl, cfg, server, now = nowS() }) {
     ...base,
     ok: refused && (r.reasons || []).includes('verifier.not_published'),
     refused, reasons: r.reasons || [], action: r.action, detail: r.detail || r.reason || null,
-    batch_id: next.batch_id, withheld: proxy.withheld,
+    batch_id: next.batch_id, withheld: proxy.withheld, feed_commit: feed.commit, feed_base: feed.base,
     pending_envelope_xdr: pending, pending_tx_hash: ptx ? ptx.hash().toString('hex') : null,
     refusal_log: refusalLog, refusals: fs.existsSync(refusalLog) ? fs.readFileSync(refusalLog, 'utf8') : '',
   };

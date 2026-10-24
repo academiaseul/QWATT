@@ -31,19 +31,27 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | `tx.js` | The deterministic anchoring transaction (anchor hash · cumulative total · nominal payment · memo `QW#<seq>`) and `matchPending`, the verifier's rebuild-and-compare. |
 | `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. `walkToHead` checks what a batch inherits against the on-chain head. |
 | `proposer.js` | Proposer service: runs the verifier's walk over its own feed, signs the next published, self-verified batch and writes `pending/<id>.xdr`; otherwise it reports `blocked` with the verifier's reason. Never submits. |
-| `verifier.js` | Verifier service: feed URL in, co-signature out. Every decision in `<state>/decisions.jsonl` (`signed` with the hash of the transaction it signed, logged before the submission; `refused` with the reasons), every refusal also in `<state>/refusals.jsonl`, and `<state>/status.json` replaced each tick. `qwatt-verifier-log.service` publishes them to `academiaseul/qwatt-verifier-log/<run>/`; `--port` serves them on 127.0.0.1 only, for the operator. |
-| `feed-client.js` | HTTP(S) reader for the public feed — the verifier's only input path. |
+| `verifier.js` | Verifier service: feed URL in, co-signature out. Every decision in `<state>/decisions.jsonl` (`signed` with the hash of the transaction it signed, logged before the submission; `refused` with the reasons; each with `feed_commit`, the evidence commit it judged), every refusal also in `<state>/refusals.jsonl`, and `<state>/status.json` replaced each tick. `qwatt-verifier-log.service` publishes them to `academiaseul/qwatt-verifier-log/<run>/`; `--port` serves them on 127.0.0.1 only, for the operator. |
+| `feed-client.js` | HTTP(S) reader for the public feed — the verifier's only input path. A feed in a GitHub repository is read at one commit: `snapshot()` resolves the branch to its head commit from the anonymous `info/refs` endpoint (`../assets/qwatt-pin.js`), every file is then read at that commit and kept in memory (the content at a commit never changes), and an unreadable head (403, 429, 5xx) is `verifier.feed_unavailable`, a wait. `makeVerifierLogClient` reads the public verifier log the same way (for V3-11's proposer; not wired in week 2). |
 | `static-server.js` | Read-only static server for a feed directory (local runs, tests), and `withholdingFeed`, the proxy test I puts in front of the feed to withhold one batch from the verifier. |
 | `tests-abcd.js` | Tests A–D and independence (I) on the real account, each run on the host that holds its key or view; `combine` joins the evidence of the hosts into one `abcd.json` with its raw files. |
 | `rehearse.js` | Throwaway-account multisig rehearsal: tests A, B, C, D and third-signer liveness. |
 | `e2e.js` | Throwaway-account end-to-end run of both services: chain, restart, independence test, test D. |
 | `reconcile-cli.js` | The reconciliation from the command line (the logic `../reconcile.html` runs, from `../assets/qwatt-reconcile.js`); see below. |
+| `fake-github.js` | Test double: local bare repositories served as GitHub serves them anonymously (`info/refs`, raw files at a commit, raw files at a branch from a per-URL cache like the CDN's, the commits API), with `expire()`, `failRefs(429)` for the head lookups and `failRaw(503, rel?)` for the raw file reads. Needs only git. |
 | `fake-horizon-http.js` | Test double: a fake Horizon REST API on 127.0.0.1 (the account, its operations joined with their transactions, `/transactions/<hash>`) and throwaway in-memory Ed25519 keys. No dependencies, so `../batch/reconcile.test.js` stays install-free. |
 | `tx.test.js` · `recovery.test.js` · `tests-abcd.test.js` · `keys.test.js` | Offline tests (no network), against `fake-horizon.js`, which applies Stellar's signature rules. |
 | `test-fixtures/` | Test-only stand-ins: `fake-stellar-cli.js` answers `keys address`, `tx sign` and `version` with keys derived from a salt, so no secret exists anywhere in a test. |
 
-**What the verifier checks before it co-signs.** Any failure is a refusal with a reason code
-registered in `../protocol/reasons.json`, and nothing is signed:
+**What the verifier checks before it co-signs.** Each tick reads the chain head from Horizon first,
+then ONE commit of the public evidence: the branch of the evidence repository resolved to its head
+commit, with every file of the tick read at that commit (freeze v3 V3-7, decision D7). The proposer
+publishes a batch before it signs, so every batch the head names is in that commit, and a fresh
+batch ledger is never judged against a stale CDN copy of the rejected ledger. Every line of
+`decisions.jsonl` names that commit (`feed_commit`; null for a feed that is not a repository, such
+as a local server), so each signature is tied to a public commit; `../ops/evidence-audit.js
+--recorded` checks that each one stays in the public history. Any failure below is a refusal with a
+reason code registered in `../protocol/reasons.json`, and nothing is signed:
 
 1. The batch named by the proposal is in the public feed (`verifier.not_published`) and hashes to
    its batch-ledger entry (`verifier.hash_mismatch`).
@@ -135,10 +143,17 @@ run, earlier anchors signed by the removed key would read as BROKEN (`unknown ke
 verification needs WebCrypto Ed25519 (Node 20, or Chrome 137+, Firefox 129+, Safari 17+); without
 it the check stops with no verdict and points to this CLI.
 
+The feed is read at one commit (V3-7c): `fetchFeed` resolves a repository URL (the raw branch URL,
+or its github.io address, which is read from the repository and never from Pages) to the branch's
+head commit, through `info/refs` in Node and the commits API (`api.github.com`, CORS, 60 requests an
+hour per address) in a browser, and reads every file at that commit. Every caller prints or shows
+`evidence read at <owner>/<repo>@<sha7>`; `reconcile-cli.js --json` adds `evidence: { base, commit }`.
+
 For code that builds on it: `R.check({ feed, horizon, account, roles?, feedOptions? })` returns
-`{ report, feed, anchors, account }`; `feedOptions` is passed to `fetchFeed(base, opt)` (today
-`{ timeoutMs }`), which is where pinned reads of the evidence repository add their options. A
-caller that reconciles pieces it fetched itself passes the chain as the third argument,
+`{ report, feed, anchors, account }`, with `feed.commit` and `feed.base` saying what was read;
+`feedOptions` is passed to `fetchFeed(base, opt)`: `{ timeoutMs }` and the pin options of
+`../assets/qwatt-pin.js` (`rawOrigin`, `gitOrigin`, `apiOrigin`, `via`, `branch`). A caller that
+reconciles pieces it fetched itself passes the chain as the third argument,
 `R.reconcile(feed, anchors, { account, record, roles })`; with two arguments it throws.
 
 No secret enters a browser, a chat, an env file or the repository. Each service asks stellar-cli on
@@ -173,7 +188,8 @@ one-time setup), and the off-team third signer follows `../docs/THIRD-SIGNER.md`
 - C names the two keys that signed by role (`pair`, from `signers` in the public config) and links
   stellar.expert; only `proposer+verifier` is test C;
 - **I (independence)** runs the real verifier code with a local proxy on the verifier host that
-  withholds `batches/<id>.json` from the verifier's only input path, and the verifier refuses with
+  withholds `batches/<id>.json` from the verifier's only input path (and forwards every other file
+  from the evidence commit I resolved after Horizon, recorded as `feed_commit`), and the verifier refuses with
   `verifier.not_published`; it is given a signer that can never sign. The public feed is never
   touched: like D, which alters the batch in memory, I changes only what the verifier sees. This is
   how V3-4's "batch not published" is built (deviation DV-7, for the founders to sign in freeze v3);

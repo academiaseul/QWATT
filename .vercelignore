@@ -25,6 +25,8 @@ ops
 ops-state
 # Until it reads signers and thresholds from Horizon, the page hard-codes "Anchored with 2 of 3 signatures"
 reconcile.html
+# Loaded only by reconcile.html (V3-7c: the evidence is read at one commit); served with that page (V3-9.3)
+assets/qwatt-pin.js
 # August wallet code and local tooling: no deployed page loads any of them (the August pages were
 # restored without key handling, signing or the vendored wallet kit).
 qwatt-wallet.js

@@ -177,12 +177,14 @@
   </footer>
 </div>
 
+<script src="assets/qwatt-pin.js"></script>
 <script src="assets/qwatt-reconcile.js"></script>
 <script>
 (function () {
   'use strict';
   var $ = function (id) { return document.getElementById(id); };
   var R = window.QWATT_RECONCILE;
+  var PIN = window.QWATT_PIN;
 
   /* theme toggle, same key as the site */
   function setTheme(t) {
@@ -299,13 +301,13 @@
     $('runBtn').disabled = true;
     var prog = $('progress');
     try {
-      prog.textContent = 'Reading the anchoring account and every anchoring transaction from Horizon, then downloading the evidence feed…';
-      /* Horizon first, then the feed (R.check); signer roles from the run's faults.json */
+      prog.textContent = 'Reading the anchoring account and every anchoring transaction from Horizon, then downloading the evidence feed at its latest commit…';
+      /* Horizon first, then the feed at one commit (R.check; a GitHub feed is pinned through api.github.com); signer roles from the run's faults.json */
       var res = await R.check({ feed: feedUrl, horizon: horizon, account: account });
       var rep = res.report;
       render(rep, horizon); windows(res.feed, rep); renderReasons(rep.summary);
       $('result').hidden = false;
-      prog.textContent = 'Checked ' + rep.rows.length + ' batches and ' + rep.summary.anchor_transactions + ' anchoring transactions at ' + new Date().toISOString().slice(11, 19) + ' UTC.';
+      prog.textContent = 'Checked ' + rep.rows.length + ' batches and ' + rep.summary.anchor_transactions + ' anchoring transactions at ' + new Date().toISOString().slice(11, 19) + ' UTC · evidence read at ' + (PIN.describe(feedUrl, res.feed.commit) || res.feed.base) + '.';
     } catch (e) {
       prog.textContent = 'Could not complete the check: ' + e.message + '. Confirm the feed URL serves index.json and ledger/batches.jsonl, and the account is a G… address.';
     } finally {
