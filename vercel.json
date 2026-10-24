@@ -10,7 +10,6 @@
     { "source": "/proof.html", "destination": "/", "permanent": true },
     { "source": "/proof/:id", "destination": "/", "permanent": true },
     { "source": "/respaldo.html", "destination": "/", "permanent": true },
-    { "source": "/red.html", "destination": "/", "permanent": true },
     { "source": "/whitepaper.html", "destination": "/", "permanent": true },
     { "source": "/terminos.html", "destination": "/", "permanent": true },
     { "source": "/backup.html", "destination": "/", "permanent": true },
