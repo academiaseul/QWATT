@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es" data-title-en="The network says no · tests A–D · QWATT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>La red dice que no · pruebas A–D · QWATT</title>
+<meta name="description" content="Las pruebas A–D de QWATT: una sola clave no basta para anclar, y la propia red de Stellar testnet lo rechaza. El plan, el ensayo del 8 oct comprobado en vivo y la evidencia de la cuenta definitiva cuando se publique.">
+<link rel="canonical" href="https://qwatt.org/pruebas.html">
+<meta name="theme-color" content="#16100a">
+<meta name="color-scheme" content="dark light">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/pruebas.html">
+<meta property="og:title" content="La red dice que no · pruebas A–D · QWATT">
+<meta property="og:description" content="Las pruebas A–D de QWATT: una sola clave no basta para anclar, y la propia red de Stellar testnet lo rechaza. El plan, el ensayo del 8 oct comprobado en vivo y la evidencia de la cuenta definitiva cuando se publique.">
+<meta property="og:locale" content="es_CL">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://qwatt.org/og-sprint.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="La red dice que no · pruebas A–D · QWATT">
+<meta name="twitter:description" content="Las pruebas A–D de QWATT: una sola clave no basta para anclar, y la propia red de Stellar testnet lo rechaza.">
+<meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/pages/pruebas.css">
+<script src="/assets/boot.js"></script>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
+<script defer src="/assets/qwatt-live.js"></script>
+<script defer src="/assets/qwatt-reconcile.js"></script>
+<script defer src="/assets/live-widgets.js"></script>
+<script defer src="/assets/qwatt-envelope.js"></script>
+<script defer src="/assets/qwatt-tests.js"></script>
+<script defer src="/assets/pages/pruebas.js"></script>
+</head>
+<body data-page="pruebas" data-status="mixto" data-parts="planificado testnet">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
+  </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
+
+<section class="q-phero" id="top" aria-labelledby="h1">
+  <div class="q-wrap">
+    <p class="q-tag"><span data-l="es">Pruebas A–D</span><span data-l="en">Tests A–D</span></p>
+    <h1 id="h1"><span data-l="es">La red dice que <b>no</b></span><span data-l="en">The network says <b>no</b></span></h1>
+    <p class="q-lead"><span data-l="es">La promesa central de QWATT es que ninguna clave sola puede escribir una constancia. No te pedimos que lo creas: estas pruebas intentan hacerlo, y la propia red de Stellar las rechaza. Cada resultado se publica con la transacción firmada y la respuesta de la red, para que lo compruebes tú.</span><span data-l="en">QWATT's central promise is that no single key can write a record. We don't ask you to believe it: these tests try to do it, and Stellar's own network refuses them. Every result is published with the signed transaction and the network's answer, so you can check it.</span></p>
+    <p class="q-status" role="note">
+      <span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">las pruebas en la cuenta definitiva (semana 2)</span><span data-l="en">the tests on the real account (week 2)</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">el mismo procedimiento ya corrió el 8 oct en cuentas desechables, y aquí lo comprobamos en vivo</span><span data-l="en">the same procedure already ran on 8 Oct on throwaway accounts, and we check it live here</span></span></span>
+    </p>
+    <div class="q-pstate" id="pState">
+      <p class="q-pstate-k"><span data-l="es">Estado de las pruebas en la cuenta definitiva</span><span data-l="en">Status of the tests on the real account</span></p>
+      <p class="q-pstate-v" data-slot="state"><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      <div class="q-anchorline" data-widget="anchor-slot" data-compact>
+        <p class="q-fallback"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3: en preparación (semana 2).</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3: in preparation (week 2).</span></p>
+      </div>
+    </div>
+    <div class="q-cta">
+      <a class="q-btn is-primary" href="#ensayo"><span data-l="es">El ensayo del 8 oct, comprobado ahora ↓</span><span data-l="en">The 8 Oct rehearsal, checked now ↓</span></a>
+      <a class="q-btn" href="#plan"><span data-l="es">El plan ↓</span><span data-l="en">The plan ↓</span></a>
+      <a class="q-btn" href="/como-funciona.html#claves"><span data-l="es">Qué puede hacer cada clave →</span><span data-l="en">What each key can do →</span></a>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="plan" aria-labelledby="h2plan">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h2plan"><span data-l="es">1 · El plan, prueba por prueba</span><span data-l="en">1 · The plan, test by test</span></h2><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <p class="q-sub"><span data-l="es">En la cuenta definitiva 2 de 3, con umbrales 2/2/3: tres firmantes de peso 1 (el proponente, el verificador independiente y un firmante externo al equipo) y la clave con que se crea la cuenta en peso 0.</span><span data-l="en">On the real 2-of-3 account, with thresholds 2/2/3: three signers of weight 1 (the proposer, the independent verifier and a signer from outside the team) and the key that creates the account at weight 0.</span></p>
+    <div class="q-tcards">
+      <article class="q-tcard" data-step="A">
+        <div class="q-tcard-h"><b translate="no">A</b><h3><span data-l="es">El proponente solo</span><span data-l="en">The proposer alone</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADA POR LA RED</span><span data-l="en">REFUSED BY THE NETWORK</span></span></p>
+        <p><span data-l="es">Envía la transacción publicada con su única firma. Esperado: la red la rechaza con tx_bad_auth, porque una firma de peso 1 no alcanza el umbral bajo 2. Nunca entra a un ledger: la evidencia es la transacción firmada y la respuesta de la red.</span><span data-l="en">It submits the published transaction with its single signature. Expected: the network refuses it with tx_bad_auth, because one signature of weight 1 does not reach the low threshold 2. It never enters a ledger: the evidence is the signed transaction and the network's answer.</span></p>
+        <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      </article>
+      <article class="q-tcard" data-step="B">
+        <div class="q-tcard-h"><b translate="no">B</b><h3><span data-l="es">El verificador solo</span><span data-l="en">The verifier alone</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADA POR LA RED</span><span data-l="en">REFUSED BY THE NETWORK</span></span></p>
+        <p><span data-l="es">Firma el mismo cuerpo de transacción sin la firma del proponente, después de correr sus propias comprobaciones. Esperado: tx_bad_auth.</span><span data-l="en">It signs the same transaction body without the proposer's signature, after running its own checks. Expected: tx_bad_auth.</span></p>
+        <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      </article>
+      <article class="q-tcard is-yes" data-step="C">
+        <div class="q-tcard-h"><b translate="no">C</b><h3><span data-l="es">Los dos</span><span data-l="en">Both</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="testnet"><span data-l="es">ANCLADA</span><span data-l="en">ANCHORED</span></span></p>
+        <p><span data-l="es">El verificador cofirma la propuesta y la envía. Esperado: anclada, con enlace a stellar.expert, firmada por el proponente y el verificador.</span><span data-l="en">The verifier co-signs the proposal and submits it. Expected: anchored, with a stellar.expert link, signed by the proposer and the verifier.</span></p>
+        <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      </article>
+      <article class="q-tcard" data-step="D">
+        <div class="q-tcard-h"><b translate="no">D</b><h3><span data-l="es">Lote alterado después de la firma del proponente</span><span data-l="en">Batch altered after the proposer signed</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADO POR EL VERIFICADOR</span><span data-l="en">REFUSED BY THE VERIFIER</span></span></p>
+        <p><span data-l="es">Se cambia en memoria el lote publicado. Esperado: el verificador lo rechaza (verifier.hash_mismatch); no se envía ni se publica nada.</span><span data-l="en">The published batch is changed in memory. Expected: the verifier refuses it (verifier.hash_mismatch); nothing is submitted or published.</span></p>
+        <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      </article>
+      <article class="q-tcard" data-step="I">
+        <div class="q-tcard-h"><b translate="no">I</b><h3><span data-l="es">Independencia</span><span data-l="en">Independence</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADO POR EL VERIFICADOR</span><span data-l="en">REFUSED BY THE VERIFIER</span></span></p>
+        <p><span data-l="es">Al verificador se le oculta el archivo del lote en su única vía de entrada. Esperado: lo rechaza (verifier.not_published), porque solo puede usar datos públicos.</span><span data-l="en">The batch file is withheld from the verifier's only input path. Expected: it refuses (verifier.not_published), because it may use only public data.</span></p>
+        <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      </article>
+    </div>
+    <p class="q-callout"><span data-l="es">A, B y C son el mismo cuerpo de transacción, con la misma huella: Stellar no incluye las firmas en la huella. Con una firma, rechazada; con dos, anclada.</span><span data-l="en">A, B and C are the same transaction body, with the same hash: Stellar leaves signatures out of the hash. With one signature, refused; with two, anchored.</span></p>
+    <p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2) · punto</span><span data-l="en">in preparation (week 2) · item</span> <a href="/hoja-de-ruta.html#V3-4"><span translate="no">V3-4</span></a></p>
+  </div>
+</section>
+
+<section class="q-sec" id="comprobado" aria-labelledby="h2chk">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h2chk"><span data-l="es">2 · Comprobado aquí, en tu navegador</span><span data-l="en">2 · Checked here, in your browser</span></h2><span class="q-chip" data-st="planificado" data-slot="chk-chip"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <p class="q-sub" data-slot="chk-intro"><span data-l="es">Esta sección aparece sola cuando se publique la evidencia de la cuenta definitiva, en evidence/account/(cuenta)/abcd.json. Tu navegador revisará cada archivo contra su índice, recalculará el cuerpo de A y B desde sus sobres firmados, identificará cada firma y dará su propio veredicto sin leer el del archivo.</span><span data-l="en">This section appears by itself when the real account's evidence is published, at evidence/account/(account)/abcd.json. Your browser will check every file against its index, recompute A's and B's body from their signed envelopes, identify every signature and give its own verdict without reading the file's.</span></p>
+    <div class="q-model" id="pReal" hidden></div>
+  </div>
+</section>
+
+<section class="q-sec" id="ensayo" aria-labelledby="h2ens">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h2ens"><span data-l="es">3 · El mismo procedimiento, ya corrido el 8 oct</span><span data-l="en">3 · The same procedure, already run on 8 Oct</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></span></div>
+    <p class="q-sub"><span data-l="es">Con cuentas desechables y umbrales 1/2/3, el diseño anterior. Entrada simulada · Stellar testnet.</span><span data-l="en">With throwaway accounts and thresholds 1/2/3, the earlier design. Simulated input · Stellar testnet.</span></p>
+    <ul class="q-facts">
+      <li><b><span data-l="es">A y B: rechazadas por la red (tx_failed / op_bad_auth).</span><span data-l="en">A and B: refused by the network (tx_failed / op_bad_auth).</span></b> <span data-l="es">Con 1/2/3 una sola firma alcanzaba el umbral bajo, así que la transacción era válida pero su operación de anclaje no tenía firmas suficientes. Con 2/2/3 la red la rechaza antes, con tx_bad_auth, y una clave sola ya no puede enviar nada. Por eso el 21 oct elegimos 2/2/3.</span><span data-l="en">Under 1/2/3 a single signature reached the low threshold, so the transaction was valid but its anchoring operation lacked signatures. Under 2/2/3 the network refuses it earlier, with tx_bad_auth, and one key alone can no longer send anything. That is why we chose 2/2/3 on 21 Oct.</span></li>
+      <li><b><span data-l="es">C: anclada en QW#0, ledger</span><span data-l="en">C: anchored as QW#0, ledger</span> <span class="q-num" data-src="ensayo">5.093.764</span><span data-l="es">, firmada por el proponente y el verificador.</span><span data-l="en">, signed by the proposer and the verifier.</span></b> <span data-l="es">L: la tercera clave del ensayo y el verificador anclaron QW#1. D: el verificador rechazó el lote alterado (verifier.hash_mismatch). Independencia, en el ensayo de extremo a extremo: rechazado (verifier.not_published) y anclado después de publicarse.</span><span data-l="en">L: the rehearsal's third key and the verifier anchored QW#1. D: the verifier refused the altered batch (verifier.hash_mismatch). Independence, in the end-to-end rehearsal: refused (verifier.not_published) and anchored after publication.</span></li>
+    </ul>
+    <p class="q-src" data-src="ensayo"><span data-l="es">Entrada simulada · Stellar testnet · ensayo 8 oct · cuenta desechable</span><span data-l="en">Simulated input · Stellar testnet · 8 Oct rehearsal · throwaway account</span></p>
+    <h3 id="h3live"><span data-l="es">Comprobado ahora, en tu navegador</span><span data-l="en">Checked now, in your browser</span></h3>
+    <p class="q-nojs"><span data-l="es">Estas comprobaciones corren en tu navegador y necesitan JavaScript, porque recalculan la huella de A y B desde sus sobres firmados, verifican cada firma Ed25519 y leen la transacción C en Stellar testnet.</span><span data-l="en">These checks run in your browser and need JavaScript, because they recompute A's and B's hash from their signed envelopes, verify each Ed25519 signature and read transaction C on Stellar testnet.</span></p>
+    <ul class="q-live-checks" id="pLive" aria-labelledby="h3live" aria-busy="true">
+      <li data-check="body"><span class="q-state" data-state="wait" data-slot="state"></span><span><span data-l="es">El cuerpo de A y de B, calculado desde su sobre firmado, es el de C</span><span data-l="en">A's and B's body, computed from their signed envelopes, is C's</span></span><span class="q-lc-v" data-slot="v"></span></li>
+      <li data-check="sigA"><span class="q-state" data-state="wait" data-slot="state"></span><span><span data-l="es">La firma de A es del proponente</span><span data-l="en">A's signature is the proposer's</span></span><span class="q-lc-v" data-slot="v"></span></li>
+      <li data-check="sigB"><span class="q-state" data-state="wait" data-slot="state"></span><span><span data-l="es">La firma de B es del verificador</span><span data-l="en">B's signature is the verifier's</span></span><span class="q-lc-v" data-slot="v"></span></li>
+      <li data-check="c"><span class="q-state" data-state="wait" data-slot="state"></span><span><span data-l="es">C tiene dos firmas en Stellar testnet: proponente + verificador</span><span data-l="en">C has two signatures on Stellar testnet: proposer + verifier</span></span><span class="q-lc-v" data-slot="v"></span></li>
+    </ul>
+    <p class="q-vsum" id="pSum" role="status" aria-live="polite"></p>
+    <div class="q-model" id="pWorked"></div>
+  </div>
+</section>
+
+<section class="q-sec" id="motivos" aria-labelledby="h2why">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h2why"><span data-l="es">Qué significa cada respuesta</span><span data-l="en">What each answer means</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+    <dl class="q-why">
+      <dt><code>tx_bad_auth</code></dt><dd><span data-l="es">faltan firmas para el umbral bajo; la red no aplica la transacción.</span><span data-l="en">not enough signatures for the low threshold; the network does not apply the transaction.</span></dd>
+      <dt><code>op_bad_auth</code></dt><dd><span data-l="es">la transacción era válida pero una operación no tenía firmas suficientes.</span><span data-l="en">the transaction was valid but one operation lacked signatures.</span></dd>
+      <dt><code>verifier.hash_mismatch</code></dt><dd><span data-l="es">la transacción propuesta no lleva la huella del lote publicado.</span><span data-l="en">the proposed transaction does not carry the published batch's fingerprint.</span></dd>
+      <dt><code>verifier.not_published</code></dt><dd><span data-l="es">el lote no está en el feed público.</span><span data-l="en">the batch is not in the public feed.</span></dd>
+    </dl>
+  </div>
+</section>
+
+<section class="q-sec" id="terminal" aria-labelledby="h2term">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h2term"><span data-l="es">4 · En tu terminal</span><span data-l="en">4 · In your terminal</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+    <p class="q-sub"><span data-l="es">La transacción C, tal como la guarda Stellar testnet:</span><span data-l="en">Transaction C, as Stellar testnet keeps it:</span></p>
+    <div class="q-codebox">
+      <button type="button" class="q-btn is-small q-copy" data-copy="pCmd"><span data-l="es">Copiar</span><span data-l="en">Copy</span></button>
+<pre class="q-code" id="pCmd">curl -s https://horizon-testnet.stellar.org/transactions/494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1</pre>
+    </div>
+    <p class="q-sub"><span data-l="es">Las pruebas de la semana 2 se corren con</span><span data-l="en">The week-2 tests run with</span> <code>node anchor/tests-abcd.js</code><span data-l="es">, según el manual de operación, y su archivo se publica en</span><span data-l="en">, following the runbook, and their file is published at</span> <code>evidence/account/(cuenta)/abcd.json</code>. <a href="https://github.com/academiaseul/QWATT/blob/main/docs/RUNBOOK.md" target="_blank" rel="noopener"><span data-l="es">Manual de operación</span><span data-l="en">Runbook</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p>
+    <p class="q-callout"><span data-l="es">¿Quieres ver además la huella de un lote anclado, recalculada en tu navegador?</span><span data-l="en">Want to see an anchored batch's fingerprint recomputed in your browser too?</span> <a href="/verificacion.html#derivar"><span data-l="es">Compruébalo tú →</span><span data-l="en">Check it yourself →</span></a></p>
+  </div>
+</section>
+
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
+</footer>
+<!-- /q:footer -->
+</body>
+</html>

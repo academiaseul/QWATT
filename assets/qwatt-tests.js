@@ -135,7 +135,7 @@
       if (!src) return [row('onchain', l && l.offline ? 'offline' : 'na', { why: l && l.offline ? 'horizon' : 'no-record' }), row('two-sigs', l && l.offline ? 'offline' : 'na', {})];
       var t = src.tx;
       var okOn = t.ok === true && t.hash === s.hash && t.ledger === s.ledger && (!memoOf(s) || t.memoShown === memoOf(s));
-      var r1 = row('onchain', okOn ? 'ok' : 'fail', { ledger: t.ledger, memo: t.memoShown || null, hash: t.hash, src: src.src });
+      var r1 = row('onchain', okOn ? 'ok' : 'fail', { ledger: t.ledger, memoShown: t.memoShown || null, hash: t.hash, src: src.src });
       var sigs = Array.isArray(t.signatures) ? t.signatures : [];
       var names = ['proposer', 'verifier', 'third'].filter(function (n) { return isG(ctx.roles[n]); });
       return Promise.all(sigs.map(function (sg) {

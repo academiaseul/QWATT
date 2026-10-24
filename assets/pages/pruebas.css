@@ -1,0 +1,88 @@
+/* QWATT · pruebas.html (MIXTO): tests A–D — the plan, the real account's evidence when it is
+   published, and the 8 Oct rehearsal re-judged in the browser. Shared values in /assets/site.css. */
+
+.q-phero{border-bottom:1px solid var(--line);padding:56px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--red) 6%,transparent),transparent 70%)}
+@media(max-width:600px){.q-phero{padding:40px 0 32px}}
+.q-phero h1{max-width:20ch}
+.q-phero h1 b{color:var(--red)}
+.q-sub{color:var(--ink-2);font-size:15px;line-height:1.65;max-width:72ch;margin:12px 0 18px}
+.q-sec .q-head{margin-bottom:6px}
+.q-sec h3{margin:28px 0 10px;font-size:16px}
+.q-nojs{font-size:13.5px;color:var(--ink-2);border:1px dashed var(--line);padding:10px 12px;margin:10px 0}
+.js .q-nojs{display:none}
+
+/* ── page state ── */
+.q-pstate{margin-top:20px;border:1px solid var(--line);background:var(--panel);padding:14px 16px;max-width:78ch}
+.q-pstate-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.q-pstate-v{margin-top:8px;font-size:15px;display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center}
+.q-anchorline{margin-top:10px;font-size:13px;color:var(--ink-2)}
+.q-anchorline p{display:inline}
+.q-anchorline .q-src{display:inline-block;margin-left:10px}
+
+/* ── 1 · plan cards ── */
+.q-tcards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,300px),1fr));gap:12px}
+.q-tcard{background:var(--panel);padding:16px 16px 14px;border-top:2px solid color-mix(in srgb,var(--red) 70%,var(--line));display:flex;flex-direction:column;gap:10px;min-width:0}
+.q-tcard.is-yes{border-top-color:var(--green)}
+.q-tcard-h{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:baseline}
+.q-tcard-h b{font-family:var(--mono);font-size:22px;color:var(--copper);grid-row:span 2;line-height:1}
+.q-tcard-h h3{margin:0;font-size:15px}
+.q-tcard-h .q-chip{justify-self:start}
+.q-tcard p{font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.q-tline{margin-top:auto;font-family:var(--mono);font-size:11px !important;letter-spacing:.06em;color:var(--copper) !important;border-top:1px solid var(--line);padding-top:8px}
+.q-callout{margin-top:16px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
+.q-sec .q-src{margin-top:12px}
+
+/* ── 2 · real-account evidence, 3 · worked example ── */
+.q-model{margin-top:16px}
+.q-model[hidden]{display:none}
+.q-steps-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,320px),1fr));gap:10px}
+.q-stepcard{background:var(--panel);padding:14px 14px 12px;border-left:3px solid var(--line);min-width:0}
+.q-stepcard[data-state="ok"],.q-stepcard[data-state="refused"]{border-left-color:var(--green)}
+.q-stepcard[data-state="fail"]{border-left-color:var(--red)}
+.q-stepcard[data-state="offline"],.q-stepcard[data-state="na"]{border-left-color:var(--ink-3)}
+.q-stepcard-h{display:flex;flex-wrap:wrap;gap:6px 10px;justify-content:space-between;align-items:baseline}
+.q-stepcard h4{font-size:14.5px}
+.q-rows{list-style:none;display:grid;gap:6px;margin-top:10px}
+.q-rows li{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr);gap:4px 10px;font-size:12.5px;line-height:1.5;color:var(--ink-2);align-items:baseline}
+.q-rows .q-state,.q-stepcard-h .q-state{font-size:10px}
+.q-state[data-state="refused"]{color:var(--green)}
+.q-state[data-state="refused"] > span[aria-hidden]{color:var(--red)}
+.q-why-i{color:var(--ink-3)}
+.q-hash{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere}
+.q-codes{font-family:var(--mono);font-size:12px;color:var(--red)}
+.q-verdict-line{margin-top:14px;font-size:14.5px;color:var(--ink-2);padding:12px 14px;border:1px solid var(--line);background:var(--panel-2)}
+.q-verdict-line b{font-family:var(--mono);letter-spacing:.08em;color:var(--green)}
+.q-verdict-line[data-v="FAIL"] b{color:var(--red)}
+.q-verdict-line[data-v="INCOMPLETE"] b{color:var(--copper)}
+.q-vnote{font-size:13px;color:var(--ink-3);margin-top:8px;max-width:80ch}
+.q-model .q-src{margin-top:10px}
+
+/* ── live checks ── */
+.q-facts{list-style:none;display:grid;gap:10px;max-width:82ch}
+.q-facts li{font-size:14.5px;line-height:1.65;color:var(--ink-2);padding-left:16px;border-left:2px solid var(--gold)}
+.q-facts b{color:var(--ink);font-weight:600}
+.q-live-checks{list-style:none;display:grid;gap:6px;max-width:90ch}
+.q-live-checks li{display:grid;grid-template-columns:minmax(150px,max-content) minmax(0,1fr);gap:4px 12px;background:var(--panel);padding:10px 12px;border-left:3px solid var(--line);font-size:13.5px;color:var(--ink-2);align-items:baseline}
+.q-live-checks li[data-state="ok"]{border-left-color:var(--green)}
+.q-live-checks li[data-state="fail"]{border-left-color:var(--red)}
+.q-live-checks .q-state{font-size:10.5px}
+.q-lc-v{grid-column:2;font-size:12.5px}
+.q-lc-v:empty{display:none}
+.q-lc-v .q-src{display:inline-block;margin:0 0 0 6px}
+html:not(.js) .q-live-checks [data-slot="state"]{visibility:hidden}
+@media(max-width:560px){.q-live-checks li{grid-template-columns:1fr}.q-lc-v{grid-column:1}}
+.q-vsum{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-top:10px;min-height:1.4em}
+
+/* ── reasons ── */
+.q-why{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr);gap:8px 16px;max-width:86ch}
+.q-why dt code{color:var(--copper)}
+.q-why dd{font-size:14px;color:var(--ink-2);line-height:1.55}
+@media(max-width:560px){.q-why{grid-template-columns:1fr}.q-why dd{margin-bottom:6px}}
+
+/* ── terminal ── */
+.q-codebox{position:relative}
+.q-codebox .q-code{padding-right:86px;font-size:12px}
+.q-copy{position:absolute;top:8px;right:8px}
+.q-expect{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-family:var(--mono);font-size:10.5px !important;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3) !important}
+.q-rows li{grid-template-columns:1fr;gap:2px}
+.q-rows li > span:last-child{padding-left:16px}
