@@ -1,0 +1,66 @@
+/* QWATT · hoja-de-ruta.html (MIXTO): the sprint plan from assets/status.json — calendar,
+   deliverables, every item with its evidence, open decisions. Shared values in /assets/site.css. */
+
+.q-phero{border-bottom:1px solid var(--line);padding:56px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--green) 5%,transparent),transparent 70%)}
+@media(max-width:600px){.q-phero{padding:40px 0 32px}}
+.q-phero h1{max-width:22ch}
+.q-hero-note{font-size:14px;color:var(--ink-3);max-width:66ch;margin-top:10px;line-height:1.6}
+.q-sub{color:var(--ink-2);font-size:15px;line-height:1.65;max-width:76ch;margin:12px 0 18px}
+.q-sec .q-head{margin-bottom:6px}
+body[data-page="hoja-de-ruta"] .q-foot .q-wrap{max-width:var(--maxw-wide)}
+
+/* ── calendar (same marks as the home page) ── */
+.q-cal{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:0;border-top:1.4px solid var(--ink);margin-top:20px}
+.q-cal li{padding:14px 14px 16px 0;border-right:1px solid var(--line);display:flex;flex-direction:column;gap:6px;align-items:flex-start;min-width:0}
+.q-cal li:last-child{border-right:0}
+@media(max-width:700px){.q-cal li{border-right:0;border-bottom:1px solid var(--line)}}
+.q-cal-k{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink)}
+.q-cal-d{font-size:12.5px;color:var(--ink-2);line-height:1.45}
+.q-cal-mark .q-cal-k{color:var(--copper)}
+
+/* ── deliverables ── */
+.q-dels{margin-top:26px}
+.q-del h3{font-size:15px}
+.q-segs{list-style:none;display:flex;flex-wrap:wrap;gap:6px;margin-top:auto;padding-top:6px}
+.q-seg{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;padding:3px 8px;border-radius:99px;border:1px solid color-mix(in srgb,var(--c) 45%,transparent);color:var(--c);--c:var(--neutral)}
+.q-seg[data-st="hecho"]{--c:var(--green)}
+.q-seg[data-st="planificado"],.q-seg[data-st="curso"],.q-seg[data-st="abierto"]{--c:var(--copper)}
+.q-seg[data-st="previo"]{--c:var(--gold)}
+
+/* ── filters and the item table ── */
+.q-filters{display:grid;gap:8px;margin:30px 0 12px}
+.q-fgroup{display:flex;flex-wrap:wrap;gap:6px}
+.q-count{color:var(--ink-3);font-size:10px}
+.q-btn[aria-pressed="true"] .q-count{color:inherit}
+.q-roadmap .q-table-wrap{margin-top:22px}
+.q-filters + .q-table-wrap{margin-top:0}
+.q-items{font-size:13px}
+.q-items th[scope="row"]{font-family:var(--mono);font-size:12px;color:var(--copper);white-space:nowrap}
+.q-items td:nth-child(2){min-width:28ch;max-width:62ch}
+.q-row-t{color:var(--ink);font-weight:600;line-height:1.45}
+.q-row-s{color:var(--ink-2);font-size:12.5px;line-height:1.55;margin-top:4px}
+.q-items td:nth-child(3){white-space:nowrap;color:var(--ink-2)}
+.q-items .q-ev-list{margin-top:0}
+.q-items tr[hidden]{display:none !important}
+.q-items tr:target{background:color-mix(in srgb,var(--copper) 12%,transparent)}
+.q-items tr:target th{box-shadow:inset 3px 0 0 var(--copper)}
+.q-empty{font-size:14px;color:var(--ink-2);border:1px dashed var(--line);padding:12px;margin-top:10px}
+.q-empty[hidden]{display:none}
+@media(max-width:760px){
+  .q-items thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .q-items,.q-items tbody,.q-items tr,.q-items td,.q-items th{display:block;width:100%}
+  .q-items tr{background:var(--panel);margin-bottom:8px;padding:10px 12px;border-left:3px solid var(--line)}
+  .q-items tr[data-status="done"]{border-left-color:var(--green)}
+  .q-items tr[data-status="planned"],.q-items tr[data-status="open"],.q-items tr[data-status="in_progress"]{border-left-color:var(--copper)}
+  .q-items tr[data-status="prior"]{border-left-color:var(--gold)}
+  .q-items th,.q-items td{border-top:0;padding:4px 0}
+  .q-items td:nth-child(2){min-width:0;max-width:none}
+  .q-items td:nth-child(3),.q-items td:nth-child(4),.q-items td:nth-child(5){display:inline-block;width:auto;margin-right:10px;vertical-align:middle}
+  .q-roadmap .q-table-wrap{overflow:visible}
+}
+
+/* ── open decisions, how to read ── */
+.q-open{list-style:none;display:grid;gap:8px;max-width:90ch}
+.q-open li{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;background:var(--panel);padding:10px 12px;border-left:3px solid var(--copper);font-size:14px;color:var(--ink-2)}
+.q-open a{font-family:var(--mono);font-size:12.5px;color:var(--copper)}
+.q-callout{margin-top:16px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:86ch}
