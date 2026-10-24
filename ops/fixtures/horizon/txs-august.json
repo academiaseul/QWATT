@@ -1,0 +1,56 @@
+{
+  "_embedded": {
+    "records": [
+      {
+        "memo": "QWATT genesis (memo text trimmed in this fixture)",
+        "id": "1859e7e54e847d187f7f628d81af8a879e7e42166c21354038b020670c40c56e",
+        "paging_token": "18370326744272896",
+        "successful": true,
+        "hash": "1859e7e54e847d187f7f628d81af8a879e7e42166c21354038b020670c40c56e",
+        "ledger": 4277175,
+        "created_at": "2026-08-22T14:23:17Z",
+        "source_account": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+        "source_account_sequence": "18370322449301505",
+        "fee_account": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+        "fee_charged": "200",
+        "max_fee": "200",
+        "operation_count": 2,
+        "memo_type": "text",
+        "signatures": [
+          "yHzFinjZkTSpD+oqjd2vyjXSkU21OKNO3BGFLSoB46shCze027ved8JuavjJkhpOODvt+I3DjyEowXVgZ0DBBg==",
+          "3P6F76g8PObYyk/qHt6FhfJYkzPw9gsMtbKOn6h10ovXiJXhjqTNrgXo8V3JiCsRJgYFopYZVAXEj5haGjG9CA=="
+        ],
+        "preconditions": {
+          "timebounds": {
+            "min_time": "0",
+            "max_time": "1787408684"
+          }
+        }
+      },
+      {
+        "id": "8ce6f4a071ce3181e66524d7ddca8eb3061a106efdce880694a14150fbd80e54",
+        "paging_token": "18370318154354688",
+        "successful": true,
+        "hash": "8ce6f4a071ce3181e66524d7ddca8eb3061a106efdce880694a14150fbd80e54",
+        "ledger": 4277173,
+        "created_at": "2026-08-22T14:23:07Z",
+        "source_account": "GDOH32TSXE5XOAFYT5YLC6SSDREZTL6WG75BVIZGGLPGYFFFPPOYP5DV",
+        "source_account_sequence": "15415707072200902",
+        "fee_account": "GDOH32TSXE5XOAFYT5YLC6SSDREZTL6WG75BVIZGGLPGYFFFPPOYP5DV",
+        "fee_charged": "100",
+        "max_fee": "1000000",
+        "operation_count": 1,
+        "memo_type": "none",
+        "signatures": [
+          "0ZyGmc8pndO0lbAhZChYXk9xrrREPRtJWXF4YUdv6Sxxc8DD7s9fHtHvaFeKA+3d7+Cf0l6nATfkYyzoPdxrBg==",
+          "4dL/k8knRMS11D4FD4fO1LbM388NyptccCaw5T9GRhx3YpKdy0MFX5zSWWhMt30+qpN5xQX9x3jPUlbpKumgDw=="
+        ],
+        "preconditions": {
+          "timebounds": {
+            "min_time": "0"
+          }
+        }
+      }
+    ]
+  }
+}
