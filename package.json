@@ -6,7 +6,7 @@
   "license": "MIT",
   "scripts": {
     "gen:gates": "node protocol/gen.js",
-    "test": "node protocol/gen.js --check && node protocol/conformance.test.js && node mining-rig/validators.test.js && node ingest/ingest.test.js && node batch/batch.test.js && node batch/reconcile.test.js && node live/live.test.js && node ops/watch.test.js && node ops/publish-feed.test.js && node ops/writeup.test.js && node ops/site-sync.js --check && node ops/site.test.js && node ops/site-live.test.js",
+    "test": "node protocol/gen.js --check && node protocol/conformance.test.js && node mining-rig/validators.test.js && node ingest/ingest.test.js && node batch/batch.test.js && node batch/reconcile.test.js && node live/live.test.js && node ops/watch.test.js && node ops/publish-feed.test.js && node ops/writeup.test.js && node ops/site-sync.js --check && node ops/site.test.js && node ops/site-live.test.js && node protocol/build-browser.js --check && node ops/sample-feeds.js --check && node ops/protocol-browser.test.js && node ops/site-evidence.test.js",
     "test:conformance": "node protocol/conformance.test.js",
     "test:validators": "node mining-rig/validators.test.js",
     "vendor:wallet": "esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-sdk.entry.js --outfile=assets/vendor/stellar-sdk.js && esbuild --bundle --format=esm --minify --platform=browser --define:global=globalThis vendor-src/stellar-wallets-kit.entry.js --outfile=assets/vendor/stellar-wallets-kit.js",
@@ -21,7 +21,10 @@
     "live": "node live/run.js --feed feed --days 7",
     "live:audit": "node live/audit.js feed",
     "test:site": "node ops/site-sync.js --check && node ops/site.test.js && node ops/site-live.test.js",
-    "site:sync": "node ops/site-sync.js"
+    "site:sync": "node ops/site-sync.js",
+    "build:protocol": "node protocol/build-browser.js",
+    "feeds": "node ops/sample-feeds.js",
+    "test:compruebalo": "node protocol/build-browser.js --check && node ops/sample-feeds.js --check && node ops/protocol-browser.test.js && node ops/site-evidence.test.js"
   },
   "devDependencies": {
     "@creit.tech/stellar-wallets-kit": "1.7.0",

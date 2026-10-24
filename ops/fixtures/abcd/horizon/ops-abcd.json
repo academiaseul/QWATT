@@ -1,0 +1,67 @@
+{
+  "_links": {},
+  "_embedded": {
+    "records": [
+      {
+        "id": "21877549793546241",
+        "type": "manage_data",
+        "transaction_successful": true,
+        "transaction_hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+        "created_at": "2026-10-08T20:46:47Z",
+        "name": "qwatt.anchor.sha256",
+        "value": "MzIyOTIzYTQxMWMxNDYwNzliNzMyNjlmZTMxMzVkOWU2NDEzYTlkYWZkYjA3ODA3NTY3YzhhMTE5ZjM1YTI0NQ==",
+        "transaction": {
+          "hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+          "ledger": 5093764,
+          "memo_type": "text",
+          "memo": "QW#0"
+        }
+      },
+      {
+        "id": "21877549793546242",
+        "type": "manage_data",
+        "transaction_successful": true,
+        "transaction_hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+        "created_at": "2026-10-08T20:46:47Z",
+        "name": "qwatt.cumulative_mwh",
+        "value": "OTkwMDA=",
+        "transaction": {
+          "hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+          "ledger": 5093764,
+          "memo_type": "text",
+          "memo": "QW#0"
+        }
+      },
+      {
+        "id": "21877554088525825",
+        "type": "manage_data",
+        "transaction_successful": true,
+        "transaction_hash": "9851ba7ec2743b6e7a4e22e5da9915e1dd7c499ccfdfe4e216a02365a3758715",
+        "created_at": "2026-10-08T20:46:52Z",
+        "name": "qwatt.anchor.sha256",
+        "value": "ODUyMzE0YTJhMTFmODY1NDhlM2Y4YjA5YzE2YWEyZmQ2ZWY4MmFlOGU4NjQxZGI1ZWYyMGE0YmMyZDBmNTQ2Ng==",
+        "transaction": {
+          "hash": "9851ba7ec2743b6e7a4e22e5da9915e1dd7c499ccfdfe4e216a02365a3758715",
+          "ledger": 5093765,
+          "memo_type": "text",
+          "memo": "QW#1"
+        }
+      },
+      {
+        "id": "21877554088525826",
+        "type": "manage_data",
+        "transaction_successful": true,
+        "transaction_hash": "9851ba7ec2743b6e7a4e22e5da9915e1dd7c499ccfdfe4e216a02365a3758715",
+        "created_at": "2026-10-08T20:46:52Z",
+        "name": "qwatt.cumulative_mwh",
+        "value": "MTk4MDAw",
+        "transaction": {
+          "hash": "9851ba7ec2743b6e7a4e22e5da9915e1dd7c499ccfdfe4e216a02365a3758715",
+          "ledger": 5093765,
+          "memo_type": "text",
+          "memo": "QW#1"
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "network": "testnet",
+  "public_keys": {
+    "account": "GC5ULQZ2ZRZOHPFHHOZKGXVE3VK4V4FN7IRVVSR7XXWHIEC7DZYVHQBU"
+  },
+  "steps": {
+    "A_proposer_alone": {
+      "thresholds": {
+        "low_threshold": 2,
+        "med_threshold": 2,
+        "high_threshold": 3
+      },
+      "thresholds_match": true,
+      "body_hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+      "signatures": 1,
+      "envelope_xdr": "AAAAAgAAAAAwDT8ygmZz3y8Osj8t2xf6Zy5I3Pj8tlLDiL4Vtiq18QAAASwATbmBAAAAAgAAAAEAAAAAasf/+AAAAABqyVF4AAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEAzMjI5MjNhNDExYzE0NjA3OWI3MzI2OWZlMzEzNWQ5ZTY0MTNhOWRhZmRiMDc4MDc1NjdjOGExMTlmMzVhMjQ1AAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTk5MDAwAAAAAAAAAAAAAAEAAAAAPTCuFgn0mQvPGjwGM31Zvh0XZSOrCNFthb2SDpvqiV8AAAAAAAAAAAAAAAEAAAAAAAAAAfy7mqgAAABAGoRaUZ+nX7v8KyQMU1HPE3aXdhuN+b4NIh+UaK6Y2NAIN2IM6TfKnAzMv8nZifTUkoiWgsScbAU4LX+RvWJfAw==",
+      "horizon_url": "https://horizon-testnet.stellar.org/transactions",
+      "submitted_at": "2026-10-28T11:00:00.000Z",
+      "ok": false,
+      "refused": true,
+      "codes": {
+        "transaction": "tx_bad_auth"
+      },
+      "horizon_response": {
+        "status": 400,
+        "extras": {
+          "result_codes": {
+            "transaction": "tx_bad_auth"
+          }
+        }
+      },
+      "batch_id": "fixture-000001",
+      "signer_public_key": "GDO5EL2AB4A5REHWU7AG5FTZWLMBKOKBECZRJBJC4MXTB674XONKR3FI",
+      "signed_by": "proposer",
+      "expect": "refused",
+      "at": "2026-10-28T11:00:00.000Z"
+    },
+    "B_verifier_alone": {
+      "thresholds": {
+        "low_threshold": 2,
+        "med_threshold": 2,
+        "high_threshold": 3
+      },
+      "thresholds_match": true,
+      "body_hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+      "signatures": 1,
+      "envelope_xdr": "AAAAAgAAAAAwDT8ygmZz3y8Osj8t2xf6Zy5I3Pj8tlLDiL4Vtiq18QAAASwATbmBAAAAAgAAAAEAAAAAasf/+AAAAABqyVF4AAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEAzMjI5MjNhNDExYzE0NjA3OWI3MzI2OWZlMzEzNWQ5ZTY0MTNhOWRhZmRiMDc4MDc1NjdjOGExMTlmMzVhMjQ1AAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTk5MDAwAAAAAAAAAAAAAAEAAAAAPTCuFgn0mQvPGjwGM31Zvh0XZSOrCNFthb2SDpvqiV8AAAAAAAAAAAAAAAEAAAAAAAAAAd+sjdkAAABAUT987xCJQRzsul5mBN3C8bnz7PP+9G4AjsVfeXbT0/Mdu5O+5nG7tCEic8W4VyT3md6bzojX4wj0HGH08Mp8CQ==",
+      "horizon_url": "https://horizon-testnet.stellar.org/transactions",
+      "submitted_at": "2026-10-28T12:00:00.000Z",
+      "ok": false,
+      "refused": true,
+      "codes": {
+        "transaction": "tx_bad_auth"
+      },
+      "horizon_response": {
+        "status": 400,
+        "extras": {
+          "result_codes": {
+            "transaction": "tx_bad_auth"
+          }
+        }
+      },
+      "batch_id": "fixture-000001",
+      "signer_public_key": "GDWN3AOGMNUS2ZFRBEW3I2SYJMU67FUAFMTMCLAODTUUVRW7VSG5TG53",
+      "signed_by": "verifier",
+      "expect": "refused",
+      "at": "2026-10-28T12:00:00.000Z",
+      "stellar_cli_version": "fixture"
+    },
+    "C_proposer_plus_verifier": {
+      "ok": true,
+      "hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+      "ledger": 5093764,
+      "memo": "QW#0",
+      "signatures": 2,
+      "signer_keys": [
+        "GDO5EL2AB4A5REHWU7AG5FTZWLMBKOKBECZRJBJC4MXTB674XONKR3FI",
+        "GDWN3AOGMNUS2ZFRBEW3I2SYJMU67FUAFMTMCLAODTUUVRW7VSG5TG53"
+      ],
+      "pair": "proposer+verifier",
+      "link": "https://stellar.expert/explorer/testnet/tx/494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+      "envelope_xdr": "AAAAAgAAAAAwDT8ygmZz3y8Osj8t2xf6Zy5I3Pj8tlLDiL4Vtiq18QAAASwATbmBAAAAAgAAAAEAAAAAasf/+AAAAABqyVF4AAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEAzMjI5MjNhNDExYzE0NjA3OWI3MzI2OWZlMzEzNWQ5ZTY0MTNhOWRhZmRiMDc4MDc1NjdjOGExMTlmMzVhMjQ1AAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTk5MDAwAAAAAAAAAAAAAAEAAAAAPTCuFgn0mQvPGjwGM31Zvh0XZSOrCNFthb2SDpvqiV8AAAAAAAAAAAAAAAEAAAAAAAAAAvy7mqgAAABAGoRaUZ+nX7v8KyQMU1HPE3aXdhuN+b4NIh+UaK6Y2NAIN2IM6TfKnAzMv8nZifTUkoiWgsScbAU4LX+RvWJfA9+sjdkAAABAUT987xCJQRzsul5mBN3C8bnz7PP+9G4AjsVfeXbT0/Mdu5O+5nG7tCEic8W4VyT3md6bzojX4wj0HGH08Mp8CQ==",
+      "expect": "accepted",
+      "at": "2026-10-28T13:00:00.000Z"
+    },
+    "D_altered_after_proposer_signed": {
+      "ok": true,
+      "refused": true,
+      "reasons": [
+        "verifier.hash_mismatch"
+      ],
+      "detail": "fixture",
+      "batch_id": "fixture-000002",
+      "forged_sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+      "pending_envelope_xdr": "AAAAAgAAAAAwDT8ygmZz3y8Osj8t2xf6Zy5I3Pj8tlLDiL4Vtiq18QAAASwATbmBAAAAAgAAAAEAAAAAasf/+AAAAABqyVF4AAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEAzMjI5MjNhNDExYzE0NjA3OWI3MzI2OWZlMzEzNWQ5ZTY0MTNhOWRhZmRiMDc4MDc1NjdjOGExMTlmMzVhMjQ1AAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTk5MDAwAAAAAAAAAAAAAAEAAAAAPTCuFgn0mQvPGjwGM31Zvh0XZSOrCNFthb2SDpvqiV8AAAAAAAAAAAAAAAEAAAAAAAAAAfy7mqgAAABAGoRaUZ+nX7v8KyQMU1HPE3aXdhuN+b4NIh+UaK6Y2NAIN2IM6TfKnAzMv8nZifTUkoiWgsScbAU4LX+RvWJfAw==",
+      "pending_tx_hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+      "submitted": false,
+      "expect": "refused",
+      "at": "2026-10-28T14:00:00.000Z"
+    },
+    "I_withheld_refused": {
+      "ok": true,
+      "refused": true,
+      "reasons": [
+        "verifier.not_published"
+      ],
+      "action": "refused",
+      "detail": "fixture",
+      "batch_id": "fixture-000003",
+      "withheld": "batches/fixture-000003.json",
+      "pending_envelope_xdr": "AAAAAgAAAAAwDT8ygmZz3y8Osj8t2xf6Zy5I3Pj8tlLDiL4Vtiq18QAAASwATbmBAAAAAgAAAAEAAAAAasf/+AAAAABqyVF4AAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEAzMjI5MjNhNDExYzE0NjA3OWI3MzI2OWZlMzEzNWQ5ZTY0MTNhOWRhZmRiMDc4MDc1NjdjOGExMTlmMzVhMjQ1AAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTk5MDAwAAAAAAAAAAAAAAEAAAAAPTCuFgn0mQvPGjwGM31Zvh0XZSOrCNFthb2SDpvqiV8AAAAAAAAAAAAAAAEAAAAAAAAAAfy7mqgAAABAGoRaUZ+nX7v8KyQMU1HPE3aXdhuN+b4NIh+UaK6Y2NAIN2IM6TfKnAzMv8nZifTUkoiWgsScbAU4LX+RvWJfAw==",
+      "pending_tx_hash": "494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1",
+      "refusal_log": "refusals.jsonl",
+      "refusals": "{\"reasons\":[\"verifier.not_published\"]}\n",
+      "submitted": false,
+      "method": "fixture",
+      "expect": "refused",
+      "at": "2026-10-28T15:00:00.000Z"
+    }
+  },
+  "verdict": "PASS",
+  "verdict_detail": [],
+  "combined_from": [
+    "fixture/abcd.json"
+  ]
+}
