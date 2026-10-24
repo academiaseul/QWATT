@@ -644,6 +644,409 @@ test('V3-7c: pinBase: a raw branch URL resolves to its head commit, a commit URL
   } finally { await g.gh.close(); }
 });
 
+/* ───────────── week 2 (V3-9.3): the reconciliation page on the site ───────────── */
+
+const PAGE = path.join(__dirname, '..', 'reconcile.html');
+const stripComments = (html) => html.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+
+/**
+ * A minimal DOM for reconcile.html. The page's markup (HTML comments, scripts and styles left out) is parsed
+ * into a tree of elements and text, so textContent reads static and script-made text alike, in document
+ * order; children holds the elements only, as in a browser. Every element with an id is reachable through
+ * getElementById, with its static value and hidden attribute; any other id is null, so a script that uses
+ * an id the page lacks throws. innerHTML throws.
+ */
+function pageDom(html, query) {
+  class El {
+    constructor(tag) { Object.assign(this, { tagName: String(tag).toUpperCase(), id: '', nodes: [], className: '', attrs: {}, listeners: {}, hidden: false, value: '', disabled: false, title: '' }); }
+    get children() { return this.nodes.filter((n) => typeof n !== 'string'); }
+    get textContent() { return this.nodes.map((n) => (typeof n === 'string' ? n : n.textContent)).join(''); }
+    set textContent(t) { this.nodes = [String(t)]; }
+    get innerHTML() { throw new Error('reconcile.html reads innerHTML'); }
+    set innerHTML(v) { throw new Error('reconcile.html writes innerHTML: ' + String(v).slice(0, 60)); }
+    appendChild(c) { this.nodes.push(c); c.parentNode = this; return c; }
+    setAttribute(k, v) { this.attrs[k] = String(v); }
+    getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
+    addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); }
+    requestSubmit() { const ev = { preventDefault() {} }; this.submitted = Promise.all((this.listeners.submit || []).map((f) => f.call(this, ev))); }
+    /** every descendant element, depth first */
+    all() { return this.children.flatMap((c) => [c, ...c.all()]); }
+  }
+  const decode = (t) => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  const VOID = new Set(['input', 'br', 'meta', 'link', 'img', 'hr', 'source', 'wbr']);
+  const root = new El('#document');
+  const stack = [root];
+  const byId = {};
+  const token = /<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>|<\/([a-z0-9]+)\s*>|<!doctype[^>]*>|<([a-z0-9]+)\b((?:[^>"']|"[^"]*"|'[^']*')*)>|([^<]+)/gi;
+  for (const m of html.matchAll(token)) {
+    if (m[2]) {
+      const tag = m[2].toLowerCase();
+      for (let i = stack.length - 1; i > 0; i--) if (stack[i].tagName.toLowerCase() === tag) { stack.length = i; break; }
+    } else if (m[3]) {
+      const e = new El(m[3]);
+      for (const a of (m[4] || '').matchAll(/([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g)) {
+        const k = a[1].toLowerCase(), v = decode(a[2] ?? a[3] ?? a[4] ?? '');
+        e.attrs[k] = v;
+        if (k === 'id') { e.id = v; byId[v] = e; }
+        if (k === 'class') e.className = v;
+        if (k === 'value') e.value = v;
+        if (k === 'hidden') e.hidden = true;
+      }
+      stack[stack.length - 1].appendChild(e);
+      if (!VOID.has(m[3].toLowerCase()) && !/\/\s*$/.test(m[4] || '')) stack.push(e);
+    } else if (m[5]) stack[stack.length - 1].nodes.push(decode(m[5]));
+  }
+  const replaced = [];
+  const doc = {
+    documentElement: byId.__html || new El('html'),
+    getElementById: (id) => byId[id] || null,
+    createElement: (tag) => new El(tag),
+    querySelector: () => new El('meta'),
+  };
+  return { byId, replaced, doc, location: { search: query ? '?' + query : '' }, history: { replaceState: (s, t, url) => replaced.push(url) } };
+}
+
+/** The element with that id in the page DOM; a missing one fails with its name. */
+function need(dom, id) { const e = dom.byId[id]; if (!e) throw new Error(`reconcile.html has no #${id}`); return e; }
+
+/**
+ * Run reconcile.html's scripts, in page order, in a fresh context with that DOM; resolves once its check has
+ * finished. dom.autoRan says whether the page started the check by itself; when it did not, click (the
+ * default) presses Reconcile as a reader would. fetch replaces the page's fetch (to route the public
+ * hosts to local fakes: the tests never touch the network).
+ */
+async function runPage(query, { crypto = globalThis.crypto, click = true, fetch: pageFetch = (...a) => fetch(...a) } = {}) {
+  const vm = require('vm');
+  const html = fs.readFileSync(PAGE, 'utf8');
+  const dom = pageDom(html, query);
+  const win = {
+    document: dom.doc, location: dom.location, history: dom.history,
+    localStorage: { getItem: () => null, setItem() {} },
+    URL, URLSearchParams, TextEncoder, AbortSignal, atob, crypto, fetch: pageFetch, console,
+  };
+  win.window = win; win.self = win;
+  const ctx = vm.createContext(win);
+  for (const m of html.matchAll(/<script(?:\s+src="([^"]+)")?\s*>([\s\S]*?)<\/script>/g)) {
+    vm.runInContext(m[1] ? fs.readFileSync(path.join(__dirname, '..', m[1]), 'utf8') : m[2], ctx, { filename: m[1] || 'reconcile.html inline' });
+  }
+  const form = dom.byId.srcForm;
+  dom.autoRan = !!(form && form.submitted);
+  if (form && !form.submitted && click) form.requestSubmit();
+  if (form && form.submitted) await form.submitted;
+  return dom;
+}
+
+/** Press Reconcile on a page already loaded: returns the progress text while the check runs, then waits for it. */
+async function clickReconcile(dom) {
+  const form = need(dom, 'srcForm');
+  form.requestSubmit();
+  const during = need(dom, 'progress').textContent;
+  await form.submitted;
+  return during;
+}
+
+/** A fetch for the page that sends the public testnet Horizon to a local fake, answers api.github.com itself when api is given, and passes everything else on. */
+const routed = (hzUrl, api) => async (url, init) => {
+  const u = String(url);
+  if (api && u.startsWith('https://api.github.com/')) return api(u);
+  return fetch(u.startsWith(DEFAULT_HORIZON) ? hzUrl + u.slice(DEFAULT_HORIZON.length) : u, init);
+};
+const DEFAULT_HORIZON = 'https://horizon-testnet.stellar.org';
+/** The ✓/✗ mark of a row of #acctRules (label, value, mark), by its label. */
+function ruleMark(dom, label) {
+  const cells = need(dom, 'acctRules').children;
+  const i = cells.findIndex((c) => c.textContent === label);
+  if (i < 0) throw new Error(`#acctRules has no row "${label}": ${need(dom, 'acctRules').textContent}`);
+  return cells[i + 2];
+}
+/** The row of #acctSigners for a signer key (its first cell carries the full key in title). */
+function signerRow(dom, key) {
+  const row = need(dom, 'acctSigners').children.find((tr) => tr.children[0] && tr.children[0].title === key);
+  if (!row) throw new Error(`no signer row for ${key.slice(0, 6)}…: ${need(dom, 'acctSigners').textContent}`);
+  return row;
+}
+const lastCell = (tr) => tr.children[tr.children.length - 1];
+
+/**
+ * A feed of three batches on 127.0.0.1 and a Horizon whose anchors are signed proposer + verifier, except batch 2
+ * (proposer + third, a stand-in). edit(anchors) may change the anchors (e.g. re-sign one with another pair).
+ * The Horizon is not the public one, so the page waits for a click (runPage clicks by default).
+ */
+async function pageWorld({ record = () => honestRecord(), run = runFile(), edit = null } = {}) {
+  const { dir, feed } = makeFeed(3);
+  fs.writeFileSync(path.join(dir, 'faults.json'), JSON.stringify(run) + '\n');
+  const anchors = anchorsFor(feed, 3);
+  anchors[2] = resign(anchors[2], ['proposer', 'third']);
+  if (edit) edit(anchors);
+  const host = await serveDir(dir);
+  const hz = await FH.serveHorizon({ account: ACCOUNT, record, anchors: () => anchors });
+  const q = (extra = '') => `feed=${encodeURIComponent(host.url)}&account=${ACCOUNT}&horizon=${encodeURIComponent(hz.url)}${extra}`;
+  return { feed, host, hz, q, close: async () => { await hz.close(); await host.close(); } };
+}
+
+test('V3-9: reconcile.html shows the fixed A0 label, hard-codes no "2 of 3", and runs check()', async () => {
+  const html = fs.readFileSync(PAGE, 'utf8');
+  const page = stripComments(html);
+  assert(html.includes(LABEL), 'the fixed label is on the page');
+  assert(!html.includes('Simulated input · Stellar testnet'), 'the week-1 label is gone');
+  assert(!/2 of 3|2-of-3/.test(html), 'no hard-coded "2 of 3": the page states what Horizon returned');
+  assert(/R\.check\(/.test(page), 'the page runs R.check (feed, account, signatures), outside any comment');
+  assert(/params\.get\('proposer'\)/.test(page), 'the page reads ?proposer= (and the other roles) from its address');
+  const label = /<p\b[^>]*\bid="inputLabel"[^>]*>([^<]*)<\/p>/.exec(page);
+  eq(label && label[1].trim(), LABEL, '#inputLabel, a static element outside any comment, holds the fixed label');
+  assert(label.index < page.indexOf('<section'), '#inputLabel sits at the top, before the first section');
+  assert((page.match(/Simulated input · assurance A0 · Stellar testnet/g) || []).length >= 3, 'the label at the top, next to the energy figure and in the batches note');
+  assert(/<th[^>]*>Signed by<\/th>/.test(page), 'the batches table has a "Signed by" column');
+  assert(!/innerHTML/.test(page), 'the page never uses innerHTML');
+  assert(/id="acctPanel"/.test(page), 'the account panel exists');
+});
+
+test('V3-9: the site serves the reconciliation page again: .vercelignore lists neither reconcile.html nor its scripts', async () => {
+  const lines = fs.readFileSync(path.join(__dirname, '..', '.vercelignore'), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  for (const p of ['reconcile.html', 'assets', 'assets/qwatt-reconcile.js', 'assets/qwatt-pin.js', '/reconcile.html', 'assets/*', '*.html']) assert(!lines.includes(p), `.vercelignore still excludes ${p} from the site`);
+  assert(lines.includes('assets/vendor'), 'assets/vendor stays excluded');
+  const html = fs.readFileSync(PAGE, 'utf8');
+  for (const m of html.matchAll(/<script\s+src="([^"]+)"/g)) assert(fs.existsSync(path.join(__dirname, '..', m[1])) && !lines.some((l) => m[1] === l || m[1].startsWith(l.replace(/\/?$/, '/'))), `the page's script ${m[1]} is served`);
+});
+
+test('V3-9: the page, run against Horizon and a feed: account panel all ✓ with the sentence built from the values, roles from faults.json, "Signed by" per anchor (proposer + verifier, or a stand-in), tiles and progress from the report', async () => {
+  const w = await pageWorld();
+  try {
+    const dom = await runPage(w.q());
+    const $ = (id) => need(dom, id);
+    eq($('result').hidden, false, `the result is shown (progress: ${$('progress').textContent})`);
+    assert(/^RECONCILED/.test($('verdict').textContent), `verdict: ${$('verdict').textContent}`);
+    eq($('tAnc').textContent, '3 / 3', 'anchored / accepted');
+    assert($('tAncS').textContent.includes('2 proposer + verifier · 1 stand-in'), `tile sub-line: ${$('tAncS').textContent}`);
+    const acct = $('acctPanel').textContent;
+    for (const s of ['Anchoring account, as read from Horizon', 'Thresholds (low/medium/high)', '2/2/3', 'Master weight', "Roles from: the run's faults.json",
+      'No single key can send any transaction for this account; anchoring needs 2 of the 3 keys; changing signers or thresholds needs all 3.']) assert(acct.includes(s), `account panel has "${s}": ${acct}`);
+    assert(!acct.includes('✗'), `nothing fails §3: ${acct}`);
+    for (const r of ['proposer', 'verifier', 'third']) assert(acct.includes(ROLES[r].slice(0, 6)) && acct.includes(r), `the ${r} row: ${acct}`);
+    const rows = $('rows').children;
+    eq(rows.length, 3, 'three batch rows');
+    const signed = (i) => rows[i].children[rows[i].children.length - 1];
+    eq(signed(0).textContent, 'proposer + verifier', 'batch 0 signed by');
+    eq(signed(0).className, 'ok', 'normal is ok');
+    const chip = signed(2).all().find((e) => /\bchip\b/.test(e.className));
+    assert(chip && /\bc-wait\b/.test(chip.className) && chip.textContent === 'stand-in', `batch 2: a stand-in chip: ${signed(2).textContent}`);
+    assert(signed(2).textContent.includes('proposer + third signer'), `batch 2 names the pair: ${signed(2).textContent}`);
+    const prog = $('progress').textContent;
+    assert(/^Checked 3 batches, the account's signers and thresholds, and the signatures on 3 anchoring transactions at \d\d:\d\d:\d\d UTC/.test(prog), `progress: ${prog}`);
+    assert(prog.includes(`evidence read at ${w.host.url}`), `the progress line names what was read (V3-7c): ${prog}`);
+    const hzHost = new URL(w.hz.url).host;
+    assert(prog.includes(`Horizon ${hzHost}`), `the progress line names the Horizon server read: ${prog}`);
+    assert($('acctId').textContent.includes(`as ${hzHost} returned it`), `the account line names the server: ${$('acctId').textContent}`);
+    eq($('horizonNote').hidden, false, 'a Horizon other than the public testnet one is named on the result');
+    assert($('horizonNote').textContent.includes(`Reading a non-default Horizon: ${hzHost}`), `the notice: ${$('horizonNote').textContent}`);
+    for (const r of ['proposer', 'verifier', 'third']) eq(lastCell(signerRow(dom, ROLES[r])).textContent, '✓', `the ${r} row passes §3`);
+    eq(ruleMark(dom, 'Thresholds (low/medium/high)').textContent, '✓', 'thresholds ✓');
+    eq(ruleMark(dom, 'Master weight').textContent, '✓', 'master weight ✓');
+    eq(dom.replaced.length, 1, 'the address is rewritten once');
+    assert(!/proposer=|verifier=|third=/.test(dom.replaced[0]), `no role parameters when none were given: ${dom.replaced[0]}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9: the page against an account at 1/2/3 shows the value read with ✗, says it does not match the frozen setup, makes no "no single key" claim, and the verdict is BROKEN', async () => {
+  const w = await pageWorld({ record: () => honestRecord({ thresholds: { low: 1, med: 2, high: 3 } }) });
+  try {
+    const dom = await runPage(w.q());
+    const acct = need(dom, 'acctPanel').textContent;
+    assert(/^BROKEN/.test(need(dom, 'verdict').textContent), need(dom, 'verdict').textContent);
+    assert(acct.includes('1/2/3') && acct.includes('✗'), `the thresholds as read, failing: ${acct}`);
+    const th = ruleMark(dom, 'Thresholds (low/medium/high)');
+    eq(th.textContent, '✗', 'the thresholds row fails');
+    eq(th.className, 'no', 'shown as a failure');
+    eq(ruleMark(dom, 'Master weight').textContent, '✓', 'the master weight (0) still passes');
+    assert(acct.includes('This account does not match the frozen setup; see the problems above.'), acct);
+    assert(!/no single key/i.test(acct), `no claim: ${acct}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9: roles given in the address (for a feed whose faults.json declares none) fill the three inputs, are used and written back; the panel says where they came from', async () => {
+  const w = await pageWorld({ run: runFile({ anchoring: undefined }) });
+  try {
+    const roles = `&proposer=${ROLES.proposer}&verifier=${ROLES.verifier}&third=${ROLES.third}`;
+    const dom = await runPage(w.q(roles));
+    eq(need(dom, 'proposerIn').value, ROLES.proposer, 'proposer input');
+    eq(need(dom, 'verifierIn').value, ROLES.verifier, 'verifier input');
+    eq(need(dom, 'thirdIn').value, ROLES.third, 'third input');
+    assert(/^RECONCILED/.test(need(dom, 'verdict').textContent), `${need(dom, 'verdict').textContent} ${need(dom, 'progress').textContent}`);
+    assert(need(dom, 'acctPanel').textContent.includes("Roles from: this page's address"), need(dom, 'acctPanel').textContent);
+    const url = dom.replaced[0] || '';
+    for (const r of ['proposer', 'verifier', 'third']) assert(url.includes(`${r}=${ROLES[r]}`), `${r} written back: ${url}`);
+    /* two of three is not a role set: nothing is written back and nothing is used */
+    const two = await runPage(w.q(`&proposer=${ROLES.proposer}&verifier=${ROLES.verifier}`));
+    assert(!/proposer=|verifier=/.test(two.replaced[0] || ''), `two roles are not written back: ${two.replaced[0]}`);
+    assert(/^BROKEN/.test(need(two, 'verdict').textContent) && /signer roles are not declared/.test(need(two, 'verdict').textContent), `two roles are not used: ${need(two, 'verdict').textContent}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9: a browser without WebCrypto Ed25519 gets no verdict from the page, only a message that points to reconcile-cli', async () => {
+  const w = await pageWorld();
+  const real = globalThis.crypto.subtle;
+  const noEd25519 = { subtle: {
+    digest: (...a) => real.digest(...a),
+    verify: (...a) => real.verify(...a),
+    importKey: async () => { const e = new Error('Unrecognized algorithm name'); e.name = 'NotSupportedError'; throw e; },
+  } };
+  try {
+    const dom = await runPage(w.q(), { crypto: noEd25519 });
+    eq(need(dom, 'result').hidden, true, 'no result is shown');
+    eq(need(dom, 'verdict').textContent, '', 'no verdict');
+    const prog = need(dom, 'progress').textContent;
+    assert(/cannot verify Ed25519/.test(prog) && /reconcile-cli/.test(prog), `the message points to the CLI: ${prog}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: the account panel fails what breaks §3, row by row: master weight 1 shows ✗ on that row, a signer of weight 2 shows ✗ on that signer\'s row, and the verdict is BROKEN with no "no single key" claim', async () => {
+  for (const [what, record, check] of [
+    ['master weight 1', () => honestRecord({ master: 1 }), (dom) => {
+      const m = ruleMark(dom, 'Master weight');
+      eq(m.textContent, '✗', 'the master-weight row fails');
+      eq(m.className, 'no', 'shown as a failure');
+      eq(ruleMark(dom, 'Thresholds (low/medium/high)').textContent, '✓', 'the thresholds (2/2/3) still pass');
+      for (const r of ['proposer', 'verifier', 'third']) eq(lastCell(signerRow(dom, ROLES[r])).textContent, '✓', `the ${r} row still passes`);
+    }],
+    ['third signer of weight 2', () => honestRecord({ weights: { [ROLES.third]: 2 } }), (dom) => {
+      const third = signerRow(dom, ROLES.third);
+      eq(third.children[2].textContent, '2', 'the weight as read');
+      eq(lastCell(third).textContent, '✗', "the third signer's row fails");
+      eq(lastCell(third).children[0].className, 'no', 'shown as a failure');
+      for (const r of ['proposer', 'verifier']) eq(lastCell(signerRow(dom, ROLES[r])).textContent, '✓', `the ${r} row still passes`);
+      eq(ruleMark(dom, 'Master weight').textContent, '✓', 'the master weight (0) still passes');
+    }],
+  ]) {
+    const w = await pageWorld({ record });
+    try {
+      const dom = await runPage(w.q());
+      assert(/^BROKEN/.test(need(dom, 'verdict').textContent), `${what}: verdict ${need(dom, 'verdict').textContent} (${need(dom, 'progress').textContent})`);
+      check(dom);
+      const acct = need(dom, 'acctPanel').textContent;
+      assert(acct.includes('This account does not match the frozen setup; see the problems above.'), `${what}: ${acct}`);
+      assert(!/no single key/i.test(acct), `${what}: no claim: ${acct}`);
+    } finally { await w.close(); }
+  }
+});
+
+test('V3-9.3: an anchor signed by another pair (verifier + third) is shown as ✗ with that pair in "Signed by", counted as other in the tile, and the verdict is BROKEN; the stand-in next to it stays a stand-in', async () => {
+  const w = await pageWorld({ edit: (a) => { a[1] = resign(a[1], ['verifier', 'third']); } });
+  try {
+    const dom = await runPage(w.q());
+    assert(/^BROKEN/.test(need(dom, 'verdict').textContent), `verdict: ${need(dom, 'verdict').textContent}`);
+    const rows = need(dom, 'rows').children;
+    const bad = lastCell(rows[1]);
+    eq(bad.className, 'no', 'the pair is shown as a failure');
+    assert(bad.textContent.startsWith('✗ ') && /verifier/.test(bad.textContent) && /third/.test(bad.textContent), `it names the pair: ${bad.textContent}`);
+    assert(!bad.textContent.includes('proposer'), `not a pair with the proposer: ${bad.textContent}`);
+    eq(lastCell(rows[0]).textContent, 'proposer + verifier', 'batch 0 is still normal');
+    eq(lastCell(rows[0]).className, 'ok', 'and ok');
+    assert(lastCell(rows[2]).textContent.includes('proposer + third signer') && !lastCell(rows[2]).textContent.includes('✗'), `batch 2 is still a stand-in: ${lastCell(rows[2]).textContent}`);
+    assert(need(dom, 'tAncS').textContent.includes('1 proposer + verifier · 1 stand-in · 1 other'), `tile sub-line: ${need(dom, 'tAncS').textContent}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: a link that names a Horizon other than the public testnet one does not run by itself; once the reader presses Reconcile, every result names that server in a visible notice above the verdict, in the account line and in the progress line', async () => {
+  const w = await pageWorld();
+  try {
+    const host = new URL(w.hz.url).host;
+    const dom = await runPage(w.q(), { click: false });
+    eq(dom.autoRan, false, 'the check does not start by itself');
+    eq(w.hz.requests.length, 0, 'nothing is read from that server before the click');
+    eq(need(dom, 'result').hidden, true, 'no result yet');
+    eq(need(dom, 'horizonIn').value, w.hz.url, 'the server from the link is in the Horizon input');
+    eq(need(dom, 'advOpts').open, true, 'the Horizon input is shown, not folded away');
+    const waiting = need(dom, 'progress').textContent;
+    assert(waiting.includes(host) && /not the public Stellar testnet Horizon/.test(waiting) && /press Reconcile/.test(waiting), `the page says why it waits: ${waiting}`);
+    eq(dom.replaced.length, 0, 'the address is not rewritten before the click');
+
+    const during = await clickReconcile(dom);
+    eq(during, 'Reading the anchoring account, its signers and every anchoring transaction from Horizon, then downloading the evidence feed at its latest commit…', 'the progress text in the order of the reads');
+    assert(w.hz.requests.length > 0, 'the click runs the check');
+    assert(/^RECONCILED/.test(need(dom, 'verdict').textContent), need(dom, 'verdict').textContent);
+    const note = need(dom, 'horizonNote');
+    eq(note.hidden, false, 'the notice is shown');
+    assert(note.textContent.startsWith(`Reading a non-default Horizon: ${host}.`), `the notice names the server: ${note.textContent}`);
+    assert(/only as trustworthy as that server/.test(note.textContent) && note.textContent.includes('horizon-testnet.stellar.org'), `and says what that means: ${note.textContent}`);
+    const inResult = need(dom, 'result').all();
+    assert(inResult.indexOf(note) >= 0 && inResult.indexOf(note) < inResult.indexOf(need(dom, 'verdict')), 'the notice is part of the result, above the verdict');
+    assert(need(dom, 'acctId').textContent.includes(`as ${host} returned it`), need(dom, 'acctId').textContent);
+    assert(need(dom, 'progress').textContent.includes(`Horizon ${host}`), need(dom, 'progress').textContent);
+    assert(dom.replaced[0].includes('horizon=' + encodeURIComponent(w.hz.url)), `the server stays in the address: ${dom.replaced[0]}`);
+    await clickReconcile(dom);
+    eq(note.hidden, false, 'a second check names it again');
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: a look-alike of the public testnet Horizon (another host that starts with its name, or its name as user info before another host) is a non-default server: the link does not run by itself, and the waiting line and the notice name the host the page really reads', async () => {
+  for (const lookalike of [`${DEFAULT_HORIZON}.evil.example`, `${DEFAULT_HORIZON}@evil.example`]) {
+    const w = await pageWorld();
+    try {
+      const host = new URL(lookalike).host;                   // horizon-testnet.stellar.org.evil.example, evil.example
+      const reads = [];
+      /* the look-alike is served by the local fake Horizon; the public Horizon and anything else off 127.0.0.1 is never read */
+      const pageFetch = async (url, init) => {
+        const u = String(url);
+        if (u.startsWith(lookalike + '/')) { reads.push(u); return fetch(w.hz.url + u.slice(lookalike.length), init); }
+        if (!u.startsWith('http://127.0.0.1:')) throw new Error(`no network in tests: ${u}`);
+        return fetch(u, init);
+      };
+      const dom = await runPage(`feed=${encodeURIComponent(w.host.url)}&account=${ACCOUNT}&horizon=${encodeURIComponent(lookalike)}`, { click: false, fetch: pageFetch });
+      eq(dom.autoRan, false, `${lookalike}: the check does not start by itself`);
+      eq(reads.length + w.hz.requests.length, 0, `${lookalike}: nothing is read before the click`);
+      eq(need(dom, 'result').hidden, true, `${lookalike}: no result yet`);
+      eq(need(dom, 'advOpts').open, true, `${lookalike}: the Horizon input is shown, not folded away`);
+      const waiting = need(dom, 'progress').textContent;
+      assert(/not the public Stellar testnet Horizon/.test(waiting) && waiting.includes(`Horizon: ${host}.`) && /press Reconcile/.test(waiting), `${lookalike}: the page says why it waits and names the host it would read: ${waiting}`);
+      await clickReconcile(dom);
+      assert(reads.length > 0, `${lookalike}: the click reads the server the link names`);
+      const note = need(dom, 'horizonNote');
+      eq(note.hidden, false, `${lookalike}: the notice is shown`);
+      assert(note.textContent.startsWith(`Reading a non-default Horizon: ${host}.`), `${lookalike}: the notice names the host read: ${note.textContent}`);
+      assert(need(dom, 'acctId').textContent.includes(`as ${host} returned it`), `${lookalike}: ${need(dom, 'acctId').textContent}`);
+      assert(!need(dom, 'acctId').textContent.includes('as horizon-testnet.stellar.org returned it'), `${lookalike}: never passed off as the public Horizon: ${need(dom, 'acctId').textContent}`);
+      assert(dom.replaced[0].includes('horizon=' + encodeURIComponent(lookalike)), `${lookalike}: the server stays in the address: ${dom.replaced[0]}`);
+    } finally { await w.close(); }
+  }
+});
+
+test('V3-9.3: with no ?horizon= (or the public testnet Horizon named exactly) the page runs by itself against horizon-testnet.stellar.org and shows no notice', async () => {
+  const w = await pageWorld();
+  try {
+    const base = `feed=${encodeURIComponent(w.host.url)}&account=${ACCOUNT}`;
+    for (const query of [base, `${base}&horizon=${encodeURIComponent(DEFAULT_HORIZON)}`, `${base}&horizon=${encodeURIComponent(DEFAULT_HORIZON + '/')}`]) {
+      const dom = await runPage(query, { click: false, fetch: routed(w.hz.url) });
+      eq(dom.autoRan, true, `it runs by itself (${query})`);
+      assert(/^RECONCILED/.test(need(dom, 'verdict').textContent), `${need(dom, 'verdict').textContent} ${need(dom, 'progress').textContent}`);
+      eq(need(dom, 'horizonNote').hidden, true, 'no notice for the public testnet Horizon');
+      eq(need(dom, 'horizonNote').textContent, '', 'and no text');
+      assert(need(dom, 'acctId').textContent.includes('as horizon-testnet.stellar.org returned it'), need(dom, 'acctId').textContent);
+      assert(need(dom, 'progress').textContent.includes('Horizon horizon-testnet.stellar.org'), need(dom, 'progress').textContent);
+      assert(!/horizon=/.test(dom.replaced[0]), `the default is not written into the address: ${dom.replaced[0]}`);
+    }
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: when api.github.com refuses the commit lookup (HTTP 403 or 429), the page says it is GitHub\'s anonymous rate limit and when to retry, not that the feed URL is wrong', async () => {
+  const w = await pageWorld();
+  try {
+    const feed = 'https://raw.githubusercontent.com/acme/qwatt-evidence/main/run';
+    const query = `feed=${encodeURIComponent(feed)}&account=${ACCOUNT}`;
+    for (const status of [403, 429]) {
+      const dom = await runPage(query, { fetch: routed(w.hz.url, async () => new Response('rate limit exceeded', { status })) });
+      const prog = need(dom, 'progress').textContent;
+      eq(need(dom, 'result').hidden, true, `${status}: no result`);
+      assert(prog.includes("GitHub's anonymous API limit") && /60 requests an hour/.test(prog), `${status}: names the limit: ${prog}`);
+      assert(/try again/i.test(prog) && /within the hour|in an hour/.test(prog), `${status}: says when to retry: ${prog}`);
+      assert(/reconcile-cli/.test(prog), `${status}: points to the CLI: ${prog}`);
+      assert(!/Confirm the feed URL/.test(prog), `${status}: does not blame the feed URL: ${prog}`);
+    }
+    /* any other failure keeps the general message */
+    const other = await runPage(query, { fetch: routed(w.hz.url, async () => new Response('boom', { status: 500 })) });
+    assert(/Confirm the feed URL/.test(need(other, 'progress').textContent) && !/anonymous API limit/.test(need(other, 'progress').textContent), need(other, 'progress').textContent);
+  } finally { await w.close(); }
+});
+
 (async () => {
   console.log('\nreconcile');
   for (const t of tests) {
