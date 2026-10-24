@@ -53,3 +53,15 @@ jobs:
       - name: "Site: live testnet helper with Horizon stubbed (no amounts, no secrets, right network)"
         if: ${{ !cancelled() }}
         run: node ops/site-live.test.js
+      - name: "Protocol browser build is current (assets/qwatt-protocol.js = a fresh build of the sources)"
+        if: ${{ !cancelled() }}
+        run: node protocol/build-browser.js --check
+      - name: "Sample feeds are current and re-derive (evidence/feeds: the anchored 8 Oct batches and the sample day)"
+        if: ${{ !cancelled() }}
+        run: node ops/sample-feeds.js --check
+      - name: "Browser build equals Node on vectors, feeds and tampering (the verification page's checklist)"
+        if: ${{ !cancelled() }}
+        run: node ops/protocol-browser.test.js
+      - name: "Evidence formats: sample feeds and tests A-D (R-FEEDS, R-ABCD)"
+        if: ${{ !cancelled() }}
+        run: node ops/site-evidence.test.js

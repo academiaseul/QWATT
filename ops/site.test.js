@@ -113,23 +113,6 @@ const EXCEPTIONS = [
     only: /localStorage\.removeItem\(\s*(['"])qwatt\.(issuerSecret|distSecret)\1\s*\)/ },
   { id: 'E4', file: 'assets/qwatt-protocol.js', rule: 'R-VOCAB', match: ['issuance', 'mining', 'mint'],
     reason: 'Generated browser build: embeds the protocol sources byte for byte (§9.2); never rendered', fd: 'FD-3' },
-  /* E5 — main's week-1 verification page stays deployed and unchanged on this branch:
-     group D rebuilds verificacion.html (DESIGN §8.2 D). Pinned to the exact bytes of
-     origin/main bfb37a6, so any edit to the file ends the exception (and then fails it
-     as unused until this entry is deleted). */
-  ...[
-    ['R-VOCAB', ['mint', 'buy-sell-en', 'verified-energy'], 'the verdict class .mint and variables mint/minted, leftover .sim-row .buy CSS, a comment'],
-    ['R-LOCATION', ['loc-city', 'loc-coords'], 'the demo record and the G2 card name the bench reference city and coordinates'],
-    ['R-STORAGE', ['non-literal'], 'its inline theme script reads/writes the theme key through a variable'],
-    ['R-FIELDS', ['mint'], 'its inline lab script reads res.mint / .minted'],
-    ['R-PAGE', ['1', '4', '5', '6', '7', '8', '9'], 'no data-title-en, EN disclaimer, label line or shared chrome; inline scripts'],
-    ['R-NAV', ['match'], 'no data-status / data-parts on <body>'],
-    ['R-I18N', ['2'], 'Spanish-only page without the EN body note'],
-    ['R-A11Y', ['3', '5', '6', '7'], 'week-1 markup: table captions, new-tab hints, skip link'],
-  ].map(([rule, match, what]) => ({
-    id: 'E5', file: 'verificacion.html', sha256: 'f2933afc31bc7c566c4e2ee9dcb5bebe87704466f6242b9d0216ea5cad680f19', rule, match,
-    reason: `origin/main's week-1 verificacion.html, kept deployed byte-for-byte until group D replaces it (${what})`, fd: 'group D (site/d-compruebalo)',
-  })),
 ];
 
 /* ═════════════════════════════ helpers ═════════════════════════════ */

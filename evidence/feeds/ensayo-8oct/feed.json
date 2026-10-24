@@ -1,0 +1,34 @@
+{
+  "id": "ensayo-8oct",
+  "title": {
+    "es": "Ensayo del 8 oct",
+    "en": "8 Oct rehearsal"
+  },
+  "label": "testnet",
+  "prior": true,
+  "batch_schema": "1.0.0",
+  "source": {
+    "es": "Los dos lotes del ensayo 2 de 3 del 8 oct, regenerados con el código del repositorio; sus huellas son las que anclaron las pruebas C y L.",
+    "en": "The two batches of the 8 Oct 2-of-3 rehearsal, regenerated with the repository's code; their fingerprints are the ones tests C and L anchored."
+  },
+  "anchoring": {
+    "network": "testnet",
+    "account": "GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET",
+    "thresholds": "1/2/3",
+    "signers": {
+      "proposer": "GDO5EL2AB4A5REHWU7AG5FTZWLMBKOKBECZRJBJC4MXTB674XONKR3FI",
+      "verifier": "GDWN3AOGMNUS2ZFRBEW3I2SYJMU67FUAFMTMCLAODTUUVRW7VSG5TG53",
+      "third": "GDWVD7H2CKN3S2XZ756I7EITTQF2J3FBBFAMRL3RHBDRALEVOMNRF3I2"
+    },
+    "evidence": "/evidence/rehearsal/rehearsal-2026-10-08T20-46-13-037Z.json"
+  },
+  "expected": {
+    "batches": 2,
+    "sha256": [
+      "322923a411c146079b73269fe3135d9e6413a9dafdb07807567c8a119f35a245",
+      "852314a2a11f86548e3f8b09c16aa2fd6ef82ae8e8641db5ef20a4bc2d0f5466"
+    ],
+    "refusals": []
+  },
+  "generated_by": "ops/sample-feeds.js"
+}

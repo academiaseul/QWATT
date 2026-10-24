@@ -244,7 +244,7 @@
       var sc = chip(it.status, it.week);
       var wk = it.week == null ? { es: '—', en: '—' } : it.week === 0 ? { es: 'previo', en: 'prior' } : it.week === 4 ? { es: 'corrida', en: 'run' } : { es: 'semana ' + it.week, en: 'week ' + it.week };
       return '<tr id="' + esc(it.id) + '" data-status="' + it.status + '" data-deliverable="' + esc(it.deliverable || '') + '">' +
-        '<th scope="row"><span translate="no">' + esc(it.id) + '</span></th>' +
+        '<th scope="row" translate="no">' + esc(it.id) + '</th>' +
         '<td><p class="q-row-t">' + pair(it.title) + '</p><p class="q-row-s">' + pair(it.summary) + '</p></td>' +
         '<td>' + pair(wk) + '</td><td>' + chipHTML(sc, 'item:' + it.id) + '</td><td>' + chipHTML(chip(it.label)) + '</td>' +
         '<td>' + (evidenceList(it.evidence) || pair({ es: 'sin enlace todavía', en: 'no link yet' })) + '</td></tr>';

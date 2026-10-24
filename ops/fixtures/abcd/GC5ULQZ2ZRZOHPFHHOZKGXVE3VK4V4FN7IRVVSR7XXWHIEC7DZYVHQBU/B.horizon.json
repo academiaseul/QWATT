@@ -1,0 +1,8 @@
+{
+  "status": 400,
+  "extras": {
+    "result_codes": {
+      "transaction": "tx_bad_auth"
+    }
+  }
+}

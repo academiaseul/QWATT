@@ -25,19 +25,8 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
-      ]
-    },
-    {
-      "source": "/((?!verificacion\\.html).*)",
-      "headers": [
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
         { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'" }
-      ]
-    },
-    {
-      "source": "/verificacion.html",
-      "headers": [
-        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self' 'sha256-3wzL62zI8pIeTrZFxGl2zw2/zMV/aCQVWmIp+LuinhI=' 'sha256-m0mmq30G7JsRKCgAZWKor+7LM96aokCr+c6k4n2vhhk=' 'sha256-FjsguXpLIJkL1vhkKK+kPc9QlK607AnX9poQia+7WIE=' 'sha256-VFmBF0IMjokxuAQbQL5zWLRxj25ePSk4VAVklCj64w0='; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'" }
       ]
     }
   ]
