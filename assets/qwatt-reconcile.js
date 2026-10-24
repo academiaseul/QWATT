@@ -126,7 +126,9 @@
         if (op.name === ANCHOR_KEY) byTx[op.transaction_hash].sha256 = v;
         else byTx[op.transaction_hash].cumulative_mwh = v == null ? null : Number(v);
       });
-      url = page._links && page._links.next && page._links.next.href;
+      /* follow the next page only on the same Horizon: a link to any other host ends the walk */
+      var nx = page._links && page._links.next && page._links.next.href;
+      url = typeof nx === 'string' && nx.indexOf(base + '/') === 0 ? nx : null;
     }
     return order.map(function (h) { return byTx[h]; }).filter(function (a) { return a.sha256; });
   }

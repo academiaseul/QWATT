@@ -829,6 +829,13 @@ function statusRules(S, opts = {}) {
     if (!LABELS.includes(it.label)) f('1', it.id, 'label enum');
     if (it.week === null ? it.status !== 'out_of_scope' : !weekNs.has(it.week)) f('1', it.id, 'week must exist in weeks (null only for out_of_scope)');
     for (const n of it.nodes || []) if (!nodeIds.has(n)) f('1', `${it.id} → ${n}`, 'item node does not exist');
+  }
+  /* the two directions agree: a node lists exactly the items that name it (the diagram panels read nodes[].items) */
+  for (const n of nodes) {
+    const want = items.filter((it) => (it.nodes || []).includes(n.id)).map((it) => it.id).sort().join(',');
+    if ((n.items || []).slice().sort().join(',') !== want) f('1', `nodes[${n.id}].items`, `must list exactly the items whose nodes include it: ${want}`);
+  }
+  for (const it of items) {
     const ev = it.evidence || [];
     evidenceRules(ev, it.id, f);
     if (it.status === 'done') {

@@ -56,7 +56,10 @@ function iv(i, o = {}) {
 }
 
 const mkAsm = (o = {}) => new BatchAssembler(Object.assign({ site_id: 'bench-santiago', node_id: 'test-node' }, o));
-const tmpDir = () => fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-feed-'));
+/* every temporary feed folder this suite makes is removed when it exits */
+const tmpDirs = [];
+const tmpDir = () => { const d = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-feed-')); tmpDirs.push(d); return d; };
+process.on('exit', () => { for (const d of tmpDirs) { try { fs.rmSync(d, { recursive: true, force: true }); } catch (e) { /* best effort */ } } });
 const mkPipe = (dir, o = {}) => new Pipeline(Object.assign({ dir, site_id: 'bench-santiago', node_id: 'test-node' }, o));
 const record = (lines) => { for (const l of lines) for (const c of l.reasons || []) emitted.add(c); };
 

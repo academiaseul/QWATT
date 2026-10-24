@@ -6,9 +6,12 @@
  * recomputed from their signed envelopes, every signature identified by Ed25519
  * (assets/qwatt-envelope.js), transaction C read live from Horizon testnet.
  * Section 2 and the page state: when assets/status.json names the real anchoring
- * account, the page looks for evidence/account/<G…>/abcd.json and judges it with
- * model(), without reading the file's verdict. GET only; nothing is signed, sent
- * or stored.
+ * account, the page first reads that account on Horizon testnet (it must exist),
+ * then looks for evidence/account/<G…>/abcd.json and judges it with model(),
+ * without reading the file's verdict: the file must describe that account, C must
+ * come from it, and the 2/2/3 setup is judged from the account as read now. The
+ * TESTNET label appears only when that verdict is PASS. GET only; nothing is
+ * signed, sent or stored.
  */
 (function (root) {
   'use strict';
@@ -39,6 +42,13 @@
     oneSig: { es: 'Una firma', en: 'One signature' }, sigBy: { es: 'Firmada por {r}', en: 'Signed by {r}' },
     noEd: { es: 'Tu navegador no puede verificar firmas Ed25519', en: 'Your browser cannot verify Ed25519 signatures' },
     thr: { es: 'Umbrales de la cuenta al enviar: {t}', en: 'Account thresholds at submission: {t}' },
+    thrLive: { es: 'Cuenta leída ahora: umbrales {t}, clave maestra peso {m}, {n} firmantes de peso 1 (el archivo dice {f})', en: 'Account read now: thresholds {t}, master key weight {m}, {n} signers of weight 1 (the file says {f})' },
+    thrNoRead: { es: 'No pudimos leer la cuenta en Horizon testnet: los umbrales no se pueden juzgar', en: 'Could not read the account on Horizon testnet: the thresholds cannot be judged' },
+    otherAcct: { es: 'La transacción C la envió otra cuenta ({g})', en: 'Transaction C was sent by another account ({g})' },
+    acctOk: { es: 'El archivo describe la cuenta de anclaje configurada', en: 'The file describes the configured anchoring account' },
+    acctBad: { es: 'El archivo describe otra cuenta ({g}), no la configurada', en: 'The file describes another account ({g}), not the configured one' },
+    notFound: { es: 'Cuenta no encontrada en testnet: la cuenta 2 de 3 aún no existe', en: 'Account not found on testnet: the 2-of-3 account does not exist yet' },
+    acctOffline: { es: 'No pudimos leer la cuenta en Horizon testnet ({t}). Reintentando en 30 s.', en: 'Could not read the account on Horizon testnet ({t}). Retrying in 30 s.' },
     thrEarlier: { es: 'Umbrales del ensayo: {t} (diseño anterior; la cuenta definitiva tendrá 2/2/3)', en: 'Rehearsal thresholds: {t} (earlier design; the real account will use 2/2/3)' },
     answer: { es: 'Respuesta de la red: {c}', en: 'Network answer: {c}' },
     onchain: { es: 'Está en Stellar testnet: ledger {l}, memo {m}', en: 'It is on Stellar testnet: ledger {l}, memo {m}' },
@@ -89,9 +99,12 @@
         var who = ROLE[v.role] || ROLE.unknown;
         return r.state === 'na' ? pair(W.noEd) : pair({ es: W.sigBy.es.replace('{r}', who.es), en: W.sigBy.en.replace('{r}', who.en) });
       }
-      case 'thresholds': return pair(earlier ? W.thrEarlier : W.thr, { t: v.thresholds || '—' });
+      case 'thresholds':
+        if (r.state === 'offline') return pair(W.thrNoRead);
+        if (v.live) return pair(W.thrLive, { t: v.thresholds, m: String(v.masterWeight), n: String(v.signersW1), f: v.file || '—' });
+        return pair(earlier ? W.thrEarlier : W.thr, { t: v.thresholds || '—' });
       case 'answer': return pair(W.answer, { c: '' }) + codes(v.codes);
-      case 'onchain': return r.state === 'offline' ? pair(W.offline, { t: S.fmtTime().slice(0, 5) }) : r.state === 'ok' ? pair(W.onchain, { l: S.fmtNum(v.ledger), m: v.memoShown || '—' }) + ' ' + badge(v.src === 'vivo' ? 'vivo' : 'archivo', { t: S.fmtTime(), p: 'C.transaction.json' }) : pair(W.onchainBad);
+      case 'onchain': return v.otherAccount ? pair(W.otherAcct, { g: S.shortKey(v.otherAccount) }) : r.state === 'offline' ? pair(W.offline, { t: S.fmtTime().slice(0, 5) }) : r.state === 'ok' ? pair(W.onchain, { l: S.fmtNum(v.ledger), m: v.memoShown || '—' }) + ' ' + badge(v.src === 'vivo' ? 'vivo' : 'archivo', { t: S.fmtTime(), p: 'C.transaction.json' }) : pair(W.onchainBad);
       case 'two-sigs': return r.state === 'na' ? pair(W.noEd) + ' (' + num(String(v.count || 0), 'vivo') + ')' : r.state === 'offline' ? '' : pair(W.twoSigs, { r: '' }) + roles(v.roles);
       case 'link': return v.url ? '<a class="q-link" href="' + esc(v.url) + '" target="_blank" rel="noopener">' + pair(W.link) + '<span class="q-vh">' + pair('newTab') + '</span></a>' : '—';
       case 'reason': return pair(W.reason, { c: '' }) + codes(v.codes);
@@ -100,7 +113,10 @@
     return esc(r.id);
   }
   function modelHTML(m, earlier) {
-    var out = '<div class="q-steps-grid">';
+    var out = '';
+    var ac = m.accountCheck;
+    if (ac && ac.state !== 'na') out += '<p class="q-verdict-line"><span class="q-state" data-state="' + ac.state + '">' + stateHTML(ac.state) + '</span> ' + (ac.state === 'ok' ? pair(W.acctOk) : pair(W.acctBad, { g: S.shortKey(ac.vals.file) })) + '</p>';
+    out += '<div class="q-steps-grid">';
     T.ORDER.forEach(function (k) {
       var s = m.steps[k];
       if (!s) return;
@@ -165,9 +181,26 @@
   function getText(url) {
     return fetch(url, { cache: 'no-store' }).then(function (r) { if (r.status === 404) return null; if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); });
   }
-  function realAccount(account) {
+  /** Signer roles from the public run feed (faults.json), when status.json configures it; otherwise null. */
+  function runRoles(status) {
+    var fd = status && (status.feeds || []).filter(function (f) { return f.id === 'corrida'; })[0];
+    if (!fd || !fd.base || !root.QWATT_FEED) return Promise.resolve(null);
+    return root.QWATT_FEED.open(fd.base, {}).then(function (f) { return f.run && f.run.signers ? f.run.signers : null; }, function () { return null; });
+  }
+  var PLANNED = { es: 'PLANIFICADO · SEMANA 2', en: 'PLANNED · WEEK 2' };
+  function realAccount(account, status) {
     var dir = ACCOUNT_DIR + account + '/';
-    getText(dir + 'abcd.json').then(function (text) {
+    var acct = null;
+    L.account(account).then(function (a) {
+      acct = a;
+      if (!a.exists) { stateLine('planificado', PLANNED, pair(W.notFound)); return null; }
+      return getText(dir + 'abcd.json');
+    }, function () {
+      stateLine('planificado', PLANNED, pair(W.acctOffline, { t: S.fmtTime().slice(0, 5) }));
+      setTimeout(function () { realAccount(account, status); }, 30000);
+      return null;
+    }).then(function (text) {
+      if (!acct || !acct.exists) return null;
       if (text == null) {
         stateLine('curso', { es: 'EN CURSO · SEMANA 2', en: 'IN PROGRESS · WEEK 2' }, pair(W.created));
         return null;
@@ -176,12 +209,13 @@
       return getText(dir + 'index.json').then(function (it) {
         var index = it ? JSON.parse(it) : null;
         var names = index && index.files ? Object.keys(index.files) : [];
-        return Promise.all(names.map(function (n) { return getText(dir + n).then(function (t) { return [n, t]; }); })).then(function (pairs) {
+        return Promise.all([runRoles(status)].concat(names.map(function (n) { return getText(dir + n).then(function (t) { return [n, t]; }); }))).then(function (all) {
           var files = {};
-          pairs.forEach(function (p) { if (p[1] != null) files[p[0]] = p[1]; });
-          return T.model(abcd, index, files, deps());
+          all.slice(1).forEach(function (p) { if (p[1] != null) files[p[0]] = p[1]; });
+          return T.model(abcd, index, files, deps({ account: account, live: acct, roles: all[0] || undefined }));
         }).then(function (m) {
-          var ps = T.pageState(account, abcd);
+          /* TESTNET only when our own verdict is PASS for this account; the file's verdict never decides it */
+          var ps = m.verdict === 'PASS' && m.accountCheck && m.accountCheck.state === 'ok' ? { state: 'testnet' } : { state: 'curso' };
           var at = (m.steps.C && m.steps.C.at) || (m.steps.A && m.steps.A.at) || '';
           var vw = T.VERDICT[abcd.verdict] || T.VERDICT.INCOMPLETE;
           var line = function (lg) { return W.published[lg].replace('{d}', at ? S.fmtDate(at, lg) : '—').replace('{v}', vw[lg]); };
@@ -192,6 +226,11 @@
             var card = d.querySelector('.q-tcard[data-step="' + k + '"] [data-slot="line"]');
             if (card && m.steps[k]) card.innerHTML = '<span class="q-state" data-state="' + m.steps[k].state + '">' + stateHTML(m.steps[k].state) + '</span>';
           });
+          /* the plan's PLANIFICADO chips give way to TESTNET once the tests are judged PASS here (no data-status-of: status.json no longer re-stamps them) */
+          if (ps.state === 'testnet') {
+            var chips = d.querySelectorAll('.q-tcard .q-chip[data-status-of], #h2plan ~ .q-chip[data-status-of]');
+            for (var i = 0; i < chips.length; i++) { var t = d.createElement('span'); t.innerHTML = S.chip('testnet'); chips[i].parentNode.replaceChild(t.firstChild, chips[i]); }
+          }
         });
       });
     }).catch(function () {
@@ -207,7 +246,7 @@
       var paths = st && st.tests && st.tests.worked_example ? st.tests.worked_example : DEFAULTS;
       runWorked({ abcd: paths.abcd || DEFAULTS.abcd, independence: paths.independence || DEFAULTS.independence });
       var account = L.CONFIG.ANCHOR_ACCOUNT;
-      if (account) realAccount(account);
+      if (account) realAccount(account, st);
     });
     S.onLang(renderWorked);
   }

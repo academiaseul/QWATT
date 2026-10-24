@@ -127,8 +127,11 @@
   }
 
   /* ───────────────────────── week-tx ───────────────────────── */
-  function coreAccounts() {
-    return [C.AUGUST.assetAccount, C.AUGUST.markerDestination, C.REHEARSAL.abcd.account, C.REHEARSAL.e2e.account, C.REHEARSAL.dress.account, C.REHEARSAL.asset.account];
+  /* Every account the repository names: the two August accounts, the four 8 Oct rehearsal accounts and the five
+     other rehearsal accounts (C.OTHER_ACCOUNTS). Keys that only sign have no account and are not counted. */
+  function repoAccounts() {
+    return [C.AUGUST.assetAccount, C.AUGUST.markerDestination, C.REHEARSAL.abcd.account, C.REHEARSAL.e2e.account, C.REHEARSAL.dress.account, C.REHEARSAL.asset.account]
+      .concat(C.OTHER_ACCOUNTS || []);
   }
   function weekTx(el) {
     var n = +(el.getAttribute('data-week') || 1);
@@ -136,15 +139,20 @@
     return widget(el, function () {
       var wk = C.WEEKS.filter(function (x) { return x.n === n; })[0];
       var after = wk.to, nowIso = new Date(Date.now() + 86400000).toISOString();
-      return Promise.all(coreAccounts().map(function (g) {
+      return Promise.all(repoAccounts().map(function (g) {
         return Promise.all([L.txCount(g, wk.from, wk.to), L.txCount(g, after, nowIso)]).then(function (r) { return { g: g, week: r[0], since: r[1] }; });
       }));
     }, function (rows) {
       var total = rows.reduce(function (a, r) { return a + r.week.count; }, 0);
       var since = rows.reduce(function (a, r) { return a + r.since.count; }, 0);
-      var st = total === 0 ? state('ok', { es: '✓ 0, COMO ESPERÁBAMOS', en: '✓ 0, AS EXPECTED' }) : state('fail', { es: '✗ ESPERÁBAMOS 0', en: '✗ WE EXPECTED 0' });
+      var n = rows.length, missing = rows.filter(function (r) { return r.week.notFound; }).length;
+      /* an account that does not exist (a testnet reset) counts 0 without proving anything: say so instead of a green 0 */
+      var st = missing ? state('na', { es: '? NO VERIFICABLE · ' + missing + ' cuenta(s) no existen en testnet', en: '? NOT VERIFIABLE · ' + missing + ' account(s) not on testnet' })
+        : total === 0 ? state('ok', { es: '✓ 0, COMO ESPERÁBAMOS', en: '✓ 0, AS EXPECTED' }) : state('fail', { es: '✗ ESPERÁBAMOS 0', en: '✗ WE EXPECTED 0' });
       if (compact) {
-        return '<p class="q-hl-live">' + pair({ es: 'Leído ahora en las 6 cuentas: ', en: 'Read now on the 6 accounts: ' }) + num(String(total), 'vivo') +
+        var where = missing ? { es: 'Leído ahora en las ' + (n - missing) + ' de las ' + n + ' cuentas del repositorio que existen: ', en: 'Read now on the ' + (n - missing) + ' of the ' + n + ' repository accounts that exist: ' }
+          : { es: 'Leído ahora en las ' + n + ' cuentas del repositorio: ', en: 'Read now on the ' + n + ' repository accounts: ' };
+        return '<p class="q-hl-live">' + pair(where) + num(String(total), 'vivo') +
           pair({ es: ' transacciones entre el lun 19 y el vie 23 oct', en: ' transactions from Mon 19 to Fri 23 Oct' }) + ' ' + st + '</p>' + vivo();
       }
       var list = rows.map(function (r) {
@@ -153,8 +161,8 @@
       }).join('');
       return '<p class="q-tile-v">' + num(String(total), 'vivo') + '</p>' +
         '<p class="q-tile-s">' + st + ' · ' + pair({ es: 'desde el 24 oct: ', en: 'since 24 Oct: ' }) + num(String(since), 'vivo') + '</p>' + vivo() +
-        '<details class="q-more"><summary>' + pair({ es: 'Cuentas revisadas (6)', en: 'Accounts checked (6)' }) + '</summary>' +
-        '<p class="q-note">' + pair({ es: 'Las dos cuentas de agosto y las cuatro cuentas desechables del ensayo del 8 oct.', en: 'The two August accounts and the four throwaway accounts of the 8 Oct rehearsal.' }) + '</p>' +
+        '<details class="q-more"><summary>' + pair({ es: 'Cuentas revisadas (' + n + ')', en: 'Accounts checked (' + n + ')' }) + '</summary>' +
+        '<p class="q-note">' + pair({ es: 'Las dos cuentas de agosto, las cuatro cuentas desechables del ensayo del 8 oct, los tres destinos de sus pagos marcadores y las dos cuentas del ensayo del activo: cada cuenta que nombra el repositorio. Las claves que solo firman no tienen cuenta.', en: 'The two August accounts, the four throwaway accounts of the 8 Oct rehearsal, the three destinations of their marker payments and the two accounts of the asset rehearsal: every account the repository names. Keys that only sign have no account.' }) + '</p>' +
         '<ul class="q-mini">' + list + '</ul></details>';
     }, { every: 60000 });
   }

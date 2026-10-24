@@ -56,8 +56,8 @@
             { "kind": "run", "url": "https://github.com/academiaseul/QWATT/actions/runs/39593831385", "result": "green" },
             { "kind": "run", "url": "https://github.com/academiaseul/QWATT/actions/runs/39593847463", "result": "green" } ] },
         { "id": "h-revision", "status": "done", "label": "prototipo", "live": null,
-          "title": { "es": "Cuatro más, encontradas al revisar esos arreglos, y una quinta", "en": "Four more, found by reviewing those fixes, and a fifth" },
-          "text": { "es": "DV-1 a DV-4 cierran otras formas de contar dos veces la misma energía. La quinta: el anclaje ya no puede quedar detenido para siempre después de muchos lotes rechazados seguidos (nuevo código verifier.walk_too_long).", "en": "DV-1 to DV-4 close other ways to count the same energy twice. The fifth: anchoring can no longer stop for good after a long run of rejected batches (new code verifier.walk_too_long)." },
+          "title": { "es": "Cuatro más, encontradas al revisar esos arreglos; y el anclaje ya no puede quedar detenido", "en": "Four more, found by reviewing those fixes; and anchoring can no longer stall for good" },
+          "text": { "es": "DV-1 a DV-4 cierran otras formas de contar dos veces la misma energía. Además, el anclaje ya no puede quedar detenido para siempre después de muchos lotes rechazados seguidos (nuevo código verifier.walk_too_long).", "en": "DV-1 to DV-4 close other ways to count the same energy twice. Also, anchoring can no longer stop for good after a long run of rejected batches (new code verifier.walk_too_long)." },
           "evidence": [
             { "kind": "pr", "url": "https://github.com/academiaseul/QWATT/pull/1" },
             { "kind": "pr", "url": "https://github.com/academiaseul/QWATT/pull/8" } ] },
@@ -87,7 +87,7 @@
           "evidence": [ { "kind": "pr", "url": "https://github.com/academiaseul/QWATT/pull/8" } ] },
         { "id": "h-cero-tx", "status": "done", "label": "testnet", "live": "week-tx",
           "title": { "es": "0 transacciones en testnet en la semana 1, a propósito", "en": "0 testnet transactions in week 1, on purpose" },
-          "text": { "es": "Compruébalo en vivo: contamos las transacciones de cada cuenta del repositorio entre el lunes 19 y el viernes 23 de octubre, hora de Chile.", "en": "Check it live: we count the transactions of every account in the repository from Monday 19 to Friday 23 October, Chile time." },
+          "text": { "es": "Compruébalo en vivo: contamos las transacciones de cada cuenta que nombra el repositorio (11) entre el lunes 19 y el viernes 23 de octubre, hora de Chile; las claves que solo firman no tienen cuenta.", "en": "Check it live: we count the transactions of every account the repository names (11) from Monday 19 to Friday 23 October, Chile time; keys that only sign have no account." },
           "evidence": [ { "kind": "doc", "url": "https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" } ] },
         { "id": "h-cero-claves", "status": "done", "label": "info", "live": null,
           "title": { "es": "0 claves secretas de Stellar en el repositorio", "en": "0 Stellar secret keys in the repository" },
@@ -143,7 +143,7 @@
       "title": { "es": "Prototipo del hackathon de agosto 2026", "en": "August 2026 hackathon prototype" },
       "summary": { "es": "Sitio, demo en Stellar testnet y documentos del hackathon; sus páginas vuelven ahora, cada una con su rótulo.", "en": "Site, Stellar testnet demo and hackathon documents; its pages are back now, each with its label." },
       "evidence": [ { "kind": "doc", "url": "https://github.com/academiaseul/QWATT/blob/main/docs/PRIOR-WORK.md" } ] },
-    { "id": "D1-READER", "ref": null, "deliverable": "D1", "week": 0, "status": "prior", "label": "prototipo", "nodes": ["entrada"],
+    { "id": "D1-READER", "ref": null, "deliverable": "D1", "week": 0, "status": "prior", "label": "prototipo", "nodes": ["medidor", "entrada"],
       "title": { "es": "Lector de medidores: Modbus, HTTP y CSV", "en": "Meter reader: Modbus, HTTP and CSV" },
       "summary": { "es": "Construido el 9 sep, antes del Día 1.", "en": "Built on 9 Sep, before Day 1." },
       "evidence": [ { "kind": "commit", "url": "https://github.com/academiaseul/QWATT/commit/98b281a" } ] },
@@ -303,13 +303,13 @@
   ],
   "nodes": [
     { "id": "medidor", "status": "prototipo", "items": ["D1-READER", "D1-OPEN-EPEVER", "D1-OPEN-PZEM", "HW-PILOT"] },
-    { "id": "entrada", "status": "prototipo", "items": ["D1-EVID", "DV-1-4", "V3-6", "D1-1"] },
+    { "id": "entrada", "status": "prototipo", "items": ["D1-READER", "DV-1-4", "D1-EVID", "D1-1", "V3-6"] },
     { "id": "filtros", "status": "prototipo", "items": ["V3-2", "DV-1-4", "V3-10", "V3-12"] },
-    { "id": "lotes", "status": "prototipo", "items": ["D2-CHAIN", "V3-3", "V3-5"] },
+    { "id": "lotes", "status": "prototipo", "items": ["D2-CHAIN", "V3-2", "DV-1-4", "V3-3", "V3-5"] },
     { "id": "feed", "status": "planificado", "items": ["V3-7"] },
-    { "id": "proponente", "status": "prototipo", "items": ["DV-5", "D3-REHEARSAL", "V3-8"] },
-    { "id": "verificador", "status": "prototipo", "items": ["V3-1", "DV-1-4", "V3-11", "V3-13"] },
-    { "id": "cuenta", "status": "planificado", "items": ["OD-1", "V3-4", "V3-8"] },
+    { "id": "proponente", "status": "prototipo", "items": ["D3-REHEARSAL", "DV-5", "V3-8", "V3-13"] },
+    { "id": "verificador", "status": "prototipo", "items": ["D3-REHEARSAL", "V3-1", "DV-1-4", "DV-5", "V3-11", "V3-13"] },
+    { "id": "cuenta", "status": "planificado", "items": ["D3-REHEARSAL", "OD-1", "V3-4", "V3-8"] },
     { "id": "cualquiera", "status": "testnet", "items": ["D4-REHEARSAL", "V3-9", "V3-14"] }
   ]
 }

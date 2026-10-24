@@ -53,6 +53,14 @@
       e2e: { account: 'GCTBRUGQRYNGH7OMRMMQU46NAQNB2AURIWG7D66ADTQDWJC6D2N5O6FO', evidence: '/evidence/e2e/e2e-2026-10-08T20-50-44-831Z.json' },
       asset: { account: 'GCBKRNIPS4IVV2X7ZWR6DBMDNNTRQ53HXNRIQIIVNORCBMTSPK52L5AB', evidence: '/evidence/asset-rehearsal/anchors.json' }   // public keys and anchors only; the full record stays in the repository
     },
+    /* The other accounts among the public keys the repository's evidence names: the marker-payment destinations of
+       the 8 Oct rehearsals (abcd, dress, e2e) and the two accounts of the asset rehearsal. With AUGUST and REHEARSAL
+       these are every account the repository names; the remaining keys only sign and have no account. */
+    OTHER_ACCOUNTS: [
+      'GA6TBLQWBH2JSC6PDI6AMM35LG7B2F3FEOVQRULNQW6ZEDU35KEV6IM2', 'GBMWFJC7T5VTEVXCM4FVP545TARP6PLVNR5DCIQLWF3DOAWKWJMCK2AO',
+      'GCPDGSBO74W3WQEAPQM7XHAAXTL5FZ5W2MMTZ6HKDY2VCGRIPZIHIEK2', 'GB7SYT6XSO256MZZRM7C6BBPN4QQ3DLUQVRIWCI2OQQJQLDQEPCYWNJZ',
+      'GBCPINZ4URAGHFHJ7KGOSMCXPAQTX3RSNI7CFYCCOPMOFEVHNVYOG534'
+    ],
     SCALE: '/evidence/scale/scale-pvdaq-4902-2017-09.json',
     SIM_LABEL: null
   };

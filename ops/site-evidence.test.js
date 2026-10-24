@@ -76,6 +76,17 @@ function listDir(dir) {
   })(dir, '');
   return out;
 }
+/** The account setup an abcd.json declares (thresholds at submission, the keys that signed), in the shape of QWATT_LIVE.account. */
+function declaredSetup(account, abcd) {
+  const st = (abcd && abcd.steps) || {}, A = st.A_proposer_alone || {}, B = st.B_verifier_alone || {}, C = st.C_proposer_plus_verifier || {};
+  const t = A.thresholds || B.thresholds || {};
+  const keys = [...new Set([A.signer_public_key, B.signer_public_key].concat(C.signer_keys || []).filter(isG))];
+  /* the file names the two team keys only; a third signer it does not name completes the declared 2-of-3 */
+  while (keys.length < 3) keys.push('G' + 'A'.repeat(52) + 'WHF');   // the all-zero key: a placeholder, never a real signer
+  return { exists: true, id: account, thresholds: { low: t.low_threshold, med: t.med_threshold, high: t.high_threshold }, masterWeight: 0,
+    signers: [{ key: account, weight: 0 }].concat(keys.map((k) => ({ key: k, weight: 1 }))) };
+}
+
 function deps(extra = {}) {
   const E = need('assets/qwatt-envelope.js');
   return Object.assign({ sha256: async (b) => sha(b), envelope: E, signedBy: E.signedBy, horizonTx: null }, extra);
@@ -229,7 +240,9 @@ async function checkAbcd(name, files, opts = {}) {
     const T = need('assets/qwatt-tests.js');
     const fileMap = {};
     for (const [f, b] of Object.entries(files)) fileMap[f] = opts.lf ? Buffer.from(b.toString('utf8').replace(/\r\n/g, '\n'), 'utf8') : b;
-    const mdl = await T.model(abcd, index, Object.fromEntries(Object.entries(fileMap).map(([f, b]) => [f, f.endsWith('.json') || f.endsWith('.xdr') || f.endsWith('.jsonl') ? b.toString('utf8') : b])), deps());
+    /* the page reads the account live; this offline format check lets the setup the file declares stand in for it,
+       so rule 6 asks only whether the files reproduce the file's verdict for the directory's account */
+    const mdl = await T.model(abcd, index, Object.fromEntries(Object.entries(fileMap).map(([f, b]) => [f, f.endsWith('.json') || f.endsWith('.xdr') || f.endsWith('.jsonl') ? b.toString('utf8') : b])), deps({ account: name, live: declaredSetup(name, abcd) }));
     if (mdl.verdict !== abcd.verdict) p(6, `the file says ${abcd.verdict}, the files themselves give ${mdl.verdict}`);
   } catch (e) { p(6, 'qwatt-tests.js could not judge the files: ' + e.message); }
   /* 7 */
@@ -293,7 +306,7 @@ test('R-ABCD: deliberately broken copies of the fixture are refused, each by the
     const probs = await checkAbcd(d.name, make(), { lf: true });
     assert(probs.some((x) => x.rule === rule), `${what}: rule ${rule} did not refuse it (got ${JSON.stringify(probs.map((x) => x.rule))})`);
   }
-  const wrongDir = await checkAbcd('GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET', base, { lf: true });
+  const wrongDir = await checkAbcd('GC5ULQZ2ZRZOHPFHHOZKGXVE3VK4V4FN7IRVVSR7XXWHIEC7DZYVHQBU', base, { lf: true });
   assert(wrongDir.some((x) => x.rule === 1), 'a directory named after another account: rule 1');
   const real = await checkAbcd(d.name, base, { lf: true, real: true, statusAccount: null });
   assert(real.some((x) => x.rule === 1), 'real evidence for an account that is not status.json anchor.account: rule 1');
@@ -357,11 +370,19 @@ function noForbidden(out, where, banned) {
   })(out, '$');
 }
 
-test('tests model: the fixture, judged from its files alone, PASSES and agrees with the file; nothing forbidden comes out', async () => {
+/** The fixture's account as Horizon would show it under the frozen setup: 2/2/3, master 0, three signers of weight 1. */
+function liveOk(fx, over = {}) {
+  const s = fx.abcd.steps;
+  return Object.assign({ exists: true, id: fx.name, thresholds: { low: 2, med: 2, high: 3 }, masterWeight: 0,
+    signers: [{ key: fx.name, weight: 0 }, { key: s.A_proposer_alone.signer_public_key, weight: 1 }, { key: s.B_verifier_alone.signer_public_key, weight: 1 }, { key: 'GDWVD7H2CKN3S2XZ756I7EITTQF2J3FBBFAMRL3RHBDRALEVOMNRF3I2', weight: 1 }] }, over);
+}
+
+test('tests model: the fixture, judged from its files and the account read live, PASSES and agrees with the file; nothing forbidden comes out', async () => {
   const T = need('assets/qwatt-tests.js');
   const fx = fixtureFiles();
-  const m = await T.model(fx.abcd, fx.index, fx.files, deps());
+  const m = await T.model(fx.abcd, fx.index, fx.files, deps({ account: fx.name, live: liveOk(fx) }));
   eq(m.verdict, 'PASS', 'verdict');
+  eq(m.accountCheck.state, 'ok', 'the file describes the configured account');
   eq(m.fileVerdict, 'PASS', 'file verdict');
   eq(m.agree, true, 'agree');
   eq(Object.keys(m.steps), ['A', 'B', 'C', 'D', 'I'], 'five steps');
@@ -378,20 +399,47 @@ test('tests model: a missing step is INCOMPLETE, a failing one FAILS, and a disa
   const T = need('assets/qwatt-tests.js');
   const fx = fixtureFiles();
   const noI = JSON.parse(JSON.stringify(fx.abcd)); delete noI.steps.I_withheld_refused;
-  eq((await T.model(noI, fx.index, fx.files, deps())).verdict, 'INCOMPLETE', 'missing I');
+  const live = deps({ account: fx.name, live: liveOk(fx) });
+  eq((await T.model(noI, fx.index, fx.files, live)).verdict, 'INCOMPLETE', 'missing I');
   const oneKey = JSON.parse(JSON.stringify(fx.abcd)); oneKey.steps.A_proposer_alone.codes = { transaction: 'tx_failed', operations: ['op_bad_auth'] }; oneKey.steps.A_proposer_alone.refused = false;
-  const m = await T.model(oneKey, fx.index, fx.files, deps());
+  const m = await T.model(oneKey, fx.index, fx.files, live);
   eq(m.verdict, 'FAIL', 'one key met the low threshold (tx_failed): FAIL under 2/2/3');
   eq(m.agree, false, 'and the file verdict PASS disagrees');
-  const noEd = await T.model(fx.abcd, fx.index, fx.files, deps({ signedBy: null }));
+  const noEd = await T.model(fx.abcd, fx.index, fx.files, deps({ signedBy: null, account: fx.name, live: liveOk(fx) }));
   eq(noEd.steps.A.rows.find((r) => r.id === 'signer').state, 'na', 'without Ed25519 the signer row does not apply');
+});
+
+test('tests model: never PASS for evidence that is not the configured account\'s, whose C came from elsewhere, or whose account is not 2/2/3 now', async () => {
+  const T = need('assets/qwatt-tests.js');
+  const fx = fixtureFiles();
+  const OTHER = 'GC5ULQZ2ZRZOHPFHHOZKGXVE3VK4V4FN7IRVVSR7XXWHIEC7DZYVHQBU';
+  /* the file names OTHER (configured), but transaction C was sent by the 8 Oct rehearsal account */
+  const renamed = JSON.parse(JSON.stringify(fx.abcd)); renamed.public_keys.account = OTHER;
+  const m1 = await T.model(renamed, fx.index, fx.files, deps({ account: OTHER, live: liveOk(fx, { id: OTHER }) }));
+  eq(m1.verdict, 'FAIL', 'C from another account: FAIL');
+  eq(m1.steps.C.rows.find((r) => r.id === 'onchain').state, 'fail', 'C onchain row fails');
+  eq(m1.steps.C.rows.find((r) => r.id === 'onchain').vals.otherAccount, fx.name, 'and names the account C came from');
+  /* the file describes another account than the configured one */
+  const m2 = await T.model(fx.abcd, fx.index, fx.files, deps({ account: OTHER, live: liveOk(fx) }));
+  eq(m2.accountCheck.state, 'fail', 'account row fails');
+  eq(m2.verdict, 'FAIL', 'evidence for another account: FAIL');
+  /* thresholds as read now are 1/2/3 (the file still says 2/2/3) */
+  const m3 = await T.model(fx.abcd, fx.index, fx.files, deps({ account: fx.name, live: liveOk(fx, { thresholds: { low: 1, med: 2, high: 3 } }) }));
+  eq(m3.steps.A.rows.find((r) => r.id === 'thresholds').state, 'fail', 'thresholds judged from the live account');
+  eq(m3.verdict, 'FAIL', 'one key could send: FAIL');
+  /* the proposer that signed A is not a signer of the account now */
+  const m4 = await T.model(fx.abcd, fx.index, fx.files, deps({ account: fx.name, live: liveOk(fx, { signers: [{ key: fx.name, weight: 0 }, { key: OTHER, weight: 1 }, { key: fx.abcd.steps.B_verifier_alone.signer_public_key, weight: 1 }, { key: 'GDWVD7H2CKN3S2XZ756I7EITTQF2J3FBBFAMRL3RHBDRALEVOMNRF3I2', weight: 1 }] }) }));
+  eq(m4.verdict, 'FAIL', 'a proposer key that does not sign for the account: FAIL');
+  /* no account read (Horizon offline) and no configured account: never PASS */
+  eq((await T.model(fx.abcd, fx.index, fx.files, deps({ account: fx.name }))).verdict, 'INCOMPLETE', 'no live read: INCOMPLETE');
+  eq((await T.model(fx.abcd, fx.index, fx.files, deps({ live: liveOk(fx) }))).verdict, 'INCOMPLETE', 'no configured account: INCOMPLETE');
 });
 
 test('tests model: the 8 Oct worked example (1/2/3) — A and B refused as tx_failed/op_bad_auth, C by proposer + verifier, D and I refused', async () => {
   const T = need('assets/qwatt-tests.js');
   const reh = readJSON(REHEARSAL), e2e = readJSON(E2E);
   const tx = readJSON('ops/fixtures/abcd/horizon/tx-c.json');
-  const horizonTx = async (h) => (h === tx.hash ? { hash: tx.hash, ledger: tx.ledger, ok: tx.successful, memoShown: 'QW#0', signatures: tx.signatures } : null);
+  const horizonTx = async (h) => (h === tx.hash ? { hash: tx.hash, ledger: tx.ledger, ok: tx.successful, memoShown: 'QW#0', signatures: tx.signatures, sourceAccount: tx.source_account } : null);
   const w = await T.worked(reh, e2e, deps({ horizonTx }));
   eq(w.verdict, 'PASS', 'worked verdict');
   eq(w.thresholds, '1/2/3', 'earlier design');

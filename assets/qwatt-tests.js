@@ -20,8 +20,13 @@
  * earlier design, where A and B were refused as tx_failed / op_bad_auth) and on the
  * independence scenario of the 8 Oct end-to-end rehearsal.
  *
+ * The file is never trusted about which account it describes: model() requires the
+ * file's account to be the configured one (deps.account), transaction C to come
+ * from that account, and judges the 2/2/3 setup from the account as read now on
+ * Horizon (deps.live), with the proposer and verifier among its signers.
+ *
  * Pure: everything it reads is handed in (deps.sha256, deps.envelope,
- * deps.signedBy, deps.horizonTx). Its output carries states, hashes, ledgers, memos
+ * deps.signedBy, deps.horizonTx, deps.account, deps.live, deps.roles). Its output carries states, hashes, ledgers, memos
  * QW#n, public keys and registered reason codes only: never a batch id, a detail
  * text, a refusal log, a method, a Horizon response body or a tool version.
  * UMD: window.QWATT_TESTS. Zero dependencies, ES2017.
@@ -115,11 +120,27 @@
       var ok = s.ok === false && c.transaction === 'tx_failed' && Array.isArray(c.operations) && c.operations.indexOf('op_bad_auth') >= 0;
       jobs.push(Promise.resolve(row('answer', ok ? 'refused' : 'fail', { codes: codesOf([c.transaction].concat(c.operations || [])), earlier: true })));
     } else {
-      jobs.push(Promise.resolve(row('thresholds', t === '2/2/3' && s.thresholds_match === true ? 'ok' : 'fail', { thresholds: t })));
+      jobs.push(Promise.resolve(liveSetup(ctx, t)));
       var cc = s.codes || {};
       jobs.push(Promise.resolve(row('answer', s.refused === true && cc.transaction === 'tx_bad_auth' ? 'refused' : 'fail', { codes: codesOf([cc.transaction]) })));
     }
     return Promise.all(jobs);
+  }
+
+  /**
+   * The frozen setup (freeze v3 §3), read from the account now, never from the file: thresholds 2/2/3,
+   * master weight 0, exactly three other signers of weight 1, the proposer and the verifier among them.
+   * No account read (Horizon offline, or not handed in): offline, so the verdict stays INCOMPLETE.
+   */
+  function liveSetup(ctx, fileThresholds) {
+    var a = ctx.live;
+    if (!a || !a.exists || !a.thresholds) return row('thresholds', 'offline', { file: fileThresholds, why: a && a.exists === false ? 'no-account' : 'no-read' });
+    var others = (a.signers || []).filter(function (s) { return s.key !== a.id && s.weight > 0; });
+    var keys = others.map(function (s) { return s.key; });
+    var t = a.thresholds.low + '/' + a.thresholds.med + '/' + a.thresholds.high;
+    var ok = t === '2/2/3' && a.masterWeight === 0 && others.length === 3 && others.every(function (s) { return s.weight === 1; }) &&
+      isG(ctx.roles.proposer) && isG(ctx.roles.verifier) && keys.indexOf(ctx.roles.proposer) >= 0 && keys.indexOf(ctx.roles.verifier) >= 0;
+    return row('thresholds', ok ? 'ok' : 'fail', { thresholds: t, live: true, file: fileThresholds, masterWeight: a.masterWeight, signersW1: others.filter(function (s) { return s.weight === 1; }).length });
   }
 
   /* ───────────────────────────── C: anchored with two signatures ───────────────────────────── */
@@ -131,11 +152,13 @@
     if (ctx.files && ctx.files['C.transaction.json'] != null) { try { saved = JSON.parse(ctx.files['C.transaction.json']); } catch (e) { saved = null; } }
     var live = deps.horizonTx && isHash(s.hash) ? Promise.resolve(deps.horizonTx(s.hash)).then(function (t) { return t ? { tx: t, src: 'vivo' } : null; }, function () { return { offline: true }; }) : Promise.resolve(null);
     jobs.push(live.then(function (l) {
-      var src = l && l.tx ? l : saved ? { tx: { hash: saved.hash, ledger: saved.ledger, ok: saved.successful, memoShown: saved.memo_type === 'text' ? memoOf(saved) : null, signatures: saved.signatures || [] }, src: 'archivo' } : null;
+      var src = l && l.tx ? l : saved ? { tx: { hash: saved.hash, ledger: saved.ledger, ok: saved.successful, memoShown: saved.memo_type === 'text' ? memoOf(saved) : null, signatures: saved.signatures || [], sourceAccount: saved.source_account || null }, src: 'archivo' } : null;
       if (!src) return [row('onchain', l && l.offline ? 'offline' : 'na', { why: l && l.offline ? 'horizon' : 'no-record' }), row('two-sigs', l && l.offline ? 'offline' : 'na', {})];
       var t = src.tx;
-      var okOn = t.ok === true && t.hash === s.hash && t.ledger === s.ledger && (!memoOf(s) || t.memoShown === memoOf(s));
-      var r1 = row('onchain', okOn ? 'ok' : 'fail', { ledger: t.ledger, memoShown: t.memoShown || null, hash: t.hash, src: src.src });
+      /* C must come from the account under test (ctx.account), whether read live or from the saved record */
+      var fromAccount = !ctx.account || t.sourceAccount === ctx.account;
+      var okOn = t.ok === true && t.hash === s.hash && t.ledger === s.ledger && (!memoOf(s) || t.memoShown === memoOf(s)) && fromAccount;
+      var r1 = row('onchain', okOn ? 'ok' : 'fail', { ledger: t.ledger, memoShown: t.memoShown || null, hash: t.hash, src: src.src, otherAccount: fromAccount ? null : (isG(t.sourceAccount) ? t.sourceAccount : 'unknown') });
       var sigs = Array.isArray(t.signatures) ? t.signatures : [];
       var names = ['proposer', 'verifier', 'third'].filter(function (n) { return isG(ctx.roles[n]); });
       return Promise.all(sigs.map(function (sg) {
@@ -179,14 +202,21 @@
     return 'PASS';
   }
 
-  /** The real account's evidence. roles: { proposer, verifier } from the feed's faults.json, or from the steps themselves. */
+  /**
+   * The real account's evidence. deps.account: the anchoring account status.json names (required for PASS).
+   * deps.live: that account as read now (QWATT_LIVE.account). deps.roles: { proposer, verifier } from the
+   * public run feed; without it, the keys that signed A and B, which must then be signers of the live account.
+   */
   function model(abcd, index, files, deps) {
     var st = (abcd && abcd.steps) || {};
     var A = st[STEPS.A], B = st[STEPS.B], C = st[STEPS.C], D = st[STEPS.D], I = st[STEPS.I];
     var roles = Object.assign({}, deps.roles || {});
     if (!roles.proposer && A && isG(A.signer_public_key)) roles.proposer = A.signer_public_key;
     if (!roles.verifier && B && isG(B.signer_public_key)) roles.verifier = B.signer_public_key;
-    var ctx = { index: index, files: files || {}, roles: roles, cHash: C && isHash(C.hash) ? C.hash : null, earlier: false };
+    var configured = isG(deps.account) ? deps.account : null;
+    var fileAccount = abcd && abcd.public_keys && isG(abcd.public_keys.account) ? abcd.public_keys.account : null;
+    var accountRow = row('account', !configured ? 'na' : fileAccount === configured ? 'ok' : 'fail', { file: fileAccount, configured: configured });
+    var ctx = { index: index, files: files || {}, roles: roles, cHash: C && isHash(C.hash) ? C.hash : null, earlier: false, account: configured, live: deps.live || null };
     var jobs = {
       A: A ? singleSig('A', A, ctx, deps) : null,
       B: B ? singleSig('B', B, ctx, deps) : null,
@@ -202,8 +232,11 @@
         steps[k] = { state: stepState(res[i]), rows: res[i], at: typeof s.at === 'string' ? s.at : null };
       });
       var verdict = verdictOf(steps);
+      /* the file must describe the configured account: another account FAILS, no configured account cannot PASS */
+      if (accountRow.state === 'fail') verdict = 'FAIL';
+      else if (accountRow.state === 'na' && verdict === 'PASS') verdict = 'INCOMPLETE';
       var fileVerdict = abcd && VERDICT[abcd.verdict] ? abcd.verdict : null;
-      return { steps: steps, verdict: verdict, fileVerdict: fileVerdict, agree: fileVerdict === verdict, account: abcd && abcd.public_keys && isG(abcd.public_keys.account) ? abcd.public_keys.account : null };
+      return { steps: steps, verdict: verdict, fileVerdict: fileVerdict, agree: fileVerdict === verdict, account: fileAccount, accountCheck: accountRow };
     });
   }
 
@@ -215,7 +248,7 @@
     var C = st[STEPS.C];
     var t = reh && reh.account_after_setup ? reh.account_after_setup.thresholds : null;
     var withTh = function (s) { return s ? Object.assign({}, s, { thresholds: t }) : s; };
-    var ctx = { index: null, files: {}, roles: roles, cHash: C && isHash(C.hash) ? C.hash : null, earlier: true };
+    var ctx = { index: null, files: {}, roles: roles, cHash: C && isHash(C.hash) ? C.hash : null, earlier: true, account: isG(keys.account) ? keys.account : null };
     var L = st.L_third_plus_verifier;
     var ind = e2e && e2e.scenarios ? e2e.scenarios.independence_unpublished : null;
     var after = e2e && e2e.scenarios ? e2e.scenarios.independence_after_publication : null;
