@@ -3,7 +3,7 @@
  * QWATT — audit the public history of an evidence repository (docs/ARCHITECTURE-FREEZE-v3.md, V3-7)
  * ---------------------------------------------------------------------------
  *   node ops/evidence-audit.js <clone or bare repo> [--kind evidence|verifier-log] [--branch main]
- *                              [--since <commit>] [--json]
+ *                              [--since <commit>] [--recorded <decisions.jsonl>] [--json]
  *
  * Needs git and Node only (no npm dependency, no network). Replays every commit of the
  * branch, in order, against the rules ops/publish-feed.js publishes by:
@@ -19,12 +19,19 @@
  *     batches/<id>.json (and raw/<id>.jsonl, once the batch carries samples_root).
  * --since <commit> (a head recorded earlier, e.g. in the write-up) must still be in the
  * history: a force-push that removed it is reported.
+ * --recorded <decisions.jsonl> (the verifier's public log, V3-7c): every evidence commit the
+ * verifier judged (each line's non-null feed_commit) must still be in the history of the
+ * branch; one that is not is reported as "commit <c> the verifier judged is not in this history".
+ * A commit this clone does not hold at all is reported as "not in this clone" instead: the clone
+ * may be older than the log (clone the verifier log first, then the evidence, and re-run); if a
+ * clone taken after the log still lacks it, the history was rewritten.
  *
  * Exit 0: "<n> commits · public history intact". Exit 1: the problems. Exit 2: usage.
  */
 
 'use strict';
 
+const fs = require('fs');
 const path = require('path');
 const { execFileSync } = require('child_process');
 const { KINDS, ROOT_FILES, REPO_FILES, RUN_RE } = require('./publish-feed');
@@ -60,18 +67,26 @@ function loadBlobs(g, ids) {
 
 /**
  * @param {string} gitDir  a clone or a bare repository
- * @param {{kind?: string, branch?: string, since?: string}} [o]
+ * @param {{kind?: string, branch?: string, since?: string, recorded?: string}} [o]   recorded: a decisions.jsonl path
  * @returns {{ok: boolean, commits: number, problems: string[]}}
  */
-function auditHistory(gitDir, { kind = 'evidence', branch = 'main', since } = {}) {
+function auditHistory(gitDir, { kind = 'evidence', branch = 'main', since, recorded } = {}) {
   const K = KINDS[kind];
   if (!K) throw new Error(`unknown kind ${JSON.stringify(kind)} (evidence or verifier-log)`);
+  if (recorded != null && kind !== 'evidence') throw new Error('--recorded names evidence commits: audit the evidence repository (--kind evidence)');
   const g = gitIn(gitDir);
   const problems = [];
 
   if (since) {
     if (!g.ok(['cat-file', '-e', `${since}^{commit}`])) problems.push(`--since ${since}: not in this history (rewritten, or fetch first)`);
     else if (!g.ok(['merge-base', '--is-ancestor', since, branch])) problems.push(`--since ${since}: history rewritten since ${since}`);
+  }
+  if (recorded != null) {
+    for (const c of recordedCommits(recorded)) {
+      if (!/^[0-9a-f]{40}$/.test(c)) problems.push(`--recorded: feed_commit ${JSON.stringify(c)} is not a commit id`);
+      else if (!g.ok(['cat-file', '-e', `${c}^{commit}`])) problems.push(`commit ${c} the verifier judged is not in this clone: clone the evidence again, after the verifier log, and re-run; if it is still missing, the history was rewritten`);
+      else if (!g.ok(['merge-base', '--is-ancestor', c, branch])) problems.push(`commit ${c} the verifier judged is not in this history`);
+    }
   }
 
   const revs = g(['rev-list', '--reverse', '--parents', branch]).trim().split('\n').filter(Boolean).map((l) => l.split(' '));
@@ -180,20 +195,39 @@ function auditHistory(gitDir, { kind = 'evidence', branch = 'main', since } = {}
   return { ok: problems.length === 0, commits: revs.length, problems };
 }
 
+/**
+ * The evidence commits a verifier log names: every non-null feed_commit of its decisions.jsonl, once
+ * each, in order. A trailing line that does not parse (being written) is ignored; any other is an error.
+ */
+function recordedCommits(file) {
+  const lines = fs.readFileSync(file, 'utf8').split('\n').filter((l) => l.trim());
+  const out = [];
+  lines.forEach((l, i) => {
+    let d;
+    try { d = JSON.parse(l); } catch (e) { if (i < lines.length - 1) throw new Error(`${file} line ${i + 1} is not JSON`); return; }
+    if (d && d.feed_commit != null && !out.includes(d.feed_commit)) out.push(d.feed_commit);
+  });
+  return out;
+}
+
 function cli() {
   const args = process.argv.slice(2);
-  const usage = 'usage: node ops/evidence-audit.js <clone or bare repo> [--kind evidence|verifier-log] [--branch main] [--since <commit>] [--json]';
+  const usage = 'usage: node ops/evidence-audit.js <clone or bare repo> [--kind evidence|verifier-log] [--branch main] [--since <commit>] [--recorded <decisions.jsonl>] [--json]';
   const o = {};
   let dir = null, json = false;
   for (let i = 0; i < args.length; i++) {
     const a = args[i];
     if (a === '--json') json = true;
-    else if (['--kind', '--branch', '--since'].includes(a)) { const v = args[++i]; if (v == null) { console.error(usage); process.exit(2); } o[a.slice(2)] = v; }
+    else if (['--kind', '--branch', '--since', '--recorded'].includes(a)) { const v = args[++i]; if (v == null) { console.error(usage); process.exit(2); } o[a.slice(2)] = v; }
     else if (a.startsWith('--') || dir) { console.error(usage); process.exit(2); }
     else dir = a;
   }
   if (!dir) { console.error(usage); process.exit(2); }
   if (o.kind && !KINDS[o.kind]) { console.error(`unknown kind ${o.kind}\n${usage}`); process.exit(2); }
+  if (o.recorded != null) {
+    if (o.kind && o.kind !== 'evidence') { console.error('--recorded names evidence commits: audit the evidence repository (--kind evidence)'); process.exit(2); }
+    try { recordedCommits(o.recorded); } catch (e) { console.error(`cannot read --recorded ${o.recorded}: ${e.message}\n${usage}`); process.exit(2); }
+  }
   let r;
   try { r = auditHistory(path.resolve(dir), o); } catch (e) { console.error(`cannot read ${dir}: ${String(e.stderr || e.message).trim().split('\n').pop()}`); process.exit(2); }
   if (json) console.log(JSON.stringify(r, null, 2));

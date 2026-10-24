@@ -9,7 +9,8 @@
  * Independent of what it watches: it imports nothing from the pipeline or the
  * services and reads only public sources — Horizon, the published feed, and the
  * public verifier log (status.json for the heartbeat, refusals.jsonl for the
- * refusals, which only grows, so a verifier restart cannot reset the count). A
+ * refusals, which only grows, so a verifier restart cannot reset the count),
+ * each repository read at its head commit once per observation (V3-7c). A
  * watchdog that shares code or a host with the thing it watches cannot detect
  * the failure that matters most: that thing silently not running.
  *
@@ -31,13 +32,15 @@
 
 const fs = require('fs');
 const path = require('path');
+const PIN = require('../assets/qwatt-pin.js');                  // shared, dependency-free: resolves a branch to its commit
 
 const POLICY = {
   no_anchor_s: 2 * 3600,
   feed_stale_s: 30 * 60,
   backlog_s: 2 * 3600,
   /* status.json reaches the public log at most every 5 min (+1 min publisher interval, +30 s verifier
-     tick), and raw.githubusercontent.com may serve a copy up to 5 min old: ~690 s for a healthy verifier */
+     tick): ~390 s for a healthy verifier. The watchdog reads the log at its head commit (V3-7c), so the
+     raw CDN's 5-minute cache no longer adds to it; 15 min keeps the margin it had with the CDN (~690 s). */
   verifier_silent_s: 15 * 60,
   repeat_s: 6 * 3600,
 };
@@ -70,7 +73,7 @@ function decide(obs, state, nowS, policy = POLICY) {
   if (obs.verifier_last_tick !== undefined && age(obs.verifier_last_tick) > policy.verifier_silent_s) {
     conditions.VERIFIER_SILENT = `the verifier log says the verifier last ticked at ${obs.verifier_last_tick} (the verifier or its log publisher is down)`;
   }
-  if (obs.reconcile_verdict === 'BROKEN') conditions.BROKEN = `reconciliation BROKEN: ${(obs.reconcile_problems || []).slice(0, 3).join(' | ')}`;
+  if (obs.reconcile_verdict === 'BROKEN') conditions.BROKEN = `reconciliation BROKEN${obs.reconcile_read_at ? ` (evidence read at ${obs.reconcile_read_at})` : ''}: ${(obs.reconcile_problems || []).slice(0, 3).join(' | ')}`;
 
   const alerts = [];
   const active = {};
@@ -106,10 +109,22 @@ async function getText(url) {
   return r.text();
 }
 
+/**
+ * Each public repository is read at one commit per observation (V3-7c): its branch resolved to the
+ * head commit from the anonymous info/refs endpoint, then every file at that commit, so the files of
+ * one observation never come from CDN copies of different ages. A URL that is not a repository is read
+ * as given. A head that cannot be resolved (403, 429, 5xx) is an unreadable source (SOURCE_DOWN).
+ */
+async function pinned(url, o) {
+  const p = await PIN.pinBase(url, { via: 'refs', timeoutMs: 20000, ...(o.pin || {}) });
+  return p.base;
+}
+
 async function observe(o, nowS) {
   const obs = { errors: [] };
-  const feed = o.feed.replace(/\/+$/, '');
   try {
+    const feed = await pinned(o.feed, o);
+    obs.feed_read_at = feed;
     const faults = await getJson(`${feed}/faults.json`).catch(() => null);
     obs.run_live = faults ? nowS * 1000 >= Date.parse(faults.run_start) && nowS * 1000 < Date.parse(faults.run_end) : !!o.assumeLive;
     const idx = await getJson(`${feed}/index.json`);
@@ -136,8 +151,9 @@ async function observe(o, nowS) {
   } catch (e) { obs.errors.push(`Horizon (${e.message})`); }
 
   if (o.verifierLog) {
-    const log = o.verifierLog.replace(/\/+$/, '');
     try {
+      const log = await pinned(o.verifierLog, o);
+      obs.verifier_log_read_at = log;
       const st = await getJson(`${log}/status.json`);
       obs.verifier_last_tick = st.last_tick;
       /* the persistent count: refusals.jsonl only grows, while status counters restart with the process */
@@ -150,6 +166,7 @@ async function observe(o, nowS) {
       const rep = await o.reconcile();
       obs.reconcile_verdict = rep.verdict;
       obs.reconcile_problems = rep.problems;
+      obs.reconcile_read_at = rep.read_at || null;
     } catch (e) { obs.errors.push(`reconcile (${e.message})`); }
   }
   return obs;
@@ -196,9 +213,12 @@ async function cli() {
   };
   if (!o.account || !o.feed) { console.error('usage: node ops/watch.js --account G… --feed <public feed URL> [--verifier-log <public verifier log URL>/<run>]'); process.exit(2); }
   const R = require('../assets/qwatt-reconcile.js');
-  /* Horizon first, then the feed; signer roles from the run's faults.json. A Horizon or feed error
-     throws, and observe() reports it as an unreadable source (SOURCE_DOWN), never as BROKEN. */
-  o.reconcile = async () => (await R.check({ feed: o.feed, horizon: o.horizon, account: o.account })).report;
+  /* Horizon first, then the feed at one commit (V3-7c); signer roles from the run's faults.json. A Horizon
+     or feed error throws, and observe() reports it as an unreadable source (SOURCE_DOWN), never as BROKEN. */
+  o.reconcile = async () => {
+    const res = await R.check({ feed: o.feed, horizon: o.horizon, account: o.account });
+    return { ...res.report, read_at: PIN.describe(o.feed, res.feed.commit) || res.feed.base };
+  };
   if (!process.env.QWATT_ALERT_WEBHOOK) console.log('QWATT_ALERT_WEBHOOK not set: alerts go to this console only');
   const run = async () => { try { const r = await tick(o); if (!r.alerts.length) console.log(new Date().toISOString(), 'ok', JSON.stringify({ last_anchor_at: r.obs.last_anchor_at, feed: r.obs.feed_last_interval_at })); } catch (e) { console.error(new Date().toISOString(), 'watch tick failed:', e.message); } };
   await run();

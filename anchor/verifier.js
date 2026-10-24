@@ -16,6 +16,11 @@
  * Runs on a separate host with a separate key. Its ONLY input is the public
  * evidence feed (a base URL) plus the public chain. Each tick:
  *
+ *   0. the clock check, then the chain head from Horizon, then ONE commit of the
+ *      public evidence (anchor/feed-client.js snapshot: the branch of the evidence
+ *      repository resolved to its head commit; freeze v3 V3-7, D7). Every file of
+ *      the tick is read at that commit. Horizon comes first: a batch is published
+ *      before it is signed, so every batch the head names is in the snapshot;
  *   1. chain head → anchored prefix → the next accepted batch;
  *   2. download pending/<id>.xdr; if there is none, nothing has been proposed;
  *   3. download the batch; if it is not published, refuse (verifier.not_published);
@@ -35,7 +40,8 @@
  * Its public log (freeze v3, V3-7), kept in <state>:
  *   decisions.jsonl  every decision, appended once: 'signed' (with the hash of the
  *                    transaction it signed, written BEFORE the submission) or
- *                    'refused' (with the reasons);
+ *                    'refused' (with the reasons), each with feed_commit, the evidence
+ *                    commit it judged (null for a feed that is not a repository);
  *   refusals.jsonl   every refusal, appended once (the same format as before);
  *   status.json      replaced whole each tick (written to a temporary name, then renamed).
  * Only `ops/publish-feed.js --kind verifier-log` (qwatt-verifier-log.service, verifier
@@ -74,6 +80,7 @@ class Verifier {
   /**
    * @param {object} o
    * @param {string} o.feedUrl    public base URL of the evidence feed — the only input path
+   * @param {object} [o.feedOptions]  anchor/feed-client.js options ({ timeoutMs, pin }; pin = assets/qwatt-pin.js origins, for tests)
    * @param {object} o.cfg        anchor config + horizon_url
    * @param {object} [o.signer]   signs as the verifier (anchor/signer.js cliSigner: stellar-cli on this host)
    * @param {import('@stellar/stellar-sdk').Keypair} [o.keypair]  instead of a signer, for tests and throwaway rehearsals only
@@ -83,7 +90,7 @@ class Verifier {
    */
   constructor(o) {
     T.checkConfig(o.cfg);
-    this.feed = makeFeedClient(o.feedUrl);
+    this.feed = makeFeedClient(o.feedUrl, o.feedOptions);
     this.cfg = o.cfg;
     this.signer = o.signer || (o.keypair && SG.keypairSigner(o.keypair));
     if (!this.signer) throw new Error('Verifier: a signer is required (stellar-cli through anchor/signer.js; a keypair only in tests and throwaway rehearsals)');
@@ -95,7 +102,7 @@ class Verifier {
     this.decisionsFile = path.join(this.stateDir, 'decisions.jsonl');
     /* the counters are what the logs hold, so a restart never resets them */
     this.status = {
-      started_at: new Date().toISOString(), last_tick: null, last_result: null, feed: o.feedUrl,
+      started_at: new Date().toISOString(), last_tick: null, last_result: null, feed: o.feedUrl, feed_commit: null,
       signed: readJsonl(this.decisionsFile).filter((d) => d.decision === 'signed').length,
       refused: readJsonl(this.refusalsFile).length,
     };
@@ -112,7 +119,7 @@ class Verifier {
   /** One decision line per (decision, batch, proposal). @returns whether a line was appended */
   _decide(entry, decision, txHash, reasons, detail) {
     if (this._logged(this.decisionsFile, (d) => d.decision === decision && d.batch_id === entry.batch_id && d.pending_tx_hash === txHash)) return false;
-    this._append(this.decisionsFile, { at: new Date().toISOString(), batch_id: entry.batch_id, seq: entry.seq, batch_sha256: entry.sha256, decision, pending_tx_hash: txHash, reasons, detail });
+    this._append(this.decisionsFile, { at: new Date().toISOString(), batch_id: entry.batch_id, seq: entry.seq, batch_sha256: entry.sha256, decision, pending_tx_hash: txHash, reasons, detail, feed_commit: this.feed.commit });
     return true;
   }
 
@@ -147,8 +154,12 @@ class Verifier {
   async _tick(nowS) {
     const skew = await C.clockSkewS(this.server, nowS);
     if (Math.abs(skew) > C.MAX_CLOCK_SKEW_S) return { action: 'wait', reason: `local clock ${skew}s off the network; refusing to judge timebounds`, skew_s: skew };
-    const listed = await this.feed.batches();
+    /* Horizon first, then one commit of the public evidence: the proposer publishes a batch before it
+       signs, so every batch the head names is in a snapshot taken after it (V3-7c) */
     const head = await C.getHead(this.server, this.cfg.anchor_account);
+    await this.feed.snapshot();
+    this.status.feed_commit = this.feed.commit;
+    const listed = await this.feed.batches();
     const prefix = C.anchoredPrefix(listed, head.anchor_sha256);
     const next = C.nextToAnchor(listed, prefix);
     if (!next) return { action: 'idle', anchored: prefix };

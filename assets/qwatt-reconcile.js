@@ -31,12 +31,18 @@
  * signature pair outside §3). STAND-IN alone is reported, not a problem.
  *
  * Read order (check): Horizon first (the account, then every anchor with its
- * signatures), then the feed. A batch is published before it is signed, so a
- * feed read after Horizon holds every anchored batch; an anchor missing from it
- * is a real defect, not a stale copy. A Horizon or feed error fails the check
- * (it throws): it is never a verdict.
+ * signatures), then the feed at ONE commit. A feed in a GitHub repository (the
+ * raw.githubusercontent.com branch URL, or its github.io address) is first
+ * resolved to the branch's head commit (assets/qwatt-pin.js; freeze v3 V3-7,
+ * decision D7) and every file is read at that commit, because a branch URL is
+ * served file by file from a CDN cache up to 5 minutes old. A batch is
+ * published before it is signed, so a feed read at a commit taken after
+ * Horizon holds every anchored batch; an anchor missing from it is a real
+ * defect, not a stale copy. A Horizon or feed error fails the check (it
+ * throws): it is never a verdict.
  *
- * Zero dependencies. SHA-256 and Ed25519 come from WebCrypto: Ed25519 needs
+ * No dependency besides assets/qwatt-pin.js (required in Node; in a browser,
+ * load it first, as window.QWATT_PIN). SHA-256 and Ed25519 come from WebCrypto: Ed25519 needs
  * Node 20 or a current browser (Chrome 137+, Firefox 129+, Safari 17+). Without
  * it the check fails closed, with no verdict and a message naming
  * anchor/reconcile-cli.js. ES2017, loads as a classic <script>
@@ -45,14 +51,16 @@
  * API: check({ feed, horizon, account, roles?, feedOptions? }) → { report, feed,
  * anchors, account }; reconcile(feed, anchors, chain) with chain = { account,
  * record, record_error?, roles? } (two arguments throw); fetchFeed(base, opt?)
- * → { index, run, listed, batches, rejected }, where `run` is faults.json and
- * `opt` is { timeoutMs } (check passes its feedOptions through, which is where
- * pinned reads add their options); fetchAnchors; fetchAccount.
+ * → { index, run, listed, batches, rejected, commit, base }, where `run` is
+ * faults.json, `commit` the evidence commit read (null for a feed that is not
+ * a repository) and `base` the URL every file came from; `opt` is { timeoutMs }
+ * plus the pin options (rawOrigin, gitOrigin, apiOrigin, via, branch), and
+ * check passes its feedOptions through; fetchAnchors; fetchAccount.
  */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.QWATT_RECONCILE = factory();
-}(typeof self !== 'undefined' ? self : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./qwatt-pin.js'));
+  else root.QWATT_RECONCILE = factory(root.QWATT_PIN);
+}(typeof self !== 'undefined' ? self : this, function (PIN) {
   'use strict';
 
   var ANCHOR_KEY = 'qwatt.anchor.sha256';
@@ -184,13 +192,18 @@
   function jsonl(text) { return text == null ? [] : text.split('\n').filter(function (l) { return l.trim(); }).map(function (l) { return JSON.parse(l); }); }
 
   /**
-   * Everything published in the feed: index, the run's faults.json (`run`, null when the feed
-   * has none), batch ledger, every batch file, rejected ledger.
+   * Everything published in the feed, read at one commit: index, the run's faults.json (`run`,
+   * null when the feed has none), batch ledger, every batch file, rejected ledger. A repository
+   * URL is pinned to its branch's head commit first (assets/qwatt-pin.js); any other URL is read
+   * as given, with commit null.
    * @param {string} baseUrl
-   * @param {{timeoutMs?:number}} [opt]   per-request timeout (default 20 s)
+   * @param {{timeoutMs?:number, rawOrigin?:string, gitOrigin?:string, apiOrigin?:string, via?:string, branch?:string}} [opt]
+   *        per-request timeout (default 20 s) and the pin options (via: 'refs' in Node, 'api' in a browser)
    */
   async function fetchFeed(baseUrl, opt) {
-    var base = String(baseUrl).replace(/\/+$/, '');
+    if (!PIN || typeof PIN.pinBase !== 'function') throw new Error('assets/qwatt-pin.js must be loaded before assets/qwatt-reconcile.js');
+    var pinned = await PIN.pinBase(baseUrl, opt || {});
+    var base = pinned.base;
     var ms = opt && opt.timeoutMs;
     var idx = await getText(base + '/index.json', ms);
     var run = await getText(base + '/faults.json', ms);
@@ -201,7 +214,7 @@
       var t = await getText(base + '/batches/' + encodeURIComponent(listed[i].batch_id) + '.json', ms);
       batches[listed[i].batch_id] = t == null ? null : JSON.parse(t);
     }
-    return { index: idx == null ? null : JSON.parse(idx), run: run == null ? null : JSON.parse(run), listed: listed, batches: batches, rejected: rejected };
+    return { index: idx == null ? null : JSON.parse(idx), run: run == null ? null : JSON.parse(run), listed: listed, batches: batches, rejected: rejected, commit: pinned.commit, base: base };
   }
 
   /** The account as Horizon reports it now (GET /accounts/<id>): thresholds and signers, master key included. */
@@ -258,9 +271,9 @@
 
   /**
    * Everything public in one call, Horizon first: the account, then every anchor with its
-   * signatures, then the feed (with faults.json). Not in parallel: a batch is published before
-   * it is signed, so a feed read after Horizon holds every anchored batch, and an anchor missing
-   * from it is a defect, never a stale copy. Nothing is caught: a Horizon or feed error rejects,
+   * signatures, then the feed (with faults.json) at one commit. Not in parallel: a batch is
+   * published before it is signed, so a feed read at a commit taken after Horizon holds every
+   * anchored batch, and an anchor missing from it is a defect, never a stale copy. Nothing is caught: a Horizon or feed error rejects,
    * which is a failed check, never a verdict.
    * @param {{feed:string, horizon:string, account:string, roles?:{proposer:string, verifier:string, third:string}|null, feedOptions?:object}} o
    * @returns {Promise<{report:object, feed:object, anchors:object[], account:object}>}
