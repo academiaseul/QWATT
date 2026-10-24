@@ -119,7 +119,8 @@
   /* After a testnet reset the core accounts are gone and every count reads 0: that 0 proves nothing, so say so. */
   function coreMissing() {
     var core = [C.AUGUST.assetAccount, C.AUGUST.markerDestination].concat(Object.keys(REH).map(function (k) { return C.REHEARSAL[k].account; }));
-    return accounts.filter(function (a) { return a.notFound && core.indexOf(a.g) >= 0; }).length;
+    if (!accounts.some(function (a) { return a.notFound && core.indexOf(a.g) >= 0; })) return 0;
+    return accounts.filter(function (a) { return a.notFound && !a.signer; }).length;   /* how many of the counted accounts are gone */
   }
   function weekState(p) {
     var miss = coreMissing();
@@ -143,15 +144,18 @@
       if (ts) ts.innerHTML = loading();
       return;
     }
+    /* with core accounts missing (a testnet reset) a count of 0 proves nothing: show a dash, next to NO VERIFICABLE */
+    var miss = coreMissing();
+    var cnt = function (p) { return p.count == null || (miss && p.started) ? '<span class="q-dim">—</span>' : S.num(S.fmtNum(p.count), 'vivo'); };
     if (tb) tb.innerHTML = weekData.map(function (p) {
-      return '<tr><th scope="row">' + pair(p) + '</th><td>' + weekState(p) + '</td><td>' + (p.count == null ? '<span class="q-dim">—</span>' : S.num(S.fmtNum(p.count), 'vivo')) + '</td></tr>';
+      return '<tr><th scope="row">' + pair(p) + '</th><td>' + weekState(p) + '</td><td>' + cnt(p) + '</td></tr>';
     }).join('');
     if (src) src.innerHTML = vivo() + (weekErr ? errP(weekErr) : '');
     var w1 = weekData[0];
-    if (ts) ts.innerHTML = '<p class="q-tile-v">' + S.num(S.fmtNum(w1.count), 'vivo') + ' <small>' + pair({ es: 'en la semana 1', en: 'in week 1' }) + '</small></p>' +
+    if (ts) ts.innerHTML = '<p class="q-tile-v">' + cnt(w1) + ' <small>' + pair({ es: 'en la semana 1', en: 'in week 1' }) + '</small></p>' +
       '<p class="q-tile-s">' + weekState(w1) + '</p>' +
       '<ul class="q-mini">' + weekData.slice(1).map(function (p) {
-        return '<li>' + pair({ es: p.es.split(' · ')[0], en: p.en.split(' · ')[0] }) + ': ' + (p.count == null ? pair({ es: 'aún no empieza', en: 'not started yet' }) : S.num(S.fmtNum(p.count), 'vivo')) + '</li>';
+        return '<li>' + pair({ es: p.es.split(' · ')[0], en: p.en.split(' · ')[0] }) + ': ' + (p.count == null ? pair({ es: 'aún no empieza', en: 'not started yet' }) : cnt(p)) + '</li>';
       }).join('') + '</ul>' + vivo() + (weekErr ? errP(weekErr) : '');
     var n = $('rAcctN'); if (n) n.textContent = '(' + accounts.length + ')';
     var at = $('rAccts');

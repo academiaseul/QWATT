@@ -37,7 +37,7 @@ html:not([data-lang="en"]) .q-en-note{display:none}
   border-radius:3px;background:var(--panel);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2);
   transition:border-color .15s,color .15s,background .15s;flex:1 1 150px;max-width:260px}
 .q-tab:hover{border-color:var(--copper);color:var(--ink)}
-.q-tab[aria-selected="true"]{border-color:var(--copper);color:var(--ink);background:color-mix(in srgb,var(--copper) 12%,var(--panel));box-shadow:inset 0 -2px 0 var(--copper)}
+.q-tab[aria-selected="true"]{border-color:var(--copper);color:var(--ink);background:color-mix(in srgb,var(--copper) 8%,var(--panel));box-shadow:inset 0 -2px 0 var(--copper)}
 .q-tab small{font-size:9.5px;letter-spacing:.06em;color:var(--ink-3);text-transform:none}
 .q-tab .q-chip{font-size:8.5px;padding:2px 7px}
 @media(max-width:600px){.q-tabs{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}.q-tab{flex:0 0 172px}}

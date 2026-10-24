@@ -78,7 +78,8 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-tamper > p{font-size:14px;color:var(--ink-2);margin-top:8px;max-width:72ch}
 .q-modes{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
 .q-modes .q-btn{text-align:left;justify-content:flex-start}
-.q-modes .q-btn[disabled]{opacity:.5;cursor:not-allowed}
+.q-modes .q-btn[disabled]{color:var(--ink-3);border-style:dashed;cursor:not-allowed}
+.q-modes .q-btn[disabled]:hover{border-color:var(--line);color:var(--ink-3)}
 .q-tres{font-size:14px;line-height:1.6;color:var(--ink);margin-top:14px;min-height:1.6em;max-width:80ch}
 .q-tres b{color:var(--red)}
 .q-tres .is-why{display:block;color:var(--ink-2);font-size:13px;margin-top:4px}

@@ -7,9 +7,7 @@
     { "source": "/proof", "destination": "/proof.html" },
     { "source": "/proof/:id", "destination": "/proof.html" }
   ],
-  "redirects": [
-    { "source": "/protocol/conformance/cases.json", "destination": "https://github.com/academiaseul/QWATT/blob/main/protocol/conformance/cases.json", "permanent": false }
-  ],
+  "redirects": [],
   "headers": [
     {
       "source": "/.well-known/stellar.toml",
