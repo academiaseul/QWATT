@@ -197,13 +197,17 @@ test('network() refuses another network', async () => {
 
 test('txCount() pages back until the window starts and counts only inside it', async () => {
   const mk = (iso, i) => ({ id: 'h' + i, hash: 'h' + i, created_at: iso, successful: true, ledger: 1000 + i, operation_count: 1, signatures: ['x'], memo_type: 'none', paging_token: String(i) });
-  const page1 = { _links: { next: { href: `${HZ}/accounts/${ABCD}/transactions?cursor=3&limit=200&order=desc` } }, _embedded: { records: [mk('2026-10-25T10:00:00Z', 1), mk('2026-10-23T23:00:00Z', 2), mk('2026-10-20T12:00:00Z', 3)] } };
-  const page2 = { _links: { next: { href: `${HZ}/accounts/${ABCD}/transactions?cursor=6&limit=200&order=desc` } }, _embedded: { records: [mk('2026-10-19T03:00:00Z', 4), mk('2026-10-19T02:59:59Z', 5), mk('2026-10-08T20:46:47Z', 6)] } };
+  /* Horizon pages hold 200 records; a shorter page is the last one. */
+  const filler = (from, n, iso) => Array.from({ length: n }, (_, k) => mk(iso, from + k));
+  const page1 = { _links: { next: { href: `${HZ}/accounts/${ABCD}/transactions?cursor=3&limit=200&order=desc` } },
+    _embedded: { records: [mk('2026-10-25T10:00:00Z', 1), mk('2026-10-23T23:00:00Z', 2), mk('2026-10-20T12:00:00Z', 3)].concat(filler(10, 197, '2026-10-20T11:00:00Z')) } };
+  const page2 = { _links: { next: { href: `${HZ}/accounts/${ABCD}/transactions?cursor=6&limit=200&order=desc` } },
+    _embedded: { records: [mk('2026-10-19T03:00:00Z', 4), mk('2026-10-19T02:59:59Z', 5)].concat(filler(300, 198, '2026-10-08T20:46:47Z')) } };
   const page3 = { _embedded: { records: [mk('2026-10-01T00:00:00Z', 7)] } };
   const f = stub([[/cursor=3&/, page2], [/cursor=6&/, page3], [/\/transactions\?order=desc&limit=200$/, page1]]);
   const L = load(f);
   const r = await L.txCount(ABCD, '2026-10-19T03:00:00Z', '2026-10-24T03:00:00Z');
-  eq(r.count, 3, 'three inside week 1 (one is on the boundary)');
+  eq(r.count, 2 + 197 + 1, 'inside week 1: two named, 197 more on page 1, and the one exactly at the start');
   eq(r.last, '2026-10-25T10:00:00Z', 'newest transaction overall');
   eq(f.calls.some((u) => /cursor=6&/.test(u)), false, 'stops once a page reaches before the window');
   const L2 = load(stub([]));

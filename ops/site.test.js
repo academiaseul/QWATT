@@ -92,6 +92,8 @@ const KNOWN_PRIOR_ACCOUNTS = [
 const ENGINE = ['assets/gates.generated.js', 'assets/qwatt-gates.js', 'assets/qwatt-reconcile.js', 'assets/qwatt-protocol.js'];
 const READERS = ['assets/qwatt-live.js', 'assets/qwatt-feed.js'];
 const SEC_HEADERS = ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Strict-Transport-Security', 'Permissions-Policy'];
+/* DESIGN §6.6: the browser itself refuses outside scripts, inline scripts, frames, forms and any host not listed. */
+const CSP_CANON = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'";
 
 /* ═════════════════════════════ exceptions (§7.6) ═════════════════════════════
  * Each entry: file, rule, match (sub-rule ids, or '*'), reason, fd. An entry whose
@@ -145,7 +147,8 @@ function clip(s, n = 90) { s = String(s).replace(/\s+/g, ' ').trim(); return s.l
 /* ═════════════════════════════ the deployed set (§7.1) ═════════════════════════════ */
 
 function trackedFiles() {
-  const out = git(['ls-files', '-z']);
+  /* Tracked files plus new files not yet committed (but not .gitignored), so a change is checked before its commit. */
+  const out = git(['ls-files', '-z', '--cached', '--others', '--exclude-standard']);
   if (out != null) return out.split('\0').filter(Boolean);
   const files = [];
   (function walk(dir) {
@@ -966,11 +969,32 @@ function cspConnect() {
   const hdr = cspHeader(); if (!hdr) return [];
   const d = cspDirectives(hdr); return d['connect-src'] || [];
 }
+/** A vercel.json `source` (path-to-regexp subset: raw groups, :name, :name*) as a RegExp. */
+function vercelSourceRe(src) {
+  let out = '', depth = 0;
+  for (let i = 0; i < src.length; i++) {
+    const c = src[i];
+    if (c === '\\') { out += c + (src[i + 1] || ''); i++; continue; }
+    if (c === '(') { depth++; out += c; continue; }
+    if (c === ')') { depth--; out += c; continue; }
+    if (depth === 0 && c === ':') {
+      const m = /^:([A-Za-z_]\w*)([*+?])?/.exec(src.slice(i));
+      if (m) { out += m[2] === '*' ? '(.*)' : m[2] === '+' ? '(.+)' : '([^/]+)'; i += m[0].length - 1; continue; }
+    }
+    if (depth === 0 && '.+*?^$|[]{}'.includes(c)) { out += '\\' + c; continue; }
+    out += c;
+  }
+  try { return new RegExp('^' + out + '$'); } catch (e) { return /^$/; }
+}
+/** Every header Vercel would send for a path (all matching blocks). */
+function headersFor(p) {
+  if (!VERCEL || !Array.isArray(VERCEL.headers)) return [];
+  return VERCEL.headers.filter((h) => vercelSourceRe(h.source).test(p)).flatMap((h) => h.headers || []);
+}
+/** The CSP of an ordinary page (the home page). */
 function cspHeader() {
-  if (!VERCEL || !Array.isArray(VERCEL.headers)) return null;
-  const blk = VERCEL.headers.find((h) => h.source === '/(.*)');
-  const h = blk && (blk.headers || []).find((x) => x.key.toLowerCase() === 'content-security-policy');
-  return h ? h.value : null;
+  const h = headersFor('/').filter((x) => x.key.toLowerCase() === 'content-security-policy');
+  return h.length ? h[0].value : null;
 }
 function cspDirectives(v) { const d = {}; v.split(';').map((s) => s.trim()).filter(Boolean).forEach((s) => { const [k, ...rest] = s.split(/\s+/); d[k.toLowerCase()] = rest; }); return d; }
 function redirectSources() { return VERCEL && Array.isArray(VERCEL.redirects) ? VERCEL.redirects.map((r) => r.source) : []; }
@@ -1034,6 +1058,7 @@ function siteLink(file, p, pos, raw, L) {
   const r = resolvesSite(p);
   if (!r.ok) { fail(file, L(pos), 'R-LINKS', '1', raw, `${p} does not resolve to a deployed file, a rewrite, a redirect source or a pending page`); return; }
   const frag = p.includes('#') ? decodeURIComponent(p.split('#')[1]) : '';
+  if (frag && r.file && pendingFiles().includes(r.file)) return;   // pending page: its group adds the anchor
   if (frag && r.file && /\.html$/.test(r.file)) {
     const ids = idsOf(r.file);
     if (ids && !ids.has(frag)) fail(file, L(pos), 'R-LINKS', '2', raw, `#${frag} does not exist in ${r.file}`);
@@ -1057,6 +1082,7 @@ function githubLink(file, u, line, raw) {
 }
 function explorerLink(file, u, line, raw) {
   if (!/^https:\/\/stellar\.expert\//.test(u)) return;
+  if (u === 'https://stellar.expert/explorer/testnet') return;   // the base a script builds tx links from
   const m = /^https:\/\/stellar\.expert\/explorer\/testnet\/(tx\/[0-9a-f]{64}|account\/(G[A-Z2-7]{55}))\/?$/.exec(u);
   if (!m || (m[2] && !isStrKeyG(m[2]))) fail(file, line, 'R-LINKS', '5', raw, 'stellar.expert links: …/explorer/testnet/tx/<64 hex> or /account/<valid G…> only');
 }
@@ -1102,9 +1128,10 @@ function ruleI18n(file, text, tree) {
 }
 function ruleI18nDicts(file, text) {
   text.split('\n').forEach((l, i) => {
-    const re = /\bes\s*:\s*(['"`])((?:\\.|(?!\1).)*)\1/g; let m;
+    const re = /(?<![.\w$])es\s*:\s*(['"`])((?:\\.|(?!\1).)*)\1/g; let m;   // a key es: (not x.es in a ternary)
     while ((m = re.exec(l))) {
       const tail = l.slice(re.lastIndex);
+      if (/^\s*[+.(?]/.test(tail)) continue;          // a computed string: checked at runtime, not here
       const en = /^\s*,\s*en\s*:\s*(['"`])((?:\\.|(?!\1).)*)\1/.exec(tail);
       if (!en || !en[2].trim() || !m[2].trim()) fail(file, i + 1, 'R-I18N', '3', l, 'every es: string is followed by a non-empty en: string');
     }
@@ -1274,7 +1301,8 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
   const deployedPage = (src) => { const m = /^\/([^/]+\.html)$/.exec(src); return m && DEPLOYED_SET.has(m[1]); };
   for (const r of VERCEL.redirects || []) {
     if (deployedPage(r.source)) fail(F, 0, 'R-VERCEL', '2', `${r.source} → ${r.destination}`, 'this redirect hides a restored page');
-    if (!resolvesSite(r.destination).ok) fail(F, 0, 'R-VERCEL', '6', r.destination, 'redirect destination does not resolve');
+    const gh = /^https:\/\/github\.com\/academiaseul\/QWATT\/blob\/main\/(.+)$/.exec(r.destination);
+    if (gh ? !TRACKED_SET.has(gh[1]) : !resolvesSite(r.destination).ok) fail(F, 0, 'R-VERCEL', '6', r.destination, 'redirect destination must be a deployed file, / or a repository file on GitHub');
   }
   if (DEPLOYED_SET.has('proof.html')) {
     if ((VERCEL.redirects || []).some((r) => r.source === '/proof/:id')) fail(F, 0, 'R-VERCEL', '2', '/proof/:id redirect', 'proof.html is deployed: remove the /proof/:id redirect');
@@ -1285,15 +1313,31 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
   const keys = blk ? (blk.headers || []).map((h) => h.key.toLowerCase()) : [];
   for (const k of SEC_HEADERS) if (!keys.includes(k.toLowerCase())) fail(F, 0, 'R-VERCEL', '3', k, 'keep the five security headers');
   const csp = cspHeader();
-  if (!csp) fail(F, 0, 'R-VERCEL', '3', 'no Content-Security-Policy', 'add the CSP of DESIGN §6.6 to /(.*)');
-  else {
-    const d = cspDirectives(csp);
-    if ((d['script-src'] || []).join(' ') !== "'self'") fail(F, 0, 'R-VERCEL', '3', 'script-src ' + (d['script-src'] || []).join(' '), "script-src exactly 'self'");
-    const okConnect = ["'self'", 'https://' + HORIZON_HOST].concat(FEED_HOSTS.map((h) => 'https://' + h));
-    for (const c of d['connect-src'] || []) if (!okConnect.includes(c)) fail(F, 0, 'R-VERCEL', '3', 'connect-src ' + c, 'connect-src ⊆ self, Horizon testnet, the feed host');
-    if (!(d['connect-src'] || []).length) fail(F, 0, 'R-VERCEL', '3', 'connect-src', 'connect-src required');
-    for (const k of ['frame-src', 'object-src', 'form-action']) if ((d[k] || []).join(' ') !== "'none'") fail(F, 0, 'R-VERCEL', '3', k, `${k} 'none'`);
-    if (/unsafe-eval/.test(csp)) fail(F, 0, 'R-VERCEL', '3', 'unsafe-eval', "no 'unsafe-eval'");
+  if (!csp) fail(F, 0, 'R-VERCEL', '3', 'no Content-Security-Policy', 'add the CSP of DESIGN §6.6 for every page');
+  /* Every deployed page gets exactly one CSP, equal to the canonical one (connect-src may add the feed host).
+     Only a page under an active, hash-pinned exception (E5) may add the sha256 of its own inline scripts. */
+  const CANON = cspDirectives(CSP_CANON);
+  for (const p of PAGES) {
+    const urlPath = p === 'index.html' ? '/' : '/' + p;
+    const hs = headersFor(urlPath);
+    const csps = hs.filter((h) => h.key.toLowerCase() === 'content-security-policy');
+    for (const k of SEC_HEADERS) if (!hs.some((h) => h.key.toLowerCase() === k.toLowerCase())) fail(F, 0, 'R-VERCEL', '3', `${urlPath} ${k}`, 'every page keeps the five security headers');
+    if (csps.length !== 1) { fail(F, 0, 'R-VERCEL', '3', `${urlPath}: ${csps.length} CSP headers`, 'every deployed page gets exactly one Content-Security-Policy'); continue; }
+    const v = csps[0].value, d = cspDirectives(v);
+    if (/unsafe-eval/.test(v)) fail(F, 0, 'R-VERCEL', '3', `${urlPath} unsafe-eval`, "no 'unsafe-eval'");
+    const pinned = EXCEPTIONS.some((e) => e.file === p && e.sha256 && exceptionActive(e));
+    const inlineHashes = all(TREES[p], (e) => e.tag === 'script' && e.attrs.src == null && (e.attrs.type || '') !== 'application/ld+json')
+      .map((s) => `'sha256-${crypto.createHash('sha256').update(s.inner || '', 'utf8').digest('base64')}'`).sort();
+    for (const k of new Set(Object.keys(CANON).concat(Object.keys(d)))) {
+      const got = (d[k] || []).slice().sort(), want = (CANON[k] || []).slice().sort();
+      if (k === 'script-src' && pinned && got.includes("'self'") && JSON.stringify(got.filter((x) => x !== "'self'").sort()) === JSON.stringify(inlineHashes)) continue;
+      if (k === 'connect-src' && got.every((c) => want.includes(c) || FEED_HOSTS.map((h) => 'https://' + h).includes(c)) && want.every((c) => got.includes(c))) continue;
+      if (JSON.stringify(got) !== JSON.stringify(want)) {
+        fail(F, 0, 'R-VERCEL', '3', `${urlPath} ${k} ${got.join(' ') || '(missing)'}`, k === 'script-src'
+          ? (pinned ? "script-src: 'self' plus exactly the sha256 of this page's inline scripts" : "script-src exactly 'self' (a per-page CSP is allowed only while the page is under a hash-pinned exception)")
+          : `${k} must be: ${want.join(' ') || '(absent)'}`);
+      }
+    }
   }
   const toml = (VERCEL.headers || []).find((h) => h.source === '/.well-known/stellar.toml');
   if (!toml || !(toml.headers || []).some((h) => h.key === 'Access-Control-Allow-Origin' && h.value === '*')) fail(F, 0, 'R-VERCEL', '4', 'stellar.toml CORS', 'keep the stellar.toml CORS header block');

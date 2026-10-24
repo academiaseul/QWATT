@@ -42,3 +42,13 @@ qwatt-wallet.js
 assets/vendor
 set-home-domain.js
 deployment.json
+# Not served (FD-4): the August social card shows the old equivalence. Every page uses og-sprint.png.
+og-image.png
+# Stale Netlify file; vercel.json sets the headers.
+_headers
+# Protocol sources live on GitHub. Only the two schemas and the reason registry are served,
+# so their $id URLs resolve (DESIGN D-16).
+protocol/*
+!protocol/batch.schema.json
+!protocol/interval.schema.json
+!protocol/reasons.json
