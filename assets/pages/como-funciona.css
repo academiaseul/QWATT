@@ -1,0 +1,100 @@
+/* QWATT · como-funciona.html (MIXTO): the mechanism as an operable diagram, a list for narrow
+   screens and readers without JavaScript, and what each key can do. Shared values in /assets/site.css. */
+
+.q-phero{border-bottom:1px solid var(--line);padding:56px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--copper) 7%,transparent),transparent 70%)}
+@media(max-width:600px){.q-phero{padding:40px 0 32px}}
+.q-phero h1{max-width:22ch}
+.q-sub{color:var(--ink-2);font-size:15px;line-height:1.65;max-width:72ch;margin:12px 0 18px}
+.q-sec .q-head{margin-bottom:6px}
+
+/* ── figure 1 ── */
+.q-fig{container-type:inline-size;margin:0}
+.q-fig figcaption{font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--ink-3);line-height:1.5;max-width:90ch}
+.q-fig-tools{display:none;margin:10px 0 0}
+.q-fig-grid{display:none;gap:14px;margin-top:14px}
+.q-flowsvg{display:block;width:100%;height:auto;overflow:visible}
+.q-nb{fill:var(--panel);stroke:var(--line);stroke-width:1.6;transition:fill .15s,stroke-width .15s}
+.q-node{cursor:default;outline:none}
+.q-fig.is-js .q-node{cursor:pointer}
+.q-node[data-st="testnet"] .q-nb{stroke:var(--green)}
+.q-node[data-st="prototipo"] .q-nb{stroke:var(--neutral)}
+.q-node[data-st="planificado"] .q-nb{stroke:var(--copper);stroke-dasharray:7 5}
+.q-fig.is-js .q-node:hover .q-nb{fill:var(--panel-3)}
+.q-node:focus-visible .q-nb{stroke-width:3.2;fill:var(--panel-3)}
+.q-node[aria-expanded="true"] .q-nb{stroke-width:3.2;fill:color-mix(in srgb,var(--copper) 12%,var(--panel))}
+.q-nt{fill:var(--ink);font-family:var(--sans);font-size:14.5px;font-weight:600}
+.q-nn{fill:var(--copper);font-family:var(--mono);font-size:12px;font-weight:500}
+.q-nchip{font-family:var(--mono);font-size:9px;font-weight:500;letter-spacing:.12em;fill:var(--neutral)}
+.q-node[data-st="testnet"] .q-nchip{fill:var(--green)}
+.q-node[data-st="planificado"] .q-nchip{fill:var(--copper)}
+.q-ea{stroke:var(--ink-3);stroke-width:1.5}
+.q-ea.is-dash{stroke-dasharray:5 5}
+.q-ah{fill:var(--ink-3)}
+.q-el{fill:var(--ink-2);font-family:var(--mono);font-size:10.5px}
+
+/* the list: phones, readers without JavaScript, and the panel's source */
+.q-flowlist{list-style:none;display:grid;gap:4px;margin-top:16px;counter-reset:none}
+.q-fl{background:var(--panel);padding:14px 16px;border-left:3px solid var(--line);min-width:0}
+.q-fl:has(.q-chip[data-st="testnet"]){border-left-color:var(--green)}
+.q-fl:has(.q-fl-h .q-chip[data-st="planificado"]){border-left-color:var(--copper)}
+.q-fl-h{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 10px}
+.q-fl-n{font-family:var(--mono);font-size:13px;color:var(--copper);min-width:16px}
+.q-fl h3{font-size:15.5px;flex:1 1 14ch;min-width:0}
+.q-fl-s{font-size:14px;color:var(--ink-2);line-height:1.6;margin-top:6px;max-width:80ch}
+.q-fl-more{margin-top:8px}
+.q-fl-more summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);min-height:32px;display:flex;align-items:center}
+.q-fl-more summary:hover{color:var(--copper)}
+.q-fl-d h4,.q-node-panel h4{font-family:var(--mono);font-size:10px;font-weight:500;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:12px 0 6px}
+.q-fl-d p,.q-node-panel p{font-size:13.5px;color:var(--ink-2);line-height:1.6}
+.q-files,.q-items{list-style:none;display:grid;gap:4px}
+.q-files a code{color:var(--copper);font-size:12px}
+.q-items li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:center;font-size:12.5px;color:var(--ink-2)}
+.q-items a{font-family:var(--mono);font-size:12px;color:var(--copper)}
+.q-item-t{flex:1 1 100%;font-size:12.5px;color:var(--ink-3);line-height:1.45}
+.q-item-t:empty{display:none}
+.q-fl-edge{font-family:var(--mono);font-size:10.5px;color:var(--ink-3);margin:10px 0 -4px;letter-spacing:.04em}
+
+/* wide: the diagram, with the panel beside it when there is room */
+@container (min-width: 860px){
+  .q-fig-tools{display:block}
+  .q-fig-grid{display:grid}
+  .q-fig.is-js:not(.is-list) .q-flowlist{display:none}
+  .q-fig.is-list .q-fig-grid{display:none}
+}
+@container (min-width: 1150px){
+  .q-fig-grid:has(.q-node-panel:not([hidden])){grid-template-columns:minmax(0,1fr) 320px;align-items:start}
+}
+.q-node-panel{background:var(--panel-2);border:1px solid var(--line);border-top:3px solid var(--copper);padding:16px;min-width:0}
+.q-node-panel[hidden]{display:none}
+.q-np-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.q-np-head h3{font-size:16px;outline:none}
+.q-np-head h3:focus-visible{outline:2px solid var(--copper);outline-offset:3px}
+.q-np-meta{margin-top:8px;display:flex;align-items:center;gap:8px}
+.q-np-k{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.q-np-s{margin-top:10px}
+.q-np-tech{margin-top:12px}
+.q-np-tech summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);min-height:30px;display:flex;align-items:center}
+.q-anchorline{margin-top:16px;font-size:13px;color:var(--ink-2)}
+.q-anchorline p{display:inline}
+.q-anchorline .q-src{display:inline-block;margin-left:10px}
+
+
+
+/* ── figure 2 ── */
+.q-keys th[scope="row"]{font-weight:600;color:var(--ink);white-space:normal;min-width:16ch}
+.q-keys td{color:var(--ink-2)}
+.q-kcol{width:84px;text-align:center !important}
+.q-kh{font-family:var(--mono);font-size:10px;letter-spacing:.1em;color:var(--ink-3)}
+.q-kdots{display:inline-flex;gap:8px}
+.q-kdot{width:11px;height:11px;border-radius:50%;border:1.5px solid var(--ink-3);display:inline-block}
+.q-kdot.is-on{background:var(--copper);border-color:var(--copper)}
+.q-knet{font-weight:600}
+.q-knet.is-rechazo{color:var(--red)}
+.q-knet.is-ok{color:var(--green)}
+.q-knet.is-warn{color:var(--gold)}
+.q-lines{list-style:none;display:grid;gap:10px;max-width:86ch;margin-top:18px}
+.q-lines li{font-size:14.5px;line-height:1.65;color:var(--ink-2);padding-left:16px;border-left:2px solid var(--line)}
+.q-lines b{color:var(--ink)}
+.q-keystatus{margin-top:16px;font-size:13.5px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.q-callout{margin-top:16px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
+body[data-page="como-funciona"] .q-foot .q-wrap{max-width:var(--maxw-wide)}
