@@ -146,6 +146,12 @@ function deps(P, opts = {}) {
 const states = (rows) => rows.map((r) => r.n + ':' + r.state).join(' ');
 const red = (rows) => rows.filter((r) => r.state === 'fail').map((r) => r.n);
 const codesOf = (rows) => { const r9 = rows.find((r) => r.n === 9); return r9 && Array.isArray(r9.codes) ? r9.codes.slice().sort() : []; };
+/* semver a >= b */
+const vgte = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0); return true; };
+/* DESIGN FD-13: under an engine whose batch schema is 1.1.0 or later, a batch without samples_root (the 8 Oct
+   rehearsal, schema 1.0.0) gets no full engine verdict: row 9 does not apply, every other row is still judged. */
+const ENGINE_SCHEMA = require(rel('batch/verify.js')).BATCH_SCHEMA_VERSION;
+const fd13 = (obj) => !Object.prototype.hasOwnProperty.call(obj, 'samples_root') && vgte(ENGINE_SCHEMA, '1.1.0');
 
 /** Every batch_id / site_id / node_id value in a feed directory. */
 function idValues(feedId) {
@@ -322,7 +328,8 @@ test('build: canonical, merkleRoot and batchSha256 equal Node on the conformance
   };
   const a = new BatchAssembler({ site_id: site, node_id: 'test-node' });
   const chain = [];
-  for (let b = 0; b < 3; b++) { for (let i = 0; i < 12; i++) a.judge(i === 5 ? iv(b * 12 + i, 100, 60) : iv(b * 12 + i)); chain.push(a.close().batch); }
+  const raw = (i) => [{ n: 1, utf8: 'raw-' + i }];   // the payload of interval i (batch-cases.json); a 1.0.0 assembler ignores it
+  for (let b = 0; b < 3; b++) { for (let i = 0; i < 12; i++) { const k = b * 12 + i; a.judge(i === 5 ? iv(k, 100, 60) : iv(k), raw(k)); } chain.push(a.close().batch); }
   chain.forEach((b, i) => {
     eq(b.sha256, cases.batches[i].sha256, `Node reproduces pinned batch ${i}`);
     eq(P.evidence.canonical(b), N.evidence.canonical(b), `canonical #${i}`);
@@ -411,7 +418,7 @@ test('steps: the default case (8 Oct rehearsal, batch #1) matches its pinned sta
   const { feed, input } = await inputFor(F, 'ensayo-8oct', 1);
   input.stellar = await stellarFor(L, feed.manifest);
   const rows = await St.run(input, deps(P));
-  eq(states(rows), '1:ok 2:ok 3:ok 4:ok 5:na 6:ok 7:ok 8:ok 9:ok 10:ok', 'rows');
+  eq(states(rows), '1:ok 2:ok 3:ok 4:ok 5:na 6:ok 7:ok 8:ok ' + (fd13(input.batch.obj) ? '9:na' : '9:ok') + ' 10:ok', 'rows');
   const r10 = rows.find((r) => r.n === 10);
   eq(r10.anchor && r10.anchor.memoShown, 'QW#1', 'anchor memo (masked to QW#n)');
   eq(r10.anchor && r10.anchor.ledger, 5093765, 'anchor ledger');
@@ -422,7 +429,7 @@ test('steps: the default case (8 Oct rehearsal, batch #1) matches its pinned sta
   eq(r6.recomputed, REHEARSAL_SHA[1], 'row 6 recomputed fingerprint');
   eq(r6.webcrypto, REHEARSAL_SHA[1], 'row 6 WebCrypto fingerprint');
   const s = St.summary(rows);
-  eq([s.ok, s.na, s.fail, s.total], [9, 1, 0, 10], 'summary');
+  eq([s.ok, s.na, s.fail, s.total], fd13(input.batch.obj) ? [8, 2, 0, 10] : [9, 1, 0, 10], 'summary');
 });
 
 test('steps: QW#0 is proposer + verifier (test C); a browser without Ed25519 shows the count, not a guess', async () => {
@@ -513,17 +520,19 @@ test('steps: tamper table — each mode turns red exactly the rows of DESIGN §9
         const rows = await St.run(t.input, deps(P));
         let expect = want.rows.slice();
         if (mode === 'time' && is11) expect.push(5);
+        const noVerdict = fd13(input.batch.obj);
         if (want.seven && hasNext) expect.push(7);
         if (input.anchored && e.status === 'accepted') expect.push(10);
         /* a forgery that adds energy at night is caught by the filters too: allowed only where the batch has no daylight */
         const nightForgery = mode === 'forger' && rows[2].state === 'fail';
         if (nightForgery) expect.push(3, 9);
         if (e.status === 'rejected' && mode !== 'forger') expect = expect.filter((n) => n !== 8 || mode === 'total');
+        if (noVerdict) expect = expect.filter((n) => n !== 9);
         expect = [...new Set(expect)].sort((x, y) => x - y);
         eq(red(rows), expect, `${id} #${e.seq} (${e.status}) ${mode}`);
         /* the first batch has no previous one: a changed prev_hash breaks the genesis rule instead of a link */
         const codes = mode === 'prev' && e.seq === 0 ? want.codes.map((c) => (c === 'batch.chain_break' ? 'batch.genesis_invalid' : c)) : want.codes;
-        for (const c of codes) assert(codesOf(rows).includes(c), `${id} #${e.seq} ${mode}: row 9 codes ${codesOf(rows)} lack ${c}`);
+        if (!noVerdict) for (const c of codes) assert(codesOf(rows).includes(c), `${id} #${e.seq} ${mode}: row 9 codes ${codesOf(rows)} lack ${c}`);
         eq(St.compare(base, rows), expect, `${id} #${e.seq} ${mode} compare()`);
         assert(t.change && typeof t.change.field === 'string' && t.change.before !== t.change.after, `${id} #${e.seq} ${mode}: change summary`);
         if (mode !== 'forger') assert(t.change.bytes === 1, `${id} #${e.seq} ${mode}: one byte changed`);
@@ -557,11 +566,13 @@ test('steps: the raw mode finds a payload with bytes from the middle outward, ut
 test('feed: a rejected-ledger line naming a batch that declares no refusals reaches verifyBatch (row 9 red), as for the verifier', async () => {
   const F = need('assets/qwatt-feed.js'), St = need('assets/qwatt-verify-steps.js');
   const P = nodeApi();
-  const base = '/evidence/feeds/ensayo-8oct/';
-  const b1 = JSON.parse(readLF('evidence/feeds/ensayo-8oct/batches/rehearsal-000001.json'));
-  const line = JSON.stringify({ batch_id: 'rehearsal-000001', verdict: 'reject', reasons: ['agreement.diverge'], interval: b1.intervals[0] }) + '\n';
+  const base = '/evidence/feeds/muestra/';
+  const b1 = JSON.parse(readLF('evidence/feeds/muestra/batches/muestra-sim-000001.json'));
+  assert(b1.rejected_count === 0, 'muestra #1 declares no refusals');
+  const line = JSON.stringify({ batch_id: b1.batch_id, verdict: 'reject', reasons: ['agreement.diverge'], interval: b1.intervals[0] }) + '\n';
+  const published = readLF('evidence/feeds/muestra/ledger/rejected.jsonl');
   const fetchWith = (url) => (String(url) === base + 'ledger/rejected.jsonl'
-    ? Promise.resolve({ ok: true, status: 200, text: async () => line, json: async () => { throw new Error('jsonl'); } })
+    ? Promise.resolve({ ok: true, status: 200, text: async () => published + line, json: async () => { throw new Error('jsonl'); } })
     : fileFetch(url));
   const feed = await F.open(base, { fetch: fetchWith });
   const input = await feed.input(1);
@@ -570,7 +581,9 @@ test('feed: a rejected-ledger line naming a batch that declares no refusals reac
   eq(rows[8].state, 'fail', 'row 9 (verifyBatch) refuses the batch');
   assert(rows[8].codes.includes('batch.count_mismatch'), 'with batch.count_mismatch: ' + rows[8].codes);
   const clean = await (await F.open(base, { fetch: fileFetch })).input(1);
-  eq(clean.rejected, [], 'the published (empty) ledger names nothing');
+  eq(clean.rejected, [], 'the published ledger names nothing for this batch');
+  const ens = await (await F.open('/evidence/feeds/ensayo-8oct/', { fetch: fileFetch })).input(1);
+  eq(ens.rejected, [], 'the rehearsal feed publishes an empty refusal ledger');
 });
 
 test('steps: every tamper mode gives identical rows and verifyBatch results with the browser build and the Node modules', async () => {
@@ -601,7 +614,7 @@ test('steps: the careful forger keeps every internal check green on the rehearsa
   const t = St.tamper(input, 'forger', deps(P));
   const rows = await St.run(t.input, deps(P));
   eq(red(rows), [7, 10], 'only the chain (batch #1 no longer links) and the anchor');
-  eq(rows[8].state, 'ok', 'verifyBatch accepts the forgery: it is consistent with itself');
+  eq(rows[8].state, fd13(input.batch.obj) ? 'na' : 'ok', 'verifyBatch accepts the forgery: it is consistent with itself');
   assert(/interval|intervals/.test(t.change.field) && t.change.forged === true, 'the change says it is a forgery of an interval');
   const last = await inputFor(F, 'muestra', 7);
   const t2 = St.tamper(last.input, 'forger', deps(P));
