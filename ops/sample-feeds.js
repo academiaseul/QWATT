@@ -70,7 +70,8 @@ function run(dir, hours, opts) {
   const closed = [];
   for (const h of hours) {
     if (!asm || asm.node_id !== h.node) asm = new BatchAssembler({ site_id: opts.site, node_id: h.node, closeEvery: 1000, state });
-    for (const rec of h.records) feed.appendInterval(asm.judge(rec));
+    /* h.payloads (engines with samples_root): the raw payloads each record was built from */
+    h.records.forEach((rec, i) => feed.appendInterval(h.payloads ? asm.judge(rec, h.payloads[i]) : asm.judge(rec)));
     const c = asm.close();
     feed.publish(c, { last_ts_start: asm.last_ts_start });
     closed.push(c);
@@ -143,15 +144,26 @@ function muestraHours() {
     return el <= 0 ? 0 : P.nameplate_w * 0.8 * Math.pow(Math.sin(el * Math.PI / 180), 1.15);   // W
   };
   const mwh = (w) => Math.round(w * 1000 * DT / 3600);
+  /* Under an engine with samples_root (batch schema 1.1.0) every record carries the raw payload it
+     was built from (one simulated CSV row), and source.raw_sha256 binds to it (batch.schema.json R2),
+     so the feed also gets raw/<batch>.jsonl. Under 1.0.0 the records stay as they were. */
+  const withRaw = typeof E.rawStreamSha256 === 'function';
+  const payloadsOf = new Map();
   const rec = (ms, node, aW, bW) => {
     const s = seq++;
-    return {
+    const r = {
       spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION,
       site_id: MUESTRA.site, node_id: node, seq: s,
       ts_start: new Date(ms).toISOString(), ts_end: new Date(ms + DT * 1000).toISOString(), dt_s: DT,
       meters: { a: { id: 'pzem-017:1', class: 'dc', mwh: mwh(aW) }, b: { id: 'epever-tracer:2', class: 'dc', mwh: mwh(bW) } },
       source: { adapter: 'simulator', raw_sha256: E.sha256('muestra-' + s) },
     };
+    if (withRaw) {
+      const payloads = [{ n: 1, utf8: [s, r.ts_start, r.meters.a.mwh, r.meters.b.mwh].join(',') + '\n' }];
+      r.source.raw_sha256 = E.rawStreamSha256(payloads);
+      payloadsOf.set(r, payloads);
+    }
+    return r;
   };
   const faults = [];
   const hours = [];
@@ -177,7 +189,7 @@ function muestraHours() {
       if (h === 4 && i === 7) faults.push({ seq: r.seq, code: 'nameplate.over' });
       if (h === 5 && i === 8) { records.push(r); faults.push({ seq: r.seq, code: 'ingest.duplicate_interval' }); }   // the same interval, sent twice
     }
-    hours.push({ node, records });
+    hours.push(withRaw ? { node, records, payloads: records.map((r) => payloadsOf.get(r)) } : { node, records });
   }
   return { hours, faults };
 }
@@ -219,12 +231,31 @@ function generate() {
   const tmp = tempDir();
   try {
     const d1 = path.join(tmp, 'ensayo-8oct');
-    const c1 = run(d1, rehearsalHours(), { site: 'rehearsal' });
-    c1.forEach((c, i) => {
-      if (c.status !== 'accepted') throw new Error(`ensayo-8oct: batch ${i} was ${c.status} (${c.reasons.join(', ')})`);
-      if (c.batch.sha256 !== REHEARSAL_SHA[i]) throw new Error(`ensayo-8oct: batch ${i} hashes to ${c.batch.sha256}, but tests ${i ? 'L' : 'C'} anchored ${REHEARSAL_SHA[i]} on Stellar testnet`);
-    });
-    fs.writeFileSync(path.join(d1, 'feed.json'), json(ensayoManifest()));
+    if (V.BATCH_SCHEMA_VERSION === '1.0.0') {
+      const c1 = run(d1, rehearsalHours(), { site: 'rehearsal' });
+      c1.forEach((c, i) => {
+        if (c.status !== 'accepted') throw new Error(`ensayo-8oct: batch ${i} was ${c.status} (${c.reasons.join(', ')})`);
+        if (c.batch.sha256 !== REHEARSAL_SHA[i]) throw new Error(`ensayo-8oct: batch ${i} hashes to ${c.batch.sha256}, but tests ${i ? 'L' : 'C'} anchored ${REHEARSAL_SHA[i]} on Stellar testnet`);
+      });
+      /* an empty refusal ledger, so a reader that asks for it gets the file, not a 404 */
+      const rej = path.join(d1, 'ledger', 'rejected.jsonl');
+      if (!fs.existsSync(rej)) fs.writeFileSync(rej, '');
+      fs.writeFileSync(path.join(d1, 'feed.json'), json(ensayoManifest()));
+    } else {
+      /* A later batch schema cannot rebuild the anchored 1.0.0 batches (the assembler writes samples_root
+         and asks for raw payloads), so the committed files are kept byte for byte: they are the anchored data. */
+      const committed = readTree(path.join(ROOT, OUT, 'ensayo-8oct'));
+      for (const [rel, text] of Object.entries(committed)) {
+        const f = path.join(d1, ...rel.split('/'));
+        fs.mkdirSync(path.dirname(f), { recursive: true });
+        fs.writeFileSync(f, text);
+      }
+      ['000000', '000001'].forEach((n, i) => {
+        const b = JSON.parse(committed[`batches/rehearsal-${n}.json`]);
+        const got = E.batchSha256(b);
+        if (got !== REHEARSAL_SHA[i] || b.sha256 !== got) throw new Error(`ensayo-8oct: committed batch ${i} hashes to ${got}, but tests ${i ? 'L' : 'C'} anchored ${REHEARSAL_SHA[i]} on Stellar testnet`);
+      });
+    }
 
     const d2 = path.join(tmp, 'muestra');
     const m = muestraHours();

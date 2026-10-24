@@ -62,7 +62,7 @@ function isG(g) {
 }
 function registeredCodes() {
   const reasons = readJSON('protocol/reasons.json').codes;
-  const spec = require(rel('assets/gates.generated.js'));
+  const spec = require(rel('assets/gates.browser.js'));
   return new Set([...Object.keys(reasons), ...Object.keys(spec.messages.en)]);
 }
 function bilingual(o) { return o && typeof o.es === 'string' && o.es.trim() && typeof o.en === 'string' && o.en.trim(); }

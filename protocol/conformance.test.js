@@ -4,13 +4,15 @@
  * Holds every binding of protocol/gates.spec.json to conformance/cases.json:
  *
  *   1. the generated bindings on disk are current (gen.js --check)
- *   2. both bindings carry the same spec digest
+ *   2. every binding carries the same spec digest; the served browser binding
+ *      (assets/gates.browser.js) holds the full spec's values for its profiles
  *   3. mining-rig/validators.js takes its thresholds from the spec, not literals
  *   4. the shared engine (assets/qwatt-gates.js — the file the demo page loads)
  *      and validators.js compute identical solar elevations
  *   5. every reason code the engine can emit has a message in every language
  *   6. every case: schema verdict, gate verdict, exact failing set, reason
- *      codes, mint string, pinned numeric details
+ *      codes, counted-energy basis, pinned numeric details; the cases of the
+ *      browser binding's profiles give identical results under that binding
  *
  * Run: node protocol/conformance.test.js   (no dependencies, no install step)
  */
@@ -24,6 +26,7 @@ const { spawnSync } = require('child_process');
 const ROOT = path.resolve(__dirname, '..');
 const SPEC = require(path.join(ROOT, 'assets', 'gates.generated.js'));
 const RIG_SPEC = require(path.join(ROOT, 'mining-rig', 'gates.generated.js'));
+const BROWSER = require(path.join(ROOT, 'assets', 'gates.browser.js'));
 const G = require(path.join(ROOT, 'assets', 'qwatt-gates.js'));
 const V = require(path.join(ROOT, 'mining-rig', 'validators.js'));
 const { validate } = require('./schema-lite');
@@ -58,6 +61,26 @@ test('browser and rig bindings carry the same spec', () => {
   eq(RIG_SPEC.digest, SPEC.digest, 'digest');
   eq(RIG_SPEC.spec_version, SPEC.spec_version, 'spec_version');
   eq(suite.spec_version, SPEC.spec_version, 'suite spec_version');
+});
+
+test('the served browser binding holds the full spec values for its profiles, and no other text', () => {
+  eq(BROWSER.digest, SPEC.digest, 'browser binding digest');
+  eq(BROWSER.spec_version, SPEC.spec_version, 'browser binding spec_version');
+  eq(BROWSER.binding, 'browser', 'binding');
+  const names = Object.keys(BROWSER.profiles);
+  assert(names.length >= 1 && names.includes('bench'), 'the browser binding must carry the bench profile');
+  for (const n of names) {
+    const full = SPEC.profiles[n], b = BROWSER.profiles[n];
+    assert(full, `browser profile ${n} is not in the spec`);
+    assert(!('description' in b), `browser profile ${n} carries a description`);
+    eq(JSON.stringify(Object.keys(b.site).sort()), '["lat","lon"]', `${n}.site keys`);
+    eq(b.site.lat, full.site.lat, `${n}.site.lat`); eq(b.site.lon, full.site.lon, `${n}.site.lon`);
+    for (const k of Object.keys(full)) if (k !== 'description' && k !== 'site') eq(JSON.stringify(b[k]), JSON.stringify(full[k]), `${n}.${k}`);
+  }
+  eq(BROWSER.numerics.boundary_rel_eps, SPEC.numerics.boundary_rel_eps, 'numerics.boundary_rel_eps');
+  eq(JSON.stringify(BROWSER.messages), JSON.stringify(SPEC.messages), 'messages');
+  eq(JSON.stringify(BROWSER.gates.map((g) => [g.id, g.label])), JSON.stringify(SPEC.gates.map((g) => [g.id, g.label])), 'gate ids and labels');
+  for (const k of ['issuance', 'parameters', 'description', 'source']) assert(!(k in BROWSER), `the browser binding must not carry "${k}"`);
 });
 
 test('validators.js thresholds come from the spec (rooftop profile)', () => {
@@ -136,11 +159,19 @@ for (const c of suite.cases) {
       assert(chk, `no check "${id}" in result`);
       eq(chk.code, code, `${id} code`);
     }
+    /* `mint` in cases.json is the pre-freeze name of this check (the August arithmetic, retired by
+       freeze v2 D-1). It now pins only the counted-energy basis, min(A,B) or the single meter,
+       written as 7 decimals of a MWh. */
     if (c.expect.mint !== undefined) {
-      assert(res.mint, 'expected a mint, got none');
-      eq(res.mint.qwatt_str, c.expect.mint, 'mint');
+      assert(typeof res.basis_wh === 'number', 'expected a counted-energy basis, got none');
+      const k = 1e7, basis7 = (Math.floor(res.basis_wh / 1000 * 0.001 * k + 1e-9) / k).toFixed(7);
+      eq(basis7, c.expect.mint, 'counted-energy basis');
     } else if (c.expect.verdict === 'reject') {
-      assert(res.mint === null, 'a rejected interval must not mint');
+      assert(res.basis_wh === null, 'a rejected interval must count no energy');
+    }
+    if (BROWSER.profiles[c.profile]) {
+      const rb = G.evaluateInterval(rec, BROWSER.profiles[c.profile], BROWSER);
+      eq(JSON.stringify(rb), JSON.stringify(res), 'result under the browser binding');
     }
     for (const [id, det] of Object.entries(c.expect.details || {})) {
       const chk = res.checks.find((x) => x.id === id);

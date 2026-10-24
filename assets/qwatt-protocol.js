@@ -3,13 +3,16 @@
  * byte for byte as one module function, so verificacion.html runs exactly what the verifier runs.
  * Sources (SHA-256 of the file bytes, LF line endings as stored in git):
  *   batch/verify.js                2a5afeb5853c54a7ec10d4fb875d7362135e66ff61b8223b4516183c8b9a1229
- *   protocol/batch.schema.json     1db648cf229593a5c4954b002599829e6254e977d7ef7bba5e575ea476188627
- *   protocol/evidence.js           8eeccc456363592403c23916bafc9452bce7c008a0406fc36263fb50c28ab151
+ *   protocol/batch.schema.json     3d1080f9bb1e07d0dcee63e049a79e9a7210ea4d8b3594cd04e906cd95fb4a35
+ *   protocol/evidence.js           aac21d5ed59caa3ec558a2a2e5b4efa281e6be8a877afe250e5218da99e431fc
  *   protocol/interval.schema.json  1386c23d0f75ed09f4aa921913433ef6111bcd661b56af309bb09aa7fed01935
  *   protocol/reasons.json          d619be0adc270a94b5da65b35fcb2384a9991f197442ee1560194ba78bc4a146
  *   protocol/schema-lite.js        9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9
  *   protocol/browser-shim.js       0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec  (the shim)
- * Load assets/gates.generated.js and assets/qwatt-gates.js first: the gate engine is not embedded.
+ * Loaded before this file, not embedded (the gate engine and the served spec binding):
+ *   assets/qwatt-gates.js          7642446a2e733351256136a31790a6886bdfb13f94cad03751260201c677d22b
+ *   assets/gates.browser.js        21b50b23f90a71011c2610362cfb5230075b6be6da676c3d76da9ab3a9286994
+ * Load assets/gates.browser.js and assets/qwatt-gates.js first: the gate engine is not embedded.
  * CI: node protocol/build-browser.js --check   (fails if this file differs from a fresh build)
  */
 (function (root) {
@@ -269,8 +272,8 @@
  * root over intervals, and the batch hash. The batch assembler (proposer side),
  * the verifier and the reconciliation page all derive the same bytes from this.
  *
- * Unlike the permissive copies in ingest/lib/normalize.js and
- * mining-rig/validators.js, `canonical` here REFUSES any number that is not a
+ * Unlike the permissive copies in ingest/lib/normalize.js and the rig's
+ * validators.js, `canonical` here REFUSES any number that is not a
  * safe integer. JSON.stringify(Infinity) is "null" and JSON.parse('1e999') is
  * Infinity, so a permissive serializer lets an overflow reach a hash silently.
  * Evidence is integers only (docs/ARCHITECTURE-FREEZE.md §1); anything else is
@@ -349,7 +352,7 @@ function batchId(siteId, seq) {
 
 /**
  * The energy an accepted interval vouches for, in integer mWh: the lower of the
- * two meters, or the single meter when the profile allows one (spec issuance.basis).
+ * two meters, or the single meter when the profile allows one (the counted energy).
  */
 function basisMwh(interval) {
   const a = interval.meters.a.mwh;
@@ -755,7 +758,7 @@ module.exports = {
     "intervals": { "type": "array", "items": { "$ref": "interval.schema.json" }, "description": "The accepted interval records, in sequence order. Rejected intervals are in the rejected ledger, never here." },
     "intervals_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Merkle root (SHA-256, odd node duplicated) over the canonical JSON of each interval." },
     "samples_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional Merkle root over raw power samples, when the node retains them." },
-    "energy_mwh": { "type": "integer", "minimum": 0, "description": "Sum over accepted intervals of the mint basis (min of the two meters, or the single meter), milliwatt-hours." },
+    "energy_mwh": { "type": "integer", "minimum": 0, "description": "Sum over accepted intervals of the counted energy (min of the two meters, or the single meter), milliwatt-hours." },
     "cumulative_mwh": { "type": "integer", "minimum": 0, "description": "Site total since genesis, after this batch." },
     "prev_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the previous batch, or 64 zeros for the first." },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
@@ -847,7 +850,7 @@ module.exports = {
   }
 
   if (!root.QWATT_GATES) throw new Error('qwatt-protocol: load assets/qwatt-gates.js before qwatt-protocol.js');
-  if (!root.QWATT_GATES_SPEC) throw new Error('qwatt-protocol: load assets/gates.generated.js before qwatt-protocol.js');
+  if (!root.QWATT_GATES_SPEC) throw new Error('qwatt-protocol: load assets/gates.browser.js before qwatt-protocol.js');
   var interval = req('protocol/interval.schema.json'), batch = req('protocol/batch.schema.json'), reasons = req('protocol/reasons.json');
   var api = {
     evidence: req('protocol/evidence.js'),
@@ -857,14 +860,15 @@ module.exports = {
     reasons: reasons,
     versions: { spec: root.QWATT_GATES_SPEC.spec_version, interval_schema: interval['x-schema-version'], batch_schema: batch['x-schema-version'], reasons_registry: reasons.registry_version },
     sources: [
-    { path: "protocol/evidence.js", sha256: "8eeccc456363592403c23916bafc9452bce7c008a0406fc36263fb50c28ab151", bytes: 3939 },
+    { path: "protocol/evidence.js", sha256: "aac21d5ed59caa3ec558a2a2e5b4efa281e6be8a877afe250e5218da99e431fc", bytes: 3937 },
     { path: "protocol/schema-lite.js", sha256: "9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9", bytes: 3019 },
     { path: "batch/verify.js", sha256: "2a5afeb5853c54a7ec10d4fb875d7362135e66ff61b8223b4516183c8b9a1229", bytes: 12232 },
     { path: "protocol/interval.schema.json", sha256: "1386c23d0f75ed09f4aa921913433ef6111bcd661b56af309bb09aa7fed01935", bytes: 4230 },
-    { path: "protocol/batch.schema.json", sha256: "1db648cf229593a5c4954b002599829e6254e977d7ef7bba5e575ea476188627", bytes: 3002 },
+    { path: "protocol/batch.schema.json", sha256: "3d1080f9bb1e07d0dcee63e049a79e9a7210ea4d8b3594cd04e906cd95fb4a35", bytes: 3006 },
     { path: "protocol/reasons.json", sha256: "d619be0adc270a94b5da65b35fcb2384a9991f197442ee1560194ba78bc4a146", bytes: 5202 }
     ],
     shim: { path: "protocol/browser-shim.js", sha256: "0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec" },
+    external: [{"path":"assets/qwatt-gates.js","sha256":"7642446a2e733351256136a31790a6886bdfb13f94cad03751260201c677d22b"},{"path":"assets/gates.browser.js","sha256":"21b50b23f90a71011c2610362cfb5230075b6be6da676c3d76da9ab3a9286994"}],
     sha256Impl: 'protocol/browser-shim.js (pure JavaScript, synchronous)'
   };
   if (typeof module === 'object' && module.exports) module.exports = api; else root.QWATT_PROTOCOL = api;

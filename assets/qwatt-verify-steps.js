@@ -94,7 +94,9 @@
         basis: P.evidence.basisMwh(rec), leaf: leaf, verdict: v.verdict, codes: v.failures.map(function (f) { return f.code; }), onGrid: !grid };
     });
     var bad = table.filter(function (t) { return t.verdict !== 'accept' || !t.onGrid || !t.leaf; }).map(function (t) { return t.seq; });
-    var r3 = { n: 3, id: 'intervals', state: bad.length ? 'fail' : 'ok', count: table.length, failed: bad, table: table };
+    var sumBasis = table.reduce(function (s, t) { return s + (typeof t.basis === 'number' ? t.basis : 0); }, 0);
+    var r3 = { n: 3, id: 'intervals', state: bad.length ? 'fail' : 'ok', count: table.length, failed: bad, table: table,
+      sumBasis: sumBasis, declaredEnergy: obj.energy_mwh, energyMatch: sumBasis === obj.energy_mwh };
 
     /* 4 · interval root */
     var root = null;
@@ -251,6 +253,24 @@
     return n;
   }
 
+  /** The payload the raw mode changes: from the middle line outward, the first one with bytes (utf8 or hex). */
+  function rawTarget(raw) {
+    var mid = Math.floor(raw.length / 2);
+    for (var d = 0; d <= raw.length; d++) {
+      var tries = d === 0 ? [mid] : [mid - d, mid + d];
+      for (var t = 0; t < tries.length; t++) {
+        var li = tries[t], line = raw[li];
+        if (li < 0 || li >= raw.length || !line || !Array.isArray(line.payloads)) continue;
+        for (var p = 0; p < line.payloads.length; p++) {
+          var pl = line.payloads[p];
+          if (pl && typeof pl.utf8 === 'string' && pl.utf8.length) return { line: li, p: p, enc: 'utf8' };
+          if (pl && typeof pl.hex === 'string' && pl.hex.length >= 2) return { line: li, p: p, enc: 'hex' };
+        }
+      }
+    }
+    return null;
+  }
+
   /** @returns {{ input, change } | { disabled: true, why }} */
   function tamper(input, mode, deps) {
     var P = deps.P;
@@ -264,13 +284,19 @@
         return { disabled: true, why: 'schema-1.0.0' };
       }
       var raw = JSON.parse(JSON.stringify(input.raw));
-      var line = raw[Math.floor(raw.length / 2)];
-      var pl = line && Array.isArray(line.payloads) ? line.payloads[0] : null;
-      if (!pl || typeof pl.utf8 !== 'string' || !pl.utf8.length) return { disabled: true, why: 'no-payload' };
-      var at = Math.floor(pl.utf8.length / 2), c = pl.utf8.charAt(at), nc = c === 'x' ? 'y' : 'x';
-      pl.utf8 = pl.utf8.slice(0, at) + nc + pl.utf8.slice(at + 1);
+      var hit = rawTarget(raw);
+      if (!hit) return { disabled: true, why: 'no-payload' };
+      var pl = raw[hit.line].payloads[hit.p], at, c, nc;
+      if (hit.enc === 'utf8') {
+        at = Math.floor(pl.utf8.length / 2); c = pl.utf8.charAt(at); nc = c === 'x' ? 'y' : 'x';
+        pl.utf8 = pl.utf8.slice(0, at) + nc + pl.utf8.slice(at + 1);
+      } else {
+        /* hex (Modbus frames): one hex digit of one byte, kept lowercase and whole bytes */
+        at = Math.floor(pl.hex.length / 2); c = pl.hex.charAt(at); nc = c === 'f' ? '0' : (parseInt(c, 16) + 1).toString(16);
+        pl.hex = pl.hex.slice(0, at) + nc + pl.hex.slice(at + 1);
+      }
       var tin = Object.assign({}, input, { raw: raw });
-      return { input: tin, change: { field: 'raw[' + Math.floor(input.raw.length / 2) + '].payloads[0]', pos: at, before: c, after: nc, bytes: 1 } };
+      return { input: tin, change: { field: 'raw[' + hit.line + '].payloads[' + hit.p + ']', enc: hit.enc, pos: at, before: c, after: nc, bytes: 1 } };
     }
     if (mode === 'energy') {
       if (!ivs.length) return { disabled: true, why: 'no-intervals' };
@@ -331,9 +357,13 @@
     if (input.anchored) return 'anchored';
     return input.next ? 'unanchored' : 'newest-unanchored';
   }
-  /** The code that ran: each embedded source with its SHA-256 and its file on GitHub. */
+  /** The code that ran: each embedded source, the SHA-256 shim and the gate engine with its spec binding
+      (loaded before the build), each with its SHA-256 and its file on GitHub. */
   function provenance(P) {
-    return (P.sources || []).map(function (s) { return { path: s.path, sha256: s.sha256, bytes: s.bytes, url: GITHUB + s.path }; });
+    var out = (P.sources || []).map(function (s) { return { path: s.path, sha256: s.sha256, bytes: s.bytes, url: GITHUB + s.path }; });
+    if (P.shim && P.shim.path) out.push({ path: P.shim.path, sha256: P.shim.sha256, url: GITHUB + P.shim.path, role: 'shim' });
+    (P.external || []).forEach(function (x) { out.push({ path: x.path, sha256: x.sha256, url: GITHUB + x.path, role: 'external' }); });
+    return out;
   }
 
   return { run: run, tamper: tamper, summary: summary, compare: compare, forgerCase: forgerCase, provenance: provenance, MODES: MODES, ZERO: ZERO };

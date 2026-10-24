@@ -78,7 +78,7 @@ function bareBuild(withGates = true) {
   const ctx = { TextEncoder, TextDecoder, atob, btoa, console: { log() {}, warn() {}, error() {} } };
   if (withGates) {
     ctx.QWATT_GATES = require(rel('assets/qwatt-gates.js'));
-    ctx.QWATT_GATES_SPEC = require(rel('assets/gates.generated.js'));
+    ctx.QWATT_GATES_SPEC = require(rel('assets/gates.browser.js'));   // the binding the pages load
   }
   ctx.self = ctx;
   vm.createContext(ctx);
@@ -297,7 +297,7 @@ test('build: runs in a bare context with no require, Buffer, crypto or process',
   eq(P.evidence.EMPTY_ROOT, require(rel('protocol/conformance/batch-cases.json')).empty_root, 'EMPTY_ROOT = batch-cases.json');
   eq(P.versions.batch_schema, require(rel('protocol/batch.schema.json'))['x-schema-version'], 'versions.batch_schema');
   eq(P.versions.interval_schema, require(rel('protocol/interval.schema.json'))['x-schema-version'], 'versions.interval_schema');
-  eq(P.versions.spec, require(rel('assets/gates.generated.js')).spec_version, 'versions.spec');
+  eq(P.versions.spec, require(rel('assets/gates.browser.js')).spec_version, 'versions.spec');
   assert(!('Buffer' in ctx) && !('QWATT_SHIM' in ctx), 'the build defines no global Buffer');
 });
 
@@ -505,11 +505,14 @@ test('steps: tamper table — each mode turns red exactly the rows of DESIGN §9
       if (stellar) input.stellar = stellar;
       const base = await St.run(input, deps(P));
       const hasNext = !!input.next;
+      /* batch schema 1.1.0 (week 2): samples_root binds the raw lines by interval start, so a changed time also breaks row 5 */
+      const is11 = Object.prototype.hasOwnProperty.call(input.batch.obj, 'samples_root');
       for (const [mode, want] of Object.entries(TAMPER)) {
         const t = St.tamper(input, mode, deps(P));
         assert(!t.disabled, `${id} #${e.seq} ${mode} is available`);
         const rows = await St.run(t.input, deps(P));
         let expect = want.rows.slice();
+        if (mode === 'time' && is11) expect.push(5);
         if (want.seven && hasNext) expect.push(7);
         if (input.anchored && e.status === 'accepted') expect.push(10);
         /* a forgery that adds energy at night is caught by the filters too: allowed only where the batch has no daylight */
@@ -526,9 +529,48 @@ test('steps: tamper table — each mode turns red exactly the rows of DESIGN §9
         if (mode !== 'forger') assert(t.change.bytes === 1, `${id} #${e.seq} ${mode}: one byte changed`);
       }
       const raw = St.tamper(input, 'raw', deps(P));
-      assert(raw.disabled === true && raw.why, `${id} #${e.seq}: raw mode is disabled on a schema 1.0.0 batch`);
+      if (!is11) assert(raw.disabled === true && raw.why, `${id} #${e.seq}: raw mode is disabled on a schema 1.0.0 batch`);
+      else {
+        assert(!raw.disabled && raw.change.bytes === 1, `${id} #${e.seq}: raw mode changes one byte of a raw reading`);
+        const rr = red(await St.run(raw.input, deps(P)));
+        assert(rr.includes(5) && rr.includes(9) && !rr.includes(6), `${id} #${e.seq} raw: rows 5 and 9 red, row 6 green; got ${rr}`);
+      }
     }
   }
+});
+
+test('steps: the raw mode finds a payload with bytes from the middle outward, utf8 or hex (Modbus frames), and changes one hex digit', () => {
+  const St = need('assets/qwatt-verify-steps.js');
+  const P = nodeApi();
+  const mk = (payloads) => ({ batch: { text: '{}', obj: { samples_root: '0'.repeat(64), intervals: [] }, ledgerSha256: null }, raw: payloads.map((p, i) => ({ payloads: p, seq: i, ts_start: null, verdict: 'accept' })) });
+  const hex = St.tamper(mk([[{ n: 1, hex: '' }], [{ n: 1, hex: '' }], [{ n: 1, hex: '01030a0b0c' }]]), 'raw', { P });
+  assert(!hex.disabled && hex.change.enc === 'hex', 'a hex payload is changed');
+  const pl = hex.input.raw[2].payloads[0].hex;
+  assert(/^(?:[0-9a-f]{2})+$/.test(pl) && pl.length === 10 && pl !== '01030a0b0c', 'still lowercase whole bytes, one digit changed: ' + pl);
+  eq([...pl].filter((c, i) => c !== '01030a0b0c'[i]).length, 1, 'one hex digit');
+  const utf = St.tamper(mk([[{ n: 1, utf8: 'a,b\n' }]]), 'raw', { P });
+  assert(!utf.disabled && utf.change.enc === 'utf8' && utf.change.bytes === 1, 'a utf8 payload is changed');
+  const none = St.tamper(mk([[], [{ n: 3, utf8: '' }]]), 'raw', { P });
+  eq(none.disabled && none.why, 'no-payload', 'no payload with bytes: disabled with the reason');
+});
+
+test('feed: a rejected-ledger line naming a batch that declares no refusals reaches verifyBatch (row 9 red), as for the verifier', async () => {
+  const F = need('assets/qwatt-feed.js'), St = need('assets/qwatt-verify-steps.js');
+  const P = nodeApi();
+  const base = '/evidence/feeds/ensayo-8oct/';
+  const b1 = JSON.parse(readLF('evidence/feeds/ensayo-8oct/batches/rehearsal-000001.json'));
+  const line = JSON.stringify({ batch_id: 'rehearsal-000001', verdict: 'reject', reasons: ['agreement.diverge'], interval: b1.intervals[0] }) + '\n';
+  const fetchWith = (url) => (String(url) === base + 'ledger/rejected.jsonl'
+    ? Promise.resolve({ ok: true, status: 200, text: async () => line, json: async () => { throw new Error('jsonl'); } })
+    : fileFetch(url));
+  const feed = await F.open(base, { fetch: fetchWith });
+  const input = await feed.input(1);
+  eq(input.rejected.length, 1, 'the line naming the batch is read although rejected_count is 0');
+  const rows = await St.run(input, deps(P));
+  eq(rows[8].state, 'fail', 'row 9 (verifyBatch) refuses the batch');
+  assert(rows[8].codes.includes('batch.count_mismatch'), 'with batch.count_mismatch: ' + rows[8].codes);
+  const clean = await (await F.open(base, { fetch: fileFetch })).input(1);
+  eq(clean.rejected, [], 'the published (empty) ledger names nothing');
 });
 
 test('steps: every tamper mode gives identical rows and verifyBatch results with the browser build and the Node modules', async () => {
@@ -601,15 +643,18 @@ test('steps: run() never touches the network or the page (it is handed everythin
   assert(!/\bfetch\s*\(|\bdocument\b|XMLHttpRequest/.test(src), 'qwatt-verify-steps.js contains no fetch and no DOM access');
 });
 
-test('steps: provenance lists the embedded sources with their SHA-256 and GitHub links', () => {
+test('steps: provenance lists every file that ran (embedded sources, the shim, the gate engine and its binding) with SHA-256 and GitHub links', () => {
   const St = need('assets/qwatt-verify-steps.js');
   const P = bareBuild().QWATT_PROTOCOL;
   const pv = St.provenance(P);
-  eq(pv.map((s) => s.path), P.sources.map((s) => s.path), 'paths');
+  eq(pv.map((s) => s.path), P.sources.map((s) => s.path).concat(['protocol/browser-shim.js', 'assets/qwatt-gates.js', 'assets/gates.browser.js']), 'paths');
   for (const s of pv) {
     assert(/^[0-9a-f]{64}$/.test(s.sha256), s.path + ' sha256');
     eq(s.url, 'https://github.com/academiaseul/QWATT/blob/main/' + s.path, s.path + ' url');
   }
+  /* the hashes the page lists are those of the files it loads */
+  const nodeSha = (p) => require('crypto').createHash('sha256').update(require('fs').readFileSync(rel(p), 'utf8').replace(/\r\n/g, '\n'), 'utf8').digest('hex');
+  for (const s of pv.slice(P.sources.length)) eq(s.sha256, nodeSha(s.path), s.path + ' sha256 equals the file');
 });
 
 /* ═════════════════════════ run ═════════════════════════ */

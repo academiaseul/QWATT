@@ -15,15 +15,20 @@
  * Their Node built-ins come from protocol/browser-shim.js (a synchronous SHA-256,
  * a minimal Buffer, POSIX path.join). The gate engine and the spec binding are
  * not embedded: they resolve to the globals of assets/qwatt-gates.js and
- * assets/gates.generated.js, which the page loads first, so the site keeps one
- * deployed copy of the gate engine.
+ * assets/gates.browser.js (the served binding; batch/verify.js names it by its
+ * Node path, assets/gates.generated.js), which the page loads first, so the site
+ * keeps one deployed copy of the gate engine. Their SHA-256 values are written
+ * into the header and into api.external, so the page can list every file that ran.
  *
  * The build refuses a source that uses a built-in member the shim does not
  * provide, or requires a module that is not bundled; then it loads the fresh
  * bundle in a bare context (no require, no Buffer, no hashing module, no
- * process) and checks EMPTY_ROOT and the two 8 Oct rehearsal batch hashes that
- * are anchored on Stellar testnet. Output is deterministic: LF line endings, no
- * timestamp, no commit id, so the file changes only when a source changes.
+ * process) and checks EMPTY_ROOT and the two committed 8 Oct rehearsal batches
+ * (evidence/feeds/ensayo-8oct), whose hashes are anchored on Stellar testnet.
+ * Under an engine with samples_root (batch schema 1.1.0) it also builds one batch
+ * with raw payloads in Node and requires the bundle's verdict to equal Node's.
+ * Output is deterministic: LF line endings, no timestamp, no commit id, so the
+ * file changes only when a source changes.
  * Zero dependencies.
  */
 
@@ -40,8 +45,11 @@ const SHIM = 'protocol/browser-shim.js';
 /* The embedded sources, in load order (api.sources keeps this order; the header sorts by path). */
 const SOURCES = ['protocol/evidence.js', 'protocol/schema-lite.js', 'batch/verify.js',
   'protocol/interval.schema.json', 'protocol/batch.schema.json', 'protocol/reasons.json'];
-/* Not embedded: resolved to page globals at first use. */
+/* Not embedded: resolved to page globals at first use (keys: the paths the sources require). */
 const EXTERNAL = { 'assets/qwatt-gates.js': 'QWATT_GATES', 'assets/gates.generated.js': 'QWATT_GATES_SPEC' };
+/* The served file that defines each of those globals on the page. */
+const SERVED = { 'assets/qwatt-gates.js': 'assets/qwatt-gates.js', 'assets/gates.generated.js': 'assets/gates.browser.js' };
+const REHEARSAL_FILES = ['evidence/feeds/ensayo-8oct/batches/rehearsal-000000.json', 'evidence/feeds/ensayo-8oct/batches/rehearsal-000001.json'];
 const BUILTINS = ['crypto', 'path'];
 const BUDGET = 100 * 1024;
 const REHEARSAL = ['322923a411c146079b73269fe3135d9e6413a9dafdb07807567c8a119f35a245', '852314a2a11f86548e3f8b09c16aa2fd6ef82ae8e8641db5ef20a4bc2d0f5466'];
@@ -106,6 +114,7 @@ function build(root = ROOT) {
   const problems = sources.flatMap((s) => scan(s.path, s.text, shim));
   if (problems.length) { const e = new Error('build-browser: a source asks for something the shim does not provide:\n  ' + problems.join('\n  ')); e.problems = problems; throw e; }
 
+  const external = Object.keys(EXTERNAL).map((k) => ({ path: SERVED[k], sha256: sha(readLF(root, SERVED[k])) }));
   const width = Math.max(...SOURCES.map((p) => p.length)) + 2;
   const head = [
     '/* GENERATED FILE — do not edit by hand. Generator: protocol/build-browser.js · shim: protocol/browser-shim.js',
@@ -114,7 +123,9 @@ function build(root = ROOT) {
     ' * Sources (SHA-256 of the file bytes, LF line endings as stored in git):',
     ...sources.slice().sort((a, b) => (a.path < b.path ? -1 : 1)).map((s) => ' *   ' + s.path.padEnd(width) + s.sha256),
     ' *   ' + SHIM.padEnd(width) + sha(shimText) + '  (the shim)',
-    ' * Load assets/gates.generated.js and assets/qwatt-gates.js first: the gate engine is not embedded.',
+    ' * Loaded before this file, not embedded (the gate engine and the served spec binding):',
+    ...external.map((x) => ' *   ' + x.path.padEnd(width) + x.sha256),
+    ' * Load assets/gates.browser.js and assets/qwatt-gates.js first: the gate engine is not embedded.',
     ' * CI: node protocol/build-browser.js --check   (fails if this file differs from a fresh build)',
     ' */',
   ];
@@ -182,7 +193,7 @@ function build(root = ROOT) {
     '  }',
     '',
     '  if (!root.QWATT_GATES) throw new Error(\'qwatt-protocol: load assets/qwatt-gates.js before qwatt-protocol.js\');',
-    '  if (!root.QWATT_GATES_SPEC) throw new Error(\'qwatt-protocol: load assets/gates.generated.js before qwatt-protocol.js\');',
+    '  if (!root.QWATT_GATES_SPEC) throw new Error(\'qwatt-protocol: load assets/gates.browser.js before qwatt-protocol.js\');',
     '  var interval = req(\'protocol/interval.schema.json\'), batch = req(\'protocol/batch.schema.json\'), reasons = req(\'protocol/reasons.json\');',
     '  var api = {',
     '    evidence: req(\'protocol/evidence.js\'),',
@@ -195,6 +206,7 @@ function build(root = ROOT) {
     meta.join(',\n'),
     '    ],',
     '    shim: { path: ' + JSON.stringify(SHIM) + ', sha256: ' + JSON.stringify(sha(shimText)) + ' },',
+    '    external: ' + JSON.stringify(external) + ',',
     '    sha256Impl: \'protocol/browser-shim.js (pure JavaScript, synchronous)\'',
     '  };',
     '  if (typeof module === \'object\' && module.exports) module.exports = api; else root.QWATT_PROTOCOL = api;',
@@ -206,29 +218,53 @@ function build(root = ROOT) {
 
 /* ───────────────────────────── smoke test ───────────────────────────── */
 
-/** The two 8 Oct rehearsal batches, built in Node with the repository's assembler (the inputs of anchor/rehearse.js). */
+/** The two 8 Oct rehearsal batches, as committed (frozen: their hashes are anchored on Stellar testnet). */
 function rehearsalBatches(root) {
+  return REHEARSAL_FILES.map((f) => JSON.parse(readLF(root, f)));
+}
+
+/* semver a >= b */
+function vgte(a, b) {
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0);
+  return true;
+}
+
+/**
+ * A rehearsal batch (schema 1.0.0, no samples_root) judged by an engine whose batch schema
+ * is 1.1.0 or later fails only because samples_root is missing (DESIGN FD-13). Anything else
+ * is a real difference.
+ */
+function onlyMissingSamples(P, v) {
+  if (!vgte(P.versions.batch_schema, '1.1.0') || !v.failures.length) return false;
+  return v.failures.every((f) => f.code === 'batch.schema_invalid' &&
+    (f.detail && Array.isArray(f.detail.errors) && f.detail.errors.length ? f.detail.errors : ['']).every((e) => /samples_root/.test(e)));
+}
+
+/** One batch with raw payloads, built in Node with the repository's assembler (engines with samples_root only). */
+function rawBatch(root) {
   const E = require(path.join(root, 'protocol/evidence.js'));
   const V = require(path.join(root, 'batch/verify.js'));
   const { BatchAssembler } = require(path.join(root, 'batch/assemble.js'));
   const T0 = Date.parse('2026-09-20T15:00:00Z'), DT = 300;
-  const iv = (i) => {
+  const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
+  const asm = new BatchAssembler({ site_id: 'smoke', node_id: 'smoke' });
+  for (let i = 0; i < 3; i++) {
     const t = T0 + i * DT * 1000;
-    const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
-    return { spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION, site_id: 'rehearsal', node_id: 'rehearsal', seq: i,
+    const payloads = [{ n: 1, utf8: 'row ' + i + '\n' }];
+    const rec = { spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION, site_id: 'smoke', node_id: 'smoke', seq: i,
       ts_start: new Date(t).toISOString(), ts_end: new Date(t + DT * 1000).toISOString(), dt_s: DT,
-      meters: { a: m('pzem-017:1', 100), b: m('epever-tracer:2', 99) }, source: { adapter: 'simulator', raw_sha256: E.sha256('rehearsal-' + i) } };
-  };
-  const a = new BatchAssembler({ site_id: 'rehearsal', node_id: 'rehearsal' });
-  const out = [];
-  for (let b = 0; b < 2; b++) { for (let i = 0; i < 12; i++) a.judge(iv(b * 12 + i)); out.push(a.close().batch); }
-  return out;
+      meters: { a: m('pzem-017:1', 100), b: m('epever-tracer:2', 99) }, source: { adapter: 'simulator', raw_sha256: E.rawStreamSha256(payloads) } };
+    asm.judge(rec, payloads);
+  }
+  const c = asm.close();
+  return { batch: c.batch, raw: c.raw, node: V.verifyBatch(JSON.parse(JSON.stringify(c.batch)), { raw: JSON.parse(JSON.stringify(c.raw)) }) };
 }
 
 function smoke(text, root = ROOT) {
   const ctx = { TextEncoder, TextDecoder, atob, btoa, console: { log() {}, warn() {}, error() {} } };
   ctx.QWATT_GATES = require(path.join(root, 'assets/qwatt-gates.js'));
-  ctx.QWATT_GATES_SPEC = require(path.join(root, 'assets/gates.generated.js'));
+  ctx.QWATT_GATES_SPEC = require(path.join(root, SERVED['assets/gates.generated.js']));
   ctx.self = ctx;
   vm.createContext(ctx);
   vm.runInContext(text, ctx, { filename: OUT });
@@ -238,10 +274,16 @@ function smoke(text, root = ROOT) {
   const batches = rehearsalBatches(root);
   batches.forEach((b, i) => {
     const got = P.evidence.batchSha256(JSON.parse(JSON.stringify(b)));
-    if (got !== REHEARSAL[i]) throw new Error(`smoke: rehearsal batch ${i} hashes to ${got}, anchored ${REHEARSAL[i]}`);
+    if (got !== REHEARSAL[i]) throw new Error(`smoke: rehearsal batch ${i} (${REHEARSAL_FILES[i]}) hashes to ${got}, anchored ${REHEARSAL[i]}`);
     const v = P.verify.verifyBatch(JSON.parse(JSON.stringify(b)), { prev: i ? JSON.parse(JSON.stringify(batches[i - 1])) : null });
-    if (!v.ok) throw new Error(`smoke: rehearsal batch ${i} does not verify in the bundle: ${v.failures.map((f) => f.code).join(', ')}`);
+    if (!v.ok && !onlyMissingSamples(P, v)) throw new Error(`smoke: rehearsal batch ${i} does not verify in the bundle: ${v.failures.map((f) => f.code).join(', ')}`);
   });
+  if (typeof P.evidence.samplesRoot === 'function') {
+    const r = rawBatch(root);
+    const got = P.verify.verifyBatch(JSON.parse(JSON.stringify(r.batch)), { raw: JSON.parse(JSON.stringify(r.raw)) });
+    if (JSON.stringify(got) !== JSON.stringify(r.node)) throw new Error('smoke: a batch with raw payloads gets a different verdict in the bundle than in Node');
+    if (!r.node.ok) throw new Error('smoke: the raw-payload batch built in Node does not verify: ' + r.node.failures.map((f) => f.code).join(', '));
+  }
   return P;
 }
 

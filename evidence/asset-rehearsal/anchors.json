@@ -1,0 +1,24 @@
+{
+  "derived_from": "evidence/asset-rehearsal/asset-2026-10-08T22-03-53-216Z.json",
+  "derived_from_sha256": "fdd68bcadc41c504b3c5db2c950bcfc89cadbb34873ad743951a02baaf2641cd",
+  "note": "Public keys and anchoring transactions of the 8 Oct testnet asset rehearsal, taken from the full record in the repository (derived_from). Nothing else.",
+  "network": "testnet",
+  "public_keys": {
+    "proposer": "GDU2M733RAVKWYUR3FP5YO26UEF5T5PRQWLME5IOGU5KMIY66RSO5TDO",
+    "verifier": "GBZVM7ZG47GW4VUDL55KMLCY6E26PU6II4ZO3N4UHCPIXDJPY4U5VYJE",
+    "third": "GDHYNF4BJH2IDFV4IW3DJZSMZKBT7JRHC3337IP7J22GCVRKOCSAPPAI",
+    "asset_account": "GB7SYT6XSO256MZZRM7C6BBPN4QQ3DLUQVRIWCI2OQQJQLDQEPCYWNJZ",
+    "funding_account": "GBCPINZ4URAGHFHJ7KGOSMCXPAQTX3RSNI7CFYCCOPMOFEVHNVYOG534"
+  },
+  "anchoring_account": "GCBKRNIPS4IVV2X7ZWR6DBMDNNTRQ53HXNRIQIIVNORCBMTSPK52L5AB",
+  "anchoring": {
+    "batches": 3,
+    "anchored": 3,
+    "txs": [
+      "62762350477ff46c4ca4fe86b3618b50b37c9e38c65fc68a37ee0f7033416dbf",
+      "279c2bc1183115d297afaec35bdd75f8fdc5c6d0221969602df55e9e2814e7b3",
+      "a542a1155327916adee501e7242facdb7eaa502b1d7916a400d5160777b2c832"
+    ]
+  },
+  "verdict": "PASS"
+}

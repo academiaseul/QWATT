@@ -4,7 +4,8 @@
  * ---------------------------------------------------------------------------
  * Reads protocol/gates.spec.json and writes every derived artifact:
  *
- *   assets/gates.generated.js        browser global + CommonJS  (verificacion.html, conformance suite)
+ *   assets/gates.generated.js        CommonJS + global          (Node: batch/verify.js, live/, conformance suite; not deployed)
+ *   assets/gates.browser.js          browser global + CommonJS  (the binding qwatt.org serves; see browserBinding)
  *   mining-rig/gates.generated.js    CommonJS                   (validators.js — rig is deployable standalone)
  *   docs/GATES.md                    human-readable table       (reviewers, the SOW, the whitepaper)
  *
@@ -47,11 +48,52 @@ const header = (rel) => [
 
 const json = JSON.stringify(bound, null, 2);
 
+/**
+ * The binding the website serves (assets/gates.browser.js). It carries every value the
+ * gate engine reads for the profiles the pages run (BROWSER_PROFILES), with the same
+ * spec_version and the digest of the FULL spec, so a page still states exactly which
+ * rules judged an interval. Left out: text no code reads (profile descriptions, gate
+ * rule and threat prose, parameter notes), the other profiles, and the fields the
+ * engine never reads. protocol/conformance.test.js runs every case of these profiles
+ * against this binding as well and requires identical results.
+ */
+const BROWSER_PROFILES = ['bench'];
+function browserBinding(s, d) {
+  const profiles = {};
+  for (const n of BROWSER_PROFILES) {
+    const p = s.profiles[n];
+    const q = {};
+    for (const k of Object.keys(p)) if (k !== 'description' && k !== 'site') q[k] = p[k];
+    q.site = { lat: p.site.lat, lon: p.site.lon };
+    profiles[n] = q;
+  }
+  return {
+    spec_version: s.spec_version,
+    title: s.title,
+    binding: 'browser',
+    binding_note: 'Every value the gate engine reads for the profiles listed here, taken from protocol/gates.spec.json. digest is the SHA-256 of the full canonical spec.',
+    numerics: { boundary_rel_eps: s.numerics.boundary_rel_eps },
+    profiles,
+    gates: s.gates.map((g) => ({ id: g.id, label: g.label, validator: g.validator, phase: g.phase, level: g.level, title: g.title, params: g.params })),
+    messages: s.messages,
+    digest: d,
+  };
+}
+const browserJson = JSON.stringify(browserBinding(spec, digest), null, 2);
+
 const outputs = {
   'assets/gates.generated.js':
     header('assets/gates.generated.js') + '\n' +
     '(function (root) {\n' +
     '  var SPEC = ' + json.replace(/\n/g, '\n  ') + ';\n' +
+    "  if (typeof module === 'object' && module.exports) module.exports = SPEC;\n" +
+    '  else root.QWATT_GATES_SPEC = SPEC;\n' +
+    "}(typeof self !== 'undefined' ? self : this));\n",
+
+  'assets/gates.browser.js':
+    header('assets/gates.browser.js') + '\n' +
+    '(function (root) {\n' +
+    '  var SPEC = ' + browserJson.replace(/\n/g, '\n  ') + ';\n' +
     "  if (typeof module === 'object' && module.exports) module.exports = SPEC;\n" +
     '  else root.QWATT_GATES_SPEC = SPEC;\n' +
     "}(typeof self !== 'undefined' ? self : this));\n",

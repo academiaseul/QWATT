@@ -53,7 +53,8 @@
     kAnchors: { es: 'Anclajes (QW#n)', en: 'Anchors (QW#n)' },
     kHash: { es: 'Huella que guarda la cuenta', en: 'Fingerprint the account holds' },
     lastQW: { es: 'último {m} · {d}', en: 'last {m} · {d}' },
-    assetNote: { es: 'El archivo no registra el total; lo mostramos tal como está en Horizon.', en: 'The file does not record the total; we show it as Horizon has it.' },
+    assetNote: { es: 'El archivo no registra el total; lo mostramos tal como está en Horizon. Es un extracto con las claves públicas y los anclajes del ensayo; el registro completo está en el repositorio.', en: 'The file does not record the total; we show it as Horizon has it. It is an extract with the rehearsal\'s public keys and anchors; the full record is in the repository.' },
+    assetFull: { es: 'Registro completo (trabajo previo)', en: 'Full record (prior work)' },
     sweepRun: { es: 'Leyendo {n} cuentas en Horizon testnet…', en: 'Reading {n} accounts on Horizon testnet…' },
     sweepSum: { es: '{n} de {m} cuentas existen y no cambiaron desde el 19 oct', en: '{n} of {m} accounts exist and have not changed since 19 Oct' },
     sweepCap: { es: 'Cada clave pública de los archivos de evidencia y de stellar.toml, leída ahora (sin montos)', en: 'Every public key in the evidence files and stellar.toml, read now (no amounts)' },
@@ -256,7 +257,7 @@
       list = '<p class="q-evsum">' + state(okN === cks.length ? 'ok' : 'fail', okN === cks.length ? T.allOk : T.someBad) + ' ' + pair(T.sum, { n: okN, m: cks.length }) + '</p><ul class="q-checks">' +
         cks.map(function (c) { return '<li>' + state(c.ok ? 'ok' : 'fail', c.ok ? T.match : T.nomatch) + pair(c.w, c.v) + '</li>'; }).join('') + '</ul>';
     } else if (!an) list = errHTML({ code: 'offline' });
-    return list + facts + (id === 'asset' ? '<p class="q-note">' + pair(T.assetNote) + '</p>' : '') +
+    return list + facts + (id === 'asset' ? '<p class="q-note">' + pair(T.assetNote) + ' <a class="q-link" href="https://github.com/academiaseul/QWATT/blob/main/evidence/asset-rehearsal/asset-2026-10-08T22-03-53-216Z.json" target="_blank" rel="noopener">' + pair(T.assetFull) + newTab() + '</a></p>' : '') +
       badge('archivo', { p: ACCTS[id].ev }) + vivo() + ensayo();
   }
   function renderEvidence() {

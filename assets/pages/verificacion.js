@@ -96,7 +96,11 @@
     forgerWhat: { es: 'El falsificador sumó 1.000 mWh a los dos medidores del intervalo #{i} ({a} → {b}) y recalculó la energía, el total, la raíz y la huella.', en: 'The forger added 1,000 mWh to both meters of interval #{i} ({a} → {b}) and recomputed the energy, the total, the root and the fingerprint.' },
     rawOff: { es: 'Este modo necesita un lote de esquema 1.1.0 con sus lecturas crudas (semana 2).', en: 'This mode needs a schema 1.1.0 batch with its raw readings (week 2).' },
     tabSeq: { es: 'Intervalo', en: 'Interval' }, tabStart: { es: 'Inicio (UTC)', en: 'Start (UTC)' }, tabBasis: { es: 'Base', en: 'Basis' }, tabLeaf: { es: 'Hoja', en: 'Leaf' },
-    tabBatch: { es: 'Lote', en: 'Batch' }, tabStatus: { es: 'Estado', en: 'Status' }, tabEnergy: { es: 'Energía (mWh)', en: 'Energy (mWh)' },
+    tabBatch: { es: 'Lote', en: 'Batch' }, tabStatus: { es: 'Estado', en: 'Status' }, tabEnergy: { es: 'Energía', en: 'Energy' },
+    ivDecl: { es: 'Declarada en el lote: ', en: 'Declared in the batch: ' }, ivDeclBad: { es: ' · no es la suma de los intervalos', en: ' · not the sum of the intervals' },
+    rawNoPayload: { es: 'Ninguna lectura cruda de este lote trae bytes que cambiar.', en: 'No raw reading in this batch carries bytes to change.' },
+    noIntervals: { es: 'Este lote no tiene intervalos aceptados que cambiar.', en: 'This batch has no accepted intervals to change.' },
+    forgerAnchoredOffline: { es: 'Todas las huellas del lote vuelven a cuadrar. Ahora no pudimos leer Stellar testnet; cuando vuelva la conexión, la fila 10 se pondrá en rojo: la huella anclada no es la de este lote.', en: 'Every fingerprint inside the batch adds up again. We could not read Stellar testnet just now; when the connection returns, row 10 will turn red: the anchored fingerprint is not this batch\'s.' },
     tabExp: { es: 'Total esperado', en: 'Expected total' }, tabDecl: { es: 'Total declarado', en: 'Declared total' },
     capIv: { es: 'Intervalos del lote, en milivatios-hora', en: 'The batch\'s intervals, in milliwatt-hours' }, capTot: { es: 'Total acumulado, lote por lote', en: 'Running total, batch by batch' },
     corridaOn: { es: 'Leído ahora desde {h}.', en: 'Read now from {h}.' }
@@ -158,6 +162,8 @@
         var sum = r.table.reduce(function (s, x) { return s + (x.basis || 0); }, 0);
         var head = r.failed.length ? '<p>' + pair(T.ivBad) + '<span class="q-codes">#' + r.failed.join(', #') + '</span></p>'
           : '<p>' + pair(T.ivAll, { n: r.count }) + n(sum, 'recalculado') + ' mWh</p>';
+        /* the batch's own energy_mwh next to the recomputed sum, so a changed total is visible here too */
+        if (r.declaredEnergy != null) head += '<p' + (r.energyMatch === false ? ' class="is-bad"' : '') + '>' + pair(T.ivDecl) + n(r.declaredEnergy, 'archivo') + ' mWh' + (r.energyMatch === false ? '<span class="q-codes">' + pair(T.ivDeclBad) + '</span>' : '') + '</p>';
         var rows = r.table.map(function (x) {
           var bad = x.verdict !== 'accept' || !x.onGrid;
           return '<tr><td>#' + x.seq + '</td><td' + (x.onGrid ? '' : ' class="is-bad"') + '>' + esc(hhmm(x.ts)) + '</td><td>' + n(x.a, 'archivo') + '</td><td>' + n(x.b, 'archivo') + '</td><td>' + n(x.basis, 'recalculado') + '</td><td' + (bad ? ' class="is-bad"' : '') + '>' + short(x.leaf) + (x.codes.length ? ' <span class="q-codes">' + x.codes.map(esc).join(', ') + '</span>' : '') + '</td></tr>';
@@ -182,7 +188,7 @@
         var rows2 = r.table.map(function (x) {
           return '<tr><td>#' + x.seq + '</td><td>' + pair(x.status === 'rejected' ? T.rejected : T.accepted) + '</td><td>' + n(x.energy, 'archivo') + '</td><td>' + n(x.expected, 'recalculado') + '</td><td' + (x.ok ? '' : ' class="is-bad"') + '>' + n(x.declared, 'archivo') + '</td></tr>';
         }).join('');
-        return '<div class="q-mtab-wrap"><table class="q-mtab"><caption>' + pair(T.capTot) + '</caption><thead><tr><th scope="col">' + pair(T.tabBatch) + '</th><th scope="col">' + pair(T.tabStatus) + '</th><th scope="col">' + pair(T.tabEnergy) + '</th><th scope="col">' + pair(T.tabExp) + '</th><th scope="col">' + pair(T.tabDecl) + '</th></tr></thead><tbody>' + rows2 + '</tbody></table></div>' + simBadge();
+        return '<div class="q-mtab-wrap"><table class="q-mtab"><caption>' + pair(T.capTot) + '</caption><thead><tr><th scope="col">' + pair(T.tabBatch) + '</th><th scope="col">' + pair(T.tabStatus) + '</th><th scope="col">' + pair(T.tabEnergy) + ' (<span class="q-unit" translate="no">mWh</span>)</th><th scope="col">' + pair(T.tabExp) + '</th><th scope="col">' + pair(T.tabDecl) + '</th></tr></thead><tbody>' + rows2 + '</tbody></table></div>' + simBadge();
       }
       case 'engine':
         if (r.state === 'na') return '';
@@ -351,21 +357,32 @@
 
   /* ───────────────────────────── tamper ───────────────────────────── */
 
+  /* Why the raw mode cannot run on the current batch, or null: it asks the same tamper() the click runs. */
+  var rawWhyMemo = { input: null, why: null };
+  function rawWhy() {
+    if (!cur.input) return null;
+    if (rawWhyMemo.input !== cur.input) {
+      var rt = root.QWATT_VERIFY_STEPS.tamper(cur.input, 'raw', deps());
+      rawWhyMemo = { input: cur.input, why: rt && !rt.disabled ? null : (rt && rt.why === 'no-payload' ? T.rawNoPayload : T.rawOff) };
+    }
+    return rawWhyMemo.why;
+  }
   function modes() {
     var bs = d.querySelectorAll('#vModes [data-mode]');
+    var why = rawWhy();
     for (var i = 0; i < bs.length; i++) {
       var m = bs[i].getAttribute('data-mode');
-      var dis = m === 'raw' && cur.input && !(cur.input.batch.obj && 'samples_root' in cur.input.batch.obj);
-      bs[i].disabled = !cur.input || dis;
+      var dis = m === 'raw' && cur.input && why;
+      bs[i].disabled = !cur.input || !!dis;
       bs[i].setAttribute('aria-pressed', cur.mode === m ? 'true' : 'false');
-      if (dis) bs[i].title = S.t(T.rawOff); else bs[i].removeAttribute('title');
+      if (dis) bs[i].title = S.t(why); else bs[i].removeAttribute('title');
     }
     var r = $('vRestore'); if (r) r.hidden = !cur.mode;
   }
   function renderTamper() {
     var out = $('vTamperOut'); if (!out) return;
-    var rawOff = cur.input && !(cur.input.batch.obj && 'samples_root' in cur.input.batch.obj);
-    if (!cur.mode || !cur.change || !cur.rows) { out.innerHTML = rawOff ? '<span class="is-why">' + pair(T.rawOff) + '</span>' : ''; modes(); return; }
+    var why = rawWhy();
+    if (!cur.mode || !cur.change || !cur.rows) { out.innerHTML = why ? '<span class="is-why">' + pair(why) + '</span>' : ''; modes(); return; }
     var St = root.QWATT_VERIFY_STEPS;
     var red = St.compare(cur.base, cur.rows);
     var list = red.length ? red.map(function (k) { return '<b>' + k + ' · ' + esc(title(k)) + '</b>'; }).join(', ') : pair(T.noneRed);
@@ -373,7 +390,9 @@
     if (c.forged) {
       var kase = St.forgerCase(cur.tin || cur.input);
       var night = cur.rows[2] && cur.rows[2].state === 'fail';
-      var msg = kase === 'anchored' ? (cur.input.next ? T.forgerAnchoredNext : T.forgerAnchoredLast) : kase === 'unanchored' ? T.forgerUnanchored : T.forgerNewest;
+      /* the anchored explanation claims a Stellar comparison: only when row 10 actually turned red */
+      var stellarRed = cur.rows[9] && cur.rows[9].state === 'fail';
+      var msg = kase === 'anchored' ? (!stellarRed ? T.forgerAnchoredOffline : cur.input.next ? T.forgerAnchoredNext : T.forgerAnchoredLast) : kase === 'unanchored' ? T.forgerUnanchored : T.forgerNewest;
       html = pair(T.forgerWhat, { i: c.interval, a: c.before, b: c.after }) + ' ' + pair(msg) + (night ? pair(T.forgerNight) : '') + (red.length ? '<br>' + pair({ es: 'Se pusieron en rojo: ', en: 'Turned red: ' }) + list : '');
     } else {
       html = pair(T.changed, { f: c.field + (c.pos != null ? '[' + c.pos + ']' : ''), a: c.before, b: c.after }) + list + (cur.mode === 'raw' ? pair(T.changedRaw) : '');
@@ -384,7 +403,12 @@
   function tamper(mode) {
     if (!cur.input) return;
     var tt = root.QWATT_VERIFY_STEPS.tamper(cur.input, mode, deps());
-    if (tt.disabled) { cur.mode = null; renderTamper(); return; }
+    if (tt.disabled) {
+      cur.mode = null; cur.change = null; cur.tin = null; renderTamper();
+      var why = mode !== 'raw' ? T.noIntervals : tt.why === 'no-payload' ? T.rawNoPayload : T.rawOff;
+      var out = $('vTamperOut'); if (out) out.innerHTML = '<span class="is-why">' + pair(why) + '</span>';
+      return;
+    }
     cur.mode = mode;
     rerun();
   }

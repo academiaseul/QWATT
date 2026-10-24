@@ -130,10 +130,10 @@
         if (!cache.rejected) cache.rejected = get(base + 'ledger/rejected.jsonl').then(jsonl);
         return cache.rejected;
       }
-      /** The rejected-ledger lines that name batch #seq, as the protocol reads them. */
+      /** The rejected-ledger lines that name batch #seq, as the protocol reads them. Read even when the batch
+          declares no refusals: a line naming it then makes verifyBatch fail, as it does for the verifier. */
       function rejectedFor(seq) {
-        return batch(seq).then(function (b) {
-          if (!b.obj.rejected_count) return [];
+        return batch(seq).then(function () {
           return rejectedAll().then(function (all) { return all.filter(function (l) { return l.batch_id === ids[seq]; }); });
         });
       }

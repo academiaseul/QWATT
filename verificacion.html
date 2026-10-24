@@ -36,7 +36,7 @@
 <script defer src="/assets/qwatt-live.js"></script>
 <script defer src="/assets/qwatt-reconcile.js"></script>
 <script defer src="/assets/live-widgets.js"></script>
-<script defer src="/assets/gates.generated.js"></script>
+<script defer src="/assets/gates.browser.js"></script>
 <script defer src="/assets/qwatt-gates.js"></script>
 <script defer src="/assets/qwatt-protocol.js"></script>
 <script defer src="/assets/qwatt-feed.js"></script>
@@ -179,7 +179,7 @@
 
     <div class="q-prov">
       <p><span data-l="es">Lo que esto no prueba: que un medidor haya medido esa energía, que sea exacto o que el verificador sea independiente como organización.</span><span data-l="en">What this does not prove: that a meter measured that energy, that it is accurate, or that the verifier is independent as an organization.</span> <a href="#limites"><span data-l="es">Detalle en 06 · Límites ↓</span><span data-l="en">Details in 06 · Limits ↓</span></a></p>
-      <p><span data-l="es">Código que corrió en tu navegador:</span><span data-l="en">Code that ran in your browser:</span> <code>assets/qwatt-protocol.js</code><span data-l="es">, generado desde</span><span data-l="en">, generated from</span> <code>protocol/evidence.js</code>, <code>protocol/schema-lite.js</code> <span data-l="es">y</span><span data-l="en">and</span> <code>batch/verify.js</code> <span data-l="es">sin cambiar una línea. SHA-256 de cada archivo fuente:</span><span data-l="en">without changing a line. SHA-256 of each source file:</span></p>
+      <p><span data-l="es">Código que corrió en tu navegador:</span><span data-l="en">Code that ran in your browser:</span> <code>assets/qwatt-protocol.js</code><span data-l="es">, generado desde</span><span data-l="en">, generated from</span> <code>protocol/evidence.js</code>, <code>protocol/schema-lite.js</code> <span data-l="es">y</span><span data-l="en">and</span> <code>batch/verify.js</code> <span data-l="es">sin cambiar una línea; también corrieron el motor de filtros</span><span data-l="en">without changing a line; the gate engine also ran,</span> <code>assets/qwatt-gates.js</code> <span data-l="es">(con</span><span data-l="en">(with</span> <code>assets/gates.browser.js</code><span data-l="es">, los valores de la especificación que usa) y</span><span data-l="en">, the values of the spec it uses) and</span> <code>protocol/browser-shim.js</code> <span data-l="es">para SHA-256. SHA-256 de cada archivo:</span><span data-l="en">for SHA-256. SHA-256 of each file:</span></p>
       <ul class="q-provlist" id="vProv">
         <li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>protocol/evidence.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
         <li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/schema-lite.js" target="_blank" rel="noopener"><code>protocol/schema-lite.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
@@ -218,13 +218,13 @@ curl -s https://horizon-testnet.stellar.org/accounts/GAYA2PZSQJTHHXZPB2ZD6LO3C75
     <div class="q-head"><h2 id="h01"><span class="q-n"><span data-l="es">01 · Pruébalo</span><span data-l="en">01 · Try it</span></span> <span data-l="es">Intenta falsificar un intervalo</span><span data-l="en">Try to forge an interval</span></h2><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
     <p class="q-sub">Cualquiera puede declarar que generó energía solar. La diferencia entre una declaración y una prueba son dos medidores independientes, filtros de verificación que <b>fallan cerrados</b> y una cadena de evidencia que un desconocido puede recalcular sin confiar en nosotros.</p>
     <div class="q-claim">
-      <p><b>Lo que afirma una constancia QWATT, exactamente:</b> entre <code>t₀</code> y <code>t₁</code>, una instalación registrada produjo <code>E</code> vatios-hora, medidos por dos instrumentos independientes cuyas lecturas concuerdan entre sí y con la física de ese lugar a esa hora, y la constancia no se ha alterado desde entonces. Nada más.</p>
+      <p><b>Lo que registra una constancia QWATT, exactamente:</b> que entre <code>t₀</code> y <code>t₁</code> dos medidores de una instalación reportaron lecturas que suman <code>E</code> vatios-hora, que esas lecturas concuerdan entre sí y con la física solar de esa hora, y que la constancia no se alteró desde entonces. No afirma que la energía se haya producido de verdad ni que los medidores sean exactos.</p>
       <p>Durante el sprint toda la entrada es simulada (nivel A0): las constancias de prueba en Stellar testnet prueban el software y los filtros, no que una instalación haya producido energía.</p>
     </div>
     <p class="q-sub">Abajo corren los <b>mismos cuatro filtros</b> que el verificador vuelve a correr antes de cofirmar, con los parámetros del perfil bench (150 Wp, en este sprint simulado). Mueve los controles o elige un intento: el veredicto se recalcula al instante. Un intervalo rechazado no se anclaría y quedaría escrito en la bitácora de rechazos.</p>
     <ul class="q-rig">
       <li>150 Wp · 12 V (simulado)</li>
-      <li>perfil bench · coordenadas de referencia en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/gates.spec.json" target="_blank" rel="noopener">gates.spec.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a></li>
+      <li>perfil bench</li>
       <li id="specv">spec —</li>
       <li>intervalo 5 min</li>
       <li>techo 14,4 Wh</li>
@@ -348,7 +348,7 @@ curl -s https://horizon-testnet.stellar.org/accounts/GAYA2PZSQJTHHXZPB2ZD6LO3C75
     <div class="q-head"><h2 id="h06"><span class="q-n"><span data-l="es">06 · Límites</span><span data-l="en">06 · Limits</span></span> <span data-l="es">Lo que una constancia no prueba</span><span data-l="en">What a record does not prove</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
     <p class="q-sub">La credibilidad de todo lo anterior depende de no exagerarlo.</p>
     <ul class="q-lines">
-      <li><b>No prueba que la energía fue renovable.</b> Prueba que el perfil de generación coincide con la física solar de ese lugar y esa hora. Es evidencia fuerte, no un certificado de origen.</li>
+      <li><b>No prueba que la energía fue renovable.</b> Prueba que el perfil de generación coincide con la física solar de ese lugar y esa hora. Es evidencia, no un certificado de origen.</li>
       <li><b>No prueba que el medidor esté conectado a ese arreglo.</b> Amarrar instrumento e instalación es un acto físico de puesta en marcha (gabinete sellado, fotos, firma del instalador), no algo criptográfico. Eso es el nivel A4.</li>
       <li><b>No prueba entrega, propiedad ni derecho.</b> Quién es dueño de la energía y quién puede reclamarla son preguntas de contrato.</li>
       <li><b>No es un certificado de energía renovable (REC), ni un crédito de carbono, ni un título de subsidio.</b> Una constancia QWATT es evidencia pública y voluntaria, nada más.</li>
@@ -366,7 +366,7 @@ curl -s https://horizon-testnet.stellar.org/accounts/GAYA2PZSQJTHHXZPB2ZD6LO3C75
       <li>Abre la transacción de anclaje en stellar.expert (red testnet). Su memo <code>QW#&lt;seq&gt;</code> dice qué lote ancla. La cuenta definitiva está en preparación (semana 2); mientras tanto puedes hacerlo con el ensayo del 8 oct (cuenta desechable), en la sección A.</li>
       <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacción: ahí está la huella de la evidencia. Horizon entrega el valor en base64; decodificado son 64 caracteres hexadecimales. Desde la semana 2 el feed público estará en los repositorios de evidencia; por ahora, el ejemplo es el archivo de evidencia del ensayo.</li>
       <li>Descarga el lote desde el feed público, quita su campo <code>sha256</code> y recalcula el SHA-256 de su JSON canónico (claves ordenadas, sin espacios, solo enteros). Debe coincidir con el valor anclado.</li>
-      <li>Vuelve a correr los filtros con los números del propio lote: todos los umbrales están en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/gates.spec.json" target="_blank" rel="noopener">gates.spec.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a> y los casos de conformidad en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/conformance/cases.json" target="_blank" rel="noopener">cases.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a>. Esta página corre el mismo motor que la suite.</li>
+      <li>Vuelve a correr los filtros con los números del propio lote: todos los umbrales que usa esta página están en <a href="/assets/gates.browser.js"><code>assets/gates.browser.js</code></a> (generado desde la especificación de filtros 1.0.0) y los casos de conformidad en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/conformance/cases.json" target="_blank" rel="noopener">cases.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a>. Esta página corre el mismo motor que la suite.</li>
       <li>Comprueba que <code>qwatt.cumulative_mwh</code> sea el <code>cumulative_mwh</code> del lote, en milivatios-hora (mWh): el total del lote anterior más el <code>energy_mwh</code> del lote, que a su vez es la suma de <code>min(A,B)</code> de sus intervalos. El pago marcador no entra en esta cuenta.</li>
       <li><b>Conciliación:</b> compara lo publicado con lo anclado en Stellar testnet: cada anclaje debe llevar la huella y el total de un lote publicado y aceptado, en orden y sin huecos. Un anclaje que no calce con un lote publicado no tiene respaldo.</li>
     </ol>

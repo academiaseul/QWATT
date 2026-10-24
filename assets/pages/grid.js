@@ -4,7 +4,7 @@
  * An accelerated solar day (1 real minute = 1 simulated day, 288 five-minute
  * intervals) produces two meter readings per interval. Each interval goes through
  * the real gate engine (assets/qwatt-gates.js with the bench profile of
- * assets/gates.generated.js, only the nameplate changed to the chosen size).
+ * assets/gates.browser.js, only the nameplate changed to the chosen size).
  * Accepted intervals form a local batch whose SHA-256 fingerprint is computed by
  * WebCrypto over its canonical JSON. Nothing is sent anywhere, nothing is stored,
  * no key exists on this page. The only network reads are public, read-only

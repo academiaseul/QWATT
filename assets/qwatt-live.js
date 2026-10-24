@@ -51,7 +51,7 @@
         testC: '494e8d12cc3ab7b4f62a7f061a1e899c45e8b4553539346a0e71c8f5c525a8a1', testL: '9851ba7ec2743b6e7a4e22e5da9915e1dd7c499ccfdfe4e216a02365a3758715' },
       dress: { account: 'GB2QTJRIMRGJDBAJ2PI7PQ74ZNVVXCRDOBKAZA6ZASRYCSTNNRXMX3HU', evidence: '/evidence/dress-rehearsal/dress-2026-10-08T21-37-32-889Z.json' },
       e2e: { account: 'GCTBRUGQRYNGH7OMRMMQU46NAQNB2AURIWG7D66ADTQDWJC6D2N5O6FO', evidence: '/evidence/e2e/e2e-2026-10-08T20-50-44-831Z.json' },
-      asset: { account: 'GCBKRNIPS4IVV2X7ZWR6DBMDNNTRQ53HXNRIQIIVNORCBMTSPK52L5AB', evidence: '/evidence/asset-rehearsal/asset-2026-10-08T22-03-53-216Z.json' }
+      asset: { account: 'GCBKRNIPS4IVV2X7ZWR6DBMDNNTRQ53HXNRIQIIVNORCBMTSPK52L5AB', evidence: '/evidence/asset-rehearsal/anchors.json' }   // public keys and anchors only; the full record stays in the repository
     },
     SCALE: '/evidence/scale/scale-pvdaq-4902-2017-09.json',
     SIM_LABEL: null

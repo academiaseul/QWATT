@@ -12,7 +12,7 @@
  * Modbus TCP simulator polled through the PZEM-017 and EPEver register maps —
  * and the resulting interval records must be byte-identical once the `source`
  * block (adapter name and raw-payload hash, which differ by construction) is
- * removed. The gate engine's verdict and mint for every interval must match too.
+ * removed. The gate engine's verdict and counted energy for every interval must match too.
  *
  * Run: node ingest/harness.js        (exit 1 on any difference)
  */
@@ -142,7 +142,7 @@ async function run() {
     const a = strip(A[i]), b = strip(B[i]), c = strip(C[i]);
     if (a !== b || a !== c) { diffs++; console.error(`interval ${i}: records differ\n  csv    ${a}\n  http   ${b}\n  modbus ${c}`); continue; }
     const va = G.evaluateInterval(A[i], SPEC.profiles.bench, SPEC), vb = G.evaluateInterval(B[i], SPEC.profiles.bench, SPEC), vc = G.evaluateInterval(C[i], SPEC.profiles.bench, SPEC);
-    const key = (v) => v.verdict + '|' + (v.mint ? v.mint.qwatt_str : '-') + '|' + v.failures.map((f) => f.id).join(',');
+    const key = (v) => v.verdict + '|' + (v.basis_wh == null ? '-' : v.basis_wh) + '|' + v.failures.map((f) => f.id).join(',');
     if (key(va) !== key(vb) || key(va) !== key(vc)) { diffs++; console.error(`interval ${i}: verdicts differ ${key(va)} ${key(vb)} ${key(vc)}`); }
   }
   const accepted = A.filter((r) => G.evaluateInterval(r, SPEC.profiles.bench, SPEC).verdict === 'accept').length;

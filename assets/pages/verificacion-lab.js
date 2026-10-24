@@ -1,7 +1,7 @@
 /**
  * QWATT · verificacion.html, section 01 — the filter lab (moved out of main's inline script)
  * ---------------------------------------------------------------------------
- * The real gate engine (assets/gates.generated.js + assets/qwatt-gates.js, the files
+ * The real gate engine (assets/gates.browser.js + assets/qwatt-gates.js, the files
  * the conformance suite runs in CI) on one simulated five-minute interval built from
  * the controls. Simulated input, a demo in the browser: nothing is sent to Stellar
  * testnet and nothing is stored. G2 says only above or below the profile threshold.

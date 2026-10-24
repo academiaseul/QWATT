@@ -2,9 +2,9 @@
  * QWATT — gate engine (shared)
  * ---------------------------------------------------------------------------
  * ONE implementation of the interval gates G0–G3, loaded unchanged by:
- *   • verificacion.html          (the public "try to break it" demo)
+ *   • index.html, grid.html, verificacion.html (the public demos)
  *   • protocol/conformance.test.js (CI: every case in conformance/cases.json)
- *   • the mining rig / gateway    (via require)
+ *   • batch/verify.js, live/ and the ingest harness (via require)
  *
  * It contains no thresholds. Every number comes from the profile object passed
  * in, which comes from protocol/gates.spec.json through the generated binding.
@@ -20,7 +20,7 @@
 }(typeof self !== 'undefined' ? self : this, function () {
   'use strict';
 
-  var ENGINE_VERSION = '1.1.0';
+  var ENGINE_VERSION = '1.2.0';   // 1.2.0: results carry basis_wh (counted energy); the August arithmetic is gone
   /* Input shape: interval.schema.json. Energies arrive as INTEGER milliwatt-hours and
      powers as integer milliwatts (docs/ARCHITECTURE-FREEZE.md §1); the engine works in
      watt-hours internally so the spec's thresholds keep their stated units. The
@@ -35,7 +35,7 @@
   /**
    * Solar elevation in degrees at a UTC instant for a lat/lon.
    * NOAA-style simplified algorithm, ~0.1° accuracy — far tighter than the
-   * horizon test needs. Identical to mining-rig/validators.js by construction:
+   * horizon test needs. Identical to the rig's validators.js by construction:
    * the conformance suite pins its output for known instants.
    */
   function solarElevationDeg(when, latDeg, lonDeg) {
@@ -80,15 +80,6 @@
     });
   }
 
-  /** Issuance arithmetic from the spec: floor, never round. */
-  function mintFor(basisWh, spec) {
-    var iss = spec.issuance;
-    var kwh = basisWh / 1000;
-    var k = Math.pow(10, iss.precision);
-    var q = Math.floor(kwh * iss.qwatt_per_kwh * k + 1e-9) / k;   // 1e-9 absorbs binary noise below Stellar's 7 dp
-    return { basis_wh: basisWh, kwh: kwh, qwatt: q, qwatt_str: q.toFixed(iss.precision) };
-  }
-
   /* ─────────────────────────── the gates ──────────────────────────── */
 
   function gateLabel(spec, id) {
@@ -100,7 +91,7 @@
    * Evaluate one normalized interval (protocol/interval.schema.json) against a
    * profile from the spec.
    * @returns {{verdict:'accept'|'reject', spec_version:string, profile:string,
-   *            checks:Array, failures:Array, mint:object|null}}
+   *            checks:Array, failures:Array, basis_wh:number|null}}
    */
   function evaluateInterval(rec, profile, spec) {
     var p = profile;
@@ -223,7 +214,9 @@
       verdict: accepted ? 'accept' : 'reject',
       checks: checks,
       failures: failures.map(function (c) { return { id: c.id, label: c.label, code: c.code, detail: c.detail }; }),
-      mint: accepted ? mintFor(basisWh, spec) : null
+      /* The energy an accepted interval counts, in Wh: the lower of the two meters, or the
+         single meter where the profile allows one (protocol/evidence.js basisMwh, in mWh). */
+      basis_wh: accepted ? basisWh : null
     };
   }
 
@@ -232,7 +225,6 @@
     INTERVAL_SCHEMA_VERSION: INTERVAL_SCHEMA_VERSION,
     solarElevationDeg: solarElevationDeg,
     evaluateInterval: evaluateInterval,
-    mintFor: mintFor,
     format: format
   };
 }));

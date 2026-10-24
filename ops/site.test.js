@@ -89,11 +89,11 @@ const KNOWN_PRIOR_ACCOUNTS = [
   'GDWVD7H2CKN3S2XZ756I7EITTQF2J3FBBFAMRL3RHBDRALEVOMNRF3I2',
 ];
 
-const ENGINE = ['assets/gates.generated.js', 'assets/qwatt-gates.js', 'assets/qwatt-reconcile.js', 'assets/qwatt-protocol.js'];
+const ENGINE = ['assets/gates.browser.js', 'assets/qwatt-gates.js', 'assets/qwatt-reconcile.js', 'assets/qwatt-protocol.js'];
 const READERS = ['assets/qwatt-live.js', 'assets/qwatt-feed.js'];
-const SEC_HEADERS = ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Strict-Transport-Security', 'Permissions-Policy'];
+const SEC_HEADERS = ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Strict-Transport-Security', 'Permissions-Policy', 'Cross-Origin-Opener-Policy'];
 /* DESIGN §6.6: the browser itself refuses outside scripts, inline scripts, frames, forms and any host not listed. */
-const CSP_CANON = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'";
+const CSP_CANON = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'";
 
 /* ═════════════════════════════ exceptions (§7.6) ═════════════════════════════
  * Each entry: file, rule, match (sub-rule ids, or '*'), reason, fd. An entry whose
@@ -102,17 +102,14 @@ const CSP_CANON = "default-src 'self'; script-src 'self'; style-src 'self' 'unsa
  * (optional) pins the exception to one exact file content (LF-normalized): if the
  * file changes, the exception stops applying and the entry fails as unused. */
 const EXCEPTIONS = [
-  { id: 'E1', file: 'assets/gates.generated.js', rule: 'R-VOCAB', match: ['supply', 'qwatt-amount', 'issuance', 'peg'],
-    reason: 'Generated protocol binding of protocol/gates.spec.json v1.0.0, held to CI conformance; pages never render spec.issuance, a profile description or site (R-FIELDS)', fd: 'FD-2/FD-3: spec 1.1.0' },
-  { id: 'E1', file: 'assets/gates.generated.js', rule: 'R-LOCATION', match: ['loc-city', 'loc-balcony', 'loc-coords'],
-    reason: 'Same generated binding: bench and rooftop profile descriptions and reference coordinates', fd: 'FD-2: spec 1.1.0' },
-  { id: 'E2', file: 'assets/qwatt-gates.js', rule: 'R-VOCAB', match: ['issuance', 'mint', 'mining'],
-    reason: 'Shared gate engine (mintFor, the mint field, a comment naming the rig), held to CI conformance', fd: 'FD-3' },
+  /* The served gate binding carries no text from the spec apart from gate titles and messages; only the bench
+     profile's reference coordinates remain, because the G2 solar-elevation gate computes with them. They are
+     normative values of spec 1.0.0, frozen by architecture freeze v3 (OD-10), and change only with a new spec. */
+  { id: 'E1', file: 'assets/gates.browser.js', rule: 'R-LOCATION', match: ['loc-coords'],
+    reason: 'Served gate binding: the bench profile site.lat/site.lon that G2 computes with (spec 1.0.0, frozen); pages never render them (R-FIELDS)', fd: 'FD-2: spec 1.1.0 with a whole-degree reference point' },
   { id: 'E3', file: 'assets/pages/backup.js', rule: 'R-SECRET', match: ['secret-names'],
     reason: 'FD-6 purge button: localStorage.removeItem of the two August keys on click, never read', fd: 'FD-6 (declined → delete)',
     only: /localStorage\.removeItem\(\s*(['"])qwatt\.(issuerSecret|distSecret)\1\s*\)/ },
-  { id: 'E4', file: 'assets/qwatt-protocol.js', rule: 'R-VOCAB', match: ['issuance', 'mining', 'mint'],
-    reason: 'Generated browser build: embeds the protocol sources byte for byte (§9.2); never rendered', fd: 'FD-3' },
 ];
 
 /* ═════════════════════════════ helpers ═════════════════════════════ */
@@ -1294,7 +1291,7 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
   for (const r of VERCEL.rewrites || []) if (!resolvesSite(r.destination).ok) fail(F, 0, 'R-VERCEL', '6', r.destination, 'rewrite destination does not resolve');
   const blk = (VERCEL.headers || []).find((h) => h.source === '/(.*)');
   const keys = blk ? (blk.headers || []).map((h) => h.key.toLowerCase()) : [];
-  for (const k of SEC_HEADERS) if (!keys.includes(k.toLowerCase())) fail(F, 0, 'R-VERCEL', '3', k, 'keep the five security headers');
+  for (const k of SEC_HEADERS) if (!keys.includes(k.toLowerCase())) fail(F, 0, 'R-VERCEL', '3', k, 'keep the six security headers');
   const csp = cspHeader();
   if (!csp) fail(F, 0, 'R-VERCEL', '3', 'no Content-Security-Policy', 'add the CSP of DESIGN §6.6 for every page');
   /* Every deployed page gets exactly one CSP, equal to the canonical one (connect-src may add the feed host).
@@ -1304,7 +1301,7 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
     const urlPath = p === 'index.html' ? '/' : '/' + p;
     const hs = headersFor(urlPath);
     const csps = hs.filter((h) => h.key.toLowerCase() === 'content-security-policy');
-    for (const k of SEC_HEADERS) if (!hs.some((h) => h.key.toLowerCase() === k.toLowerCase())) fail(F, 0, 'R-VERCEL', '3', `${urlPath} ${k}`, 'every page keeps the five security headers');
+    for (const k of SEC_HEADERS) if (!hs.some((h) => h.key.toLowerCase() === k.toLowerCase())) fail(F, 0, 'R-VERCEL', '3', `${urlPath} ${k}`, 'every page keeps the six security headers');
     if (csps.length !== 1) { fail(F, 0, 'R-VERCEL', '3', `${urlPath}: ${csps.length} CSP headers`, 'every deployed page gets exactly one Content-Security-Policy'); continue; }
     const v = csps[0].value, d = cspDirectives(v);
     if (/unsafe-eval/.test(v)) fail(F, 0, 'R-VERCEL', '3', `${urlPath} unsafe-eval`, "no 'unsafe-eval'");
@@ -1340,7 +1337,9 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
 (function ignoreRules() {
   const F = '.vercelignore';
   const lines = IGNORE_TEXT.split(/\r?\n/).map((l) => l.trim());
-  for (const need of ['mining-rig', '.env*', 'node_modules', 'vendor-src', 'assets/vendor', 'qwatt-wallet.js', 'deployment.json', 'set-home-domain.js', 'ops', 'anchor', 'batch', 'live', 'ingest', 'docs', '.github', 'og-image.png', '_headers', 'protocol/*']) {
+  for (const need of ['mining-rig', '.env*', 'node_modules', 'vendor-src', 'assets/vendor', 'qwatt-wallet.js', 'deployment.json', 'set-home-domain.js', 'ops', 'anchor', 'batch', 'live', 'ingest', 'docs', '.github', 'og-image.png', '_headers', 'protocol/*',
+    'assets/gates.generated.js', 'README.md', 'THIRD_PARTY_NOTICES.md', 'evidence/harness', 'evidence/dress-rehearsal/WRITEUP-dress.md', 'evidence/asset-rehearsal/asset-*.json',
+    'live-state', '/video', '*.mp4', '*.mov', '__pycache__', '.gitattributes']) {
     if (!lines.includes(need)) fail(F, 0, 'R-IGNORE', need, need, `.vercelignore must list "${need}"`);
   }
   const negs = lines.filter((l) => /^!protocol\//.test(l)).sort();

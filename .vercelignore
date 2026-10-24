@@ -35,6 +35,22 @@ deployment.json
 og-image.png
 # Stale Netlify file; vercel.json sets the headers.
 _headers
+# Node-only gate binding (full spec text). Pages load assets/gates.browser.js, generated from the same spec.
+assets/gates.generated.js
+# Repository documents and raw evidence records: on GitHub, never fetched by a page.
+README.md
+THIRD_PARTY_NOTICES.md
+evidence/harness
+evidence/dress-rehearsal/WRITEUP-dress.md
+# The asset rehearsal record (prior work) stays on GitHub; pages read evidence/asset-rehearsal/anchors.json.
+evidence/asset-rehearsal/asset-*.json
+# Mirrors .gitignore for a vercel CLI upload from a local checkout (a Git deploy ships tracked files only).
+live-state
+/video
+*.mp4
+*.mov
+__pycache__
+.gitattributes
 # Protocol sources live on GitHub. Only the two schemas and the reason registry are served,
 # so their $id URLs resolve (DESIGN D-16).
 protocol/*
