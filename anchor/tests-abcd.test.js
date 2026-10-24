@@ -395,6 +395,40 @@ test('I: a pending proposal whose batch the verifier cannot download is refused 
   await w.host.close();
 });
 
+test('I reads the public evidence at one commit (V3-7c): the branch head is resolved after Horizon, the proxy forwards everything else from that commit, and the evidence records feed_commit', async () => {
+  const { fakeGithub } = require('./fake-github');
+  const PF = require('../ops/publish-feed');
+  const gitOut = (args) => require('child_process').execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+  const w = await world();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-gh-'));
+  const bare = path.join(root, 'qwatt-evidence.git');
+  gitOut(['init', '--quiet', '--bare', bare]);
+  const timeline = [];
+  const gh = await fakeGithub({ repos: { 'acme/qwatt-evidence': bare }, onRequest: (r) => timeline.push('github ' + r.path) });
+  hosts.push(gh);
+  const loadAccount = w.fake.loadAccount.bind(w.fake);
+  w.fake.loadAccount = async (...a) => { timeline.push('horizon account'); return loadAccount(...a); };
+  const publish = () => PF.publishOnce({ kind: 'evidence', feed: w.feedDir, run: 'run', remote: bare, branch: 'main', work: path.join(root, 'work') });
+  const feedUrl = `${gh.rawOrigin}/acme/qwatt-evidence/main/run`;
+  publish();
+  /* a read before the proposal (a reviewer, the watchdog): the CDN keeps a 404 for the envelope's branch path */
+  eq((await fetch(`${feedUrl}/pending/abcd-000000.xdr`)).status, 404, 'the CDN holds a 404 for the pending envelope');
+  await w.proposer.tick();
+  publish();
+  const head = gitOut(['--git-dir', bare, 'rev-parse', 'main']);
+  timeline.length = 0;
+  const r = await X.testI({ feedUrl, cfg: w.cfg, server: w.fake, feedOptions: { pin: { rawOrigin: gh.rawOrigin, gitOrigin: gh.gitOrigin } } });
+  assert(r.ok, `I runs on the live proposal at the commit, not on the CDN's copy: ${JSON.stringify({ ok: r.ok, detail: r.detail, reasons: r.reasons })}`);
+  eq(JSON.stringify(r.reasons), JSON.stringify(['verifier.not_published']), 'reasons');
+  eq(r.feed_commit, head, 'the evidence names the commit I read');
+  const firstRefs = timeline.findIndex((x) => /info\/refs/.test(x));
+  assert(firstRefs > timeline.indexOf('horizon account') && timeline.indexOf('horizon account') >= 0, `Horizon first, then the head commit: ${timeline.join(' | ')}`);
+  const raw = timeline.filter((x) => x.startsWith('github /raw/'));
+  assert(raw.length > 0 && raw.every((x) => x.startsWith(`github /raw/acme/qwatt-evidence/${head}/run/`)), `the proxy forwards from the commit, never the branch path: ${raw.join(' | ')}`);
+  assert(!raw.some((x) => x.endsWith('/run/batches/abcd-000000.json')), `the withheld batch is answered by the proxy and never forwarded: ${raw.join(' | ')}`);
+  eq(w.fake.submissions, 0, 'nothing submitted');
+});
+
 /** Run A, B, D and I while one proposal is live, then C, merging them as the hosts would. */
 async function fullEvidence(w, file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-ev-')), 'abcd.json')) {
   await w.proposer.tick();
@@ -1100,6 +1134,27 @@ test('preflight takes the three signer keys from anchor.json\'s signers when no 
   assert(acct.some((x) => /anchoring account readable/.test(x.name) && x.ok === false), `they ran against the config's account and signers (Horizon unreachable here): ${JSON.stringify(acct)}`);
   const without = await P.preflight({ config: cliConfig({ horizon_url: 'https://127.0.0.1:9', signers: undefined }).file });
   assert(without.checks.some((x) => x.group === 'account' && x.ok === null && /--proposer/.test(x.name)), 'a config without signers and no flags: skipped, and it says how to run them');
+});
+
+test('V3-7c: the preflight\'s reconcile line names where the evidence was read (a feed that is not a repository is named as given)', async () => {
+  const P = require('../ops/preflight');
+  const { serveHorizon } = require('./fake-horizon-http');
+  const w = await world(await configuredAccount());
+  const signers = { proposer: w.K.proposer.publicKey(), verifier: w.K.verifier.publicKey(), third: w.K.third.publicKey() };
+  fs.writeFileSync(path.join(w.feedDir, 'faults.json'), JSON.stringify({ label: 'Simulated input · assurance A0 · Stellar testnet', anchoring: { network: 'testnet', signers }, faults: [] }));
+  const hz = await serveHorizon({ account: w.cfg.anchor_account, record: () => w.fake.restRecord(), anchors: () => w.fake.restAnchors() });
+  hosts.push(hz);
+  await w.proposer.tick();
+  eq((await w.verifier.tick()).action, 'anchored', 'one batch anchored by proposer + verifier');
+  const cfgFile = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-pre-')), 'anchor.json');
+  fs.writeFileSync(cfgFile, JSON.stringify({ ...w.cfg, horizon_url: hz.url, signers }, null, 2));   // public values only
+  const r = await P.preflight({ config: cfgFile, feed: w.host.url });
+  const rec = r.checks.filter((c) => c.group === 'reconcile');
+  eq(rec.length, 1, `one reconcile line: ${JSON.stringify(rec)}`);
+  assert(/^verdict (RECONCILED|PENDING) \(\d+\/\d+ anchored\) · evidence read at /.test(rec[0].name), `the reconcile line names where the evidence was read: ${rec[0].name} ${rec[0].detail}`);
+  assert(rec[0].name.endsWith(`evidence read at ${w.host.url.replace(/\/+$/, '')}`), `the feed as given (not a repository, so no commit): ${rec[0].name}`);
+  eq(rec[0].ok, true, 'not BROKEN');
+  await w.host.close();
 });
 
 (async () => {
