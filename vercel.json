@@ -7,7 +7,6 @@
     { "source": "/proof/:id", "destination": "/proof.html" }
   ],
   "redirects": [
-    { "source": "/console.html", "destination": "/", "permanent": true },
     { "source": "/grid.html", "destination": "/", "permanent": true },
     { "source": "/pay.html", "destination": "/", "permanent": true },
     { "source": "/wallet.html", "destination": "/", "permanent": true },

@@ -26,7 +26,6 @@ ops-state
 # Until it reads signers and thresholds from Horizon, the page hard-codes "Anchored with 2 of 3 signatures"
 reconcile.html
 # August 2026 hackathon pages, no longer linked from the site. vercel.json redirects each path to /.
-console.html
 grid.html
 pay.html
 wallet.html
