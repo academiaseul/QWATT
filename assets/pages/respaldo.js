@@ -167,7 +167,7 @@
     var known = counts.filter(function (c) { return c != null; });
     var total = known.reduce(function (a, b) { return a + b; }, 0);
     box.x.innerHTML = '<p class="q-tile-v">' + (known.length ? num(String(total), 'vivo') : '—') + '</p><p class="q-tile-s">' +
-      (missing ? state('na', { es: '? NO VERIFICABLE · ' + missing + ' cuenta(s) no existen en testnet', en: '? NOT VERIFIABLE · ' + missing + ' account(s) not on testnet' }) + ' · '
+      (missing ? state('na', { es: '? NO VERIFICABLE', en: '? NOT VERIFIABLE' }) + ' ' + pair({ es: missing + ' cuenta(s) no existen en testnet', en: missing + ' account(s) not on testnet' }) + ' · '
         : known.length === IDS.length ? (total === 0 ? state('ok', T.zeroExp) : state('fail', T.zeroNo)) + ' · ' : '') + pair(T.sinceSub) + '</p>' + vivo();
     box.r.innerHTML = '<p class="q-tile-v">' + num(S.fmtNum(st.net.latestLedger), 'vivo') + '</p><p class="q-tile-s">' + pair(T.ledgerSub) + '</p>' + vivo();
   }

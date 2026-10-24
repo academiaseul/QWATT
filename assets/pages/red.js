@@ -124,7 +124,7 @@
   }
   function weekState(p) {
     var miss = coreMissing();
-    if (miss && p.started) return state('na', { es: '? NO VERIFICABLE · ' + miss + ' cuenta(s) no existen en testnet', en: '? NOT VERIFIABLE · ' + miss + ' account(s) not on testnet' });
+    if (miss && p.started) return state('na', { es: '? NO VERIFICABLE', en: '? NOT VERIFIABLE' }) + ' ' + pair({ es: miss + ' cuenta(s) no existen en testnet', en: miss + ' account(s) not on testnet' });
     if (p.kind === 'gaps') return p.started ? state('na', { es: 'APARTE', en: 'COUNTED APART' }) : state('planned', { es: '○ AÚN NO EMPIEZA', en: '○ NOT STARTED YET' });
     if (!p.started) return state('planned', { es: '○ AÚN NO EMPIEZA', en: '○ NOT STARTED YET' });
     if (!p.ended) return state('planned', { es: '… EN CURSO', en: '… IN PROGRESS' });

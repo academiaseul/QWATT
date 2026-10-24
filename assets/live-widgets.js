@@ -147,7 +147,7 @@
       var since = rows.reduce(function (a, r) { return a + r.since.count; }, 0);
       var n = rows.length, missing = rows.filter(function (r) { return r.week.notFound; }).length;
       /* an account that does not exist (a testnet reset) counts 0 without proving anything: say so instead of a green 0 */
-      var st = missing ? state('na', { es: '? NO VERIFICABLE · ' + missing + ' cuenta(s) no existen en testnet', en: '? NOT VERIFIABLE · ' + missing + ' account(s) not on testnet' })
+      var st = missing ? state('na', { es: '? NO VERIFICABLE', en: '? NOT VERIFIABLE' }) + ' ' + pair({ es: missing + ' cuenta(s) no existen en testnet', en: missing + ' account(s) not on testnet' })
         : total === 0 ? state('ok', { es: '✓ 0, COMO ESPERÁBAMOS', en: '✓ 0, AS EXPECTED' }) : state('fail', { es: '✗ ESPERÁBAMOS 0', en: '✗ WE EXPECTED 0' });
       if (compact) {
         var where = missing ? { es: 'Leído ahora en las ' + (n - missing) + ' de las ' + n + ' cuentas del repositorio que existen: ', en: 'Read now on the ' + (n - missing) + ' of the ' + n + ' repository accounts that exist: ' }
