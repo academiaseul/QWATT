@@ -98,3 +98,11 @@
 .q-keystatus{margin-top:16px;font-size:13.5px;color:var(--ink-2);display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
 .q-callout{margin-top:16px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
 body[data-page="como-funciona"] .q-foot .q-wrap{max-width:var(--maxw-wide)}
+@media(max-width:700px){
+  .q-keys thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .q-keys,.q-keys tbody,.q-keys tr,.q-keys th,.q-keys td{display:block;width:100%}
+  .q-keys tr{background:var(--panel);margin-bottom:8px;padding:10px 12px}
+  .q-keys th,.q-keys td{border-top:0;padding:3px 0}
+  .q-keys .q-kcol{text-align:left !important;width:auto}
+  .q-table-wrap:has(.q-keys){overflow:visible}
+}

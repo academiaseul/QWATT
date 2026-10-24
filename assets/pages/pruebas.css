@@ -86,3 +86,4 @@ html:not(.js) .q-live-checks [data-slot="state"]{visibility:hidden}
 .q-expect{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;font-family:var(--mono);font-size:10.5px !important;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3) !important}
 .q-rows li{grid-template-columns:1fr;gap:2px}
 .q-rows li > span:last-child{padding-left:16px}
+@media(max-width:600px){.q-copy{position:static;margin-bottom:6px}.q-codebox .q-code{padding-right:14px}}

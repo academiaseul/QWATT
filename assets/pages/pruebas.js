@@ -85,7 +85,10 @@
       case 'index': return r.state === 'ok' ? pair(W.index, { f: v.file }) : pair(W.indexBad, { f: v.file });
       case 'body': return r.state === 'ok' ? pair(W.body) + ' ' + shortH(v.recomputed) : r.state === 'na' ? pair(W.noEd) : pair(W.bodyBad);
       case 'one-sig': return pair(W.oneSig) + ' (' + num(String(v.count), 'archivo') + ')';
-      case 'signer': return r.state === 'na' ? pair(W.noEd) : pair(W.sigBy, { r: S.t(ROLE[v.role] || ROLE.unknown) });
+      case 'signer': {
+        var who = ROLE[v.role] || ROLE.unknown;
+        return r.state === 'na' ? pair(W.noEd) : pair({ es: W.sigBy.es.replace('{r}', who.es), en: W.sigBy.en.replace('{r}', who.en) });
+      }
       case 'thresholds': return pair(earlier ? W.thrEarlier : W.thr, { t: v.thresholds || '—' });
       case 'answer': return pair(W.answer, { c: '' }) + codes(v.codes);
       case 'onchain': return r.state === 'offline' ? pair(W.offline, { t: S.fmtTime().slice(0, 5) }) : r.state === 'ok' ? pair(W.onchain, { l: S.fmtNum(v.ledger), m: v.memoShown || '—' }) + ' ' + badge(v.src === 'vivo' ? 'vivo' : 'archivo', { t: S.fmtTime(), p: 'C.transaction.json' }) : pair(W.onchainBad);
@@ -180,8 +183,10 @@
         }).then(function (m) {
           var ps = T.pageState(account, abcd);
           var at = (m.steps.C && m.steps.C.at) || (m.steps.A && m.steps.A.at) || '';
+          var vw = T.VERDICT[abcd.verdict] || T.VERDICT.INCOMPLETE;
+          var line = function (lg) { return W.published[lg].replace('{d}', at ? S.fmtDate(at, lg) : '—').replace('{v}', vw[lg]); };
           stateLine(ps.state === 'testnet' ? 'testnet' : 'curso', ps.state === 'testnet' ? null : { es: 'EN CURSO · SEMANA 2', en: 'IN PROGRESS · WEEK 2' },
-            pair(W.published, { d: at ? S.fmtDate(at) : '—', v: S.t(T.VERDICT[abcd.verdict] || T.VERDICT.INCOMPLETE) }));
+            pair({ es: line('es'), en: line('en') }));
           var box = $('pReal'); box.hidden = false; box.innerHTML = modelHTML(m, false);
           T.ORDER.forEach(function (k) {
             var card = d.querySelector('.q-tcard[data-step="' + k + '"] [data-slot="line"]');

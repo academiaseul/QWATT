@@ -171,3 +171,9 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-callout{margin-top:18px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
 .q-sec .q-head{margin-bottom:6px}
 .q-tamper [hidden],.q-feed-err[hidden]{display:none !important}
+.q-vrow .q-state{white-space:normal;text-align:right;max-width:100%}
+@media(max-width:600px){.q-vrow-h{flex-wrap:wrap}.q-vrow .q-state{flex:1 1 100%;text-align:left}}
+@media(max-width:600px){
+  .q-kv{grid-template-columns:1fr}.q-kv dd{margin-bottom:4px}
+  .q-copy{position:static;margin-bottom:6px}.q-codebox .q-code{padding-right:14px}
+}
