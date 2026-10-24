@@ -122,7 +122,7 @@
       '<dt>' + pair(T.thresholds) + '</dt><dd>' + num(thr(a), 'vivo') + '</dd>' +
       '<dt translate="no">home_domain</dt><dd>' + (a.homeDomain ? '<code translate="no">' + esc(a.homeDomain) + '</code>' : pair(T.notSet)) + '</dd>' +
       '<dt>' + pair(T.trust) + '</dt><dd>' + pair(a.hasQwattTrustline ? T.yesW : T.noW) + '</dd>' +
-      '<dt>' + pair(T.lastTx) + '</dt><dd>' + (r.last ? esc(S.fmtDate(r.last.createdAt)) : '—') + '</dd>' +
+      '<dt>' + pair(T.lastTx) + '</dt><dd>' + (r.last ? S.datePair(r.last.createdAt) : '—') + '</dd>' +
       '<dt>' + pair(T.since) + '</dt><dd>' + (r.since ? num(String(r.since.count), 'vivo') : '—') + '</dd>' +
       '<dt>' + pair(T.oneKey) + '</dt><dd>' + (one ? state('fail', T.yes) : state('ok', T.no)) + '</dd>' +
       '</dl>' + vivo();
@@ -164,8 +164,8 @@
       anc = '<li><span class="q-sk">' + pair(T.ancShort) + '<small>' + pair(T.ancSmall) + '</small></span>' + state('goal', T.goalNo) + '</li>';
     }
     return '<ul class="q-short">' +
-      '<li><span class="q-sk">' + pair(T.augShort) + '<small>' + (aug.a.exists ? pair(T.augSmall, { t: thr(aug.a), n: augKeys }) : pair('notFound')) + '</small></span>' + (augOne ? state('fail', T.yes) : state('ok', T.no)) + '</li>' +
-      '<li><span class="q-sk">' + pair(T.rehShort) + '<small>' + (reh.a.exists ? pair(T.rehSmall, { t: thr(reh.a) }) : pair('notFound')) + '</small></span>' + (rehOne ? state('fail', T.yes) : state('ok', T.no)) + '</li>' +
+      '<li><span class="q-sk">' + pair(T.augShort) + '<small>' + (aug.a.exists ? pair(T.augSmall, { t: thr(aug.a), n: augKeys }) : pair('notFound')) + '</small></span>' + (!aug.a.exists ? state('na', { es: '—', en: '—' }) : augOne ? state('fail', T.yes) : state('ok', T.no)) + '</li>' +
+      '<li><span class="q-sk">' + pair(T.rehShort) + '<small>' + (reh.a.exists ? pair(T.rehSmall, { t: thr(reh.a) }) : pair('notFound')) + '</small></span>' + (!reh.a.exists ? state('na', { es: '—', en: '—' }) : rehOne ? state('fail', T.yes) : state('ok', T.no)) + '</li>' +
       anc + '</ul>' + vivo() + (state0.error ? errHTML(state0.error) : '');
   }
 
@@ -192,6 +192,9 @@
   }
 
   function render() {
+    /* the "live" badge of the keys table stays out of sight while Horizon cannot be read */
+    var ks = d.getElementById('wKeysSrc');
+    if (ks) ks.hidden = !!state0.error;
     var cards = d.querySelectorAll('[data-acct]');
     for (var i = 0; i < cards.length; i++) {
       var el = cards[i], k = el.getAttribute('data-acct'), slot = el.querySelector('[data-slot]');

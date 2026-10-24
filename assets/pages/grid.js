@@ -343,7 +343,7 @@
       }
       if (!data) { out.innerHTML = '<p class="q-note"><span class="q-skel" aria-hidden="true"></span> ' + pair('reading') + '</p>'; return; }
       out.innerHTML = '<ul class="q-txl">' + data.map(function (t) {
-        return '<li><b translate="no">' + (t.memoShown ? esc(t.memoShown) : '') + '</b>' + (t.memoShown ? '' : pair('memoHidden')) + ' · ' + esc(S.fmtDate(t.createdAt)) + ' ' + esc(S.fmtTime(t.createdAt)) + ' · ' +
+        return '<li><b translate="no">' + (t.memoShown ? esc(t.memoShown) : '') + '</b>' + (t.memoShown ? '' : pair('memoHidden')) + ' · ' + S.datePair(t.createdAt) + ' ' + esc(S.fmtTime(t.createdAt)) + ' · ' +
           S.num(String(t.signatures.length), 'vivo') + pair({ es: ' firmas · ', en: ' signatures · ' }) + S.num(String(t.ops), 'vivo') + pair({ es: ' operaciones', en: ' operations' }) +
           (t.memoShown ? ' · <a class="q-link" href="' + esc(C.EXPLORER + '/tx/' + t.hash) + '" target="_blank" rel="noopener">' + pair({ es: 'ver', en: 'view' }) + '<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">' + pair('newTab') + '</span></a>' : '') + '</li>';
       }).join('') + '</ul>' + S.badge('vivo', { t: S.fmtTime() }) +

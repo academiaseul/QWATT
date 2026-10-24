@@ -157,7 +157,7 @@
       }
       var list = rows.map(function (r) {
         return '<li><span translate="no">' + esc(S.shortKey(r.g)) + '</span> · ' + num(String(r.week.count), 'vivo') + ' · ' +
-          (r.week.notFound ? pair('notFound') : pair({ es: 'última: ', en: 'last: ' }) + (r.week.last ? esc(S.fmtDate(r.week.last)) : '—')) + '</li>';
+          (r.week.notFound ? pair('notFound') : pair({ es: 'última: ', en: 'last: ' }) + (r.week.last ? S.datePair(r.week.last) : '—')) + '</li>';
       }).join('');
       return '<p class="q-tile-v">' + num(String(total), 'vivo') + '</p>' +
         '<p class="q-tile-s">' + st + ' · ' + pair({ es: 'desde el 24 oct: ', en: 'since 24 Oct: ' }) + num(String(since), 'vivo') + '</p>' + vivo() +
@@ -210,7 +210,7 @@
         '<dt>' + pair({ es: 'Firmantes con peso', en: 'Signers with weight' }) + '</dt><dd>' + num(String(a.signers.filter(function (s) { return s.weight > 0; }).length), 'vivo') + '</dd>' +
         '<dt>' + pair({ es: 'Peso de la clave maestra', en: 'Master key weight' }) + '</dt><dd>' + num(String(a.masterWeight), 'vivo') + '</dd>' +
         '<dt translate="no">home_domain</dt><dd>' + (a.homeDomain ? '<code translate="no">' + esc(a.homeDomain) + '</code>' : pair({ es: 'no configurado', en: 'not set' })) + '</dd>' +
-        '<dt>' + pair({ es: 'Última transacción', en: 'Last transaction' }) + '</dt><dd>' + (r.last ? esc(S.fmtDate(r.last.createdAt)) : '—') + '</dd>' +
+        '<dt>' + pair({ es: 'Última transacción', en: 'Last transaction' }) + '</dt><dd>' + (r.last ? S.datePair(r.last.createdAt) : '—') + '</dd>' +
         '<dt>' + pair({ es: '¿Una sola clave puede enviar una transacción?', en: 'Can a single key send a transaction?' }) + '</dt><dd>' +
           (one ? state('fail', { es: 'SÍ', en: 'YES' }) : state('ok', { es: 'NO', en: 'NO' })) + '</dd></dl>' + vivo();
     }, { every: 60000 });
@@ -251,7 +251,7 @@
       var last = r.an && r.an.length ? r.an[r.an.length - 1] : null;
       return '<p class="q-tile-v">' + num(S.fmtNum(mwh), 'ensayo') + ' <small>mWh</small></p>' +
         '<p class="q-tile-s">≈ ' + num(S.lang() === 'en' ? kwh : kwh.replace('.', ','), 'ensayo') + ' kWh · ' +
-        (r.an ? num(String(r.an.length), 'ensayo') + pair({ es: ' anclajes', en: ' anchors' }) + (last && last.memoShown ? ' · ' + pair({ es: 'último ', en: 'last ' }) + '<span translate="no">' + esc(last.memoShown) + '</span> · ' + esc(S.fmtDate(last.createdAt)) : '') : '') + '</p>' + ensayo();
+        (r.an ? num(String(r.an.length), 'ensayo') + pair({ es: ' anclajes', en: ' anchors' }) + (last && last.memoShown ? ' · ' + pair({ es: 'último ', en: 'last ' }) + '<span translate="no">' + esc(last.memoShown) + '</span> · ' + S.datePair(last.createdAt) : '') : '') + '</p>' + ensayo();
     }, { every: 120000 });
   }
 
@@ -272,7 +272,7 @@
       }).join('');
       return '<ul class="q-checks">' +
         '<li>' + state(t.ok ? 'ok' : 'fail', t.ok ? { es: '✓ EXITOSA', en: '✓ SUCCESSFUL' } : { es: '✗ FALLIDA', en: '✗ FAILED' }) +
-          pair({ es: 'ledger ', en: 'ledger ' }) + num(S.fmtNum(t.ledger), 'vivo') + ' · ' + esc(S.fmtDate(t.createdAt)) + '</li>' +
+          pair({ es: 'ledger ', en: 'ledger ' }) + num(S.fmtNum(t.ledger), 'vivo') + ' · ' + S.datePair(t.createdAt) + '</li>' +
         '<li>' + (t.signatures.length >= 2 ? state('ok', { es: '✓ DOS FIRMAS', en: '✓ TWO SIGNATURES' }) : state('fail', { es: '✗ UNA FIRMA', en: '✗ ONE SIGNATURE' })) + num(String(t.signatures.length), 'vivo') + pair({ es: ' firmas · memo ', en: ' signatures · memo ' }) +
           (t.memoShown ? '<span translate="no">' + esc(t.memoShown) + '</span>' : pair('memoHidden')) + '</li></ul>' +
         '<ol class="q-ops">' + rows + '</ol>' +

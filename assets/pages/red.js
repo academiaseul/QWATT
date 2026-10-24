@@ -56,14 +56,16 @@
 
   /* ═════════════════ the accounts: stellar.toml + the four evidence files ═════════════════ */
   var evidence = {};      // key → parsed file
-  var accounts = [];      // { g, label:{es,en}, reh }
+  var accounts = [];      // { g, label:{es,en}, reh, signer }
+  /* roles whose keys only sign: they have no account of their own, so they are read with /accounts?signer= (never a 404) */
+  var SIGNING = { proposer: true, verifier: true, third: true };
   function loadEvidence() {
     var keys = Object.keys(REH);
     return Promise.all(keys.map(function (k) {
       return L.evidence(C.REHEARSAL[k].evidence).then(function (j) { evidence[k] = j; }, function () { evidence[k] = null; });
     })).then(function () {
       var seen = {};
-      var add = function (g, label, reh) { if (!seen[g] && L.isPublicKey(g)) { seen[g] = true; accounts.push({ g: g, label: label, reh: reh || null }); } };
+      var add = function (g, label, reh, signer) { if (!seen[g] && L.isPublicKey(g)) { seen[g] = true; accounts.push({ g: g, label: label, reh: reh || null, signer: !!signer }); } };
       add(C.AUGUST.assetAccount, AUG, null);
       add(C.AUGUST.markerDestination, AUG2, null);
       keys.forEach(function (k) {
@@ -71,7 +73,7 @@
         var pk = evidence[k] && evidence[k].public_keys;
         if (pk) Object.keys(pk).forEach(function (role) {
           var r = ROLE[role] || ROLE.other;
-          add(pk[role], { es: REH[k].es + ' · ' + r.es, en: REH[k].en + ' · ' + r.en }, k);
+          add(pk[role], { es: REH[k].es + ' · ' + r.es, en: REH[k].en + ' · ' + r.en }, k, SIGNING[role]);
         });
       });
       if (C.ANCHOR_ACCOUNT) add(C.ANCHOR_ACCOUNT, { es: 'Cuenta de anclaje 2 de 3', en: '2-of-3 anchoring account' }, null);
@@ -97,8 +99,10 @@
     var now = Date.now(), ps = periods(), soon = new Date(now + 86400000).toISOString();
     var jobs = [];
     accounts.forEach(function (a) {
-      jobs.push(L.txCount(a.g, C.SPRINT_START, soon).then(function (r) { a.since = r.count; a.last = r.last; a.notFound = r.notFound; }));
+      if (a.signer) jobs.push(L.signerOf(a.g).then(function (list) { a.signsFor = list; }));
+      else jobs.push(L.txCount(a.g, C.SPRINT_START, soon).then(function (r) { a.since = r.count; a.last = r.last; a.notFound = r.notFound; }));
     });
+    var counted = function () { return accounts.filter(function (a) { return !a.signer && !a.notFound; }); };
     return Promise.all(jobs).then(function () {
       return Promise.all(ps.map(function (p) {
         var wins = p.kind === 'gaps' ? p.gaps : [[p.from, p.to]];
@@ -106,13 +110,20 @@
         p.started = !!wins.length;
         p.ended = p.kind === 'week' && Date.parse(p.to) <= now;
         if (!wins.length) { p.count = null; return null; }
-        return Promise.all(accounts.map(function (a) {
+        return Promise.all(counted().map(function (a) {
           return Promise.all(wins.map(function (x) { return L.txCount(a.g, x[0], x[1]); })).then(function (rs) { return rs.reduce(function (s, r) { return s + r.count; }, 0); });
         })).then(function (cs) { p.count = cs.reduce(function (s, c) { return s + c; }, 0); });
       })).then(function () { return ps; });
     });
   }
+  /* After a testnet reset the core accounts are gone and every count reads 0: that 0 proves nothing, so say so. */
+  function coreMissing() {
+    var core = [C.AUGUST.assetAccount, C.AUGUST.markerDestination].concat(Object.keys(REH).map(function (k) { return C.REHEARSAL[k].account; }));
+    return accounts.filter(function (a) { return a.notFound && core.indexOf(a.g) >= 0; }).length;
+  }
   function weekState(p) {
+    var miss = coreMissing();
+    if (miss && p.started) return state('na', { es: '? NO VERIFICABLE · ' + miss + ' cuenta(s) no existen en testnet', en: '? NOT VERIFIABLE · ' + miss + ' account(s) not on testnet' });
     if (p.kind === 'gaps') return p.started ? state('na', { es: 'APARTE', en: 'COUNTED APART' }) : state('planned', { es: '○ AÚN NO EMPIEZA', en: '○ NOT STARTED YET' });
     if (!p.started) return state('planned', { es: '○ AÚN NO EMPIEZA', en: '○ NOT STARTED YET' });
     if (!p.ended) return state('planned', { es: '… EN CURSO', en: '… IN PROGRESS' });
@@ -145,8 +156,12 @@
     var n = $('rAcctN'); if (n) n.textContent = '(' + accounts.length + ')';
     var at = $('rAccts');
     if (at) at.innerHTML = accounts.map(function (a) {
-      return '<tr><td><code translate="no">' + esc(S.shortKey(a.g)) + '</code></td><td>' + pair(a.label) + '</td><td>' +
-        (a.notFound ? pair({ es: 'no existe en testnet', en: 'not on testnet' }) : a.since == null ? '—' : S.num(String(a.since), 'vivo')) + '</td><td>' + (a.last ? esc(S.fmtDate(a.last)) : '—') + '</td></tr>';
+      var cnt = a.signer
+        ? (a.signsFor == null ? '—' : a.signsFor.length
+          ? pair({ es: 'clave firmante · firma en ', en: 'signing key · signs for ' }) + a.signsFor.map(function (x) { return '<code translate="no">' + esc(S.shortKey(x)) + '</code>'; }).join(', ')
+          : pair({ es: 'clave firmante · hoy no firma en ninguna cuenta de testnet', en: 'signing key · signs for no testnet account today' }))
+        : a.notFound ? pair({ es: 'no existe en testnet', en: 'not on testnet' }) : a.since == null ? '—' : S.num(String(a.since), 'vivo');
+      return '<tr><td><code translate="no">' + esc(S.shortKey(a.g)) + '</code></td><td>' + pair(a.label) + '</td><td>' + cnt + '</td><td>' + (a.last ? S.datePair(a.last) : '—') + '</td></tr>';
     }).join('');
   }
 
@@ -243,7 +258,7 @@
     out.innerHTML = '<ol class="q-rows">' + shown.map(function (t) {
       var n = t.memoShown.slice(3);
       return '<li><b>' + pair({ es: 'Anclaje #' + n, en: 'Anchor #' + n }) + '</b><span class="q-dim" translate="no">' + esc(t.memoShown) + '</span>' +
-        '<span>' + esc(S.fmtDate(t.createdAt)) + ' ' + esc(S.fmtTime(t.createdAt)) + '</span>' +
+        '<span>' + S.datePair(t.createdAt) + ' ' + esc(S.fmtTime(t.createdAt)) + '</span>' +
         '<span>' + S.num(String(t.signatures.length), 'ensayo') + pair({ es: ' firmas', en: ' signatures' }) + ' · ' + S.num(String(t.ops), 'ensayo') + pair({ es: ' operaciones', en: ' operations' }) + '</span>' +
         '<span class="q-tag-s">' + pair(REH[t.reh]) + '</span>' + txLink(t, t.acct) + '</li>';
     }).join('') + '</ol>' +
@@ -256,7 +271,7 @@
     if (!el) return;
     if (augErr && !augLast) { el.innerHTML = errP(augErr); return; }
     if (!augLast) { el.innerHTML = loading(); return; }
-    el.innerHTML = pair({ es: 'última actividad ', en: 'last activity ' }) + esc(S.fmtDate(augLast.createdAt)) + ' · ' + vivo();
+    el.innerHTML = pair({ es: 'última actividad ', en: 'last activity ' }) + S.datePair(augLast.createdAt) + ' · ' + vivo();
   }
 
   /* ═════════════════ watch list (memory only) ═════════════════ */
@@ -295,7 +310,7 @@
       else if (!w.a.exists) body = errP({ code: 'not-found' });
       else {
         var rows = (w.txs || []).map(function (t) {
-          return '<li><span>' + esc(S.fmtDate(t.createdAt)) + ' ' + esc(S.fmtTime(t.createdAt)) + '</span>' +
+          return '<li><span>' + S.datePair(t.createdAt) + ' ' + esc(S.fmtTime(t.createdAt)) + '</span>' +
             '<span>' + (t.ok ? state('ok', { es: '✓ EXITOSA', en: '✓ SUCCESSFUL' }) : state('fail', { es: '✗ FALLIDA', en: '✗ FAILED' })) + '</span>' +
             '<span>' + (t.memoShown ? pair({ es: 'anclaje ', en: 'anchor ' }) + '<b translate="no">' + esc(t.memoShown) + '</b>' : pair({ es: 'otra transacción · ', en: 'other transaction · ' }) + pair('memoHidden')) + '</span>' +
             '<span>' + S.num(String(t.signatures.length), 'vivo') + pair({ es: ' firmas · ', en: ' signatures · ' }) + S.num(String(t.ops), 'vivo') + pair({ es: ' operaciones', en: ' operations' }) + '</span>' + txLink(t, w.g) + '</li>';

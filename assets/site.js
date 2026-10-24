@@ -136,17 +136,18 @@
 
   function doc() { return root.document || null; }
   function lang() { var d = doc(); return d && d.documentElement.getAttribute('data-lang') === 'en' ? 'en' : 'es'; }
-  function fill(s, vars) { return String(s).replace(/\{(\w+)\}/g, function (m, k) { return vars && vars[k] != null ? vars[k] : m; }); }
+  /* a var may be a function of the language (S.dateIn), so a value written once still follows the toggle */
+  function fill(s, vars, lg) { return String(s).replace(/\{(\w+)\}/g, function (m, k) { var v = vars ? vars[k] : null; if (typeof v === 'function') v = v(lg || lang()); return v != null ? v : m; }); }
   function t(key, vars, lg) {
     var o = typeof key === 'string' ? STR[key] : key;
     if (!o) return String(key);
-    return fill(o[lg || lang()], vars);
+    return fill(o[lg || lang()], vars, lg || lang());
   }
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
   /** Both languages inline: <span data-l="es">…</span><span data-l="en">…</span>. */
   function pair(o, vars) {
     var p = typeof o === 'string' ? STR[o] : o;
-    return '<span data-l="es">' + esc(fill(p.es, vars)) + '</span><span data-l="en">' + esc(fill(p.en, vars)) + '</span>';
+    return '<span data-l="es">' + esc(fill(p.es, vars, 'es')) + '</span><span data-l="en">' + esc(fill(p.en, vars, 'en')) + '</span>';
   }
   function num(text, src) { if (!NUM_OPEN[src]) throw new Error('unknown source ' + src); return NUM_OPEN[src] + esc(text) + '</span>'; }
   function badge(src, vars, label) {
@@ -172,6 +173,9 @@
     lg = lg || lang();
     return d.getDate() + ' ' + MON[lg][d.getMonth()] + ' ' + d.getFullYear();
   }
+  /** A date in both languages (the toggle shows one), and the same as a pair() var. */
+  function datePair(iso) { return pair({ es: fmtDate(iso, 'es'), en: fmtDate(iso, 'en') }); }
+  function dateIn(iso) { return function (lg) { return fmtDate(iso, lg); }; }
   function shortKey(g) { return g ? g.slice(0, 4) + '…' + g.slice(-4) : '—'; }
   function shortHash(h) { return h ? h.slice(0, 8) + '…' + h.slice(-6) : '—'; }
 
@@ -180,7 +184,7 @@
 
   var api = {
     NAV: NAV, STATUS: STATUS, SRC: SRC, STR: STR, LINKS: LINKS, DISCLAIMER_ES: DISCLAIMER_ES, DISCLAIMER_EN: DISCLAIMER_EN,
-    t: t, lang: lang, esc: esc, pair: pair, num: num, badge: badge, chip: chip, fmtNum: fmtNum, fmtTime: fmtTime, fmtDate: fmtDate,
+    t: t, lang: lang, esc: esc, pair: pair, num: num, badge: badge, chip: chip, fmtNum: fmtNum, fmtTime: fmtTime, fmtDate: fmtDate, datePair: datePair, dateIn: dateIn,
     shortKey: shortKey, shortHash: shortHash, onLang: onLang, _boot: boot
   };
 

@@ -74,6 +74,9 @@
   function renderNet() {
     var s = { seq: slot('seq'), avg: slot('avg'), tx: slot('tx'), proto: slot('proto') };
     var body = d.getElementById('pStream');
+    /* the "live" badge stays out of sight while Horizon cannot be read */
+    var src0 = d.getElementById('pStreamSrc');
+    if (src0) src0.hidden = !!net.error;
     if (!net.ls.length) {
       var h = net.error ? errHTML(net.error) : loadingHTML();
       Object.keys(s).forEach(function (k) { if (s[k]) s[k].innerHTML = h; });
@@ -198,7 +201,7 @@
     }).then(function (r) {
       var c = r[0], l = r[1], ev = r[2];
       var gap = Math.round((Date.parse(l.createdAt) - Date.parse(c.createdAt)) / 1000);
-      fill('ledger', tpl(T.ledger, { l: num(S.fmtNum(c.ledger), 'vivo'), d: esc(S.fmtDate(c.createdAt)), t: num(utc(c.createdAt), 'vivo') }) + ' ' +
+      fill('ledger', tpl(T.ledger, { l: num(S.fmtNum(c.ledger), 'vivo'), d: S.datePair(c.createdAt), t: num(utc(c.createdAt), 'vivo') }) + ' ' +
         tpl(l.ledger === c.ledger + 1 ? T.next : T.nextGap, { l: num(S.fmtNum(l.ledger), 'vivo'), s: num(String(gap), 'vivo') }) + vivo());
       var pk = ev && ev.public_keys ? ev.public_keys : null;
       var roles = pk ? { proposer: pk.proposer, verifier: pk.verifier, third: pk.third } : null;

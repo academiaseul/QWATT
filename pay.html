@@ -18,12 +18,12 @@
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Cómo se confirma una transacción · Stellar testnet · QWATT">
 <meta name="twitter:description" content="Ledgers de Stellar testnet en vivo y el ciclo de una transacción de anclaje, paso a paso. Solo lectura.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
-<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -166,7 +166,7 @@
         <p class="q-step-n">1</p>
         <div>
           <h3><span data-l="es">Se arma la transacción desde el lote publicado</span><span data-l="en">The transaction is built from the published batch</span></h3>
-          <p>Una sola transacción atómica: op 1 escribe la huella del lote (<code>qwatt.anchor.sha256</code>), op 2 el total acumulado en milivatios-hora (<code>qwatt.cumulative_mwh</code>), op 3 es el pago marcador fijo de 1 stroop; memo <code>QW#0</code>. Todo o nada.</p>
+          <p>Una sola transacción atómica: op 1 escribe la huella del lote (<code>qwatt.anchor.sha256</code>), op 2 el total acumulado en milivatios-hora (<code>qwatt.cumulative_mwh</code>), op 3 es el pago marcador fijo: siempre el mismo y el mínimo que admite Stellar; no representa energía; memo <code>QW#0</code>. Todo o nada.</p>
           <p class="q-step-v" data-fill="batch"></p>
         </div>
       </li>

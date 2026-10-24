@@ -70,12 +70,22 @@
     var p = PRESETS[current];
     var res = G.evaluateInterval(interval(p), SPEC.profiles.bench, SPEC);
     var lg = S.lang();
+    /* numbers in the gate messages as on the rest of the page (and as verificacion-lab.js): decimal comma in ES */
+    var n1 = function (x, k) { var v = x.toFixed(k == null ? 1 : k); return lg === 'en' ? v : v.replace('.', ','); };
+    var INT = { dt: 1, dt_ts: 1, max_dt: 1, max_skew: 1, skew: 1, minutes: 1, nameplate: 1 };
+    var fmt = function (v, k) {
+      if (typeof v !== 'number') return String(v);
+      if (INT[k]) return String(Math.round(v));
+      if (k === 'diff' || k === 'tol') return n1(v, 2);
+      if (k === 'ratio') return n1(v, 3);
+      return n1(v);
+    };
     var titles = {};
     (SPEC.gates || []).forEach(function (g) { titles[g.id] = g.title; });
     var gates = res.checks.map(function (c) {
       /* G2 says only above / below the threshold: the degrees at a known time would hint at the reference location. */
       var msg = c.id === 'elevation' ? S.t(ELEVATION[c.code] || ELEVATION['elevation.ok'])
-        : SPEC.messages && SPEC.messages[lg] && SPEC.messages[lg][c.code] ? G.format(SPEC.messages[lg][c.code], c.detail) : c.code;
+        : SPEC.messages && SPEC.messages[lg] && SPEC.messages[lg][c.code] ? G.format(SPEC.messages[lg][c.code], c.detail, fmt) : c.code;
       var t = titles[c.id] || { es: c.id, en: c.id };
       var st = c.status === 'pass' ? '<span class="q-state" data-state="ok">' + pair({ es: '✓ PASA', en: '✓ PASSES' }) + '</span>'
         : c.status === 'fail' ? '<span class="q-state" data-state="fail">' + pair({ es: '✗ FALLA', en: '✗ FAILS' }) + '</span>'

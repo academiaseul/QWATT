@@ -69,6 +69,8 @@
     missing: { es: 'no encontrada', en: 'not found' },
     signOnly: { es: '– SOLO FIRMA', en: '– SIGNS ONLY' },
     signOnlyWhy: { es: 'clave que solo firma: no tiene cuenta propia en testnet, y no la necesita', en: 'a key that only signs: it has no account of its own on testnet, and needs none' },
+    signsFor: { es: 'firma en ', en: 'signs for ' },
+    signsNone: { es: 'hoy no firma en ninguna cuenta de testnet', en: 'signs for no testnet account today' },
     sweepSign: { es: '{k} claves solo firman (no necesitan cuenta)', en: '{k} keys only sign (they need no account)' },
     fDress: { es: 'Ensayo acelerado', en: 'Accelerated rehearsal' },
     fAbcd: { es: 'Pruebas A–D', en: 'Tests A–D' },
@@ -159,11 +161,14 @@
     var span = function (xs) { if (!xs.length) return '—'; var lo = Math.min.apply(null, xs), hi = Math.max.apply(null, xs); return lo === hi ? String(lo) : lo + '–' + hi; };
     var mw = reh.length ? span(reh.map(function (a) { return a.masterWeight; })) : '—';
     box.s.innerHTML = '<p class="q-tile-v">' + num(span(aug), 'vivo') + ' <small>·</small> ' + num(span(rehW1), 'vivo') + '</p><p class="q-tile-s">' + pair(T.signersSub, { w: mw }) + '</p>' + vivo();
-    var counts = IDS.map(function (id) { var x = st.acct[id]; return x && x.since ? x.since.count : null; });
+    /* an account missing from testnet (after a reset) counts 0 without proving anything: say NOT VERIFIABLE instead of a green 0 */
+    var missing = IDS.filter(function (id) { var x = st.acct[id]; return x && x.since && x.since.notFound; }).length;
+    var counts = IDS.map(function (id) { var x = st.acct[id]; return x && x.since && !x.since.notFound ? x.since.count : null; });
     var known = counts.filter(function (c) { return c != null; });
     var total = known.reduce(function (a, b) { return a + b; }, 0);
     box.x.innerHTML = '<p class="q-tile-v">' + (known.length ? num(String(total), 'vivo') : '—') + '</p><p class="q-tile-s">' +
-      (known.length === IDS.length ? (total === 0 ? state('ok', T.zeroExp) : state('fail', T.zeroNo)) + ' · ' : '') + pair(T.sinceSub) + '</p>' + vivo();
+      (missing ? state('na', { es: '? NO VERIFICABLE · ' + missing + ' cuenta(s) no existen en testnet', en: '? NOT VERIFIABLE · ' + missing + ' account(s) not on testnet' }) + ' · '
+        : known.length === IDS.length ? (total === 0 ? state('ok', T.zeroExp) : state('fail', T.zeroNo)) + ' · ' : '') + pair(T.sinceSub) + '</p>' + vivo();
     box.r.innerHTML = '<p class="q-tile-v">' + num(S.fmtNum(st.net.latestLedger), 'vivo') + '</p><p class="q-tile-s">' + pair(T.ledgerSub) + '</p>' + vivo();
   }
 
@@ -184,7 +189,7 @@
       kv(T.kSigners, num(String(weighted(a)), 'vivo')) +
       kv(T.kMaster, num(String(a.masterWeight), 'vivo')) +
       kv({ es: 'home_domain', en: 'home_domain' }, a.homeDomain ? '<code translate="no">' + esc(a.homeDomain) + '</code>' : pair(T.notSet)) +
-      kv(T.kLast, last ? esc(S.fmtDate(last)) : '—') +
+      kv(T.kLast, last ? S.datePair(last) : '—') +
       kv(T.kSince, since == null ? '—' : num(String(since), 'vivo') + ' ' + (since === 0 ? state('ok', T.expOk) : state('fail', T.zeroNo)));
     if (isReh) {
       var h = a.data['qwatt.anchor.sha256'], m = a.data['qwatt.cumulative_mwh'];
@@ -248,7 +253,7 @@
     var cks = checksFor(id);
     var data = x.a.data, last = an && an.length ? an[an.length - 1] : null;
     var facts = '<dl class="q-dl">' +
-      kv(T.kAnchors, an ? num(S.fmtNum(an.length), 'ensayo') + (last && last.memoShown ? ' <small class="q-dim">' + pair(T.lastQW, { m: last.memoShown, d: S.fmtDate(last.createdAt) }) + '</small>' : '') : '—') +
+      kv(T.kAnchors, an ? num(S.fmtNum(an.length), 'ensayo') + (last && last.memoShown ? ' <small class="q-dim">' + pair(T.lastQW, { m: last.memoShown, d: S.dateIn(last.createdAt) }) + '</small>' : '') : '—') +
       kv(T.kTotal, data['qwatt.cumulative_mwh'] != null ? num(S.fmtNum(+data['qwatt.cumulative_mwh']), 'ensayo') + ' mWh' : '—') +
       kv(T.kHash, data['qwatt.anchor.sha256'] ? '<code translate="no">' + esc(S.shortHash(data['qwatt.anchor.sha256'])) + '</code>' : '—') + '</dl>';
     var list = '';
@@ -279,13 +284,14 @@
   var FROM = { dress: T.fDress, abcd: T.fAbcd, e2e: T.fE2e, asset: T.fAsset };
   function sweepList() {
     var seen = {}, list = [];
-    function add(g, from, role) { if (!L.isPublicKey(g) || seen[g]) return; seen[g] = 1; list.push({ g: g, from: from, role: role }); }
+    /* signer: a key that only signs (proposer, verifier, third). It is read with /accounts?signer=, never /accounts/<key>, which would be a 404. */
+    function add(g, from, role, signer) { if (!L.isPublicKey(g) || seen[g]) return; seen[g] = 1; list.push({ g: g, from: from, role: role, signer: !!signer }); }
     add(A.assetAccount, T.fAug, T.rAug1); add(A.markerDestination, T.fAug, T.rAug2);
     REH.forEach(function (id) {
       var ev = st.ev[id]; if (!ev) return;
       if (id === 'asset') add(ACCTS.asset.g, FROM[id], T.rAccount);
       var pk = ev.public_keys || {};
-      Object.keys(pk).forEach(function (k) { add(pk[k], FROM[id], ROLE[k] || T.rOther); });
+      Object.keys(pk).forEach(function (k) { add(pk[k], FROM[id], ROLE[k] || T.rOther, k === 'proposer' || k === 'verifier' || k === 'third'); });
     });
     return list;
   }
@@ -295,7 +301,9 @@
       var list = sweepList();
       sweep = { list: list, rows: null, err: null };
       renderSweep();
-      return Promise.all(list.map(function (x) { return soft(L.account(x.g)); })).then(function (r) {
+      return Promise.all(list.map(function (x) {
+        return x.signer ? soft(L.signerOf(x.g).then(function (accts) { return { exists: false, id: x.g, signsFor: accts }; })) : soft(L.account(x.g));
+      })).then(function (r) {
         sweep.rows = r; sweep.at = new Date(); renderSweep();
       });
     };
@@ -312,15 +320,21 @@
     var start = Date.parse(C.SPRINT_START), good = 0, signOnly = 0, bad = 0;
     var body = sweep.list.map(function (x, i) {
       var r = sweep.rows[i], a = r.v, cells;
-      var signer = x.role === T.rProposer || x.role === T.rVerifier || x.role === T.rThird;
+      var signer = x.signer;
       if (!a) { bad++; cells = '<td colspan="4">' + errHTML(r.e) + '</td>'; }
-      else if (!a.exists && signer) { signOnly++; cells = '<td colspan="3" class="q-dim">' + pair(T.signOnlyWhy) + '</td><td>' + state('na', T.signOnly) + '</td>'; }
+      else if (!a.exists && signer) {
+        signOnly++;
+        var where = a.signsFor && a.signsFor.length
+          ? pair(T.signsFor) + a.signsFor.map(function (g) { return '<code translate="no">' + esc(S.shortKey(g)) + '</code>'; }).join(', ')
+          : pair(T.signsNone);
+        cells = '<td colspan="3" class="q-dim">' + pair(T.signOnlyWhy) + ' · ' + where + '</td><td>' + state('na', T.signOnly) + '</td>';
+      }
       else if (!a.exists) { bad++; cells = '<td colspan="4">' + state('fail', T.missing) + '</td>'; }
       else {
         var mod = a.lastModified ? Date.parse(a.lastModified) : null;
         var same = mod != null && mod < start;
         if (same) good++; else bad++;
-        cells = '<td>' + num(thr(a), 'vivo') + '</td><td class="q-c-sig">' + num(String(weighted(a)), 'vivo') + '</td><td class="q-c-mod">' + (a.lastModified ? esc(S.fmtDate(a.lastModified)) : '—') + '</td>' +
+        cells = '<td>' + num(thr(a), 'vivo') + '</td><td class="q-c-sig">' + num(String(weighted(a)), 'vivo') + '</td><td class="q-c-mod">' + (a.lastModified ? S.datePair(a.lastModified) : '—') + '</td>' +
           '<td>' + (same ? state('ok', T.unchanged) : state('fail', T.changed)) + '</td>';
       }
       return '<tr><td>' + pair(x.role) + '<small class="q-dim q-sw-from">' + pair(x.from) + '</small></td><td><code translate="no">' + esc(S.shortKey(x.g)) + '</code></td>' + cells + '</tr>';

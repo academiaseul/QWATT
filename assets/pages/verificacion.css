@@ -22,7 +22,8 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-srcard input{position:absolute;left:16px;top:18px;width:18px;height:18px;accent-color:var(--copper);margin:0}
 .q-srcard:has(input:checked){border-color:var(--copper);background:color-mix(in srgb,var(--copper) 8%,var(--panel))}
 .q-srcard:has(input:focus-visible){outline:2px solid var(--copper);outline-offset:3px}
-.q-srcard.is-off{cursor:not-allowed;opacity:.72}
+.q-srcard.is-off{cursor:not-allowed}
+.q-srcard.is-off .q-srcard-p{color:var(--ink-3)}
 .q-srcard-h{display:flex;flex-direction:column;gap:8px}
 .q-srcard-h b{font-size:15px}
 .q-srcard-p{font-size:13.5px;color:var(--ink-2);line-height:1.55}

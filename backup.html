@@ -1,29 +1,29 @@
 <!DOCTYPE html>
-<html lang="es" data-title-en="Key custody: 2 of 3, never in a browser · QWATT">
+<html lang="es" data-title-en="Key custody (plan): 2 of 3, never in a browser · QWATT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Custodia de claves: 2 de 3, sin navegador · QWATT</title>
-<meta name="description" content="Cómo se custodian las claves de QWATT: 2 de 3, generadas fuera del navegador.">
+<title>Custodia de claves (plan): 2 de 3, sin navegador · QWATT</title>
+<meta name="description" content="Plan de custodia de claves de QWATT (planificado, semana 2): cuenta 2 de 3 y claves creadas con stellar-cli fuera del navegador. Ninguna clave pasa por esta web. Solo Stellar testnet.">
 <link rel="canonical" href="https://qwatt.org/backup.html">
 <meta name="theme-color" content="#16100a">
 <meta name="color-scheme" content="dark light">
 <meta property="og:site_name" content="QWATT">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://qwatt.org/backup.html">
-<meta property="og:title" content="Custodia de claves: 2 de 3, sin navegador · QWATT">
-<meta property="og:description" content="Cómo se custodian las claves de QWATT: 2 de 3, generadas fuera del navegador.">
+<meta property="og:title" content="Custodia de claves (plan): 2 de 3, sin navegador · QWATT">
+<meta property="og:description" content="Plan de custodia de claves de QWATT (planificado, semana 2): cuenta 2 de 3 y claves creadas con stellar-cli fuera del navegador. Ninguna clave pasa por esta web. Solo Stellar testnet.">
 <meta property="og:locale" content="es_CL">
 <meta property="og:locale:alternate" content="en_US">
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Custodia de claves: 2 de 3, sin navegador · QWATT">
-<meta name="twitter:description" content="Cómo se custodian las claves de QWATT: 2 de 3, generadas fuera del navegador.">
+<meta name="twitter:title" content="Custodia de claves (plan): 2 de 3, sin navegador · QWATT">
+<meta name="twitter:description" content="Plan de custodia de claves de QWATT (planificado, semana 2): cuenta 2 de 3 y claves creadas con stellar-cli fuera del navegador. Ninguna clave pasa por esta web. Solo Stellar testnet.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
-<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -151,7 +151,7 @@
       <p>En agosto, esta página proponía "un paso más allá": multifirma, bloquear la cuenta que creó el activo y separar cuentas. Ese paso ahora tiene fecha, reglas y pruebas, y se aplica a una cuenta nueva, dedicada solo a anclar constancias.</p>
     </div>
     <ul class="q-lines">
-      <li><span><b>Multifirma 2 de 3, umbrales 2/2/3.</b> Toda transacción de la cuenta necesita el umbral bajo (2), anclar necesita el medio (2) y cambiar firmantes o umbrales, el alto (3). Ninguna clave sola, ni siquiera una de las dos del equipo, puede enviar nada.</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
+      <li><span><b>Multifirma 2 de 3, umbrales 2/2/3.</b> Toda transacción de la cuenta necesita el umbral bajo (2), anclar necesita el medio (2) y cambiar firmantes o umbrales, el alto (3). Ninguna clave sola, ni siquiera una de las dos del equipo, podrá enviar nada.</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
       <li><span><b>Clave maestra en peso 0.</b> La clave con que se crea la cuenta de anclaje se desactiva en la misma transacción que agrega los tres firmantes.</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
       <li><span><b>Cada clave en su propia máquina.</b> Creada con stellar-cli donde se usa, con una copia offline por titular.</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
       <li><span><b>Pruebas A–D en esa cuenta.</b> Una firma sola: la red la rechaza (tx_bad_auth). Dos firmas: anclada. Lote alterado después de la firma del proponente: el verificador lo rechaza y no se ancla nada.</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>

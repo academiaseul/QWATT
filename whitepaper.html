@@ -18,12 +18,12 @@
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="QWATT · documento técnico v3 (octubre 2026)">
 <meta name="twitter:description" content="Documento técnico de QWATT: cómo un verificador de código abierto convierte lecturas de medidores solares en constancias verificables en Stellar testnet, y el estado real de cada parte.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
-<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -97,7 +97,7 @@
 
 <section class="q-psec" id="s1" aria-labelledby="h-s1">
   <div class="q-head"><h2 id="h-s1"><span class="q-psec-n" aria-hidden="true">1</span><span data-l="es">Resumen</span><span data-l="en">Summary</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
-  <p>QWATT es un verificador de código abierto. Toma las lecturas de dos medidores de una misma instalación solar, descarta lo imposible con filtros públicos, agrupa lo aceptado en lotes encadenados por su huella SHA-256 y ancla la huella y el total de cada lote en Stellar testnet, con una cuenta que exige 2 de 3 firmas. Cualquiera puede descargar lo publicado, volver a derivar cada lote con el mismo código y compararlo con lo anclado, sin pedir permiso y sin confiar en nosotros.</p>
+  <p>QWATT es un verificador de código abierto. Toma las lecturas de dos medidores de una misma instalación solar, descarta lo imposible con filtros públicos, agrupa lo aceptado en lotes encadenados por su huella SHA-256 y anclará la huella y el total de cada lote en Stellar testnet con una cuenta 2 de 3 (en preparación, semana 2; el 8 oct se ensayó en cuentas desechables). Cualquiera puede descargar lo publicado, volver a derivar cada lote con el mismo código y compararlo con lo anclado, sin pedir permiso y sin confiar en nosotros.</p>
   <p>Estado al 24 oct 2026, al cierre de la semana 1 del sprint Instawards Chile:</p>
   <ul class="q-status-list">
     <li><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span>el verificador, los filtros, los lotes y la conciliación funcionan y se prueban en cada cambio, con entrada simulada.</span></li>
@@ -290,7 +290,7 @@
     <li><b>Re-derivado y cofirmado por el verificador</b><small>solo si su transacción es idéntica</small></li>
     <li><b>Anclado, o pendiente</b><small>en el ledger que se cierra, o esperando su turno</small></li>
   </ol>
-  <p>La transacción de anclaje es una sola y es atómica: op 1 escribe la huella del lote (<code>qwatt.anchor.sha256</code>), op 2 el total acumulado como número entero en milivatios-hora (<code>qwatt.cumulative_mwh</code>), op 3 es el pago marcador fijo de 1 stroop; memo <code>QW#n</code>. Los anclajes van en orden estricto, y el número de secuencia de la cuenta impide que una propuesta vieja llegue a un ledger.</p>
+  <p>La transacción de anclaje es una sola y es atómica: op 1 escribe la huella del lote (<code>qwatt.anchor.sha256</code>), op 2 el total acumulado como número entero en milivatios-hora (<code>qwatt.cumulative_mwh</code>), op 3 es el pago marcador fijo: siempre el mismo y el mínimo que admite Stellar; no representa energía; memo <code>QW#n</code>. Los anclajes van en orden estricto, y el número de secuencia de la cuenta impide que una propuesta vieja llegue a un ledger.</p>
   <p><a class="q-link" href="/pay.html"><span data-l="es">El ciclo completo de un anclaje real del ensayo, leído en vivo → Cómo se confirma una transacción</span><span data-l="en">The full life of a real rehearsal anchor, read live → How a transaction is confirmed</span></a></p>
 </section>
 
@@ -347,7 +347,7 @@
 
 <section class="q-psec" id="s12" aria-labelledby="h-s12">
   <div class="q-head"><h2 id="h-s12"><span class="q-psec-n" aria-hidden="true">12</span><span data-l="es">El rol del activo QWATT en testnet</span><span data-l="en">The role of the QWATT asset on testnet</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></span></div>
-  <p>El activo QWATT de testnet, creado en el hackathon de agosto, solo se usa como pago marcador fijo (1 stroop) en cada transacción de anclaje, junto a la huella de un lote. No es canjeable por nada, y el archivo <code>stellar.toml</code> del sitio lo declara con <code>is_asset_anchored = false</code>. Cualquier otro uso del activo queda fuera del acuerdo de arquitectura v3.</p>
+  <p>El activo QWATT de testnet, creado en el hackathon de agosto, solo se usa en cada transacción de anclaje, junto a la huella de un lote, como el pago marcador fijo: siempre el mismo y el mínimo que admite Stellar; no representa energía. No es canjeable por nada, y el archivo <code>stellar.toml</code> del sitio lo declara con <code>is_asset_anchored = false</code>. Cualquier otro uso del activo queda fuera del acuerdo de arquitectura v3.</p>
   <div class="q-disc" role="note">
     <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
     <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>

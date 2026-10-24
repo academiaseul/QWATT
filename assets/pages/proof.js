@@ -23,7 +23,7 @@
     dressTxt: { es: '48 horas simuladas en 4 min 18 s, en una cuenta desechable con umbrales 1/2/3, el diseño anterior. Un anclaje por cada hora simulada.', en: '48 simulated hours in 4 min 18 s, on a throwaway account with thresholds 1/2/3, the earlier design. One anchor per simulated hour.' },
     abcdTxt: { es: 'C (proponente + verificador) y L (tercer firmante + verificador) anclaron QW#0 y QW#1. A y B nunca entraron en un ledger, por eso no aparecen aquí: están en la consola.', en: 'C (proposer + verifier) and L (third signer + verifier) anchored QW#0 and QW#1. A and B never entered a ledger, so they are not listed here: see the console.' },
     e2eTxt: { es: 'Seis lotes, un reinicio del proponente y del verificador, y la prueba de independencia: un lote no publicado se rechaza; una vez publicado, se ancla.', en: 'Six batches, a restart of the proposer and the verifier, and the independence test: an unpublished batch is refused; once published, it is anchored.' },
-    assetTxt: { es: 'Tres anclajes con el pago marcador fijo de 1 stroop del activo de un ensayo, en cuentas desechables.', en: 'Three anchors with the fixed 1-stroop marker payment of a rehearsal asset, on throwaway accounts.' },
+    assetTxt: { es: 'Tres anclajes con el pago marcador fijo del activo de un ensayo, en cuentas desechables.', en: 'Three anchors with the fixed marker payment of a rehearsal asset, on throwaway accounts.' },
     augustTxt: { es: 'Crearon el activo de testnet en el hackathon (trabajo previo). Una sola clave controla cada una: no son la cuenta de anclaje. Mostramos fechas y tipos, sin montos, sin memo y sin enlaces.', en: 'They created the testnet asset at the hackathon (prior work). One key controls each: they are not the anchoring account. We show dates and types, with no amounts, no memo and no links.' },
     realLive: { es: 'Leída ahora de Horizon. La conciliación con el feed público llega con la semana 2.', en: 'Read now from Horizon. Reconciliation with the public feed arrives with week 2.' },
     prior8: { es: 'TRABAJO PREVIO · 8 OCT', en: 'PRIOR WORK · 8 OCT' },
@@ -62,7 +62,7 @@
     thType: { es: 'Tipo', en: 'Type' },
     thMemo: { es: 'Memo', en: 'Memo' },
     thHash: { es: 'Huella', en: 'Fingerprint' },
-    thTotal: { es: 'Total (mWh)', en: 'Total (mWh)' },
+    thTotal: { es: 'Total', en: 'Total' },
     thSigs: { es: 'Firmas', en: 'Signatures' },
     thLedger: { es: 'Ledger', en: 'Ledger' },
     thDate: { es: 'Fecha', en: 'Date' },
@@ -256,11 +256,11 @@
         '<td class="q-c-sig">' + num(String(t.signatures.length), 'vivo') + '</td>' +
         '<td class="q-c-led">' + num(S.fmtNum(t.ledger), 'vivo') + '</td>' +
         '<td class="q-c-ops">' + num(String(t.ops), 'vivo') + '</td>' +
-        '<td class="q-c-date">' + esc(S.fmtDate(t.createdAt)) + ' ' + esc(S.fmtTime(t.createdAt).slice(0, 5)) + '</td></tr>';
+        '<td class="q-c-date">' + S.datePair(t.createdAt) + ' ' + esc(S.fmtTime(t.createdAt).slice(0, 5)) + '</td></tr>';
     }).join('');
     return '<div class="q-tbl-head"><p>' + pair(T.showing, { n: shown.length, m: rows.length }) + '</p></div>' +
       '<div class="q-table-wrap"><table class="q-table q-atable"><caption>' + pair(T.caption) + '</caption><thead><tr>' +
-      '<th scope="col">' + pair(T.thType) + '</th><th scope="col">' + pair(T.thMemo) + '</th><th scope="col">' + pair(T.thHash) + '</th><th scope="col">' + pair(T.thTotal) + '</th>' +
+      '<th scope="col">' + pair(T.thType) + '</th><th scope="col">' + pair(T.thMemo) + '</th><th scope="col">' + pair(T.thHash) + '</th><th scope="col">' + pair(T.thTotal) + ' (<span class="q-unit" translate="no">mWh</span>)</th>' +
       '<th scope="col" class="q-c-sig">' + pair(T.thSigs) + '</th><th scope="col" class="q-c-led">' + pair(T.thLedger) + '</th><th scope="col" class="q-c-ops">' + pair(T.thOps) + '</th><th scope="col" class="q-c-date">' + pair(T.thDate) + '</th></tr></thead><tbody>' +
       body + '</tbody></table></div>' +
       (all ? '' : '<p class="q-tbl-more"><button type="button" class="q-btn is-small" data-show-all>' + pair(T.showAll, { m: rows.length }) + '</button></p>') +
@@ -278,7 +278,7 @@
     var w1 = a.signers.filter(function (s) { return s.key !== a.id && s.weight === 1; }).length;
     var since = v.since ? v.since.count : null;
     var tiles = '<div class="q-tiles">' +
-      tile(T.tAnchors, num(S.fmtNum(an.length), 'ensayo'), lastA && lastA.memoShown ? pair(T.last, { m: lastA.memoShown, d: S.fmtDate(lastA.createdAt) }) : '', ensayo()) +
+      tile(T.tAnchors, num(S.fmtNum(an.length), 'ensayo'), lastA && lastA.memoShown ? pair(T.last, { m: lastA.memoShown, d: S.dateIn(lastA.createdAt) }) : '', ensayo()) +
       tile(T.tSigs, num(sigTxt, 'vivo'), anchorTx.length ? pair(T.sigAll, { n: two, m: anchorTx.length }) : '', vivo()) +
       tile(T.tThr, num(a.thresholds.low + '/' + a.thresholds.med + '/' + a.thresholds.high, 'vivo'), pair(T.w1, { n: w1, w: a.masterWeight }) + (id === 'real' ? '' : ' · ' + pair(T.earlier)), vivo()) +
       tile(T.tSince, since == null ? '—' : num(String(since), 'vivo'), id === 'real' ? '' : (since === 0 ? st('ok', T.zeroExp) : since == null ? '' : st('fail', T.zeroNo)) + ' · ' + pair(T.since8), vivo()) +
@@ -310,7 +310,7 @@
       var note = t.ledger === C.AUGUST.creationLedger ? T.augCreate : T.created;
       return '<tr><td>' + kindLabel('prior') + '<br><small class="q-dim">' + pair(note) + '</small></td>' +
         '<td>' + pair('memoHidden') + '</td><td>' + num(String(t.signatures.length), 'vivo') + '</td><td class="q-c-led">' + num(S.fmtNum(t.ledger), 'vivo') + '</td>' +
-        '<td class="q-c-ops">' + num(String(t.ops), 'vivo') + '</td><td class="q-c-date">' + esc(S.fmtDate(t.createdAt)) + '</td><td><span class="q-dim">' + pair(T.noLink) + '</span></td></tr>';
+        '<td class="q-c-ops">' + num(String(t.ops), 'vivo') + '</td><td class="q-c-date">' + S.datePair(t.createdAt) + '</td><td><span class="q-dim">' + pair(T.noLink) + '</span></td></tr>';
     }).join('');
     return head('august', null, chip('previo', T.priorAug)) + tiles +
       '<div class="q-table-wrap"><table class="q-table q-atable"><caption>' + pair(T.capAug) + '</caption><thead><tr><th scope="col">' + pair(T.thType) + '</th><th scope="col">' + pair(T.thMemo) + '</th>' +
@@ -347,7 +347,7 @@
       return '<li>' + k + '<code translate="no">' + esc(o.type) + '</code></li>';
     }).join('') + '</ol>';
   }
-  function kv(k, v) { return '<dt>' + pair(k) + '</dt><dd>' + v + '</dd>'; }
+  function kv(k, v) { return '<dt>' + (k && k.html ? k.html : pair(k)) + '</dt><dd>' + v + '</dd>'; }
   function renderDetail(id, hash, t, ops) {
     var box = $('detalle');
     var f = id ? findRow(id, hash) : null;
@@ -372,14 +372,14 @@
     else if (a && !prevA && a.cumulativeMwh != null && f) energy = +a.cumulativeMwh;
     var rows = kv(T.kType, kindLabel(isAnchor ? 'anchor' : aug ? 'prior' : 'config')) +
       kv(T.kMemo, t.memoShown ? '<span translate="no">' + esc(t.memoShown) + '</span>' : pair('memoHidden')) +
-      (a ? kv({ es: 'qwatt.anchor.sha256', en: 'qwatt.anchor.sha256' }, '<span class="q-hash" translate="no">' + esc(a.sha256) + '</span><button type="button" class="q-btn is-small q-copy" data-copy="" data-copy-text="' + esc(a.sha256) + '">' + pair('copy') + '</button>') : '') +
-      (a && a.cumulativeMwh != null ? kv({ es: 'qwatt.cumulative_mwh', en: 'qwatt.cumulative_mwh' }, num(S.fmtNum(+a.cumulativeMwh), 'ensayo') + ' mWh ' + ensayo()) : '') +
+      (a ? kv({ html: '<code translate="no">qwatt.anchor.sha256</code>' }, '<span class="q-hash" translate="no">' + esc(a.sha256) + '</span><button type="button" class="q-btn is-small q-copy" data-copy="" data-copy-text="' + esc(a.sha256) + '">' + pair('copy') + '</button>') : '') +
+      (a && a.cumulativeMwh != null ? kv({ html: '<code translate="no">qwatt.cumulative_mwh</code>' }, num(S.fmtNum(+a.cumulativeMwh), 'ensayo') + ' mWh ' + ensayo()) : '') +
       (energy != null ? kv(T.kEnergy, num(S.fmtNum(energy), 'ensayo') + ' mWh ' + ensayo()) : '') +
       kv(T.kSigs, num(String(t.signatures.length), 'vivo') + (isAnchor && med != null ? ' · ' + pair(T.sigMed, { n: t.signatures.length, m: med }) : '')) +
       (e && e.pair ? kv(T.kPair, pair(e.pair === 'pv' ? T.pairPV : T.pairTV)) : '') +
       kv(T.kResult, st(t.ok ? 'ok' : 'fail', t.ok ? T.ok : T.bad)) +
       kv(T.kLedger, num(S.fmtNum(t.ledger), 'vivo')) +
-      kv(T.kDate, esc(S.fmtDate(t.createdAt)) + ' · ' + esc(S.fmtTime(t.createdAt)) + ' ' + pair(T.local)) +
+      kv(T.kDate, S.datePair(t.createdAt) + ' · ' + esc(S.fmtTime(t.createdAt)) + ' ' + pair(T.local)) +
       (acct ? kv(T.kAccount, '<code translate="no">' + esc(S.shortKey(acct)) + '</code>') : '') +
       kv(T.kTx, aug ? pair(T.augHash) : '<span class="q-hash" translate="no">' + esc(t.hash) + '</span><br>' + txLink(t.hash)) +
       (e && e.sha && a ? kv(T.xcHead, st(e.sha === a.sha256 ? 'ok' : 'fail', e.sha === a.sha256 ? T.match : T.nomatch) + ' ' + pair(T.xcSeq, { i: q }) + badge('archivo', { p: TABS[id].ev })) : '') +
@@ -426,11 +426,14 @@
     var p = root.location.pathname, q = root.location.search;
     var m = /^\/proof\/(QW-(\d{1,9})|tx-([0-9a-f]{64}))\/?$/.exec(p) || /[?&]id=(QW-(\d{1,9})|tx-([0-9a-f]{64}))(?:&|$)/.exec(q);
     var c = /[?&]c=(real|dress|abcd|e2e|asset|august)(?:&|$)/.exec(q);
-    return { tab: c ? c[1] : null, qw: m && m[2] != null ? +m[2] : null, tx: m && m[3] ? m[3] : null };
+    /* bad: a /proof/<something> path that is neither QW-<n> nor tx-<64 hex>; it gets the not-found message, not a silent list */
+    return { tab: c ? c[1] : null, qw: m && m[2] != null ? +m[2] : null, tx: m && m[3] ? m[3] : null, bad: !m && /^\/proof\/.+/.test(p) };
   }
   function local() { return /^\/proof\.html$/.test(root.location.pathname) && /^(localhost|127\.0\.0\.1|\[::1\])$/.test(root.location.hostname); }
   function urlFor(tab, row) {
-    var c = tab && tab !== defaultTab() ? 'c=' + tab : '';
+    /* every tab but the real account carries ?c=, so a link shared today still opens the same rehearsal anchor after week 2,
+       when the default tab becomes the real account */
+    var c = tab && tab !== 'real' ? 'c=' + tab : '';
     if (!row) return '/proof.html' + (c ? '?' + c : '');
     var id = row.qw != null ? 'QW-' + row.qw : 'tx-' + row.t.hash;
     if (local()) return '/proof.html?id=' + id + (c ? '&' + c : '');
@@ -521,7 +524,7 @@
       route = parse();
       if (C.ANCHOR_ACCOUNT) $('tab-real').querySelector('small').innerHTML = '<span translate="no">' + esc(S.shortKey(C.ANCHOR_ACCOUNT)) + '</span>';
       select(route.tab || defaultTab(), false);
-      if (route.tab === 'real' && !C.ANCHOR_ACCOUNT && (route.qw != null || route.tx)) miss();
+      if (route.bad || (route.tab === 'real' && !C.ANCHOR_ACCOUNT && (route.qw != null || route.tx))) miss();
     });
   }
   if (d.readyState === 'loading') d.addEventListener('DOMContentLoaded', start); else start();

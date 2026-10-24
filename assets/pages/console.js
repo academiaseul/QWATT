@@ -179,7 +179,7 @@
     if (d.hidden) { netTimer = setTimeout(netTick, 5000); return; }
     L.network().then(function (n) {
       var at = new Date();
-      box.innerHTML = pair(T.netA) + ' ' + num(S.fmtNum(n.latestLedger), 'vivo') + ' ' + pair(T.netB, { d: n.closedAt ? S.fmtDate(n.closedAt) + ' ' + S.fmtTime(n.closedAt).slice(0, 5) : '—' }) + ' ' + vivo(at);
+      box.innerHTML = pair(T.netA) + ' ' + num(S.fmtNum(n.latestLedger), 'vivo') + ' ' + pair(T.netB, { d: n.closedAt ? function (lg) { return S.fmtDate(n.closedAt, lg) + ' ' + S.fmtTime(n.closedAt).slice(0, 5); } : '—' }) + ' ' + vivo(at);
       netTimer = setTimeout(netTick, 10000);
     }, function (e) {
       box.innerHTML = e && e.code === 'wrong-network' ? pair('wrongNet') : pair(T.netOff, { t: hhmm() });
@@ -202,10 +202,11 @@
     var v = String(raw == null ? '' : raw).trim();
     if (secretish(v)) { var i = $('qcInput'); if (i) i.value = ''; warnSecret(); return; }
     if (w) w.hidden = true;
-    if (!v) { current = null; out('<p class="q-err" role="status">' + pair(T.empty) + '</p>'); return; }
+    /* every reset of current also bumps seq, so the answer of a lookup still in flight is dropped */
+    if (!v) { seq++; current = null; out('<p class="q-err" role="status">' + pair(T.empty) + '</p>'); return; }
     if (/^[0-9a-fA-F]{64}$/.test(v)) { current = { k: 'tx', v: v.toLowerCase() }; return showTx(current.v); }
     if (/^G[A-Z2-7]{55}$/.test(v) && L.isPublicKey(v)) { current = { k: 'acct', v: v }; return showAccount(v); }
-    current = null;
+    seq++; current = null;
     out('<p class="q-err" role="status">' + pair(T.invalid) + '</p>');
     addLog(T.logInvalid, { t: hhmm() });
   }
@@ -217,14 +218,14 @@
     L.network().then(function () {
       return Promise.all([L.account(g), L.txs(g, { limit: 5 }).catch(function () { return null; })]);
     }).then(function (r) {
-      if (my !== seq) return;
+      if (my !== seq || !current) return;
       var a = r[0];
       current.data = { g: g, a: a, txs: r[1], at: new Date() };
       if (!a.exists) addLog(T.logMissing, { t: hhmm(), g: S.shortKey(g) });
       else addLog(T.logAcct, { t: hhmm(), g: S.shortKey(g), l: a.thresholds.low, m: a.thresholds.med, h: a.thresholds.high, n: a.signers.filter(function (s) { return s.key !== g && s.weight === 1; }).length, w: a.masterWeight });
       renderAccount(current.data, true);
     }, function (e) {
-      if (my !== seq) return;
+      if (my !== seq || !current) return;
       out(errHTML(e));
       addLog(T.logErr, { t: hhmm(), c: (e && e.code) || 'offline' });
     });
@@ -259,7 +260,7 @@
       kv(T.kMaster, pair(T.weightW) + ' ' + num(String(a.masterWeight), 'vivo')) +
       kv(T.kData, dataRows(a, kn && kn.reh, x.at)) +
       kv(T.kHome, a.homeDomain ? '<code translate="no">' + esc(printable(a.homeDomain)) + '</code>' : pair(T.notSet)) +
-      kv(T.kMod, a.lastModified ? esc(S.fmtDate(a.lastModified)) + ' · ' + esc(S.fmtTime(a.lastModified).slice(0, 5)) + ' ' + pair(T.local) : '—') +
+      kv(T.kMod, a.lastModified ? S.datePair(a.lastModified) + ' · ' + esc(S.fmtTime(a.lastModified).slice(0, 5)) + ' ' + pair(T.local) : '—') +
       kv(T.kOne, (one ? state('fail', T.yes) : state('ok', T.no)) + ' <small class="q-dim">' + (one ? pair(T.oneYes, { w: maxW, l: a.thresholds.low }) : pair(T.oneNo, { l: a.thresholds.low })) + '</small>');
     var target = '';
     if (real) {
@@ -271,7 +272,7 @@
     if (x.txs) {
       txs = '<h4 class="q-res-sub">' + pair(T.lastTxs) + '</h4>' + (x.txs.length ? '<ul class="q-ctx">' + x.txs.map(function (t) {
         return '<li><span>' + (t.memoShown ? '<span translate="no">' + esc(t.memoShown) + '</span>' : '<span class="q-dim">' + pair(T.memoShort) + '</span>') + '</span>' +
-          '<span>' + num(String(t.signatures.length), 'vivo') + ' ' + pair(t.signatures.length === 1 ? T.sig1 : T.sigN2) + ' · ' + num(String(t.ops), 'vivo') + ' ' + pair(t.ops === 1 ? T.op1 : T.opN) + ' · ' + esc(S.fmtDate(t.createdAt)) + ' · ' + (t.ok ? state('ok', T.okTx) : state('fail', T.badTx)) + '</span>' +
+          '<span>' + num(String(t.signatures.length), 'vivo') + ' ' + pair(t.signatures.length === 1 ? T.sig1 : T.sigN2) + ' · ' + num(String(t.ops), 'vivo') + ' ' + pair(t.ops === 1 ? T.op1 : T.opN) + ' · ' + S.datePair(t.createdAt) + ' · ' + (t.ok ? state('ok', T.okTx) : state('fail', T.badTx)) + '</span>' +
           (isAug(g) ? '' : lookBtn(t.hash)) + '</li>';
       }).join('') + '</ul>' : '<p class="q-dim">' + pair(T.noTxs) + '</p>');
     }
@@ -283,14 +284,14 @@
     var my = ++seq;
     out(loading());
     L.network().then(function () { return Promise.all([L.tx(hash), L.ops(hash)]); }).then(function (r) {
-      if (my !== seq) return;
+      if (my !== seq || !current) return;
       var t = r[0];
       current.data = { t: t, ops: r[1], at: new Date() };
       if (isAug(t.sourceAccount)) addLog(T.logTxAug, { t: hhmm(), n: S.fmtNum(t.ledger), s: t.signatures.length });
       else addLog(t.ok ? T.logTx : T.logTxBad, { t: hhmm(), h: S.shortHash(t.hash), n: S.fmtNum(t.ledger), s: t.signatures.length });
       renderTx(current.data, true);
     }, function (e) {
-      if (my !== seq) return;
+      if (my !== seq || !current) return;
       out(e && e.code === 'not-found' ? '<p class="q-err" role="status">' + pair({ es: 'No encontramos esa transacción en Stellar testnet (testnet se reinicia periódicamente).', en: 'That transaction is not on Stellar testnet (testnet is reset from time to time).' }) + '</p>' : errHTML(e));
       addLog(T.logErr, { t: hhmm(), c: (e && e.code) || 'offline' });
     });
@@ -314,7 +315,7 @@
       (note ? '<p class="q-res-who">' + pair(note) + '</p>' : kn ? '<p class="q-res-who">' + pair(kn.n) + '</p>' : '<p class="q-res-who">' + pair(T.yoursTx) + '</p>');
     var rows = kv(T.kOk, t.ok ? state('ok', T.okTx) : state('fail', T.badTx)) +
       kv(T.kLedger, num(S.fmtNum(t.ledger), 'vivo')) +
-      kv(T.kDate, esc(S.fmtDate(t.createdAt)) + ' · ' + esc(S.fmtTime(t.createdAt)) + ' ' + pair(T.local)) +
+      kv(T.kDate, S.datePair(t.createdAt) + ' · ' + esc(S.fmtTime(t.createdAt)) + ' ' + pair(T.local)) +
       kv(T.kSigs, num(String(t.signatures.length), 'vivo')) +
       kv(T.kMemo, t.memoShown ? '<span translate="no">' + esc(t.memoShown) + '</span>' : pair('memoHidden')) +
       kv(T.kOps, opsHTML(ops, isAnchor, kn && kn.reh, x.at)) +
@@ -375,7 +376,7 @@
   function preset(p) {
     var input = $('qcInput');
     if (p === 'real') {
-      if (!C.ANCHOR_ACCOUNT) { current = null; out('<p class="q-plan-note">' + chip('planificado') + ' ' + pair(T.realPlan) + '</p>' + badge('plan')); return; }
+      if (!C.ANCHOR_ACCOUNT) { seq++; current = null; out('<p class="q-plan-note">' + chip('planificado') + ' ' + pair(T.realPlan) + '</p>' + badge('plan')); return; }
       if (input) input.value = C.ANCHOR_ACCOUNT;
       return lookup(C.ANCHOR_ACCOUNT);
     }

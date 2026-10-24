@@ -18,12 +18,12 @@
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Pulse · actividad verificable en Stellar testnet · QWATT">
 <meta name="twitter:description" content="La actividad de cada cuenta del proyecto en Stellar testnet, leída en vivo desde Horizon. Solo lectura, solo testnet.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
-<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,7 +94,7 @@
   <div class="q-wrap">
     <div class="q-sec-head">
       <div class="q-head"><h2 id="hWeeks"><span data-l="es">Transacciones en testnet por semana del sprint</span><span data-l="en">Testnet transactions per sprint week</span></h2><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
-      <p>Contamos las transacciones de cada cuenta del proyecto en cada semana del sprint, de lunes 00:00 a sábado 00:00, hora de Chile, como cuenta el registro de cambios. Las de fin de semana van aparte. En la semana 1 no enviamos ninguna transacción, a propósito: fue una semana de arreglos y pruebas, no de anclajes.</p>
+      <p>Contamos las transacciones de cada cuenta del proyecto en cada semana del sprint, de lunes 00:00 a sábado 00:00, hora de Chile (la semana 1 del registro de cambios es lun 19 – vie 23 oct). Las de fin de semana van aparte. En la semana 1 no enviamos ninguna transacción, a propósito: fue una semana de arreglos y pruebas, no de anclajes.</p>
     </div>
     <div class="q-table-wrap">
       <table class="q-table q-weeks">
@@ -108,7 +108,7 @@
     <div id="rWeeksSrc"></div>
     <details class="q-more" id="rAcctBox">
       <summary><span data-l="es">Cuentas revisadas</span><span data-l="en">Accounts checked</span> <span id="rAcctN"></span></summary>
-      <p class="q-note">Las dos cuentas de agosto que publica stellar.toml y todas las claves públicas de los cuatro archivos de evidencia del 8 oct (cuentas desechables). La cuenta de anclaje 2 de 3 se suma cuando exista, en la semana 2.</p>
+      <p class="q-note">Las dos cuentas de agosto que publica stellar.toml y todas las claves públicas de los cuatro archivos de evidencia del 8 oct (cuentas desechables). Las claves que solo firman no tienen cuenta propia: para ellas mostramos en qué cuenta firman, y sus firmas ya cuentan en las transacciones de esa cuenta. La cuenta de anclaje 2 de 3 se suma cuando exista, en la semana 2.</p>
       <div class="q-table-wrap">
         <table class="q-table q-accts">
           <caption><span data-l="es">Cuentas del proyecto en Stellar testnet</span><span data-l="en">Project accounts on Stellar testnet</span></caption>
@@ -143,7 +143,7 @@
   <div class="q-wrap">
     <div class="q-sec-head">
       <div class="q-head"><h2 id="hFeed"><span data-l="es">Anclajes en Stellar testnet</span><span data-l="en">Anchors on Stellar testnet</span></h2><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
-      <p>Cada anclaje es una transacción con memo <code>QW#n</code>: huella del lote, total acumulado y el pago marcador fijo, en una sola operación atómica. Solo mostramos memos de anclaje; cualquier otro memo queda oculto. Todos los anclajes que existen hasta hoy son de los ensayos del 8 oct, en cuentas desechables con entrada simulada.</p>
+      <p>Cada anclaje es una transacción con memo <code>QW#n</code>: huella del lote, total acumulado y el pago marcador fijo, en una sola transacción atómica de tres operaciones. Solo mostramos memos de anclaje; cualquier otro memo queda oculto. Todos los anclajes que existen hasta hoy son de los ensayos del 8 oct, en cuentas desechables con entrada simulada.</p>
     </div>
     <div class="q-seg" id="rPeriods" role="group" aria-label="Período" data-aria-en="Period">
       <button type="button" class="q-btn is-small" data-period="all" aria-pressed="true"><span data-l="es">Todos</span><span data-l="en">All</span></button>
@@ -164,7 +164,7 @@
   <div class="q-wrap">
     <div class="q-sec-head">
       <div class="q-head"><h2 id="hWatch"><span data-l="es">Cuentas observadas</span><span data-l="en">Watched accounts</span></h2><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
-      <p>Agrega una dirección pública G… de Stellar testnet y mira sus últimas transacciones, leídas desde Horizon. Solo lectura: la lista vive en esta pestaña y se borra al cerrarla. Nunca pegues una clave secreta (las que empiezan con S) en una página web; si lo haces aquí, la borramos sin leerla.</p>
+      <p>Agrega una dirección pública G… de Stellar testnet y mira sus últimas transacciones, leídas desde Horizon. Solo lectura: la lista vive en esta pestaña y se borra al cerrarla. Nunca pegues una clave secreta (las que empiezan con S) en una página web; si lo haces aquí, la borramos sin guardarla ni enviarla.</p>
     </div>
     <div class="q-watch">
       <label class="q-ctl-k" for="rWatchIn"><span data-l="es">Agrega una dirección pública G… (solo lectura)</span><span data-l="en">Add a public G… address (read-only)</span></label>

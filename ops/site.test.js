@@ -278,6 +278,7 @@ const VOCAB = [
   V('supply', 'supply', /\b(supply|suministro|circulante|circulacion|circulating|oferta maxima)\b/),
   V('supply-figures', 'supply', /42[.,]?7\s?m\b|42[.,]700[.,]000|100[.,]000[.,]000/),
   V('qwatt-amount', 'supply', /\b(?!20\d\d\b)\d[\d.,]*\s*qwatt\b/), V('xlm-amount', 'supply', /\b\d[\d.,]*\s*xlm\b/),
+  V('stroop-amount', 'supply', /\b\d[\d.,]*[\s-]*stroops?\b/),   // the marker payment is never given an amount (review: one rule, no amounts)
   V('balance', 'supply', /\b(saldos?|balance)\b/),
   V('holder-metrics', 'supply', /\b(trustlines abiertas|open trustlines|cuentas con qwatt|accounts holding qwatt)\b/),
   V('emite', 'issuance', /\bemit(e|en|ir|ido|idos|ida|idas|iendo|io|imos)\b/),
@@ -690,9 +691,9 @@ function selfTest() {
   const flags = (s) => scan(s, vocabAll).length > 0 || /quorelia/i.test(s);
   const seed = 'S' + 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'.repeat(2).slice(0, 55);   // built at runtime: no seed-shaped literal in the repo
   const mustFlag = ['Comprar&nbsp;QWATT', '1 QWATT = 1 MWh', '0.0000001 QWATT', 'Array&aacute;n', 'Santiago', 'precio', 'token', 'issuer', '\\u00e9mite', 'Quorelia', 'cripto',
-    'La tesorer&iacute;a', 'proof of reserves', 'stablecoin', 'descentralizado', 'kWh verificados', 'mining rig', 'Stellar Builder Night', 'US$ 5', 'retiro de CO2e', '−33,45'];
+    'La tesorer&iacute;a', 'proof of reserves', 'stablecoin', 'descentralizado', 'kWh verificados', 'mining rig', 'Stellar Builder Night', 'US$ 5', 'retiro de CO2e', '−33,45', 'pago marcador fijo de 1 stroop', 'the fixed 1-stroop marker payment'];
   const mustPass = [DISCLAIMER_ES, DISCLAIMER_EN, '© 2026 QWATT', 'America/Santiago', 'crypto.subtle', 'paging_token', 'asset_issuer', 'No tiene precio y no se vende.',
-    'pago marcador fijo de 1 stroop', 'inversor híbrido', 'firma criptográfica', '&display=swap', 'Cada dato sale de Horizon', 'nunca pegues una clave secreta',
+    'pago marcador fijo: siempre el mismo y el mínimo que admite Stellar', 'inversor híbrido', 'firma criptográfica', '&display=swap', 'Cada dato sale de Horizon', 'nunca pegues una clave secreta',
     "const crypto = require('crypto')", "crypto.createHash('sha256')", 'La red dice que no', 'Lote #3 · aceptado', 'ventana de 5 minutos', 'comprobar', 'Compruébalo tú', 'transacciones'];
   let nFlag = 0, nPass = 0, nOther = 0;
   for (const s of mustFlag) { nFlag++; if (!flags(s)) problems.push('should flag: ' + s); }

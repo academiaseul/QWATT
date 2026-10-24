@@ -132,7 +132,7 @@
       "summary": { "es": "Lotes con huella SHA-256 encadenada, raíz de lecturas crudas y descarga pública.", "en": "Batches with a chained SHA-256 fingerprint, a raw-reading root and public download." },
       "items": ["D2-CHAIN", "V3-2", "V3-3", "DV-1-4", "V3-5", "V3-7"] },
     { "id": "D3", "title": { "es": "Entrega 3 · Anclaje 2 de 3 y pruebas A–D", "en": "Deliverable 3 · 2-of-3 anchoring and tests A–D" },
-      "summary": { "es": "Ninguna clave sola puede escribir una constancia; la propia red lo rechaza.", "en": "No single key can write a record; the network itself refuses it." },
+      "summary": { "es": "Ninguna clave sola podrá escribir una constancia; la propia red lo rechazará.", "en": "No single key will be able to write a record; the network itself will refuse it." },
       "items": ["D3-REHEARSAL", "V3-1", "DV-5", "OD-1", "V3-4", "V3-8", "V3-11"] },
     { "id": "D4", "title": { "es": "Entrega 4 · Corrida de 7 días, conciliación y recuperación", "en": "Deliverable 4 · 7-day run, reconciliation and recovery" },
       "summary": { "es": "Siete días sin intervención en Stellar testnet, con cada ancla conciliada con su lote.", "en": "Seven unattended days on Stellar testnet, with every anchor reconciled with its batch." },

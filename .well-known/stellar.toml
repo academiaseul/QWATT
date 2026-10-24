@@ -35,7 +35,7 @@ display_decimals = 7
 image = "https://qwatt.org/logo.png"
 status = "test"
 
-desc = "Stellar testnet asset that the QWATT verification prototype uses only as a fixed nominal anchoring marker: each anchoring transaction will carry a fixed marker payment of 1 stroop next to the SHA-256 hash of one batch of meter readings. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC) and not a carbon credit. It has no price and is not for sale."
+desc = "Stellar testnet asset that the QWATT verification prototype uses only as a fixed nominal anchoring marker: each anchoring transaction will carry a fixed minimal marker payment next to the SHA-256 hash of one batch of meter readings. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC) and not a carbon credit. It has no price and is not for sale."
 
 conditions = "Stellar testnet only. Holding QWATT gives no right to energy or to anything else, and QWATT is not redeemable."
 

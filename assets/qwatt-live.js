@@ -229,11 +229,16 @@
 
   /* ───────────────────────────── reads ───────────────────────────── */
 
+  /* A 404 from a path that always exists ('/', '/ledgers') means a wrong Horizon URL, not a missing account:
+     report it as a network error, so no ledger card or chart says "account not found". */
+  function noAccount404(what) {
+    return function (e) { if (e && e.code === 'not-found') throw err('http', 'Horizon answered 404 for ' + what); throw e; };
+  }
   function network() {
     return hz('/', { fresh: true }).then(function (r) {
       if (r.network_passphrase !== CONFIG.PASSPHRASE) throw err('wrong-network', 'unexpected network passphrase');
       return { ok: true, latestLedger: r.history_latest_ledger, closedAt: r.history_latest_ledger_closed_at || null, protocol: r.current_protocol_version || null };
-    });
+    }, noAccount404('/'));
   }
   function slimLedger(l) {
     return { sequence: l.sequence, closedAt: l.closed_at, ops: l.operation_count, okTx: l.successful_transaction_count,
@@ -241,7 +246,7 @@
   }
   function ledgers(n) {
     n = Math.max(1, Math.min(200, n | 0 || 20));
-    return hz('/ledgers?order=desc&limit=' + n).then(function (r) { return r._embedded.records.map(slimLedger); });
+    return hz('/ledgers?order=desc&limit=' + n).then(function (r) { return r._embedded.records.map(slimLedger); }, noAccount404('/ledgers'));
   }
   /** EventSource on /ledgers (new ledgers as they close); polling of / as the fallback. */
   function streamLedgers(cb, onState) {
@@ -290,6 +295,15 @@
         hasQwattTrustline: lines.some(function (b) { return b.asset_code === 'QWATT' && b.asset_issuer === CONFIG.AUGUST.assetAccount; })
       };
     }, function (e) { if (e.code === 'not-found') return { exists: false, id: G }; throw e; });
+  }
+
+  /** The accounts a key signs for, from Horizon /accounts?signer= (always 200, with a list that may be empty).
+      For the keys that only sign and have no account of their own: no page asks Horizon for an account that is not there. */
+  function signerOf(G) {
+    if (!isPublicKey(G)) return Promise.reject(err('bad-address', 'not a public address'));
+    return hz('/accounts?signer=' + G + '&limit=10').then(function (r) {
+      return (r && r._embedded ? r._embedded.records : []).map(function (a) { return a.id || a.account_id; }).filter(isPublicKey);
+    });
   }
 
   function slimTx(t) {
@@ -365,7 +379,7 @@
 
   return {
     CONFIG: CONFIG, POLICY: POLICY,
-    ready: ready, network: network, streamLedgers: streamLedgers, ledgers: ledgers, account: account,
+    ready: ready, network: network, streamLedgers: streamLedgers, ledgers: ledgers, account: account, signerOf: signerOf,
     txCount: txCount, txs: txs, tx: tx, ops: ops, anchors: anchors, evidence: evidence,
     maskMemo: maskMemo, canOneKeySend: canOneKeySend, check223: check223, isPublicKey: isPublicKey,
     looksSecret: looksSecret, weekOf: weekOf, decodeData: decodeData,

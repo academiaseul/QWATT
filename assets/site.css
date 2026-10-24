@@ -5,7 +5,7 @@
 
 :root{
   --bg:#16100a; --panel:#231a10; --panel-2:#1c140c; --panel-3:#2b2015; --line:#3b2d1d; --line-2:#2b2115;
-  --ink:#f0e8dc; --ink-2:#b3a48f; --ink-3:#8b7a64;
+  --ink:#f0e8dc; --ink-2:#b3a48f; --ink-3:#9d8f7c;
   --copper:#d08a57; --copper-2:#c96f3f; --copper-ink:#16100a; --gold:#d9b26a; --green:#3cb87f; --red:#e05c5c; --neutral:#b3a48f;
   --navy:#120c07; --top-bg:rgba(18,12,7,.92);
   --qlogo-ink:#f0e8dc; --qlogo-bolt:#d08a57;
@@ -17,8 +17,8 @@
 }
 html[data-theme="light"]{
   --bg:#faf8f2; --panel:#f1ecdf; --panel-2:#ebe4d3; --panel-3:#e6dfcd; --line:#e2dccd; --line-2:#ebe5d8;
-  --ink:#1b1a14; --ink-2:#474334; --ink-3:#6f6957;
-  --copper:#b0582f; --copper-2:#a44e26; --copper-ink:#fff; --gold:#8a672f; --green:#15803d; --red:#b42318; --neutral:#6f6957;
+  --ink:#1b1a14; --ink-2:#474334; --ink-3:#676151;
+  --copper:#984c29; --copper-2:#a44e26; --copper-ink:#fff; --gold:#7b5c2a; --green:#127035; --red:#b42318; --neutral:#676151;
   --navy:#291d13; --top-bg:rgba(250,248,242,.92);
   --qlogo-ink:#1b1a14; --qlogo-bolt:#b0582f;
 }
@@ -104,12 +104,17 @@ h3{font-size:16px}
   scrollbar-width:thin;scrollbar-color:var(--line) transparent}
 html[data-theme="light"] .q-drawer{background:var(--panel)}
 .q-drawer.is-open{transform:none;visibility:visible}
+/* Docked (1000 px and wider): the header never moves, so the Menú button stays under the pointer and closes the
+   drawer again; the drawer sits below the header and needs no brand or close button of its own. */
 @media(min-width:1000px){
   html.qd-docked body{margin-left:var(--drawer-w)}
-  html.qd-docked .q-top{left:var(--drawer-w)}
+  html.qd-docked .q-top{left:0}
+  html.qd-docked .q-drawer{top:var(--nav-h)}
+  html.qd-docked .q-d-head{display:none}
   .q-overlay{display:none !important}
 }
-.q-d-head{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line-2);flex:none;min-height:var(--nav-h)}
+/* sticky: the close button stays in view when the drawer scrolls to the current page */
+.q-d-head{position:sticky;top:0;z-index:1;background:inherit;display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--line-2);flex:none;min-height:var(--nav-h)}
 .q-d-brand{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.22em;color:var(--ink)}
 .q-d-x{width:40px;height:40px;color:var(--ink-3);font-size:15px}
 .q-d-x:hover{color:var(--ink)}
@@ -124,7 +129,7 @@ html[data-theme="light"] .q-drawer{background:var(--panel)}
 a.q-d-link:hover{color:var(--ink);background:linear-gradient(90deg,color-mix(in srgb,var(--copper) 11%,transparent),transparent 70%);border-left-color:color-mix(in srgb,var(--copper) 55%,transparent);padding-left:14px}
 .q-d-link.is-on{color:var(--ink);background:linear-gradient(90deg,color-mix(in srgb,var(--copper) 16%,transparent),transparent 75%);border-left-color:var(--copper);font-weight:600}
 .q-d-link.is-on .q-d-n,a.q-d-link:hover .q-d-n{color:var(--copper)}
-.q-d-link.is-off{opacity:.62;cursor:default}
+.q-d-link.is-off{color:var(--ink-3);cursor:default}
 .q-d-sub{list-style:none;margin:2px 0 8px 36px;border-left:1px solid var(--line)}
 .q-d-sublink{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.08em;color:var(--ink-3);padding:6px 12px;min-height:30px}
 .q-d-sublink:hover,.q-d-sublink.is-on{color:var(--copper)}
@@ -161,6 +166,7 @@ a.q-d-link:hover{color:var(--ink);background:linear-gradient(90deg,color-mix(in 
 
 /* ── source badges: real vs simulated on every number ── */
 .q-src,.q-card p.q-src,.q-card .q-src{display:block;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--ink-3);margin-top:4px;line-height:1.45}
+.q-src[hidden]{display:none}
 .q-src::before{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;vertical-align:1px;background:var(--neutral);opacity:.7}
 .q-card .q-src[data-src="vivo"],.q-src[data-src="vivo"],.q-src[data-src="recalculado"]{color:color-mix(in srgb,var(--green) 85%,var(--ink-3))}
 .q-src[data-src="vivo"]::before,.q-src[data-src="recalculado"]::before{background:var(--green);opacity:1}
@@ -230,6 +236,8 @@ a.q-d-link:hover{color:var(--ink);background:linear-gradient(90deg,color-mix(in 
 .q-fallback{font-size:12.5px;color:var(--ink-3)}
 .js .q-fallback{display:none}
 .q-state{font-family:var(--mono);font-size:11px;letter-spacing:.08em;font-weight:600}
+/* units and code keep their case inside uppercase labels: mWh is milliwatt-hours, never MWH */
+.q-unit,.q-tile-k code,th code,dt code,caption code{text-transform:none}
 .q-state[data-state="ok"]{color:var(--green)}
 .q-state[data-state="fail"]{color:var(--red)}
 .q-state[data-state="planned"],.q-state[data-state="goal"]{color:var(--copper)}

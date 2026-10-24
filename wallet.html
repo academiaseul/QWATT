@@ -18,12 +18,12 @@
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Cuentas y firmas · QWATT">
 <meta name="twitter:description" content="Consulta en vivo, solo lectura, de las cuentas y firmas de QWATT en Stellar testnet. Ninguna clave pasa por esta web.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
-<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -98,7 +98,7 @@
       </article>
       <article class="q-card q-acct is-prior" data-acct="AUGUST.markerDestination" aria-labelledby="hA2">
         <div class="q-head"><h3 id="hA2"><span data-l="es">Cuenta de agosto 2026, destino del pago marcador</span><span data-l="en">August 2026 account, marker-payment destination</span></h3><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></div>
-        <p class="q-acct-role">Es el destino del pago marcador fijo de 1 stroop de cada anclaje en la configuración de ejemplo (<code>anchor/config.example.json</code>); el destino definitivo se fija en la semana 2. Figura en stellar.toml.</p>
+        <p class="q-acct-role">Es el destino del pago marcador fijo de cada anclaje en la configuración de ejemplo (<code>anchor/config.example.json</code>); el destino definitivo se fija en la semana 2. Figura en stellar.toml.</p>
         <div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div>
       </article>
       <article class="q-card q-acct is-prior" data-acct="REHEARSAL.abcd" data-explorer aria-labelledby="hA3">
@@ -143,7 +143,7 @@
     <p class="q-note">Con 1/2/3 una sola clave basta para una transacción de umbral bajo, como subir el número de secuencia: eso invalida todo anclaje cofirmado que esté pendiente, y llevado al máximo deja la cuenta sin poder enviar nada más. Con 2/2/3 eso ya no se puede hacer con una sola clave (acuerdo de arquitectura v3, §3 y §5).</p>
 
     <div class="q-picker q-panel" id="wPicker" aria-labelledby="hPick">
-      <div class="q-head"><h3 id="hPick"><span data-l="es">Elige quién firma, y mira qué responde la red</span><span data-l="en">Pick who signs, and see what the network answers</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO · SEMANA 2</span><span data-l="en">PLANNED · WEEK 2</span></span></div>
+      <div class="q-head"><h3 id="hPick"><span data-l="es">Elige quién firma, y mira qué respondería la red (calculado en tu navegador)</span><span data-l="en">Pick who signs and see what the network would answer (computed in your browser)</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO · SEMANA 2</span><span data-l="en">PLANNED · WEEK 2</span></span></div>
       <p class="q-note">Las reglas de la cuenta definitiva (umbrales 2/2/3, tres firmantes de peso 1, clave maestra en peso 0), calculadas en tu navegador. No se envía nada.</p>
       <div class="q-pick-keys" role="group" aria-label="Claves que firman" data-aria-en="Keys that sign">
         <button type="button" class="q-btn q-key" data-key="p" aria-pressed="true"><span data-l="es">Proponente</span><span data-l="en">Proposer</span></button>
