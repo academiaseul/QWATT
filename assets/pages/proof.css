@@ -69,7 +69,7 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-atable td{font-size:13px}
 .q-atable td code{font-size:12px}
 .q-atable tbody tr:hover{background:color-mix(in srgb,var(--copper) 5%,transparent)}
-.q-atable tr.is-on{background:color-mix(in srgb,var(--copper) 10%,transparent)}
+.q-atable tr.is-on{background:color-mix(in srgb,var(--copper) 8%,var(--panel))}
 .q-kind{display:inline-block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;padding:2px 7px;border:1px solid var(--line);border-radius:3px;white-space:nowrap;color:var(--ink-2)}
 .q-kind[data-k="anchor"]{color:var(--green);border-color:color-mix(in srgb,var(--green) 45%,transparent)}
 .q-kind[data-k="prior"]{color:var(--gold);border-color:color-mix(in srgb,var(--gold) 45%,transparent)}
