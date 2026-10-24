@@ -7,11 +7,6 @@
     { "source": "/proof/:id", "destination": "/proof.html" }
   ],
   "redirects": [
-    { "source": "/pay.html", "destination": "/", "permanent": true },
-    { "source": "/wallet.html", "destination": "/", "permanent": true },
-    { "source": "/whitepaper.html", "destination": "/", "permanent": true },
-    { "source": "/terminos.html", "destination": "/", "permanent": true },
-    { "source": "/backup.html", "destination": "/", "permanent": true },
     { "source": "/protocol/gates.spec.json", "destination": "https://github.com/academiaseul/QWATT/blob/main/protocol/gates.spec.json", "permanent": false },
     { "source": "/protocol/conformance/cases.json", "destination": "https://github.com/academiaseul/QWATT/blob/main/protocol/conformance/cases.json", "permanent": false }
   ],

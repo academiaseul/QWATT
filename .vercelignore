@@ -25,13 +25,8 @@ ops
 ops-state
 # Until it reads signers and thresholds from Horizon, the page hard-codes "Anchored with 2 of 3 signatures"
 reconcile.html
-# August 2026 hackathon pages, no longer linked from the site. vercel.json redirects each path to /.
-pay.html
-wallet.html
-whitepaper.html
-terminos.html
-backup.html
-# Files only those pages (or local tooling) use; index.html, verificacion.html and 404.html load none of them.
+# August wallet code and local tooling: no deployed page loads any of them (the August pages were
+# restored without key handling, signing or the vendored wallet kit).
 qwatt-wallet.js
 assets/vendor
 set-home-domain.js

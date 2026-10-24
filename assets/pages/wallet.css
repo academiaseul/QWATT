@@ -1,0 +1,60 @@
+/* QWATT · wallet.html (Cuentas y firmas). Shared values live in /assets/site.css; the hero,
+   live card and widget styles come from /assets/pages/index.css. */
+
+html:not([data-lang="en"]) .q-en-note{display:none}
+.q-phero .q-hero-in{padding-top:56px;padding-bottom:56px}
+.q-phero h1{max-width:20ch}
+
+/* the "never paste a secret" line */
+.q-warn{display:flex;gap:10px;align-items:flex-start;margin-top:16px;max-width:66ch;font-size:13.5px;line-height:1.55;color:var(--ink-2);
+  border:1px solid color-mix(in srgb,var(--red) 45%,var(--line));background:color-mix(in srgb,var(--red) 7%,transparent);padding:10px 12px}
+.q-warn-i{flex:none;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;font-weight:600;
+  color:var(--red);border:1.5px solid var(--red)}
+
+/* the short answer in the hero card */
+.q-short{list-style:none;display:grid;gap:0;margin-top:12px}
+.q-short li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 12px;align-items:baseline;padding:10px 0;border-top:1px solid var(--line)}
+.q-short li:first-child{border-top:0}
+.q-short .q-sk{font-size:13px;color:var(--ink);line-height:1.4}
+.q-short .q-sk small{display:block;font-family:var(--mono);font-size:10.5px;color:var(--ink-3);letter-spacing:.04em;margin-top:2px}
+.q-short .q-state{font-size:12px}
+
+/* account cards */
+.q-acct-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media(max-width:900px){.q-acct-grid{grid-template-columns:1fr}}
+.q-acct{border-top:2px solid var(--line)}
+.q-acct.is-prior{border-top-color:var(--gold)}
+.q-acct.is-plan{border-top-color:var(--copper)}
+.q-acct-role{font-size:13.5px}
+.q-acct .q-dl{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr)}
+.q-acct .q-dl dd{overflow-wrap:anywhere}
+.q-key-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;color:var(--ink-2)}
+.q-key-line code{color:var(--ink);font-size:12.5px}
+.q-signers{list-style:none;display:grid;gap:4px;text-align:right}
+.q-signers li{font-size:12px;line-height:1.45}
+.q-signers .q-role{display:block;font-family:var(--sans);font-size:11.5px;color:var(--ink-3)}
+.q-verdict-line{font-size:13px;color:var(--ink-2);border-left:2px solid var(--gold);padding:6px 0 6px 10px}
+.q-yes,.q-no{font-family:var(--mono);font-weight:600;letter-spacing:.06em}
+.q-yes{color:var(--red)}
+.q-no{color:var(--green)}
+
+/* keys table */
+.q-keys td{font-family:var(--mono);font-size:13px;white-space:nowrap}
+.q-keys th[scope="row"]{font-weight:400;color:var(--ink-2);max-width:42ch}
+.q-keys td small{display:block;font-family:var(--sans);font-size:11.5px;color:var(--ink-3);white-space:normal}
+.q-keys td[data-col="plan"]{color:var(--copper)}
+
+/* who-signs picker */
+.q-picker{margin-top:28px;display:grid;gap:12px}
+.q-pick-keys{display:flex;flex-wrap:wrap;gap:8px}
+.q-key{min-width:0}
+.q-pick-out .q-checks li{padding-left:150px;text-indent:-150px}
+.q-pick-out .q-checks .q-state{min-width:142px}
+@media(max-width:600px){
+  .q-pick-out .q-checks li{padding-left:0;text-indent:0}
+  .q-pick-out .q-checks .q-state{display:block;min-width:0;margin:0 0 2px}
+  .q-keys td{white-space:normal}
+}
+
+.q-dropped{border-top:2px solid var(--red)}
+.q-replaced{border-top:2px solid var(--copper)}
