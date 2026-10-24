@@ -40,7 +40,7 @@ npm run scale                                 # un mes de datos públicos NREL P
 | `ops/` | Vigilancia, publicación del feed, informe automático, chequeo previo y servicios systemd | Watchdog, feed publisher, generated write-up, preflight, systemd units |
 | `datasets/` | Datos públicos NREL PVDAQ (CC BY 4.0) convertidos, con su procedencia y hashes | Converted NREL PVDAQ public data (CC BY 4.0), with provenance and hashes |
 | `evidence/` | Registros de los ensayos previos (8 oct 2026, cuentas desechables) y de la prueba de escala | Records of the prior rehearsals (8 Oct 2026, throwaway accounts) and the scale test |
-| `assets/` | Código del navegador: motor de los filtros, conciliación y bibliotecas empaquetadas (`vendor/`) | Browser code: filter engine, reconciliation, bundled libraries (`vendor/`) |
+| `assets/` | Código del navegador: motor de los filtros, conciliación (lee la cuenta de anclaje y las firmas desde Horizon, y la evidencia en un solo commit) y bibliotecas empaquetadas (`vendor/`) | Browser code: filter engine, reconciliation (reads the anchoring account and the signatures from Horizon, and the evidence at one commit), bundled libraries (`vendor/`) |
 | `vendor-src/` | Puntos de entrada para reconstruir `assets/vendor/` con esbuild | Entry points to rebuild `assets/vendor/` with esbuild |
 | `mining-rig/` | Prototipo Modbus del hackathon de agosto; sus validadores (`validators.js`) siguen en las pruebas | August hackathon Modbus prototype; its validators (`validators.js`) are still tested |
 | `docs/` | Diseño, modelo de verificación, plan del sprint, manual de operación | Design, verification model, sprint plan, runbook |

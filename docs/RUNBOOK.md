@@ -240,12 +240,27 @@ Reconciliation page:
 It reads Horizon first, then the evidence at the branch's head commit (in a browser through
 `api.github.com`, 60 requests an hour per address), and names that commit:
 `evidence read at academiaseul/qwatt-evidence@<sha7>`. `node anchor/reconcile-cli.js`, the write-up and
-the preflight name it the same way.
+the preflight name it the same way. The page also states the anchoring account as Horizon returns it
+(thresholds, master weight and each signer with its role, each ✓ or ✗ against freeze v3 §3) and, for
+every anchor, who signed it ("Signed by": proposer + verifier, or a stand-in), with the fixed label
+"Simulated input · assurance A0 · Stellar testnet" at the top. It needs a browser with WebCrypto
+Ed25519; without one it gives no verdict and points to `node anchor/reconcile-cli.js`. It reads the
+public testnet Horizon (`https://horizon-testnet.stellar.org`) unless a link names another server with
+`&horizon=`. Such a link does not run by itself: the page shows the server and waits for Reconcile, and
+every result then carries the notice `Reading a non-default Horizon: <host>` above the verdict. Use the
+link without `&horizon=` for the daily check. If GitHub's anonymous API limit is reached (HTTP 403 or
+429 from `api.github.com`), the page says so; it resets within the hour, and
+`node anchor/reconcile-cli.js` does not use that API.
+
+A **stand-in** anchor (proposer + third signer) is expected only while the third signer stands in
+for a verifier that is down. It still reconciles, and it is recorded in the write-up ("Stand-in
+anchors"). Any other pair is BROKEN.
 
 ## Daily check (15 minutes)
 
 1. Reconciliation page: the verdict is **RECONCILED**, or **PENDING** with only the last one or two
-   batches waiting.
+   batches waiting; the account panel is all ✓; "Signed by" reads proposer + verifier (a stand-in only
+   during a verifier outage, noted for the write-up).
 2. `node live/audit.js /var/lib/qwatt/feed` on the proposer host: coverage has no gaps, every
    fault that is due shows *refused as expected*, and the `raw:` line counts the raw payloads, each
    tied to a row of a published samples file (any that is not is listed as a problem).

@@ -184,7 +184,7 @@ display it — this is the honesty-label system applied to the physics.
 
 | Level | Setup | Checks active | What it means |
 |---|---|---|---|
-| **A0 · SIMULATED** | Solar simulator, no hardware | none | Demonstration only. Anchored on testnet only with the label "Simulated input"; never presented as generation. |
+| **A0 · SIMULATED** | Solar simulator, no hardware | none | Demonstration only. Anchored on testnet only with the label "Simulated input · assurance A0 · Stellar testnet"; never presented as generation. |
 | **A1 · MEASURED** | One instrument (bench stage 1) | V1, V2, V5, V6 | Real photons, single witness. "Measured, not corroborated." |
 | **A2 · CORROBORATED** | Dual meter + sun witness (bench stage 2 / WattNode v0) | V1–V7 | Two independent instruments agreeing with physics. |
 | **A3 · CO-SIGNED** | A2 + treasury co-signature, vaulted key (WattNode v1) | V1–V7 ×2 | No single party can mint. **Target for the pilot.** |
