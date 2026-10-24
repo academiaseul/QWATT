@@ -1,0 +1,10 @@
+{
+  "latest_batch_id": "rehearsal-000001",
+  "latest_seq": 1,
+  "head_sha256": "852314a2a11f86548e3f8b09c16aa2fd6ef82ae8e8641db5ef20a4bc2d0f5466",
+  "cumulative_mwh": 198000,
+  "spec_version": "1.0.0",
+  "schema_version": "1.1.0",
+  "last_ts_start": "2026-09-20T16:55:00.000Z",
+  "site_id": "rehearsal"
+}
