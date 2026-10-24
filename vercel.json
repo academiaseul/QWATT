@@ -5,7 +5,6 @@
   "outputDirectory": null,
   "redirects": [
     { "source": "/console.html", "destination": "/", "permanent": true },
-    { "source": "/grid.html", "destination": "/", "permanent": true },
     { "source": "/pay.html", "destination": "/", "permanent": true },
     { "source": "/wallet.html", "destination": "/", "permanent": true },
     { "source": "/proof.html", "destination": "/", "permanent": true },
