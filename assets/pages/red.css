@@ -1,0 +1,78 @@
+/* QWATT · red.html (Pulse, TESTNET): read-only activity of the project accounts on Stellar testnet.
+   Shared design values live in /assets/site.css. */
+
+/* ── page hero (same pattern as the other August pages) ── */
+.q-phero{border-bottom:1px solid var(--line);padding:56px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--green) 5%,transparent),transparent 70%)}
+@media(max-width:600px){.q-phero{padding:40px 0 32px}}
+.q-phero h1{max-width:20ch}
+html:not([data-lang="en"]) .q-en-note{display:none}
+.q-live-top{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin:26px 0 12px}
+.q-week1>p:first-child{font-family:var(--mono);font-size:12.5px;letter-spacing:.04em;color:var(--ink)}
+.q-week1 .q-src{margin-top:2px}
+.q-live-top .q-note{margin:0}
+.q-dim{color:var(--ink-3)}
+
+/* live tiles (widgets from /assets/live-widgets.js; INTEGRATE may hoist these to site.css) */
+.q-livegrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,215px),1fr));gap:12px}
+.q-wt{background:var(--panel);padding:16px 16px 14px;border-top:2px solid var(--line);min-width:0;display:flex;flex-direction:column;gap:6px}
+.q-wt.is-live{border-top-color:var(--green)}
+.q-wt.is-plan{border-top-color:var(--copper)}
+.q-wt.is-prior{border-top-color:var(--gold)}
+.q-wt .q-tile-k{display:block;font-weight:500}
+.q-wt .q-tile-k .q-chip{display:flex;width:max-content;margin-top:8px}
+.q-wt .q-tile-v small{font-size:12.5px;color:var(--ink-3)}
+.q-wt .q-checks li{padding-left:0;text-indent:0}
+.q-wt .q-checks .q-state{display:block;min-width:0;margin:0 0 1px}
+.q-plan{font-size:16px;color:var(--copper)}
+.q-mini{list-style:none;font-size:12.5px;color:var(--ink-2);margin-top:4px;display:grid;gap:3px}
+.q-more{margin-top:16px}
+.q-more summary{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);min-height:36px;display:flex;align-items:center;gap:6px}
+.q-more summary:hover{color:var(--copper)}
+.q-more[open] summary{color:var(--ink)}
+
+/* tables */
+.q-table-wrap{margin-top:6px}
+.q-table td .q-state{font-size:10.5px}
+.q-weeks th[scope="row"],.q-evt th[scope="row"]{font-weight:500;color:var(--ink);font-size:13.5px}
+.q-weeks td:last-child{font-family:var(--mono);font-size:15px}
+.q-evt td{font-size:13px}
+.q-evt code,.q-accts code{font-size:12px}
+.q-accts td{font-size:12.5px;color:var(--ink-2)}
+
+/* feed */
+.q-seg{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px}
+.q-seg .q-btn.is-small{min-height:38px;padding:6px 12px}
+@media(max-width:600px){.q-seg .q-btn.is-small{min-height:44px}}
+.q-rows{list-style:none;border-top:1.4px solid var(--ink)}
+.q-rows li{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 14px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13.5px;color:var(--ink-2)}
+.q-rows li b{font-family:var(--mono);font-weight:500;color:var(--ink);min-width:9ch}
+.q-rows.is-small li{font-size:12.5px;padding:8px 0;gap:3px 12px}
+.q-tag-s{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold);border:1px solid color-mix(in srgb,var(--gold) 40%,transparent);padding:1px 7px;border-radius:99px}
+.q-empty{font-size:13.5px;color:var(--ink-2);padding:14px 16px;border:1px dashed var(--line);margin-bottom:6px}
+.q-aug{list-style:none;margin-top:16px;display:grid;gap:8px}
+.q-aug li{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px;font-size:13px;color:var(--ink-2);padding:10px 12px;background:var(--panel);border-left:2px solid var(--gold)}
+.q-aug li .q-src{margin-top:0;display:inline}
+
+/* watch list */
+.q-watch{max-width:760px}
+.q-ctl-k{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3);margin:14px 0 8px}
+.q-watch-row{display:flex;gap:8px;flex-wrap:wrap}
+.q-input{flex:1 1 280px;min-width:0;min-height:44px;padding:8px 12px;background:var(--panel-2);border:1px solid var(--line);border-radius:3px;color:var(--ink);font-family:var(--mono);font-size:13px;letter-spacing:.02em}
+.q-input:focus{outline:2px solid var(--copper);outline-offset:1px;border-color:var(--copper)}
+#rWatchMsg:empty{display:none}
+#rWatchMsg[data-kind="warn"]{color:var(--red);border:1px solid color-mix(in srgb,var(--red) 45%,transparent);padding:8px 10px}
+#rWatchMsg[data-kind="bad"]{color:var(--copper)}
+.q-watched{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,460px),1fr));gap:12px;margin-top:20px}
+.q-wcard{background:var(--panel);padding:14px 16px;border-top:2px solid var(--green);min-width:0}
+.q-wcard-h{display:flex;justify-content:space-between;align-items:flex-start;gap:8px 12px;font-size:14px;margin-bottom:6px}
+.q-wcard>code{display:block;font-size:11.5px;color:var(--ink-2);word-break:break-all;margin-bottom:8px}
+.q-wcard .q-rows{margin-top:8px}
+@media(max-width:700px){
+  .q-evt,.q-evt tbody,.q-evt tr,.q-evt th,.q-evt td{display:block;width:100%}
+  .q-evt caption{display:block;width:100%}
+  .q-evt thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .q-evt tr{border-top:1px solid var(--line);padding:10px 0}
+  .q-evt th[scope="row"],.q-evt td{border-top:0;padding:3px 0}
+  .q-evt td[data-h]::before{content:attr(data-h);display:block;font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+  .q-evt td[colspan]::before{content:none}
+}

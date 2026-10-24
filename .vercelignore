@@ -27,13 +27,10 @@ ops-state
 reconcile.html
 # August 2026 hackathon pages, no longer linked from the site. vercel.json redirects each path to /.
 console.html
-grid.html
 pay.html
 wallet.html
 proof.html
 respaldo.html
-red.html
-piloto.html
 whitepaper.html
 terminos.html
 backup.html
