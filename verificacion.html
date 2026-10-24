@@ -1,752 +1,404 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-title-en="Check it yourself · re-derive a batch · QWATT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QWATT — Verificación</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
-<meta name="description" content="Cómo QWATT prueba que un kWh existió: dos medidores independientes, filtros de verificación que fallan cerrados, y una cadena de evidencia que cualquiera puede volver a verificar sin confiar en nosotros. Solo Stellar testnet.">
+<title>Compruébalo tú · vuelve a derivar un lote · QWATT</title>
+<meta name="description" content="Vuelve a derivar en tu navegador un lote publicado, con el mismo código que usa el verificador, y compáralo con lo anclado en Stellar testnet. Entrada simulada, solo Stellar testnet.">
 <link rel="canonical" href="https://qwatt.org/verificacion.html">
-<meta name="theme-color" content="#120c07">
+<meta name="theme-color" content="#16100a">
+<meta name="color-scheme" content="dark light">
 <meta property="og:site_name" content="QWATT">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://qwatt.org/verificacion.html">
-<meta property="og:title" content="QWATT — Verificación">
-<meta property="og:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Intenta tú mismo falsificar un evento energético.">
+<meta property="og:title" content="Compruébalo tú · vuelve a derivar un lote · QWATT">
+<meta property="og:description" content="Vuelve a derivar en tu navegador un lote publicado, con el mismo código que usa el verificador, y compáralo con lo anclado en Stellar testnet. Entrada simulada, solo Stellar testnet.">
 <meta property="og:locale" content="es_CL">
+<meta property="og:locale:alternate" content="en_US">
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
 <meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Compruébalo tú · vuelve a derivar un lote · QWATT">
+<meta name="twitter:description" content="Vuelve a derivar en tu navegador un lote publicado, con el mismo código que usa el verificador, y compáralo con lo anclado en Stellar testnet. Entrada simulada, solo Stellar testnet.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
 <meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
-<meta name="twitter:title" content="QWATT — Verificación">
-<meta name="twitter:description" content="Filtros de verificación entre un medidor solar y Stellar testnet. Intenta tú mismo falsificar un evento energético.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-  :root{
-    --ink:#f0e8dc; --ink-2:#b3a48f; --grey:#8b7a64; --line:#3b2d1d;
-    --paper:#16100a; --paper-2:#231a10; --paper-3:#2b2015; --navy:#120c07;
-    --teal:#d08a57; --teal-lt:#d9b26a; --amber:#c9a15f;
-    --good:#3cb87f; --bad:#e05c5c; --warn:#d9b26a;
-    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
-    --gut:28px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased}
-  a{color:inherit;text-decoration:none}
-  .wrap{max-width:1000px;margin:0 auto;padding:0 var(--gut)}
-  :focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:3px}
-
-  header.site{padding:88px 0 0}
-  .brand{font-family:var(--mono);font-weight:600;font-size:15px;letter-spacing:.22em;text-transform:uppercase;display:inline-flex;align-items:center;gap:10px;color:var(--ink)}
-  .brand em{font-style:normal;color:var(--teal)}
-  .brand small{font-family:var(--mono);font-size:11px;color:var(--grey);font-weight:400;margin-left:8px;letter-spacing:.14em}
-
-  .s-hero{padding:44px 0 46px;border-bottom:1px solid var(--line)}
-  .tag{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);display:block;margin-bottom:16px}
-  h1{font-size:clamp(1.9rem,1.2rem+2.6vw,3rem);font-weight:300;letter-spacing:-.022em;line-height:1.1;max-width:20ch}
-  h1 b{font-weight:600;color:var(--teal)}
-  .lede{font-size:16.5px;line-height:1.65;color:var(--ink-2);max-width:62ch;margin:20px 0 0}
-  .claim{background:var(--paper-2);border-left:3px solid var(--teal);padding:20px 24px;margin:26px 0 0;max-width:68ch}
-  .claim p{font-size:15px;line-height:1.6;color:var(--ink-2)}
-  .claim p+p{margin-top:12px}
-  .claim b{color:var(--ink);font-weight:600}
-
-  section{padding:52px 0;border-bottom:1px solid var(--line)}
-  h2{font-size:24px;font-weight:400;letter-spacing:-.02em;margin-bottom:8px}
-  h2 .n{font-family:var(--mono);font-size:11px;color:var(--teal);letter-spacing:.18em;display:block;margin-bottom:10px;text-transform:uppercase}
-  .sub{font-size:15px;line-height:1.65;color:var(--ink-2);max-width:64ch;margin-bottom:26px}
-  p{font-size:15px;line-height:1.65;color:var(--ink-2)}
-  b{color:var(--ink);font-weight:600}
-  code{font-family:var(--mono);font-size:.9em;background:var(--paper-2);border:1px solid var(--line);border-radius:3px;padding:1px 6px}
-
-  .rigline{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 26px}
-  .rigline span{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;color:var(--teal);border:1px solid rgba(208,138,87,.4);border-radius:99px;padding:5px 12px}
-
-  /* ---------- interactive lab ---------- */
-  .lab{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
-  @media(max-width:860px){.lab{grid-template-columns:1fr}}
-  .panel{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:20px 22px}
-  .panel h3{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--grey);margin-bottom:16px}
-
-  .presets{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:20px}
-  .presets button{font-family:var(--mono);font-size:11px;letter-spacing:.06em;background:none;border:1px solid var(--line);color:var(--ink-2);border-radius:99px;padding:7px 13px;cursor:pointer;transition:border-color .15s,color .15s,background .15s;min-height:34px}
-  .presets button:hover{border-color:var(--teal);color:var(--teal)}
-  .presets button.on{background:var(--teal);border-color:var(--teal);color:#16100a;font-weight:600}
-
-  .ctl{margin-bottom:16px}
-  .ctl label{display:flex;justify-content:space-between;align-items:baseline;gap:12px;font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;color:var(--ink-2);margin-bottom:7px}
-  .ctl label .v{color:var(--teal);font-weight:500;font-variant-numeric:tabular-nums}
-  .ctl input[type=range]{width:100%;accent-color:var(--teal);height:22px;cursor:pointer}
-  .toggles{display:flex;flex-wrap:wrap;gap:8px}
-  .toggles label{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11.5px;color:var(--ink-2);border:1px solid var(--line);border-radius:6px;padding:9px 12px;cursor:pointer;min-height:38px}
-  .toggles input{accent-color:var(--teal);width:15px;height:15px;cursor:pointer}
-
-  .verdict{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:14px 16px;border-radius:7px;margin-bottom:16px;border:1px solid}
-  .verdict.ok{background:rgba(60,184,127,.09);border-color:rgba(60,184,127,.45)}
-  .verdict.no{background:rgba(224,92,92,.09);border-color:rgba(224,92,92,.45)}
-  .verdict .big{font-family:var(--mono);font-size:15px;font-weight:600;letter-spacing:.14em}
-  .verdict.ok .big{color:var(--good)} .verdict.no .big{color:var(--bad)}
-  .verdict .mint{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);margin-left:auto;font-variant-numeric:tabular-nums;text-align:right}
-
-  .checks{display:flex;flex-direction:column;gap:6px}
-  .chk{display:grid;grid-template-columns:auto auto 1fr;gap:10px;align-items:baseline;padding:9px 11px;border-radius:6px;background:var(--paper);border:1px solid var(--line)}
-  .chk .id{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.08em;color:var(--grey);white-space:nowrap}
-  .chk .st{font-family:var(--mono);font-size:10px;font-weight:600;letter-spacing:.1em;border:1px solid currentColor;border-radius:99px;padding:2px 8px}
-  .chk.pass .st{color:var(--good)} .chk.fail .st{color:var(--bad)}
-  .chk.fail{border-color:rgba(224,92,92,.4)}
-  .chk .txt{font-size:12.5px;color:var(--ink-2);line-height:1.5}
-  .chk.fail .txt{color:var(--ink)}
-
-  .vlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(275px,1fr));gap:14px}
-  .vcard{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:18px 20px}
-  .vcard.soon{opacity:.72;border-style:dashed}
-  .vcard .vid{font-family:var(--mono);font-size:11px;font-weight:600;letter-spacing:.14em;color:var(--teal);margin-bottom:8px;display:flex;justify-content:space-between;gap:8px}
-  .vcard .vid .ph{color:var(--grey);font-weight:400;letter-spacing:.1em}
-  .vcard .sub-h{font-size:15px;font-weight:600;margin-bottom:7px}
-  .vcard p{font-size:13.5px;line-height:1.55}
-  .vcard .adv{display:block;margin-top:10px;font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;color:var(--grey);border-top:1px solid var(--line);padding-top:9px}
-
-  .drills{width:100%;border-collapse:collapse;margin-top:8px;font-size:13.5px}
-  .drills th{font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--grey);text-align:left;padding:9px 12px;border-bottom:1.4px solid var(--ink)}
-  .drills td{padding:11px 12px;border-bottom:1px solid var(--line);color:var(--ink-2);vertical-align:top}
-  .drills td b{color:var(--ink)}
-  .drills .out{font-family:var(--mono);font-size:11.5px;color:var(--bad)}
-  .drills .out.ok{color:var(--good)}
-  .tscroll{overflow-x:auto}
-
-  .ladder{display:flex;flex-direction:column;gap:2px;margin-top:6px}
-  .rung{display:grid;grid-template-columns:64px 1fr auto;gap:16px;align-items:center;padding:14px 16px;background:var(--paper-2);border:1px solid var(--line)}
-  .rung:first-child{border-radius:8px 8px 0 0} .rung:last-child{border-radius:0 0 8px 8px}
-  .rung .lv{font-family:var(--mono);font-size:13px;font-weight:600;color:var(--teal)}
-  .rung .nm{font-size:14px} .rung .nm small{display:block;color:var(--ink-2);font-size:12.5px;margin-top:2px}
-  .rung .where{font-family:var(--mono);font-size:10px;letter-spacing:.12em;color:var(--grey);white-space:nowrap}
-  .rung.now{border-color:var(--teal);background:var(--paper-3)}
-  .rung.now .where{color:var(--teal)}
-
-  .ops{display:flex;flex-direction:column;gap:10px;margin-top:6px}
-  .op{display:grid;grid-template-columns:52px 1fr;gap:14px;align-items:baseline;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:15px 18px}
-  .op .k{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--teal);letter-spacing:.1em}
-  .op p{font-size:13.5px;line-height:1.55}
-
-  .princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px;margin-top:22px}
-  .princ div{background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:16px 18px}
-  .princ .sub-h{font-size:14px;font-weight:600;margin-bottom:6px;color:var(--teal-lt)}
-  .princ p{font-size:13px;line-height:1.55}
-
-  ul.lines{list-style:none}
-  ul.lines li{font-size:14.5px;line-height:1.6;color:var(--ink-2);padding:11px 0 11px 26px;position:relative;border-top:1px solid var(--line)}
-  ul.lines li:first-child{border-top:0}
-  ul.lines li::before{content:'\2717';position:absolute;left:0;color:var(--bad);font-family:var(--mono)}
-  ol.steps{list-style:none;counter-reset:s;display:flex;flex-direction:column;gap:9px}
-  ol.steps li{counter-increment:s;padding-left:40px;text-indent:-40px;font-size:14.5px;line-height:1.6;color:var(--ink-2)}
-  ol.steps li::before{content:counter(s,decimal-leading-zero);display:inline-block;width:28px;margin-right:12px;text-indent:0;font-family:var(--mono);font-size:11px;font-weight:600;color:var(--teal)}
-
-  .foot-note{font-size:13.5px;color:var(--grey);margin-top:22px;max-width:66ch}
-  .foot-note a{color:var(--teal);border-bottom:1px solid rgba(208,138,87,.4)}
-  @media(prefers-reduced-motion:reduce){*{transition:none !important}}
-</style>
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/pages/verificacion.css">
+<script src="/assets/boot.js"></script>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
+<script defer src="/assets/qwatt-live.js"></script>
+<script defer src="/assets/qwatt-reconcile.js"></script>
+<script defer src="/assets/live-widgets.js"></script>
+<script defer src="/assets/gates.generated.js"></script>
+<script defer src="/assets/qwatt-gates.js"></script>
+<script defer src="/assets/qwatt-protocol.js"></script>
+<script defer src="/assets/qwatt-feed.js"></script>
+<script defer src="/assets/qwatt-verify-steps.js"></script>
+<script defer src="/assets/qwatt-envelope.js"></script>
+<script defer src="/assets/pages/verificacion.js"></script>
 </head>
-<body>
-<style id="qtheme">
-:root{--ch-grid:#3b2d1d;--ch-label:#8b7a64;--ch-line:#d08a57;--ch-avg:#c9a15f;--ch-area:rgba(208,138,87,.10);--ch-ring:#f0e8dc}
-html[data-theme="light"]{
-  --bg:#faf8f2;--bg2:#f5f0e6;
-  --paper:#faf8f2;--paper-2:#f1ecdf;--paper-3:#e6dfcd;
-  --panel:#f1ecdf;--panel2:#e6dfcd;
-  --line:#e6e2d6;
-  --ink:#1b1a14;--text:#1b1a14;--ink-2:#474334;
-  --muted:#5a5244;--grey:#6f6957;--faint:#6f6957;
-  --navy:#291d13;--navy-2:#342619;
-  --teal:#b0582f;--teal-lt:#d08a63;--amber:#6b4a2e;
-  --accent:#b0582f;--accent2:#8a672f;--cyan:#8a672f;--sand:#8a672f;--sun:#b0582f;
-  --good:#1a7f4e;--bad:#b91c1c;--warn:#8a6d1f;
-  --ch-grid:#e6e2d6;--ch-label:#6f6957;--ch-line:#b0582f;--ch-avg:#6b4a2e;--ch-area:rgba(176,88,47,.10);--ch-ring:#faf8f2;
-}
-html[data-theme="light"] .btn.primary{color:#fff}
-html[data-theme="light"] .tf button.on{color:#fff}
-html[data-theme="light"] .sim-row .buy{color:#fff}
-html[data-theme="light"] .st-chip.st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
-html[data-theme="light"] .st-chip.st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
-html[data-theme="light"] .st-chip.st-plan,html[data-theme="light"] .st-chip.st-demo{color:#6f6957;border-color:#d9d3c4}
-html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
-html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
-html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
-html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
-html[data-theme="light"] .drawer,html[data-theme="light"] .qdrawer{background:#f1ecdf;border-right:1px solid #e6e2d6;scrollbar-color:#e6dfcd transparent}
-html[data-theme="light"] .drawer::-webkit-scrollbar-thumb,html[data-theme="light"] .qdrawer::-webkit-scrollbar-thumb{background:#e6dfcd}
-html[data-theme="light"] .d-head,html[data-theme="light"] .qd-head{border-bottom:1px solid #e6e2d6}
-html[data-theme="light"] .d-brand,html[data-theme="light"] .qd-brand{color:#1b1a14}
-html[data-theme="light"] .d-brand .bolt-sm,html[data-theme="light"] .qd-brand .qb{color:#b0582f}
-html[data-theme="light"] .d-close,html[data-theme="light"] .qd-x{color:#6f6957}
-html[data-theme="light"] .d-close:hover,html[data-theme="light"] .qd-x:hover{color:#1b1a14}
-html[data-theme="light"] .d-title,html[data-theme="light"] .qd-t{color:#6f6957}
-html[data-theme="light"] .d-link,html[data-theme="light"] .qd-nav a{color:#474334}
-html[data-theme="light"] .d-link::before,html[data-theme="light"] .qd-nav a::before{color:#b0997f}
-html[data-theme="light"] .d-link:hover,html[data-theme="light"] .qd-nav a:hover{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.10),rgba(176,88,47,0) 70%);border-left-color:rgba(176,88,47,.55)}
-html[data-theme="light"] .d-link.on,html[data-theme="light"] .qd-nav a.on{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.15),rgba(176,88,47,0) 75%);border-left-color:#b0582f}
-html[data-theme="light"] .d-link:hover::before,html[data-theme="light"] .qd-nav a:hover::before,html[data-theme="light"] .d-link.on::before,html[data-theme="light"] .qd-nav a.on::before{color:#b0582f}
-html[data-theme="light"] .d-nav .d-title:not(:first-child),html[data-theme="light"] .qd-t.mt{border-top-color:#e6e2d6}
-html[data-theme="light"] .d-foot,html[data-theme="light"] .qd-foot{border-top:1px solid #e6e2d6;color:#b0582f}
-html[data-theme="light"] body > header,html[data-theme="light"] #qwnav{background:rgba(250,248,242,.92);border-bottom:1px solid #e6e2d6}
-html[data-theme="light"] body > header .brand,html[data-theme="light"] #qwnav .qw-home{color:#1b1a14}
-html[data-theme="light"] body > header .brand .bolt,html[data-theme="light"] #qwnav .qw-home .qw-bolt{color:#b0582f}
-html[data-theme="light"] body > header .brand small{color:#6f6957;border-left-color:#e6e2d6}
-html[data-theme="light"] .menu-btn,html[data-theme="light"] #qwnav .qw-menu,html[data-theme="light"] .qd-trig,html[data-theme="light"] .qtheme-btn{border-color:rgba(176,88,47,.45);color:#b0582f}
-html[data-theme="light"] .menu-btn:hover,html[data-theme="light"] #qwnav .qw-menu:hover,html[data-theme="light"] .qd-trig:hover,html[data-theme="light"] .qtheme-btn:hover{background:rgba(176,88,47,.08);color:#1b1a14}
-html[data-theme="light"] .hd-chip,html[data-theme="light"] #qwnav .qw-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
-html[data-theme="light"] .hd-chip .live-dot,html[data-theme="light"] #qwnav .qw-chip .qw-dot{color:#b0582f}
-html[data-theme="light"] .lang-toggle{border-color:#e6e2d6}
-html[data-theme="light"] .lang-toggle button{color:#6f6957}
-html[data-theme="light"] .lang-toggle button.active{background:#b0582f;color:#fff}
-html[data-theme="light"] body > header .back{color:#474334}
-html[data-theme="light"] body > header .back:hover{color:#1b1a14}
-html[data-theme="light"] body > footer,html[data-theme="light"] #qwfoot{background:#f1ecdf;border-top:1px solid #e6e2d6;color:#474334}
-html[data-theme="light"] body > footer .f-brand,html[data-theme="light"] #qwfoot .qf-brand{color:#1b1a14}
-html[data-theme="light"] body > footer .f-brand small{color:#6f6957}
-html[data-theme="light"] #qwfoot .qf-brand .qf-bolt{color:#b0582f}
-html[data-theme="light"] body > footer .f-lead,html[data-theme="light"] #qwfoot .qf-lead{color:#474334}
-html[data-theme="light"] body > footer .f-chip,html[data-theme="light"] #qwfoot .qf-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
-html[data-theme="light"] body > footer .f-chip .live-dot{color:#b0582f}
-html[data-theme="light"] body > footer .grp h3,html[data-theme="light"] #qwfoot h3{color:#6f6957}
-html[data-theme="light"] body > footer .grp a,html[data-theme="light"] #qwfoot a{color:#474334}
-html[data-theme="light"] body > footer .grp a::before,html[data-theme="light"] #qwfoot .qf-grp a::before{color:#b0997f}
-html[data-theme="light"] body > footer .grp a:hover,html[data-theme="light"] #qwfoot a:hover{color:#1b1a14}
-html[data-theme="light"] body > footer .disclaimer,html[data-theme="light"] #qwfoot .qf-bottom{color:#6f6957;border-top-color:#e0dac9}
-html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
-.d-link::after,.qd-nav a::after{margin-left:auto;flex:none}
-:root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
-html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
-svg.qm{flex:none}
-html[data-theme="light"] .tag.t,html[data-theme="light"] .s-hero .tag{color:#8f4522}
-html[data-theme="light"] #onchain .tag.t{color:#d08a57}
-html[data-theme="light"] input,html[data-theme="light"] textarea,html[data-theme="light"] select{background:#faf8f2;color:#1b1a14;border-color:#e6e2d6}
-html[data-theme="light"] input::placeholder,html[data-theme="light"] textarea::placeholder{color:#8b8578}
-html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus{border-color:#b0582f}
-html[data-theme="light"] .presets button.on,.presets button.on{background:#a44e26;color:#fff;border-color:#a44e26}
-html[data-theme="light"] .ctl label .v{color:#8f4522}
-.qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-.qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-</style>
-<script>
-(function(){
-  var KEY='qwatt.theme';
-  var saved='dark';try{saved=localStorage.getItem(KEY)||'dark'}catch(e){}
-  document.documentElement.setAttribute('data-theme',saved);
-  function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
-  syncMeta(saved);
-  function label(t){return t==='light'?'\u263D':'\u2600'}
-  function apply(t){
-    document.documentElement.setAttribute('data-theme',t);
-    var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
-    try{localStorage.setItem(KEY,t)}catch(e){}
-    syncMeta(t);
-    try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
-  }
-  function init(){
-    if(document.getElementById('qthemeBtn'))return;
-    var host=document.querySelector('#qwnav .qw-in')||document.querySelector('header .nav');
-    if(!host)return;
-    var btn=document.createElement('button');
-    btn.id='qthemeBtn';btn.className='qtheme-btn';
-    btn.setAttribute('aria-label','Cambiar tema d\u00EDa/noche');
-    btn.title='D\u00EDa / noche';
-    btn.textContent=label(document.documentElement.getAttribute('data-theme'));
-    btn.addEventListener('click',function(){
-      apply(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
-    });
-    var anchor=host.querySelector('.qw-chip')||host.querySelector('.hd-chip');
-    host.insertBefore(btn,anchor||null);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
-<div class="qd-overlay" id="qdOverlay"></div>
-<aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
-<style>
-body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
-@media(min-width:1000px){html.qd-docked body{margin-left:300px}.qd-overlay{display:none !important}}
-.qd-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
-.qd-overlay.open{opacity:1;visibility:visible}
-.qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-.qdrawer.open{transform:none}
-.qdrawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
-.qdrawer::-webkit-scrollbar{width:6px}
-.qdrawer::-webkit-scrollbar-track{background:transparent}
-.qdrawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
-.qdrawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
-@media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
-.qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
-.qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
-.qd-brand .qb{color:#d08a57}
-.qd-x{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px;font-family:inherit}
-.qd-x:hover{color:#f0e8dc}
-.qd-nav{padding:16px 14px;flex:1}
-.qd-t{counter-reset:qd;font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin:0 0 8px}
-.qd-t.mt{margin-top:22px;padding-top:16px;border-top:1px solid #2b2115}
-.qd-nav a{display:flex;align-items:center;gap:11px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-left:2px solid transparent;border-radius:0 3px 3px 0;text-decoration:none;transition:color .15s,background .15s,border-color .15s,padding .18s;margin-bottom:1px}
-.qd-nav a::before{counter-increment:qd;content:counter(qd,decimal-leading-zero);font-size:9px;color:#6e5c49;min-width:15px;transition:color .15s}
-.qd-nav a:hover{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.10),rgba(208,138,87,0) 70%);border-left-color:rgba(208,138,87,.5);padding-left:14px}
-.qd-nav a:hover::before{color:#d08a57}
-.qd-nav a.on{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.16),rgba(208,138,87,0) 75%);border-left-color:#d08a57;font-weight:600}
-.qd-nav a.on::before{color:#d08a57}
-.qdrawer.open .qd-nav>*{animation:qdIn .34s cubic-bezier(.22,1,.36,1) both}
-@keyframes qdIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
-.qdrawer.open .qd-nav>:nth-child(2){animation-delay:.012s}
-.qdrawer.open .qd-nav>:nth-child(3){animation-delay:.024s}
-.qdrawer.open .qd-nav>:nth-child(4){animation-delay:.036s}
-.qdrawer.open .qd-nav>:nth-child(5){animation-delay:.048s}
-.qdrawer.open .qd-nav>:nth-child(6){animation-delay:.060s}
-.qdrawer.open .qd-nav>:nth-child(7){animation-delay:.072s}
-.qdrawer.open .qd-nav>:nth-child(8){animation-delay:.084s}
-.qdrawer.open .qd-nav>:nth-child(9){animation-delay:.096s}
-.qdrawer.open .qd-nav>:nth-child(10){animation-delay:.108s}
-.qdrawer.open .qd-nav>:nth-child(11){animation-delay:.120s}
-.qdrawer.open .qd-nav>:nth-child(12){animation-delay:.132s}
-.qdrawer.open .qd-nav>:nth-child(13){animation-delay:.144s}
-.qdrawer.open .qd-nav>:nth-child(14){animation-delay:.156s}
-.qdrawer.open .qd-nav>:nth-child(15){animation-delay:.168s}
-.qdrawer.open .qd-nav>:nth-child(16){animation-delay:.180s}
-.qdrawer.open .qd-nav>:nth-child(17){animation-delay:.192s}
-.qdrawer.open .qd-nav>:nth-child(18){animation-delay:.204s}
-.qdrawer.open .qd-nav>:nth-child(19){animation-delay:.216s}
-.qdrawer.open .qd-nav>:nth-child(20){animation-delay:.228s}
-.qdrawer.open .qd-nav>:nth-child(21){animation-delay:.240s}
-.qdrawer.open .qd-nav>:nth-child(22){animation-delay:.252s}
-.qdrawer.open .qd-nav>:nth-child(23){animation-delay:.264s}
-.qdrawer.open .qd-nav>:nth-child(24){animation-delay:.276s}
-.qdrawer.open .qd-nav>:nth-child(25){animation-delay:.288s}
-.qdrawer.open .qd-nav>:nth-child(26){animation-delay:.300s}
-@media(prefers-reduced-motion:reduce){.qdrawer.open .qd-nav>*{animation:none}}
-.qd-foot{padding:14px 20px;border-top:1px solid #2b2115;font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
-#qwnav .qw-menu{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:13px;line-height:1;padding:6px 11px;cursor:pointer;flex:none}
-#qwnav .qw-menu:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-.qd-trig{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.08em;padding:7px 12px;cursor:pointer}
-.qd-trig:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-</style>
-<div class="qd-head">
-<a class="qd-brand" href="index.html"><span class="qb"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-<button class="qd-x" id="qdClose" aria-label="Cerrar menu">&#10005;</button>
-</div>
-<nav class="qd-nav">
-<div class="qd-t">Explorar QWATT</div>
-<a href="verificacion.html">Verificaci&oacute;n</a>
-<a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
-</nav>
-<div class="qd-foot">&#9679; STELLAR TESTNET</div>
-</aside>
-<script>
-(function(){
-  var d=document.getElementById('qdrawer'),o=document.getElementById('qdOverlay');
-  var MQ=window.matchMedia('(min-width:1000px)');
-  function set(open){
-    d.classList.toggle('open',open);
-    o.classList.toggle('open',open);
-    document.documentElement.classList.toggle('qd-docked',open&&MQ.matches);
-    var b=document.getElementById('qdOpen');
-    if(b)b.setAttribute('aria-expanded',open);
-    try{localStorage.setItem('qwatt.drawer',open?'1':'0')}catch(e){}
-  }
-  document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('#qdOpen'))set(!d.classList.contains('open'));
-  });
-  document.getElementById('qdClose').addEventListener('click',function(){set(false)});
-  o.addEventListener('click',function(){set(false)});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
-  d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(!MQ.matches)set(false)})});
-  if(MQ.addEventListener)MQ.addEventListener('change',function(){set(d.classList.contains('open'))});
-  try{if(localStorage.getItem('qwatt.drawer')==='1'&&MQ.matches)set(true)}catch(e){}
-  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
-  if(location.pathname.indexOf('/proof')===0)page='proof';
-  d.querySelectorAll('a[href]').forEach(function(a){
-    var h=a.getAttribute('href');
-    if(h.indexOf('#')<0&&h.indexOf('http')!==0&&h.replace(/\.html$/,'')===page)a.classList.add('on');
-  });
-})();
-</script>
-<nav id="qwnav" aria-label="QWATT apps">
-<style>
-#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
-#qwnav a{text-decoration:none;white-space:nowrap}
-#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
-#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
-#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
-#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
-#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
-#qwnav .qw-links::-webkit-scrollbar{display:none}
-#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
-#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
-#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
-#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
-#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
-@keyframes qwblink{50%{opacity:.25}}
-@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
-#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
-@media(max-width:860px){
-#qwnav .qw-links{display:none}
-#qwnav .qw-chip{display:none}
-#qwnav .qw-sep{display:none}
-#qwnav .qw-burger{display:block}
-#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
-#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
-#qwnav.open .qw-links a:last-child{border-bottom:0}
-#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
-}
-</style>
-<div class="qw-in">
-<button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
-<a class="qw-home" href="index.html"><span class="qw-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span>QWATT</a>
-<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
-</div>
-<script>
-(function(){
-  var nav=document.getElementById('qwnav');
-  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
-  document.body.style.paddingTop=(pad+52)+'px';
-  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
-})();
-</script>
-</nav>
+<body data-page="verificacion" data-status="mixto" data-parts="testnet prototipo planificado">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
+  </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
 
-<div class="wrap">
-  <header class="site">
-    <div class="brand"><a href="index.html" style="display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none"><span class="bolt" style="background:none"><svg class="qm" viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span><span><em>QWATT</em></span></a><small>VERIFICACI&Oacute;N</small></div>
-  </header>
-
-  <div class="s-hero">
-    <span class="tag">La capa de confianza</span>
-    <h1>&iquest;C&oacute;mo sabemos que <b>un kWh existi&oacute;</b>?</h1>
-    <p class="lede">
-      Cualquiera puede declarar que gener&oacute; energ&iacute;a limpia. La diferencia entre una declaraci&oacute;n y una
-      prueba son dos medidores independientes, filtros de verificaci&oacute;n que <b>fallan cerrados</b>, y una cadena de evidencia
-      que un desconocido puede recalcular sin confiar en nosotros.
+<section class="q-phero" id="top" aria-labelledby="h1">
+  <div class="q-wrap">
+    <p class="q-tag"><span data-l="es">Compruébalo tú</span><span data-l="en">Check it yourself</span></p>
+    <h1 id="h1"><span data-l="es">No nos creas: <b>recalcula.</b></span><span data-l="en">Don't trust us: <b>recompute.</b></span></h1>
+    <p class="q-lead"><span data-l="es">Cada constancia de QWATT es un lote de lecturas con su huella SHA-256. Aquí tu navegador descarga un lote publicado y lo vuelve a derivar paso a paso con el código del repositorio, el mismo que corre el verificador independiente. Después lee en Stellar testnet la huella anclada y quién la firmó. Si alguien cambiara un solo byte, lo verías aquí.</span><span data-l="en">Every QWATT record is a batch of readings with its SHA-256 fingerprint. Here your browser downloads a published batch and re-derives it step by step with the repository's code, the same code the independent verifier runs. Then it reads on Stellar testnet the anchored fingerprint and who signed it. If anyone changed a single byte, you would see it here.</span></p>
+    <p class="q-hero-note"><span data-l="es">Durante el sprint toda la entrada es simulada (nivel A0): esto prueba el software y los filtros, no que una instalación haya producido energía.</span><span data-l="en">During the sprint all input is simulated (level A0): this tests the software and the filters, not that an installation produced energy.</span></p>
+    <p class="q-status" role="note">
+      <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">el ensayo del 8 oct se compara en vivo con Stellar testnet</span><span data-l="en">the 8 Oct rehearsal is compared live with Stellar testnet</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span><span data-l="es">el feed de muestra y el laboratorio usan entrada simulada</span><span data-l="en">the sample feed and the lab use simulated input</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">el feed público de la corrida y la cuenta definitiva (semana 2)</span><span data-l="en">the public run feed and the real account (week 2)</span></span></span>
     </p>
-    <div class="claim">
-      <p><b>Lo que afirma una constancia QWATT, exactamente:</b> entre <code>t&#8320;</code> y <code>t&#8321;</code>,
-      una instalaci&oacute;n registrada produjo <code>E</code> vatios-hora, medidos por dos instrumentos independientes
-      cuyas lecturas concuerdan entre s&iacute; y con la f&iacute;sica de ese lugar a esa hora — y esta constancia no ha
-      sido alterada desde entonces. <b>Nada m&aacute;s.</b> Todo lo dem&aacute;s es una capa contractual encima.</p>
-      <p>Durante el sprint toda la entrada es simulada (nivel A0): las constancias ancladas en Stellar testnet prueban el software y los filtros de verificaci&oacute;n, no que una instalaci&oacute;n haya producido energ&iacute;a.</p>
+    <div class="q-cta">
+      <a class="q-btn is-primary" href="#derivar"><span data-l="es">Vuelve a derivar un lote ↓</span><span data-l="en">Re-derive a batch ↓</span></a>
+      <a class="q-btn" href="#terminal"><span data-l="es">Hazlo en tu terminal ↓</span><span data-l="en">Do it in your terminal ↓</span></a>
+      <a class="q-btn" href="#laboratorio"><span data-l="es">Laboratorio de filtros ↓</span><span data-l="en">Filter lab ↓</span></a>
     </div>
   </div>
+</section>
 
-  <section>
-    <h2><span class="n">01 &middot; Pru&eacute;balo</span>Intenta falsificar un evento</h2>
-    <p class="sub">
-      Abajo corren los <b>mismos cuatro filtros de verificaci&oacute;n</b> que el gateway ejecuta antes de anclar, con los par&aacute;metros
-      del equipo Fase&nbsp;1 (150&nbsp;Wp; en este sprint, simulado). Mueve los controles o elige un ataque: el veredicto se recalcula al instante.
-      Un intervalo rechazado <b>no se ancla</b>, y queda escrito en la bit&aacute;cora de rechazos.
-    </p>
-    <div class="rigline">
-      <span>150 Wp &middot; 12 V</span><span>&minus;33,45 &middot; &minus;70,65 &middot; norte 30&deg;</span><span id="specv" title="Versi&oacute;n y huella de protocol/gates.spec.json que corre esta p&aacute;gina">spec &mdash;</span>
-      <span>intervalo 5 min</span><span>techo 14,4 Wh</span><span>PZEM-017 + EPEver Tracer1210AN</span>
+<section class="q-sec" id="derivar" aria-labelledby="hA">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="hA"><span data-l="es">A · Vuelve a derivar un lote</span><span data-l="en">A · Re-derive a batch</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div>
+    <p class="q-nojs"><span data-l="es">Las comprobaciones corren en tu navegador y necesitan JavaScript. Sin él puedes leer qué hace cada una, aquí abajo, y repetirlas en tu terminal (B).</span><span data-l="en">The checks run in your browser and need JavaScript. Without it you can read what each one does, below, and repeat them in your terminal (B).</span></p>
+
+    <h3 id="hA1"><span data-l="es">1 · Elige de dónde viene el lote</span><span data-l="en">1 · Choose where the batch comes from</span></h3>
+    <div class="q-srcs" role="radiogroup" aria-labelledby="hA1">
+      <label class="q-srcard" data-feed="ensayo-8oct">
+        <input type="radio" name="vsrc" value="ensayo-8oct" checked>
+        <span class="q-srcard-h"><b><span data-l="es">Ensayo del 8 oct</span><span data-l="en">8 Oct rehearsal</span></b><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></span></span>
+        <span class="q-srcard-p"><span data-l="es">Dos lotes que quedaron anclados en Stellar testnet en una cuenta desechable (pruebas C y L). Entrada simulada · Stellar testnet.</span><span data-l="en">Two batches anchored on Stellar testnet on a throwaway account (tests C and L). Simulated input · Stellar testnet.</span></span>
+      </label>
+      <label class="q-srcard" data-feed="muestra">
+        <input type="radio" name="vsrc" value="muestra">
+        <span class="q-srcard-h"><b><span data-l="es">Feed de muestra</span><span data-l="en">Sample feed</span></b><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></span>
+        <span class="q-srcard-p"><span data-l="es">Un día simulado en el formato actual, con intervalos rechazados y sus motivos. No está anclado: no enviamos transacciones.</span><span data-l="en">A simulated day in the current format, with refused intervals and their reasons. Not anchored: we send no transactions.</span></span>
+      </label>
+      <label class="q-srcard is-off" data-feed="corrida">
+        <input type="radio" name="vsrc" value="corrida" disabled>
+        <span class="q-srcard-h"><b><span data-l="es">Feed público de la corrida</span><span data-l="en">Public run feed</span></b><span class="q-chips" data-slot="corrida-chip"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO · SEMANA 2</span><span data-l="en">PLANNED · WEEK 2</span></span></span></span>
+        <span class="q-srcard-p" data-slot="corrida-note"><span data-l="es">Los lotes de la cuenta definitiva, publicados en el repositorio público de evidencia. En preparación.</span><span data-l="en">The real account's batches, published in the public evidence repository. In preparation.</span></span>
+      </label>
+    </div>
+    <div class="q-anchorline" data-widget="anchor-slot" data-compact>
+      <p class="q-fallback"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3: en preparación (semana 2).</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3: in preparation (week 2).</span></p>
     </div>
 
-    <div class="lab">
-      <div class="panel">
-        <h3>Intervalo de 5 minutos</h3>
-        <div class="presets" id="presets">
-          <button type="button" data-p="honest" class="on">Intervalo honesto</button>
-          <button type="button" data-p="shade">Sombra honesta</button>
-          <button type="button" data-p="cap">Exceder el techo</button>
-          <button type="button" data-p="night">Generar de noche</button>
-          <button type="button" data-p="diverge">Sensor tapado</button>
-          <button type="button" data-p="dead">Bus RS485 ca&iacute;do</button>
-          <button type="button" data-p="gap">Intervalo inv&aacute;lido</button>
-        </div>
+    <h3 id="hA2"><span data-l="es">2 · Elige un lote</span><span data-l="en">2 · Choose a batch</span></h3>
+    <div class="q-pick">
+      <label for="vBatch"><span data-l="es">Lote publicado</span><span data-l="en">Published batch</span></label>
+      <select id="vBatch"><option value="" translate="no">—</option></select>
+      <button type="button" class="q-btn is-primary" id="vRun"><span data-l="es">Comprobar este lote</span><span data-l="en">Check this batch</span></button>
+    </div>
+    <p class="q-feed-err" id="vFeedErr" role="status" hidden></p>
 
-        <div class="ctl">
-          <label for="cHour">Hora local <span class="v" id="vHour">12:00</span></label>
-          <input type="range" id="cHour" min="0" max="23" step="1" value="12">
-        </div>
-        <div class="ctl">
-          <label for="cA">Medidor A &middot; PZEM-017 <span class="v" id="vA">11,8 Wh</span></label>
-          <input type="range" id="cA" min="0" max="30" step="0.1" value="11.8">
-        </div>
-        <div class="ctl">
-          <label for="cB">Medidor B &middot; EPEver <span class="v" id="vB">11,6 Wh</span></label>
-          <input type="range" id="cB" min="0" max="30" step="0.1" value="11.6">
-        </div>
-        <div class="ctl">
-          <label for="cDt">&Delta;t del intervalo <span class="v" id="vDt">300 s</span></label>
-          <input type="range" id="cDt" min="60" max="1200" step="30" value="300">
-        </div>
-        <div class="toggles">
-          <label><input type="checkbox" id="cSkew"> Reloj desfasado &gt; 2 h</label>
-        </div>
+    <h3 id="hA3"><span data-l="es">3 · Comprueba</span><span data-l="en">3 · Check</span></h3>
+    <p class="q-vsum" id="vSum" role="status" aria-live="polite"></p>
+    <ol class="q-vlist" id="vRows" aria-labelledby="hA3" aria-busy="false">
+      <li class="q-vrow" data-row="1"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">1</span><h4><span data-l="es">Descarga</span><span data-l="en">Download</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">El archivo del lote y su línea en el registro público. Tu navegador calcula el SHA-256 del archivo.</span><span data-l="en">The batch file and its line in the public register. Your browser computes the SHA-256 of the file.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo: el SHA-256 de tu navegador (WebCrypto) y</span><span data-l="en">How: your browser's SHA-256 (WebCrypto) and</span> <a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-feed.js" target="_blank" rel="noopener"><code>assets/qwatt-feed.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="2"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">2</span><h4><span data-l="es">Formato</span><span data-l="en">Format</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">El lote cumple su esquema y solo trae números enteros.</span><span data-l="en">The batch follows its schema and carries integers only.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/schema-lite.js" target="_blank" rel="noopener"><code>schema-lite.js · validate</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> · <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>evidence.js · canonical</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="3"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">3</span><h4><span data-l="es">Cada intervalo</span><span data-l="en">Each interval</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">Los intervalos de 5 minutos: su JSON canónico, su hoja SHA-256 y los filtros G0–G3 vueltos a correr. Se cuenta el menor de los dos medidores.</span><span data-l="en">The five-minute intervals: their canonical JSON, their SHA-256 leaf and filters G0–G3 run again. The lower of the two meters counts.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>evidence.js · canonical, sha256, basisMwh</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> · <a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-gates.js" target="_blank" rel="noopener"><code>qwatt-gates.js · evaluateInterval</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="4"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">4</span><h4><span data-l="es">Raíz de los intervalos</span><span data-l="en">Interval root</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">La raíz Merkle recalculada es igual a la declarada (intervals_root).</span><span data-l="en">The recomputed Merkle root equals the declared one (intervals_root).</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>evidence.js · merkleRoot</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="5"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">5</span><h4><span data-l="es">Lecturas crudas</span><span data-l="en">Raw readings</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">La raíz de las lecturas crudas (samples_root) recalculada desde raw/…jsonl, y cada intervalo atado a sus bytes crudos. Llega con el esquema de lote 1.1.0 (semana 2).</span><span data-l="en">The raw-reading root (samples_root) recomputed from raw/…jsonl, and each interval tied to its raw bytes. It arrives with batch schema 1.1.0 (week 2).</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <code>evidence.js · samplesRoot</code> · <code>verify.js · rawProblem</code> <span class="q-chip" data-st="planificado" data-status-of="item:V3-5"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></p></li>
+      <li class="q-vrow" data-row="6"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">6</span><h4><span data-l="es">Huella del lote</span><span data-l="en">Batch fingerprint</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">SHA-256 del lote canónico sin su propio campo sha256 = la huella declarada = la del registro. Lo calculamos dos veces: con el código del repositorio y con WebCrypto, el SHA-256 de tu navegador.</span><span data-l="en">SHA-256 of the canonical batch without its own sha256 field = the declared fingerprint = the register's. Computed twice: with the repository's code and with WebCrypto, your browser's own SHA-256.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>evidence.js · batchSha256</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="7"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">7</span><h4><span data-l="es">Cadena</span><span data-l="en">Chain</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">Cada lote apunta a la huella del anterior (prev_hash). Recorremos los lotes anteriores y cada uno vuelve a dar su huella; el primero apunta a 64 ceros. Y el lote siguiente, si ya se publicó, apunta a este.</span><span data-l="en">Each batch points to the previous one's fingerprint (prev_hash). We walk the earlier batches and each one rehashes; the first points to 64 zeros. And the next batch, if already published, points to this one.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>evidence.js · batchSha256</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="8"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">8</span><h4><span data-l="es">Total acumulado</span><span data-l="en">Running total</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">Cada lote aceptado suma su energía; un lote rechazado arrastra el total anterior sin sumar nada.</span><span data-l="en">Each accepted batch adds its energy; a refused batch carries the previous total forward and adds nothing.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo: sumas de enteros sobre los lotes recorridos, con el estado que publica el registro.</span><span data-l="en">How: integer sums over the walked batches, with the status the register publishes.</span></p></li>
+      <li class="q-vrow" data-row="9"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">9</span><h4><span data-l="es">Veredicto del motor</span><span data-l="en">Engine verdict</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">verifyBatch, la misma función que corre el verificador antes de cofirmar.</span><span data-l="en">verifyBatch, the same function the verifier runs before co-signing.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo:</span><span data-l="en">How:</span> <a href="https://github.com/academiaseul/QWATT/blob/main/batch/verify.js" target="_blank" rel="noopener"><code>batch/verify.js · verifyBatch</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+      <li class="q-vrow" data-row="10"><div class="q-vrow-h"><span class="q-vrow-n" aria-hidden="true">10</span><h4><span data-l="es">En Stellar testnet</span><span data-l="en">On Stellar testnet</span></h4><span class="q-state" data-state="wait" data-slot="state"></span></div>
+        <p class="q-vrow-p"><span data-l="es">La huella y el total anclados en la transacción QW#n son los de este lote; quién la firmó, identificado por su firma Ed25519; los umbrales de la cuenta, leídos ahora.</span><span data-l="en">The fingerprint and total anchored in transaction QW#n are this batch's; who signed it, identified by its Ed25519 signature; the account thresholds, read now.</span></p>
+        <div class="q-vrow-v" data-slot="vals"></div>
+        <p class="q-vrow-how"><span data-l="es">Cómo: Horizon testnet, solo lectura, y</span><span data-l="en">How: Horizon testnet, read-only, and</span> <a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-reconcile.js" target="_blank" rel="noopener"><code>qwatt-reconcile.js · fetchAnchors</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> · <a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-envelope.js" target="_blank" rel="noopener"><code>qwatt-envelope.js · signedBy</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p></li>
+    </ol>
+
+    <div class="q-tamper" id="alterar">
+      <div class="q-head"><h3><span data-l="es">4 · Ahora altéralo</span><span data-l="en">4 · Now tamper with it</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+      <p><span data-l="es">Cambia un solo byte del lote en la memoria de tu navegador y mira qué comprobación se pone en rojo. No se envía nada.</span><span data-l="en">Change a single byte of the batch in your browser's memory and watch which check turns red. Nothing is sent.</span></p>
+      <div class="q-modes" id="vModes">
+        <button type="button" class="q-btn is-small" data-mode="energy" aria-pressed="false"><span data-l="es">Un dígito de la energía de un medidor</span><span data-l="en">One digit of a meter's energy</span></button>
+        <button type="button" class="q-btn is-small" data-mode="raw" aria-pressed="false"><span data-l="es">Un carácter de una lectura cruda</span><span data-l="en">One character of a raw reading</span></button>
+        <button type="button" class="q-btn is-small" data-mode="prev" aria-pressed="false"><span data-l="es">Un carácter de prev_hash</span><span data-l="en">One character of prev_hash</span></button>
+        <button type="button" class="q-btn is-small" data-mode="total" aria-pressed="false"><span data-l="es">Un dígito del total acumulado</span><span data-l="en">One digit of the running total</span></button>
+        <button type="button" class="q-btn is-small" data-mode="time" aria-pressed="false"><span data-l="es">Un dígito de una hora</span><span data-l="en">One digit of a timestamp</span></button>
+        <button type="button" class="q-btn is-small" data-mode="forger" aria-pressed="false"><span data-l="es">El falsificador cuidadoso: cambia la energía y recalcula todas las huellas</span><span data-l="en">The careful forger: changes the energy and recomputes every fingerprint</span></button>
       </div>
+      <p class="q-tres" id="vTamperOut" role="status" aria-live="polite"></p>
+      <button type="button" class="q-btn is-small" id="vRestore" hidden><span data-l="es">Restaurar el lote original</span><span data-l="en">Restore the original batch</span></button>
+    </div>
 
-      <div class="panel">
-        <h3>Veredicto del gateway</h3>
-        <div class="verdict ok" id="verdict">
-          <span class="big" id="vTitle">ACEPTADO</span>
-          <span class="mint" id="vMint">se ancla &middot; min(A,B) = 11,6 Wh</span>
+    <div class="q-prov">
+      <p><span data-l="es">Lo que esto no prueba: que un medidor haya medido esa energía, que sea exacto o que el verificador sea independiente como organización.</span><span data-l="en">What this does not prove: that a meter measured that energy, that it is accurate, or that the verifier is independent as an organization.</span> <a href="#limites"><span data-l="es">Detalle en 06 · Límites ↓</span><span data-l="en">Details in 06 · Limits ↓</span></a></p>
+      <p><span data-l="es">Código que corrió en tu navegador:</span><span data-l="en">Code that ran in your browser:</span> <code>assets/qwatt-protocol.js</code><span data-l="es">, generado desde</span><span data-l="en">, generated from</span> <code>protocol/evidence.js</code>, <code>protocol/schema-lite.js</code> <span data-l="es">y</span><span data-l="en">and</span> <code>batch/verify.js</code> <span data-l="es">sin cambiar una línea. SHA-256 de cada archivo fuente:</span><span data-l="en">without changing a line. SHA-256 of each source file:</span></p>
+      <ul class="q-provlist" id="vProv">
+        <li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>protocol/evidence.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+        <li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/schema-lite.js" target="_blank" rel="noopener"><code>protocol/schema-lite.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+        <li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/verify.js" target="_blank" rel="noopener"><code>batch/verify.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+      </ul>
+      <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · el generador es</span><span data-l="en">Repository fact · the generator is</span> <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/build-browser.js" target="_blank" rel="noopener"><code>protocol/build-browser.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="terminal" aria-labelledby="hB">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="hB"><span data-l="es">B · Hazlo en tu terminal</span><span data-l="en">B · Do it in your terminal</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+    <p class="q-sub"><span data-l="es">Con git y Node 20, sin claves y sin cuenta: clona el repositorio, corre las pruebas, vuelve a derivar el feed y lee el ancla en Horizon. Son los comandos del acuerdo de arquitectura v3, §7.</span><span data-l="en">With git and Node 20, no keys and no account: clone the repository, run the tests, re-derive the feed and read the anchor on Horizon. These are the commands of architecture freeze v3, §7.</span></p>
+    <div class="q-codebox">
+      <button type="button" class="q-btn is-small q-copy" data-copy="vCmds"><span data-l="es">Copiar</span><span data-l="en">Copy</span></button>
+<pre class="q-code" id="vCmds">git clone https://github.com/academiaseul/QWATT.git &amp;&amp; cd QWATT
+npm test
+node batch/verify-cli.js evidence/feeds/muestra
+node -e "console.log(require('./protocol/evidence').batchSha256(require('./evidence/feeds/ensayo-8oct/batches/rehearsal-000001.json')))"
+curl -s https://horizon-testnet.stellar.org/accounts/GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET</pre>
+    </div>
+    <ul class="q-cmdnotes">
+      <li><code>npm test</code> <span data-l="es">· todas las pruebas del repositorio, sin instalar nada</span><span data-l="en">· every test in the repository, with no install</span></li>
+      <li><code>verify-cli.js</code> <span data-l="es">· imprime OK cuando cada lote publicado se vuelve a derivar</span><span data-l="en">· prints OK when every published batch re-derives</span></li>
+      <li><code>node -e …</code> <span data-l="es">· imprime</span><span data-l="en">· prints</span> <code>852314a2…0f5466</code><span data-l="es">, la huella del lote #1 del ensayo</span><span data-l="en">, the fingerprint of rehearsal batch #1</span></li>
+      <li><code>curl …</code> <span data-l="es">· muestra el mismo valor, en base64, bajo</span><span data-l="en">· shows the same value, base64, under</span> <code>data["qwatt.anchor.sha256"]</code></li>
+    </ul>
+    <p class="q-note"><span data-l="es">Desde la semana 2: el clon de los repositorios de evidencia y</span><span data-l="en">From week 2: the clone of the evidence repositories and</span> <code>node anchor/reconcile-cli.js</code><span data-l="es">, según el acuerdo v3, §7.</span><span data-l="en">, per freeze v3 §7.</span> <span class="q-chip" data-st="planificado" data-status-of="item:V3-7"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></p>
+  </div>
+</section>
+
+<section class="q-sec" id="laboratorio" aria-labelledby="h01">
+  <div class="q-wrap">
+    <p class="q-en-note" lang="en">Sections 01–07 below are in Spanish. Headings, labels, live data and the disclaimer are translated.</p>
+    <div class="q-head"><h2 id="h01"><span class="q-n"><span data-l="es">01 · Pruébalo</span><span data-l="en">01 · Try it</span></span> <span data-l="es">Intenta falsificar un intervalo</span><span data-l="en">Try to forge an interval</span></h2><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+    <p class="q-sub">Cualquiera puede declarar que generó energía solar. La diferencia entre una declaración y una prueba son dos medidores independientes, filtros de verificación que <b>fallan cerrados</b> y una cadena de evidencia que un desconocido puede recalcular sin confiar en nosotros.</p>
+    <div class="q-claim">
+      <p><b>Lo que afirma una constancia QWATT, exactamente:</b> entre <code>t₀</code> y <code>t₁</code>, una instalación registrada produjo <code>E</code> vatios-hora, medidos por dos instrumentos independientes cuyas lecturas concuerdan entre sí y con la física de ese lugar a esa hora, y la constancia no se ha alterado desde entonces. Nada más.</p>
+      <p>Durante el sprint toda la entrada es simulada (nivel A0): las constancias de prueba en Stellar testnet prueban el software y los filtros, no que una instalación haya producido energía.</p>
+    </div>
+    <p class="q-sub">Abajo corren los <b>mismos cuatro filtros</b> que el verificador vuelve a correr antes de cofirmar, con los parámetros del perfil bench (150 Wp, en este sprint simulado). Mueve los controles o elige un intento: el veredicto se recalcula al instante. Un intervalo rechazado no se anclaría y quedaría escrito en la bitácora de rechazos.</p>
+    <ul class="q-rig">
+      <li>150 Wp · 12 V (simulado)</li>
+      <li>perfil bench · coordenadas de referencia en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/gates.spec.json" target="_blank" rel="noopener">gates.spec.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a></li>
+      <li id="specv">spec —</li>
+      <li>intervalo 5 min</li>
+      <li>techo 14,4 Wh</li>
+      <li>PZEM-017 + EPEver Tracer1210AN</li>
+    </ul>
+    <div class="q-lab">
+      <div class="q-panel">
+        <h3><span data-l="es">Intervalo de 5 minutos</span><span data-l="en">Five-minute interval</span></h3>
+        <div class="q-presets" id="presets">
+          <button type="button" class="q-btn is-small" data-p="honest" aria-pressed="true"><span data-l="es">Intervalo honesto</span><span data-l="en">Honest interval</span></button>
+          <button type="button" class="q-btn is-small" data-p="shade" aria-pressed="false"><span data-l="es">Sombra honesta</span><span data-l="en">Honest shade</span></button>
+          <button type="button" class="q-btn is-small" data-p="cap" aria-pressed="false"><span data-l="es">Exceder el techo</span><span data-l="en">Exceed the ceiling</span></button>
+          <button type="button" class="q-btn is-small" data-p="night" aria-pressed="false"><span data-l="es">Generar de noche</span><span data-l="en">Generate at night</span></button>
+          <button type="button" class="q-btn is-small" data-p="diverge" aria-pressed="false"><span data-l="es">Sensor tapado</span><span data-l="en">Covered sensor</span></button>
+          <button type="button" class="q-btn is-small" data-p="dead" aria-pressed="false"><span data-l="es">Bus RS485 caído</span><span data-l="en">RS485 bus down</span></button>
+          <button type="button" class="q-btn is-small" data-p="gap" aria-pressed="false"><span data-l="es">Intervalo inválido</span><span data-l="en">Invalid interval</span></button>
         </div>
-        <div class="checks" id="checks"></div>
-        <p class="foot-note" style="margin-top:14px">
-          Se ancla siempre <b>el menor de los dos medidores</b>: una falla puede subestimar, nunca sobreestimar.
-        </p>
+        <div class="q-ctl"><label for="cHour"><span data-l="es">Hora de Chile</span><span data-l="en">Chile time</span> <span class="v" id="vHour">12:00</span></label><input type="range" id="cHour" min="0" max="23" step="1" value="12"></div>
+        <div class="q-ctl"><label for="cA"><span data-l="es">Medidor A · PZEM-017</span><span data-l="en">Meter A · PZEM-017</span> <span class="v" id="vA">11,8 Wh</span></label><input type="range" id="cA" min="0" max="30" step="0.1" value="11.8"></div>
+        <div class="q-ctl"><label for="cB"><span data-l="es">Medidor B · EPEver</span><span data-l="en">Meter B · EPEver</span> <span class="v" id="vB">11,6 Wh</span></label><input type="range" id="cB" min="0" max="30" step="0.1" value="11.6"></div>
+        <div class="q-ctl"><label for="cDt"><span data-l="es">Δt del intervalo</span><span data-l="en">Interval Δt</span> <span class="v" id="vDt">300 s</span></label><input type="range" id="cDt" min="60" max="1200" step="30" value="300"></div>
+        <div class="q-toggle"><label><input type="checkbox" id="cSkew"> <span data-l="es">Reloj desfasado más de 2 h</span><span data-l="en">Clock off by more than 2 h</span></label></div>
+      </div>
+      <div class="q-panel">
+        <h3><span data-l="es">Veredicto del verificador</span><span data-l="en">The verifier's verdict</span></h3>
+        <div class="q-verdict is-ok" id="verdict"><span class="q-verdict-big" id="vTitle">—</span><span class="q-verdict-basis" id="vBasis"></span></div>
+        <div class="q-gchecks" id="checks"></div>
+        <p class="q-src" data-src="demo"><span data-l="es">Entrada simulada · demo en tu navegador, no envía nada a Stellar testnet</span><span data-l="en">Simulated input · demo in your browser, sends nothing to Stellar testnet</span></p>
+        <p class="q-note">Se anclaría siempre <b>el menor de los dos medidores</b>: una falla puede subestimar, nunca sobreestimar.</p>
       </div>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <h2><span class="n">02 &middot; Los filtros</span>Cada control atrapa a alguien concreto</h2>
-    <p class="sub">
-      Cuatro filtros de verificaci&oacute;n est&aacute;n activos hoy, con los par&aacute;metros del equipo Fase&nbsp;1. Tres m&aacute;s entran cuando el hardware los soporta —
-      y los marcamos como pendientes en vez de insinuar que ya existen.
-    </p>
-    <div class="vlist">
-      <div class="vcard"><div class="vid"><span>G0</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Verosimilitud</h3><p>Valores finitos, <code>&Delta;t &le; 900 s</code>, desfase de reloj &le; 2 h 05 m, y <code>Wh &asymp; W &times; t</code>. Las marcas de tiempo son datos del cliente y escalan a los dem&aacute;s filtros: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparaci&oacute;n.</p><span class="adv">Detiene: datos basura que anular&iacute;an los otros controles</span></div>
-      <div class="vcard"><div class="vid"><span>G1</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Techo de placa</h3><p>Un panel de 150 Wp no puede superar <code>0,150 kW &times; h &times; 1,15 &asymp; 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><span class="adv">Detiene: alimentar el medidor desde una fuente de banco</span></div>
-      <div class="vcard"><div class="vid"><span>G2</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Elevaci&oacute;n solar</h3><p>Posici&oacute;n solar NOAA para &minus;33,45 / &minus;70,65: si hay generaci&oacute;n, el sol debe estar sobre &minus;2&deg;. La energ&iacute;a nocturna es imposible; los ceros nocturnos son honestos.</p><span class="adv">Detiene: inyectar corriente despu&eacute;s del atardecer</span></div>
-      <div class="vcard"><div class="vid"><span>G3</span><span class="ph">FASE 1</span></div><h3 class="sub-h">Acuerdo entre medidores</h3><p>Dos instrumentos en rutas de se&ntilde;al separadas deben contar la misma historia: <code>|A&minus;B| &le; 5%</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara el filtro.</p><span class="adv">Detiene: inflar o desconectar un solo medidor</span></div>
-      <div class="vcard soon"><div class="vid"><span>G4</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Testigo solar</h3><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energ&iacute;a y el testigo est&aacute; a oscuras, el lote cae.</p><span class="adv">Pendiente: requiere celda de 5 Wp + INA226</span></div>
-      <div class="vcard soon"><div class="vid"><span>G5</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Rampa y verosimilitud de serie</h3><p>Saltos f&iacute;sicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido, una constante perfecta es sint&eacute;tica.</p><span class="adv">Pendiente: requiere muestreo intra-intervalo</span></div>
-      <div class="vcard soon"><div class="vid"><span>G6</span><span class="ph">FASE 2</span></div><h3 class="sub-h">Apertura del gabinete</h3><p>Un reed en la tapa del gabinete: caja abierta &rarr; anclaje detenido hasta rearme firmado.</p><span class="adv">Pendiente: requiere reed + GPIO</span></div>
-      <div class="vcard" style="border-color:rgba(208,138,87,.4)"><div class="vid"><span>&times;2</span><span class="ph">SPRINT</span></div><h3 class="sub-h">Firma de dos partes</h3><p>El proponente firma; un verificador independiente <b>vuelve a correr los filtros</b> y reci&eacute;n entonces cofirma. Su clave nunca vive en un nodo.</p><span class="adv">Un nodo comprometido es un sensor roto, no una fuente de constancias falsas</span></div>
+<section class="q-sec" id="filtros" aria-labelledby="h02">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h02"><span class="q-n"><span data-l="es">02 · Los filtros</span><span data-l="en">02 · The filters</span></span> <span data-l="es">Cada control atrapa a alguien concreto</span><span data-l="en">Each check catches someone specific</span></h2></div>
+    <p class="q-sub">Cuatro filtros están construidos y corren hoy con entrada simulada, con los parámetros del equipo Fase 1. Tres más entran cuando el hardware los soporte, y los marcamos como planificados en vez de insinuar que ya existen.</p>
+    <div class="q-vcards">
+      <article class="q-vcard"><div class="q-vcard-h"><b>G0</b><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div><h3><span data-l="es">Verosimilitud</span><span data-l="en">Plausibility</span></h3><p>Valores finitos, <code>Δt ≤ 900 s</code>, desfase de reloj ≤ 2 h 05 min y <code>Wh ≈ W × t</code>. Las marcas de tiempo son datos del cliente y alimentan a los demás filtros: se acotan en la puerta, y un <code>NaN</code> se rechaza antes de poder derrotar una comparación.</p><p class="q-adv">Detiene: datos basura que anularían los otros controles</p></article>
+      <article class="q-vcard"><div class="q-vcard-h"><b>G1</b><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div><h3><span data-l="es">Techo de placa</span><span data-l="en">Nameplate ceiling</span></h3><p>Un panel de 150 Wp no puede superar <code>0,150 kW × h × 1,15 ≈ 14,4 Wh</code> en cinco minutos. Si <b>cualquiera</b> de los dos medidores pasa el techo, el intervalo cae.</p><p class="q-adv">Detiene: alimentar el medidor desde una fuente de laboratorio</p></article>
+      <article class="q-vcard"><div class="q-vcard-h"><b>G2</b><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div><h3><span data-l="es">Elevación solar</span><span data-l="en">Solar elevation</span></h3><p>Posición solar NOAA para las coordenadas de referencia del perfil: si hay generación, el sol debe estar sobre −2°. La energía nocturna es imposible; los ceros nocturnos son honestos.</p><p class="q-adv">Detiene: inyectar corriente después del atardecer</p></article>
+      <article class="q-vcard"><div class="q-vcard-h"><b>G3</b><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div><h3><span data-l="es">Acuerdo entre medidores</span><span data-l="en">Meter agreement</span></h3><p>Dos instrumentos en rutas de señal separadas deben contar la misma historia: <code>|A−B| ≤ 5 %</code>, con banda muerta de 2 W. Un sensor tapado o un bus muerto colapsa un medidor y dispara el filtro.</p><p class="q-adv">Detiene: inflar o desconectar un solo medidor</p></article>
+      <article class="q-vcard is-plan"><div class="q-vcard-h"><b>G4</b><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div><h3><span data-l="es">Testigo solar</span><span data-l="en">Solar witness</span></h3><p>Una celda de referencia fuera de la ruta de potencia mide la <b>causa</b>, no el efecto. Si el arreglo reporta energía y el testigo está a oscuras, el lote cae.</p><p class="q-adv">Pendiente: requiere celda de 5 Wp + INA226 (hardware fuera del sprint)</p></article>
+      <article class="q-vcard is-plan"><div class="q-vcard-h"><b>G5</b><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div><h3><span data-l="es">Rampa y verosimilitud de serie</span><span data-l="en">Ramp and series plausibility</span></h3><p>Saltos físicamente imposibles, y series <b>demasiado suaves</b>: la irradiancia real siempre tiene ruido; una constante perfecta es sintética.</p><p class="q-adv">Pendiente: requiere muestreo dentro del intervalo</p></article>
+      <article class="q-vcard is-plan"><div class="q-vcard-h"><b>G6</b><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div><h3><span data-l="es">Apertura del gabinete</span><span data-l="en">Enclosure opening</span></h3><p>Un reed en la tapa del gabinete: caja abierta → anclaje detenido hasta un rearme firmado.</p><p class="q-adv">Pendiente: requiere reed + GPIO (hardware fuera del sprint)</p></article>
+      <article class="q-vcard is-two"><div class="q-vcard-h"><b>×2</b><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><h3><span data-l="es">Firma de dos partes</span><span data-l="en">Two-party signature</span></h3><p>El proponente firma; un verificador independiente <b>vuelve a correr los filtros</b> y recién entonces cofirma. Probado contra una red simulada y en el ensayo del 8 oct con cuentas desechables; cuenta definitiva 2 de 3: en preparación (semana 2).</p><p class="q-adv">Un nodo comprometido es un sensor roto, no una fuente de constancias falsas</p></article>
     </div>
-  </section>
+  </div>
+</section>
 
-  <section>
-    <h2><span class="n">03 &middot; La prueba</span>La bit&aacute;cora de rechazos es el entregable</h2>
-    <p class="sub">
-      Un verificador que solo publica lo que pas&oacute; est&aacute; haciendo marketing. En un equipo f&iacute;sico estas fallas se inducen
-      as&iacute;; en la corrida simulada del sprint se programan con <code>live/schedule.js</code> y se publican en <code>faults.json</code>.
-      En ambos casos deben aparecer en <code>rejected.jsonl</code> con su raz&oacute;n.
-    </p>
-    <div class="tscroll">
-      <table class="drills">
-        <thead><tr><th>Prueba</th><th>Acci&oacute;n f&iacute;sica</th><th>Resultado esperado</th></tr></thead>
+<section class="q-sec" id="semana1" aria-labelledby="hS1">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="hS1"><span data-l="es">Semana 1: así intentamos engañar a nuestro propio verificador</span><span data-l="en">Week 1: how we tried to fool our own verifier</span></h2><span class="q-chip" data-st="hecho" data-status-of="week:1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></div>
+    <ul class="q-lines">
+      <li><b>Falla 1, «el total heredado».</b> El verificador copiaba el total del lote anterior sin comprobarlo. Ahora, antes de firmar, recorre la cadena hasta el último lote anclado en Stellar y recalcula cada huella y cada total.</li>
+      <li><b>Falla 2, «la misma energía, dos veces».</b> Se rechazan intervalos repetidos, superpuestos, fuera de la grilla de 5 minutos o de otra instalación.</li>
+      <li><b>DV-1 a DV-4,</b> encontradas al revisar esos arreglos: otras cuatro formas de contar dos veces la misma energía, cerradas. <b>DV-5:</b> el anclaje ya no puede quedar detenido para siempre tras muchos lotes rechazados (nuevo código <code>verifier.walk_too_long</code>).</li>
+      <li><b>Un lote rechazado no suma energía</b> al total: arrastra el anterior. Lo ves en el lote #6 del feed de muestra, arriba.</li>
+      <li><b>Pruebas automáticas: <span class="q-num" data-src="dato">154 → 194</span>, 0 en rojo.</b></li>
+    </ul>
+    <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct · fuente:</span><span data-l="en">Repository fact · 23 Oct · source:</span> <a class="q-ev" href="https://github.com/academiaseul/QWATT/actions/runs/39943161382" target="_blank" rel="noopener"><span translate="no">CI #34</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> <a class="q-ev" href="https://github.com/academiaseul/QWATT/pull/7" target="_blank" rel="noopener"><span translate="no">PR #7</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> <a class="q-ev" href="https://github.com/academiaseul/QWATT/pull/5" target="_blank" rel="noopener"><span translate="no">PR #5</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> <a class="q-ev" href="https://github.com/academiaseul/QWATT/pull/1" target="_blank" rel="noopener"><span translate="no">PR #1</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a> <a class="q-ev" href="https://github.com/academiaseul/QWATT/pull/8" target="_blank" rel="noopener"><span translate="no">PR #8</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p>
+  </div>
+</section>
+
+<section class="q-sec" id="prueba" aria-labelledby="h03">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h03"><span class="q-n"><span data-l="es">03 · La prueba</span><span data-l="en">03 · The proof</span></span> <span data-l="es">La bitácora de rechazos es el entregable</span><span data-l="en">The rejection log is the deliverable</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+    <p class="q-sub">Un verificador que solo publica lo que pasó no demuestra nada. En un equipo físico estas fallas se inducen así (hardware fuera del sprint: planificado); en la corrida simulada se programan con <code>live/schedule.js</code> y se publican en <code>faults.json</code>. En ambos casos deben aparecer en <code>rejected.jsonl</code> con su motivo. El feed de muestra, arriba, ya trae cinco intervalos rechazados y un lote rechazado: elígelo y míralos.</p>
+    <div class="q-table-wrap">
+      <table class="q-table q-drills">
+        <caption><span data-l="es">Pruebas físicas planificadas y su resultado esperado</span><span data-l="en">Planned physical drills and their expected result</span></caption>
+        <thead><tr><th scope="col"><span data-l="es">Prueba</span><span data-l="en">Drill</span></th><th scope="col"><span data-l="es">Acción física</span><span data-l="en">Physical action</span></th><th scope="col"><span data-l="es">Resultado esperado</span><span data-l="en">Expected result</span></th></tr></thead>
         <tbody>
-          <tr><td><b>Control &middot; sombra honesta</b></td><td>Cubrir el panel completo durante un intervalo</td><td class="out ok">aceptado &asymp; 0 Wh — los filtros rechazan fraude, no clima</td></tr>
-          <tr><td><b>Sensor tapado</b></td><td>Levantar una punta de sensado del shunt en el PZEM</td><td class="out">rechazado: divergencia entre medidores</td></tr>
-          <tr><td><b>Medidor desconectado</b></td><td>Desenchufar el bus RS485 A durante un intervalo</td><td class="out">rechazado: divergencia (el medidor A colapsa a 0)</td></tr>
-          <tr><td><b>Generar de noche</b></td><td>Inyectar desde fuente de laboratorio aguas arriba del shunt, de noche</td><td class="out">rechazado: generaci&oacute;n con el sol bajo &minus;2&deg;</td></tr>
+          <tr><td><b>Control · sombra honesta</b></td><td>Cubrir el panel completo durante un intervalo</td><td class="is-ok">aceptado ≈ 0 Wh: los filtros rechazan fraude, no clima</td></tr>
+          <tr><td><b>Sensor tapado</b></td><td>Levantar una punta de sensado del shunt en el PZEM</td><td>rechazado: divergencia entre medidores</td></tr>
+          <tr><td><b>Medidor desconectado</b></td><td>Desenchufar el bus RS485 A durante un intervalo</td><td>rechazado: divergencia (el medidor A colapsa a 0)</td></tr>
+          <tr><td><b>Generar de noche</b></td><td>Inyectar desde una fuente de laboratorio aguas arriba del shunt, de noche</td><td>rechazado: generación con el sol bajo −2°</td></tr>
         </tbody>
       </table>
     </div>
-    <p class="foot-note">
-      El primer resultado es el m&aacute;s importante: un panel tapado produce cero, y ese cero se <b>acepta</b>.
-      Un sistema que castigara el mal tiempo estar&iacute;a midiendo otra cosa.
-    </p>
-  </section>
+    <p class="q-note">El primer resultado es el más importante: un panel tapado produce cero, y ese cero se <b>acepta</b>. Un sistema que castigara el mal tiempo estaría midiendo otra cosa.</p>
+  </div>
+</section>
 
-  <section>
-    <h2><span class="n">04 &middot; Honestidad</span>No toda prueba vale lo mismo</h2>
-    <p class="sub">
-      Cada evento carga su nivel de garant&iacute;a, y el nivel depende de <b>qu&eacute; instrumentos hay</b>, nunca de si
-      el resultado convino. Hoy el protocolo no tiene ning&uacute;n evento real — y lo decimos aqu&iacute; en vez de esconderlo.
-    </p>
-    <div class="ladder">
-      <div class="rung now"><span class="lv">A0</span><span class="nm">Simulado<small>Sin hardware: lecturas simuladas. En este sprint se anclan solo en Stellar testnet, rotuladas como entrada simulada, y no prueban que una instalaci&oacute;n haya producido energ&iacute;a.</small></span><span class="where">AQU&Iacute; ESTAMOS</span></div>
-      <div class="rung"><span class="lv">A1</span><span class="nm">Medido<small>Un instrumento real. Fotones de verdad, sin corroborar.</small></span><span class="where">BANCO</span></div>
-      <div class="rung"><span class="lv">A2</span><span class="nm">Corroborado<small>Dos medidores independientes, filtros G0&ndash;G3 activos.</small></span><span class="where">FASE 1</span></div>
-      <div class="rung"><span class="lv">A3</span><span class="nm">Cofirmado<small>Testigo solar y sensor de apertura del gabinete, m&aacute;s un verificador independiente con clave en b&oacute;veda. Ninguna parte sola ancla.</small></span><span class="where">FASE 2</span></div>
-      <div class="rung"><span class="lv">A4</span><span class="nm">Auditado<small>Medidores calibrados y sellados, puesta en marcha por un tercero.</small></span><span class="where">COMERCIAL</span></div>
-    </div>
-  </section>
-
-  <section>
-    <h2><span class="n">05 &middot; Onchain</span>Una transacci&oacute;n at&oacute;mica por anclaje</h2>
-    <p class="sub">
-      El manifiesto del lote es JSON can&oacute;nico y se publica <b>antes</b> de anclar; su SHA-256 viaja dentro de la
-      transacci&oacute;n que lo ancla. Un revisor recalcula el hash desde el archivo p&uacute;blico y no necesita nada de nosotros.
-    </p>
-    <div class="ops">
-      <div class="op"><span class="k">op 1</span><p><code>manageData qwatt.anchor.sha256</code> — el SHA-256 del lote, escrito como 64 caracteres hexadecimales. Se calcula sobre el JSON can&oacute;nico del lote sin su propio campo <code>sha256</code>.</p></div>
-      <div class="op"><span class="k">op 2</span><p><code>manageData qwatt.cumulative_mwh</code> — la energ&iacute;a verificada acumulada del sitio, como n&uacute;mero entero en <b>milivatios-hora (mWh)</b>: <code>11600</code> son 11,6&nbsp;Wh. Es el <code>cumulative_mwh</code> del lote, o sea el total del lote anterior m&aacute;s el <code>energy_mwh</code> de este.</p></div>
-      <div class="op"><span class="k">op 3</span><p><code>payment</code> — un pago nominal fijo a una cuenta fija, con el mismo monto en cada lote. Es solo una marca: no es proporcional a la energ&iacute;a del lote ni la representa.</p></div>
-      <div class="op"><span class="k">memo</span><p><code>QW#&lt;seq&gt;</code> — el n&uacute;mero del lote que se ancla. La transacci&oacute;n solo es v&aacute;lida dentro de una ventana de 24&nbsp;h como m&aacute;ximo.</p></div>
-    </div>
-    <div class="princ">
-      <div><h3 class="sub-h">El menor de dos medidores</h3><p>Cada intervalo aceptado aporta <code>min(A,B)</code> a la energ&iacute;a del lote. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
-      <div><h3 class="sub-h">Solo enteros, en mWh</h3><p>Todos los n&uacute;meros de la evidencia son enteros, y la energ&iacute;a va en milivatios-hora (mWh). La lectura de cada medidor se lleva a mWh enteros una sola vez, al ingresar; despu&eacute;s solo hay sumas y m&iacute;nimos de enteros, sin montos con decimales. El hash rechaza cualquier n&uacute;mero que no sea entero.</p></div>
-      <div><h3 class="sub-h">Protecci&oacute;n contra doble anclaje</h3><p>En cada ciclo, el proponente y el verificador releen primero la cadena: el <code>qwatt.anchor.sha256</code> vigente de la cuenta de anclaje dice qu&eacute; lotes ya est&aacute;n anclados. La transacci&oacute;n usa el siguiente n&uacute;mero de secuencia de la cuenta, que Stellar acepta una sola vez, y un env&iacute;o que vence por timeout no se reintenta a ciegas.</p></div>
-      <div><h3 class="sub-h">Reconciliaci&oacute;n sin nosotros</h3><p><code>lo verificado = lo anclado</code>: cada anclaje en Horizon debe llevar el hash y el total de un lote publicado y aceptado, en orden y sin huecos. Cualquier revisor lo recalcula con el c&oacute;digo p&uacute;blico.</p></div>
-    </div>
-  </section>
-
-  <section>
-    <h2><span class="n">06 &middot; L&iacute;mites</span>Lo que una constancia <em>no</em> prueba</h2>
-    <p class="sub">La credibilidad de todo lo anterior depende de no venderlo de m&aacute;s.</p>
-    <ul class="lines">
-      <li><b>No prueba que la energ&iacute;a fue renovable.</b> Prueba que el perfil de generaci&oacute;n coincide con la f&iacute;sica solar de ese lugar y esa hora. Es evidencia fuerte, no un certificado de combustible.</li>
-      <li><b>No prueba que el medidor est&eacute; conectado a ese arreglo.</b> Amarrar instrumento e instalaci&oacute;n es un acto f&iacute;sico de puesta en marcha — gabinete sellado, fotos, firma del instalador — no algo criptogr&aacute;fico. Eso es el nivel A4.</li>
-      <li><b>No prueba entrega, propiedad ni derecho.</b> Qui&eacute;n es due&ntilde;o de la energ&iacute;a y qui&eacute;n puede reclamarla son preguntas de contrato.</li>
-      <li><b>No es un REC, ni un bono de carbono, ni un t&iacute;tulo de subsidio.</b> Una constancia QWATT es evidencia p&uacute;blica y voluntaria, nada m&aacute;s.</li>
-      <li><b>No es infalsificable por alguien con acceso f&iacute;sico.</b> El modelo sube el costo de una falsificaci&oacute;n cre&iacute;ble por encima del valor de la energ&iacute;a falsificada, y hace detectables las baratas. Esa es la afirmaci&oacute;n honesta; quien promete m&aacute;s est&aacute; vendiendo algo.</li>
-    </ul>
-  </section>
-
-  <section style="border-bottom:0">
-    <h2><span class="n">07 &middot; Sin confiar en nosotros</span>C&oacute;mo lo verificas t&uacute;</h2>
-    <p class="sub">El procedimiento completo, con herramientas p&uacute;blicas. El paso 6 es el que nos audita a nosotros.</p>
-    <ol class="steps">
-      <li>Abre la transacci&oacute;n de anclaje en stellar.expert (red testnet). Su memo <code>QW#&lt;seq&gt;</code> dice qu&eacute; lote ancla.</li>
-      <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacci&oacute;n: ah&iacute; est&aacute; el hash de la evidencia. Horizon entrega el valor en base64; decodificado son 64 caracteres hexadecimales.</li>
-      <li>Descarga el manifiesto del lote desde el feed p&uacute;blico, quita su campo <code>sha256</code> y recalcula el <code>SHA-256</code> de su JSON can&oacute;nico (claves ordenadas, sin espacios, solo enteros). Debe coincidir con el valor anclado.</li>
-      <li>Vuelve a correr los filtros de verificaci&oacute;n con los n&uacute;meros del propio lote — todos los umbrales est&aacute;n en <a href="protocol/gates.spec.json">gates.spec.json</a> y los casos de conformidad en <a href="protocol/conformance/cases.json">cases.json</a>. Esta p&aacute;gina corre el mismo motor que la suite.</li>
-      <li>Comprueba que <code>qwatt.cumulative_mwh</code> sea el <code>cumulative_mwh</code> del lote, en milivatios-hora (mWh): el total del lote anterior m&aacute;s el <code>energy_mwh</code> del lote, que a su vez es la suma de <code>min(A,B)</code> de sus intervalos. El pago no entra en esta cuenta.</li>
-      <li><b>Reconciliaci&oacute;n:</b> compara lo publicado con lo anclado en Stellar testnet: cada anclaje debe llevar el hash y el total de un lote publicado y aceptado, en orden y sin huecos. Un anclaje que no calce con un lote publicado no tiene respaldo.</li>
+<section class="q-sec" id="honestidad" aria-labelledby="h04">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h04"><span class="q-n"><span data-l="es">04 · Honestidad</span><span data-l="en">04 · Honesty</span></span> <span data-l="es">No toda prueba vale lo mismo</span><span data-l="en">Not all evidence is worth the same</span></h2></div>
+    <p class="q-sub">Cada constancia carga su nivel de garantía, y el nivel depende de <b>qué instrumentos hay</b>, nunca de si el resultado convino. Hoy no hay ninguna lectura real, y lo decimos aquí en vez de esconderlo.</p>
+    <ol class="q-ladder">
+      <li class="is-now"><span class="q-lv">A0</span><span class="q-nm">Simulado<small>Sin hardware: lecturas simuladas. En este sprint se prueban solo en Stellar testnet, rotuladas como entrada simulada, y no prueban que una instalación haya producido energía.</small></span><span class="q-where"><span data-l="es">AQUÍ ESTAMOS</span><span data-l="en">WE ARE HERE</span></span></li>
+      <li><span class="q-lv">A1</span><span class="q-nm">Medido<small>Un instrumento real. Fotones de verdad, sin corroborar.</small></span><span class="q-where"><span data-l="es">BANCO</span><span data-l="en">BENCH</span></span></li>
+      <li><span class="q-lv">A2</span><span class="q-nm">Corroborado<small>Dos medidores independientes, filtros G0–G3 activos.</small></span><span class="q-where"><span data-l="es">FASE 1</span><span data-l="en">PHASE 1</span></span></li>
+      <li><span class="q-lv">A3</span><span class="q-nm">Cofirmado<small>Testigo solar y sensor de apertura del gabinete, más un verificador independiente con su propia clave. Ninguna parte sola ancla.</small></span><span class="q-where"><span data-l="es">FASE 2</span><span data-l="en">PHASE 2</span></span></li>
+      <li><span class="q-lv">A4</span><span class="q-nm">Auditado<small>Medidores calibrados y sellados, puesta en marcha por un tercero.</small></span><span class="q-where"><span data-l="es">AUDITORÍA</span><span data-l="en">AUDIT</span></span></li>
     </ol>
-    <p class="foot-note">
-      El modelo completo y el c&oacute;digo de los validadores est&aacute;n en
-      <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener">GitHub &#8599;</a>.
-    </p>
-  </section>
-</div>
-<footer id="qwfoot">
-<style>
-#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
-#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
-#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
-@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
-#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
-#qwfoot a:hover{color:#f0e8dc}
-#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
-#qwfoot .qf-brand .qf-bolt{color:#d08a57}
-#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
-#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
-#qwfoot h3{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
-#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
-#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
-#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
-#qwfoot .qf-bottom a{color:#d08a57}
-</style>
-<div class="qf-in">
-  <div class="qf-cols">
-    <div>
-      <a class="qf-brand" href="index.html"><span class="qf-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+  </div>
+</section>
+
+<section class="q-sec" id="onchain" aria-labelledby="h05">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h05"><span class="q-n"><span data-l="es">05 · Onchain</span><span data-l="en">05 · On chain</span></span> <span data-l="es">Una transacción atómica por anclaje</span><span data-l="en">One atomic transaction per anchor</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></span></div>
+    <p class="q-sub">El lote es JSON canónico y se publica <b>antes</b> de anclar; su SHA-256 viaja dentro de la transacción que lo ancla. Un revisor recalcula la huella desde el archivo público y no necesita nada de nosotros. Así quedaron anclados los dos lotes del ensayo del 8 oct, en una cuenta desechable.</p>
+    <div class="q-ops">
+      <div class="q-op"><span class="q-op-k">op 1</span><p><code>manageData qwatt.anchor.sha256</code>: el SHA-256 del lote, escrito como 64 caracteres hexadecimales. Se calcula sobre el JSON canónico del lote sin su propio campo <code>sha256</code>.</p></div>
+      <div class="q-op"><span class="q-op-k">op 2</span><p><code>manageData qwatt.cumulative_mwh</code>: el total acumulado de energía que pasó los filtros, como número entero en milivatios-hora (mWh): <code>11600</code> son 11,6 Wh. Es el <code>cumulative_mwh</code> del lote, el total del lote anterior más el <code>energy_mwh</code> de este; un lote rechazado no suma nada.</p></div>
+      <div class="q-op"><span class="q-op-k">op 3</span><p><code>payment</code>: un pago marcador fijo (monto no mostrado), siempre el mismo, a una cuenta fija. Es solo una marca: no es proporcional a la energía del lote ni la representa.</p></div>
+      <div class="q-op"><span class="q-op-k">memo</span><p><code>QW#&lt;seq&gt;</code>: el número del lote que se ancla. La transacción solo es válida dentro de una ventana de 24 h como máximo; la semana 3 la baja a 60 minutos (planificado).</p></div>
     </div>
-    <div class="qf-grp">
-      <h3>Enlaces</h3>
-      <a href="verificacion.html">Verificaci&oacute;n</a>
-      <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener">GitHub &#8599;</a>
+    <div class="q-princ">
+      <div><h3><span data-l="es">El menor de dos medidores</span><span data-l="en">The lower of two meters</span></h3><p>Cada intervalo aceptado aporta <code>min(A,B)</code> a la energía del lote. Una falla de medidor puede subestimar, nunca sobreestimar.</p></div>
+      <div><h3><span data-l="es">Solo enteros, en mWh</span><span data-l="en">Integers only, in mWh</span></h3><p>Todos los números de la evidencia son enteros, y la energía va en milivatios-hora (mWh). La lectura de cada medidor se lleva a mWh enteros una sola vez, al ingresar; después solo hay sumas y mínimos de enteros. La huella rechaza cualquier número que no sea entero.</p></div>
+      <div><h3><span data-l="es">Protección contra doble anclaje</span><span data-l="en">Protection against double anchoring</span></h3><p>En cada ciclo, el proponente y el verificador releen primero la cadena: el <code>qwatt.anchor.sha256</code> vigente de la cuenta de anclaje dice qué lotes ya están anclados. La transacción usa el siguiente número de secuencia de la cuenta, que Stellar acepta una sola vez, y un envío que vence por tiempo no se reintenta a ciegas.</p></div>
+      <div><h3><span data-l="es">Conciliación sin nosotros</span><span data-l="en">Reconciliation without us</span></h3><p><code>lo verificado = lo anclado</code>: cada anclaje en Horizon debe llevar la huella y el total de un lote publicado y aceptado, en orden y sin huecos. Cualquier revisor lo recalcula con el código público.</p></div>
     </div>
   </div>
-  <div class="qf-bottom">
-    <span>&copy; 2026 QWATT &#183; proyecto en desarrollo &#183; solo Stellar testnet &#183; no es una inversi&oacute;n y no se vende</span>
+</section>
+
+<section class="q-sec" id="limites" aria-labelledby="h06">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h06"><span class="q-n"><span data-l="es">06 · Límites</span><span data-l="en">06 · Limits</span></span> <span data-l="es">Lo que una constancia no prueba</span><span data-l="en">What a record does not prove</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+    <p class="q-sub">La credibilidad de todo lo anterior depende de no exagerarlo.</p>
+    <ul class="q-lines">
+      <li><b>No prueba que la energía fue renovable.</b> Prueba que el perfil de generación coincide con la física solar de ese lugar y esa hora. Es evidencia fuerte, no un certificado de origen.</li>
+      <li><b>No prueba que el medidor esté conectado a ese arreglo.</b> Amarrar instrumento e instalación es un acto físico de puesta en marcha (gabinete sellado, fotos, firma del instalador), no algo criptográfico. Eso es el nivel A4.</li>
+      <li><b>No prueba entrega, propiedad ni derecho.</b> Quién es dueño de la energía y quién puede reclamarla son preguntas de contrato.</li>
+      <li><b>No es un certificado de energía renovable (REC), ni un crédito de carbono, ni un título de subsidio.</b> Una constancia QWATT es evidencia pública y voluntaria, nada más.</li>
+      <li><b>No es infalsificable por alguien con acceso físico.</b> El modelo encarece una falsificación creíble y hace detectables las baratas. Esa es la afirmación honesta; quien promete más, exagera.</li>
+      <li><b>No prueba que el verificador sea independiente como organización:</b> hoy lo opera nuestro propio equipo. Es independiente en código y en datos, y su firma solo prueba que su clave firmó.</li>
+    </ul>
   </div>
-</div>
+</section>
+
+<section class="q-sec" id="sin-confiar" aria-labelledby="h07">
+  <div class="q-wrap">
+    <div class="q-head"><h2 id="h07"><span class="q-n"><span data-l="es">07 · Sin confiar en nosotros</span><span data-l="en">07 · Without trusting us</span></span> <span data-l="es">Cómo lo verificas tú</span><span data-l="en">How you check it</span></h2><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+    <p class="q-sub">El procedimiento completo, con herramientas públicas. El paso 6 es el que nos audita a nosotros.</p>
+    <ol class="q-steps">
+      <li>Abre la transacción de anclaje en stellar.expert (red testnet). Su memo <code>QW#&lt;seq&gt;</code> dice qué lote ancla. La cuenta definitiva está en preparación (semana 2); mientras tanto puedes hacerlo con el ensayo del 8 oct (cuenta desechable), en la sección A.</li>
+      <li>Lee <code>qwatt.anchor.sha256</code> de esa misma transacción: ahí está la huella de la evidencia. Horizon entrega el valor en base64; decodificado son 64 caracteres hexadecimales. Desde la semana 2 el feed público estará en los repositorios de evidencia; por ahora, el ejemplo es el archivo de evidencia del ensayo.</li>
+      <li>Descarga el lote desde el feed público, quita su campo <code>sha256</code> y recalcula el SHA-256 de su JSON canónico (claves ordenadas, sin espacios, solo enteros). Debe coincidir con el valor anclado.</li>
+      <li>Vuelve a correr los filtros con los números del propio lote: todos los umbrales están en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/gates.spec.json" target="_blank" rel="noopener">gates.spec.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a> y los casos de conformidad en <a href="https://github.com/academiaseul/QWATT/blob/main/protocol/conformance/cases.json" target="_blank" rel="noopener">cases.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a>. Esta página corre el mismo motor que la suite.</li>
+      <li>Comprueba que <code>qwatt.cumulative_mwh</code> sea el <code>cumulative_mwh</code> del lote, en milivatios-hora (mWh): el total del lote anterior más el <code>energy_mwh</code> del lote, que a su vez es la suma de <code>min(A,B)</code> de sus intervalos. El pago marcador no entra en esta cuenta.</li>
+      <li><b>Conciliación:</b> compara lo publicado con lo anclado en Stellar testnet: cada anclaje debe llevar la huella y el total de un lote publicado y aceptado, en orden y sin huecos. Un anclaje que no calce con un lote publicado no tiene respaldo.</li>
+    </ol>
+    <p class="q-callout"><span data-l="es">Todo esto lo hace por ti la sección A, arriba, con el código del repositorio. Las pruebas A, B y D, en</span><span data-l="en">Section A, above, does all of this for you with the repository's code. Tests A, B and D, in</span> <a href="/pruebas.html"><span data-l="es">La red dice que no →</span><span data-l="en">The network says no →</span></a></p>
+  </div>
+</section>
+
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
 </footer>
-
-<script src="assets/gates.generated.js"></script>
-<script src="assets/qwatt-gates.js"></script>
-<script>
-(function(){
-  /* This page holds no thresholds and no gate logic. Both come from
-     assets/gates.generated.js (built from protocol/gates.spec.json) and
-     assets/qwatt-gates.js — the same two files the conformance suite runs
-     in CI. Mirroring the gateway is no longer a promise; it is the same code. */
-  var SPEC = window.QWATT_GATES_SPEC, G = window.QWATT_GATES;
-  var P = SPEC.profiles.bench, MSG = SPEC.messages.es;
-
-  var $ = function(id){ return document.getElementById(id); };
-  var els = { hour:$('cHour'), a:$('cA'), b:$('cB'), dt:$('cDt'), skew:$('cSkew') };
-  var n1 = function(x, d){ return x.toFixed(d === undefined ? 1 : d).replace('.', ','); };
-
-  /* Presentation only: how each placeholder in a spec message is printed. */
-  var INT = { dt:1, dt_ts:1, max_dt:1, max_skew:1, skew:1, minutes:1, nameplate:1 };
-  function fmt(v, k){
-    if (typeof v !== 'number') return String(v);
-    if (INT[k]) return String(Math.round(v));
-    if (k === 'diff' || k === 'tol') return n1(v, 2);
-    if (k === 'ratio') return n1(v, 3);
-    return n1(v);
-  }
-
-  var specv = $('specv');
-  if (specv) specv.textContent = 'spec ' + SPEC.spec_version + ' \u00b7 ' + SPEC.digest.slice(0, 8);
-
-  var PRESETS = {
-    honest: {hour:12, a:11.8, b:11.6, dt:300, skew:false},
-    shade:  {hour:12, a:0.2,  b:0.2,  dt:300, skew:false},
-    cap:    {hour:12, a:22.0, b:21.6, dt:300, skew:false},
-    night:  {hour:23, a:8.0,  b:7.9,  dt:300, skew:false},
-    diverge:{hour:12, a:11.8, b:6.0,  dt:300, skew:false},
-    dead:   {hour:12, a:11.8, b:0,    dt:300, skew:false},
-    gap:    {hour:12, a:11.8, b:11.6, dt:1200, skew:false}
-  };
-
-  /* Builds a normalized interval (protocol/interval.schema.json) from the
-     controls and hands it to the engine. Santiago runs UTC−3 on 2026-09-20. */
-  function evaluate(){
-    var hour = +els.hour.value, A = +els.a.value, B = +els.b.value, dt = +els.dt.value;
-    var start = new Date(Date.UTC(2026, 8, 20, hour + 3, 0, 0));
-    var rec = {
-      spec_version: SPEC.spec_version, schema_version: G.INTERVAL_SCHEMA_VERSION,
-      site_id: 'bench-santiago', node_id: 'demo', seq: 1,
-      ts_start: start.toISOString(),
-      ts_end: new Date(start.getTime() + dt * 1000).toISOString(),
-      dt_s: dt,
-      meters: { a: { id: 'pzem-017', class: 'dc', mwh: Math.round(A * 1000) }, b: { id: 'epever', class: 'dc', mwh: Math.round(B * 1000) } },
-      clock_skew_s: els.skew.checked ? P.clock_max_skew_s + 1 : 0,
-      source: { adapter: 'demo' }
-    };
-    var res = G.evaluateInterval(rec, P, SPEC);
-    var checks = res.checks.map(function(c){
-      return { id: c.label, s: c.status === 'pass' ? 'pass' : 'fail', t: G.format(MSG[c.code] || c.code, c.detail, fmt) };
-    });
-    return { checks: checks, minted: Math.min(A, B), mint: res.mint };
-  }
-
-  function render(){
-    $('vHour').textContent = String(els.hour.value).padStart(2,'0') + ':00';
-    $('vA').textContent = n1(+els.a.value) + ' Wh';
-    $('vB').textContent = n1(+els.b.value) + ' Wh';
-    $('vDt').textContent = els.dt.value + ' s';
-
-    var res = evaluate();
-    var failed = res.checks.filter(function(x){ return x.s === 'fail'; });
-    var box = $('checks');
-    box.textContent = '';
-    res.checks.forEach(function(c){
-      var d = document.createElement('div');
-      d.className = 'chk ' + c.s;
-      var id = document.createElement('span'); id.className='id'; id.textContent = c.id;
-      var st = document.createElement('span'); st.className='st'; st.textContent = c.s === 'pass' ? 'OK' : 'FALLA';
-      var tx = document.createElement('span'); tx.className='txt'; tx.textContent = c.t;
-      d.appendChild(id); d.appendChild(st); d.appendChild(tx);
-      box.appendChild(d);
-    });
-
-    var v = $('verdict'), ok = failed.length === 0;
-    v.className = 'verdict ' + (ok ? 'ok' : 'no');
-    $('vTitle').textContent = ok ? 'ACEPTADO' : 'RECHAZADO';
-    if (ok) {
-      $('vMint').textContent = 'se ancla  ·  min(A,B) = ' + n1(res.minted) + ' Wh';
-    } else {
-      $('vMint').textContent = failed.length + (failed.length === 1 ? ' filtro falló' : ' filtros fallaron') + ' · no se ancla';
-    }
-  }
-
-  Object.keys(els).forEach(function(k){
-    els[k].addEventListener('input', function(){
-      document.querySelectorAll('#presets button').forEach(function(b){ b.classList.remove('on'); });
-      render();
-    });
-  });
-  document.querySelectorAll('#presets button').forEach(function(btn){
-    btn.addEventListener('click', function(){
-      var p = PRESETS[btn.getAttribute('data-p')];
-      els.hour.value = p.hour; els.a.value = p.a; els.b.value = p.b; els.dt.value = p.dt; els.skew.checked = p.skew;
-      document.querySelectorAll('#presets button').forEach(function(b){ b.classList.remove('on'); });
-      btn.classList.add('on');
-      render();
-    });
-  });
-
-  render();
-})();
-</script>
+<!-- /q:footer -->
 </body>
 </html>

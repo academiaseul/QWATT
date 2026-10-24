@@ -413,7 +413,7 @@ test('steps: the default case (8 Oct rehearsal, batch #1) matches its pinned sta
   const rows = await St.run(input, deps(P));
   eq(states(rows), '1:ok 2:ok 3:ok 4:ok 5:na 6:ok 7:ok 8:ok 9:ok 10:ok', 'rows');
   const r10 = rows.find((r) => r.n === 10);
-  eq(r10.anchor && r10.anchor.memo, 'QW#1', 'anchor memo');
+  eq(r10.anchor && r10.anchor.memoShown, 'QW#1', 'anchor memo (masked to QW#n)');
   eq(r10.anchor && r10.anchor.ledger, 5093765, 'anchor ledger');
   eq((r10.signers || []).slice().sort(), ['third', 'verifier'], 'signers identified by Ed25519 (test L)');
   eq(r10.thresholds, '1/2/3', 'thresholds read now');

@@ -200,7 +200,7 @@
     }
     var a = bySeq || byHash;
     if (!a) return Promise.resolve(out({ state: 'wait', why: 'pending', anchors: anchors.length, thresholds: thresholds, account: account }));
-    var anchor = { memo: a.memoShown, ledger: a.ledger, createdAt: a.createdAt, txHash: a.txHash, sha256: a.sha256, cumulativeMwh: a.cumulativeMwh,
+    var anchor = { memoShown: a.memoShown, ledger: a.ledger, createdAt: a.createdAt, txHash: a.txHash, sha256: a.sha256, cumulativeMwh: a.cumulativeMwh,
       hashMatch: a.sha256 === recomputed, totalMatch: a.cumulativeMwh === obj.cumulative_mwh };
     var tx = st.txs && st.txs[a.txHash];
     var sigs = tx && Array.isArray(tx.signatures) ? tx.signatures : [];
