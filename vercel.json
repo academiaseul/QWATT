@@ -11,7 +11,6 @@
     { "source": "/grid.html", "destination": "/", "permanent": true },
     { "source": "/pay.html", "destination": "/", "permanent": true },
     { "source": "/wallet.html", "destination": "/", "permanent": true },
-    { "source": "/respaldo.html", "destination": "/", "permanent": true },
     { "source": "/red.html", "destination": "/", "permanent": true },
     { "source": "/piloto.html", "destination": "/", "permanent": true },
     { "source": "/whitepaper.html", "destination": "/", "permanent": true },
