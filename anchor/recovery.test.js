@@ -725,6 +725,175 @@ test('the verifier recomputes samples_root from the public raw file before co-si
   } finally { await w.close(); }
 });
 
+/* ── V3-7c: the public evidence read at one commit, after Horizon ── */
+
+const { fakeGithub } = require('./fake-github');
+const PF = require('../ops/publish-feed');
+const gitOut = (args) => require('child_process').execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+
+/**
+ * world(), with the feed published by the real publisher (ops/publish-feed.js) to a local bare
+ * acme/qwatt-evidence and served by a fake GitHub whose raw CDN caches each branch path. The
+ * verifier reads the raw branch URL, as the hosts do (QWATT_FEED_URL). `timeline` records every
+ * GitHub request and every Horizon account read, in order.
+ */
+async function githubWorld() {
+  const w = await world();
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-rec-gh-'));
+  const bare = path.join(root, 'qwatt-evidence.git'), logBare = path.join(root, 'qwatt-verifier-log.git');
+  for (const b of [bare, logBare]) gitOut(['init', '--quiet', '--bare', b]);
+  const timeline = [];
+  const gh = await fakeGithub({ repos: { 'acme/qwatt-evidence': bare, 'acme/qwatt-verifier-log': logBare }, onRequest: (r) => timeline.push('github ' + r.path) });
+  const loadAccount = w.fake.loadAccount.bind(w.fake);
+  w.fake.loadAccount = async (...a) => { timeline.push('horizon account'); return loadAccount(...a); };
+  const pin = { rawOrigin: gh.rawOrigin, gitOrigin: gh.gitOrigin };
+  Object.assign(w, {
+    gh, bare, logBare, pin, timeline,
+    feedUrl: `${gh.rawOrigin}/acme/qwatt-evidence/main/run`,
+    logUrl: `${gh.rawOrigin}/acme/qwatt-verifier-log/main/run`,
+    publish: () => PF.publishOnce({ kind: 'evidence', feed: w.feedDir, run: 'run', remote: bare, branch: 'main', work: path.join(root, 'work') }),
+    publishLog: () => PF.publishOnce({ kind: 'verifier-log', feed: w.stateDir, run: 'run', remote: logBare, branch: 'main', work: path.join(root, 'log-work') }),
+    headOf: (b) => gitOut(['--git-dir', b, 'rev-parse', 'main']),
+  });
+  w.mkVerifier = (o = {}) => new Verifier({ feedUrl: w.feedUrl, feedOptions: { pin }, cfg: w.cfg, keypair: w.keys.verifier, stateDir: w.stateDir, server: w.fake, ...o });
+  w.v = w.mkVerifier();
+  const closeHost = w.close;
+  w.close = async () => { await gh.close(); await closeHost(); };
+  return w;
+}
+
+test('the verifier reads the evidence at one commit, after Horizon: a CDN copy of the rejected ledger older than the batch ledger cannot make it refuse an honest batch (V3-7c)', async () => {
+  const w = await githubWorld();
+  try {
+    w.addBatches(1);
+    w.publish();
+    eq((await w.p.tick(w.clock.now())).action, 'proposed', 'rec-000000 proposed');
+    w.publish();
+    eq((await w.v.tick(w.clock.now())).action, 'anchored', 'rec-000000 anchored');
+    w.gh.expire();
+    await (await fetch(`${w.feedUrl}/ledger/rejected.jsonl`)).arrayBuffer();   // a reviewer's read: the CDN now holds this copy
+    /* an honest hour in which one interval is refused (meter b at 40 W: agreement.diverge) */
+    for (let i = 12; i < 24; i++) {
+      const r = iv(i);
+      if (i === 15) r.meters.b = { id: 'b', class: 'dc', mwh: Math.round(40 * 1000 * DT / 3600), mw_mean: 40 * 1000, samples: 30 };
+      w.pipe.push(r);
+    }
+    const listed = w.pipe.feed.readLedger('batches');
+    eq(listed.length, 2, 'two batches');
+    eq(listed[1].status, 'accepted', 'rec-000001 accepted');
+    eq(w.pipe.feed.readBatch(listed[1].batch_id).rejected_count, 1, 'with one interval refused');
+    w.publish();
+    w.clock.t += 30;
+    eq((await w.p.tick(w.clock.now())).action, 'proposed', 'rec-000001 proposed');
+    w.publish();
+    w.gh.expire('run/ledger/batches.jsonl');
+    const cdnCopy = await fetch(`${w.feedUrl}/ledger/rejected.jsonl`);
+    const cdnText = cdnCopy.status === 200 ? await cdnCopy.text() : '';
+    assert(!cdnText.includes('rec-000001'), 'the setup holds: the CDN serves a rejected ledger from before rec-000001');
+    w.timeline.length = 0;
+    const r = await w.v.tick(w.clock.now());
+    eq(r.action, 'anchored', `rec-000001 anchored (got ${JSON.stringify(r)})`);
+    const firstRefs = w.timeline.findIndex((x) => /info\/refs/.test(x));
+    const lastHorizon = w.timeline.lastIndexOf('horizon account');
+    assert(lastHorizon >= 0 && firstRefs > lastHorizon, `Horizon is read before the head commit is resolved: ${w.timeline.join(' | ')}`);
+    const head = w.headOf(w.bare);
+    const raw = w.timeline.filter((x) => x.startsWith('github /raw/'));
+    assert(raw.length > 0 && raw.every((x) => x.startsWith(`github /raw/acme/qwatt-evidence/${head}/run/`)), `every file is read at the commit, none on the branch path: ${raw.join(' | ')}`);
+    const d = jsonl(path.join(w.stateDir, 'decisions.jsonl'));
+    eq(d[d.length - 1].decision, 'signed', 'the last decision is the signature');
+    eq(d[d.length - 1].feed_commit, head, 'and names the evidence commit it judged');
+    eq(JSON.parse(fs.readFileSync(path.join(w.stateDir, 'status.json'), 'utf8')).feed_commit, head, 'status.json names it too');
+    w.invariant();
+  } finally { await w.close(); }
+});
+
+test('the head commit cannot be read (HTTP 429): the verifier waits with verifier.feed_unavailable, signs nothing and logs no refusal (V3-7c)', async () => {
+  const w = await githubWorld();
+  try {
+    w.addBatches(1);
+    w.publish();
+    eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+    w.publish();
+    w.gh.failRefs(429);
+    const before = w.fake.txs.length;
+    const r = await w.v.tick(w.clock.now());
+    eq(r.action, 'error', `a wait, not a decision (got ${JSON.stringify(r)})`);
+    eq(r.reason, 'verifier.feed_unavailable', 'reason');
+    assert(/429/.test(r.detail || ''), `the detail names the status: ${r.detail}`);
+    eq(w.fake.txs.length, before, 'nothing anchored');
+    eq(jsonl(path.join(w.stateDir, 'decisions.jsonl')).length, 0, 'no decision logged');
+    eq(jsonl(path.join(w.stateDir, 'refusals.jsonl')).length, 0, 'no refusal logged');
+    w.gh.failRefs(null);
+    eq((await w.v.tick(w.clock.now())).action, 'anchored', 'anchors once the head can be read again');
+    w.invariant();
+  } finally { await w.close(); }
+});
+
+test('a 403, 429 or 5xx on an evidence file read at the pinned commit (the head lookup answered) is a wait, verifier.feed_unavailable, never a refusal, and is not remembered: the next tick at the same commit anchors (V3-7c)', async () => {
+  const w = await githubWorld();
+  try {
+    w.addBatches(1);
+    w.publish();
+    eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+    w.publish();
+    const head = w.headOf(w.bare), id = 'rec-000000', before = w.fake.txs.length;
+    const atCommit = (rel) => `github /raw/acme/qwatt-evidence/${head}/${rel}`;
+    /* raw.githubusercontent.com rate-limits anonymous readers: every file, then the envelope, the batch file and the raw file one at a time,
+       in the order the tick reads them (a file read once at this commit is not read again) */
+    for (const [status, rel] of [[429, null], [500, `run/pending/${id}.xdr`], [403, `run/batches/${id}.json`], [503, `run/raw/${id}.jsonl`]]) {
+      const what = `HTTP ${status} on ${rel || 'every file'}`;
+      w.gh.failRaw(status, rel);
+      w.timeline.length = 0;
+      const r = await w.v.tick(w.clock.now());
+      eq(r.action, 'error', `${what}: a wait, not a decision (got ${JSON.stringify(r)})`);
+      eq(r.reason, 'verifier.feed_unavailable', `${what}: reason`);
+      assert(r.detail && r.detail.includes(String(status)), `${what}: the detail names the status: ${r.detail}`);
+      assert(w.timeline.some((x) => /info\/refs/.test(x)), `${what}: the head lookup was answered: ${w.timeline.join(' | ')}`);
+      eq(JSON.parse(fs.readFileSync(path.join(w.stateDir, 'status.json'), 'utf8')).feed_commit, head, `${what}: the tick read the evidence at the head commit`);
+      const failing = rel ? atCommit(rel) : w.timeline.find((x) => x.startsWith('github /raw/'));
+      assert(failing && failing.startsWith(atCommit('run/')) && w.timeline.includes(failing), `${what}: the refused read was a file at the pinned commit: ${w.timeline.join(' | ')}`);
+      eq(w.fake.txs.length, before, `${what}: nothing anchored`);
+      eq(jsonl(path.join(w.stateDir, 'decisions.jsonl')).length, 0, `${what}: no decision logged`);
+      eq(jsonl(path.join(w.stateDir, 'refusals.jsonl')).length, 0, `${what}: no refusal logged`);
+    }
+    w.gh.failRaw(null);
+    eq(w.headOf(w.bare), head, 'the branch has not moved: the next tick reads the same commit');
+    const r = await w.v.tick(w.clock.now());
+    eq(r.action, 'anchored', `anchors at the same commit once the files can be read, so no failure was kept for that commit (got ${JSON.stringify(r)})`);
+    const d = jsonl(path.join(w.stateDir, 'decisions.jsonl'));
+    eq(d.length, 1, 'one decision: the signature');
+    eq(d[0].feed_commit, head, 'at the commit the failed ticks read');
+    w.invariant();
+  } finally { await w.close(); }
+});
+
+test('the reader V3-11 will use: the public verifier log read at one commit (V3-7c)', async () => {
+  const w = await githubWorld();
+  try {
+    w.addBatches(1);
+    w.publish();
+    /* a proposer that signs a forged copy of rec-000000: the verifier refuses it */
+    const b = w.pipe.feed.readBatch('rec-000000');
+    const forged = { ...b, energy_mwh: b.energy_mwh + 1 };
+    forged.sha256 = E.batchSha256(forged);
+    await propose(w, forged);
+    w.publish();
+    eq((await w.v.tick(w.clock.now())).action, 'refused', 'refused');
+    eq((await fetch(`${w.logUrl}/refusals.jsonl`)).status, 404, 'a read before the log is published: the CDN keeps a 404 for the branch path');
+    w.publishLog();
+    const FC = require('./feed-client');
+    assert(typeof FC.makeVerifierLogClient === 'function', 'anchor/feed-client.js exports makeVerifierLogClient');
+    const c = FC.makeVerifierLogClient(w.logUrl, { pin: w.pin });
+    await c.snapshot();
+    eq(c.commit, w.headOf(w.logBare), 'read at the head commit of the verifier log');
+    eq((await c.refusals()).length, 1, 'one refusal, despite the cached 404 on the branch path');
+    const decisions = await c.decisions();
+    assert(decisions.some((d) => d.decision === 'refused'), 'the refused decision');
+    eq(decisions.find((d) => d.decision === 'refused').feed_commit, w.headOf(w.bare), 'which names the evidence commit it judged');
+    eq((await c.status()).refused, 1, 'status.json read at the same commit');
+  } finally { await w.close(); }
+});
+
 (async () => {
   console.log('\nanchor recovery');
   for (const t of tests) {

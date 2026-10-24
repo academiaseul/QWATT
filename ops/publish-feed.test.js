@@ -757,6 +757,74 @@ test('a README.md or LICENSE edit on the remote never stops the publisher: its u
   eq(PF.firstLine({ stderr: rejected }), "error: failed to push some refs to 'qwatt-evidence.git'", 'the line reported for a rejected push');
 });
 
+test('V3-7c: the audit checks that every evidence commit the verifier recorded is still in the public history (--recorded)', () => {
+  const A = require('./evidence-audit');
+  const w = setup();
+  w.add(12);
+  PF.publishOnce(w.o);
+  const older = head(w.remote);
+  w.add(12);
+  PF.publishOnce(w.o);
+  const judged = head(w.remote);
+  /* the verifier's decisions.jsonl: each line names the evidence commit it judged (null for a feed that is not a repository) */
+  const file = path.join(w.root, 'decisions.jsonl');
+  fs.writeFileSync(file, [
+    { at: '2026-10-29T12:00:00.000Z', batch_id: 'pub-000000', seq: 0, decision: 'signed', pending_tx_hash: 'a'.repeat(64), reasons: [], detail: null, feed_commit: older },
+    { at: '2026-10-29T12:05:00.000Z', batch_id: 'pub-000001', seq: 1, decision: 'signed', pending_tx_hash: 'b'.repeat(64), reasons: [], detail: null, feed_commit: judged },
+    { at: '2026-10-29T12:06:00.000Z', batch_id: 'local-000000', seq: 0, decision: 'refused', pending_tx_hash: null, reasons: ['verifier.not_published'], detail: null, feed_commit: null },
+  ].map((l) => JSON.stringify(l)).join('\n') + '\n');
+  eq(A.auditHistory(w.remote, { kind: 'evidence', recorded: file }).ok, true, 'every recorded commit is in the history');
+
+  /* someone with push access force-pushes the older commit: the commit the verifier judged is gone */
+  const clone = path.join(w.root, 'clone');
+  git(['clone', '--quiet', '--branch', 'main', w.remote, clone]);
+  git(['-C', clone, 'reset', '--quiet', '--hard', older]);
+  git(['-C', clone, 'push', '--quiet', '--force', 'origin', 'main']);
+  const bad = A.auditHistory(w.remote, { kind: 'evidence', recorded: file });
+  assert(!bad.ok, 'a force-push that removed a judged commit is found');
+  assert(bad.problems.some((p) => p.includes(judged) && /the verifier judged is not in this history/.test(p)), `the problem names the commit: ${bad.problems.join(' | ')}`);
+  assert(!bad.problems.some((p) => p.includes(older)), `the commit still there is not named: ${bad.problems.join(' | ')}`);
+  const fresh = path.join(w.root, 'fresh');
+  git(['clone', '--quiet', '--no-local', '--branch', 'main', w.remote, fresh]);                 // as over the network: the object is gone too
+  assert(A.auditHistory(fresh, { kind: 'evidence', recorded: file }).problems.some((p) => p.includes(judged)), 'a fresh clone reports it too');
+
+  const cli = spawnSync(process.execPath, [path.join(__dirname, 'evidence-audit.js'), w.remote, '--recorded', file], { encoding: 'utf8' });
+  eq(cli.status, 1, `CLI exit 1 (${cli.stderr})`);
+  assert(cli.stdout.includes(judged), cli.stdout);
+  eq(spawnSync(process.execPath, [path.join(__dirname, 'evidence-audit.js'), w.remote, '--recorded'], { encoding: 'utf8' }).status, 2, '--recorded without a file is a usage error');
+  eq(spawnSync(process.execPath, [path.join(__dirname, 'evidence-audit.js'), w.remote, '--recorded', path.join(w.root, 'no-such.jsonl')], { encoding: 'utf8' }).status, 2, 'an unreadable --recorded file is a usage error, never a pass');
+});
+
+test('V3-7c: --recorded on an evidence clone older than the verifier log says to clone again, never that the history was rewritten; the daily check clones the verifier log first, then the evidence', () => {
+  const A = require('./evidence-audit');
+  const w = setup();
+  w.add(12);
+  PF.publishOnce(w.o);
+  const stale = path.join(w.root, 'stale');
+  git(['clone', '--quiet', '--no-local', '--branch', 'main', w.remote, stale]);       // the evidence is cloned first …
+  w.add(12);
+  PF.publishOnce(w.o);
+  const judged = head(w.remote);                                                       // … then the verifier judges a newer commit and logs it
+  const file = path.join(w.root, 'decisions.jsonl');
+  fs.writeFileSync(file, JSON.stringify({ at: '2026-10-29T12:05:00.000Z', batch_id: 'pub-000001', seq: 1, decision: 'signed', pending_tx_hash: 'c'.repeat(64), reasons: [], detail: null, feed_commit: judged }) + '\n');
+  const r = A.auditHistory(stale, { kind: 'evidence', recorded: file });
+  assert(!r.ok, 'a judged commit the clone does not have is still reported');
+  assert(r.problems.some((p) => p.includes(judged) && /is not in this clone/.test(p) && /clone the evidence again/.test(p)), `it says the clone is behind and what to do: ${r.problems.join(' | ')}`);
+  assert(!r.problems.some((p) => /is not in this history/.test(p)), `no false "history rewritten" alarm: ${r.problems.join(' | ')}`);
+  git(['-C', stale, 'pull', '--quiet', '--ff-only']);
+  eq(A.auditHistory(stale, { kind: 'evidence', recorded: file }).ok, true, 'once the clone is as new as the log: intact');
+
+  /* RUNBOOK, daily check 4: a clone of the evidence taken after the clone of the log holds every commit the log names */
+  const rb = fs.readFileSync(path.join(__dirname, '..', 'docs', 'RUNBOOK.md'), 'utf8');
+  const at = rb.indexOf('## Daily check');
+  const sec = rb.slice(at, rb.indexOf('\n## ', at + 1));
+  const qv = sec.indexOf('git clone https://github.com/academiaseul/qwatt-verifier-log /tmp/qv');
+  const qe = sec.indexOf('git clone https://github.com/academiaseul/qwatt-evidence /tmp/qe');
+  const rec = sec.indexOf('--recorded /tmp/qv/');
+  assert(at >= 0 && qv >= 0 && qe >= 0 && rec >= 0, 'the daily check clones both repositories and runs --recorded');
+  assert(qv < qe && qe < rec, 'the verifier log is cloned before the evidence, and --recorded runs after both');
+});
+
 test('the CLI requires --kind, --run and exactly one of --remote/--dir; a bad run name, or a refusal under --once, exits non-zero', () => {
   const w = setup();
   w.add(12);

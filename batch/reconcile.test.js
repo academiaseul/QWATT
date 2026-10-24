@@ -463,6 +463,9 @@ test('V3-9: reconcile-cli prints the fixed label, the account as read and the si
     assert(/^RECONCILED/m.test(ok.stdout), ok.stdout);
     assert(ok.stdout.includes(`account ${ACCOUNT} · thresholds 2/2/3 · master weight 0 · 3 signer(s) ✓`), `the account as read: ${ok.stdout}`);
     assert(ok.stdout.includes('signatures: 1 proposer+verifier · 1 stand-in (proposer+third) · 0 other · roles given on the command line'), `signature counts: ${ok.stdout}`);
+    assert(ok.stdout.includes(`evidence read at ${host.url}\n`), `where the evidence was read (V3-7c; a feed that is not a repository is read as given): ${ok.stdout}`);
+    const asJson = JSON.parse((await runCli([...base, '--json'])).stdout);
+    eq(JSON.stringify(asJson.evidence), JSON.stringify({ base: host.url, commit: null }), '--json carries the base and the commit read (V3-7c)');
     eq(ok.code, 0, `exit code (${ok.stderr})`);
     const fromFile = await runCli(base);
     eq(fromFile.code, 0, `no role flags: roles from faults.json (${fromFile.stderr})`);
@@ -506,6 +509,139 @@ test('V3-9: a runtime without WebCrypto Ed25519 fails closed: check() rejects wi
     /* with Ed25519 back, the same feed and account reconcile: the refusal above was the missing algorithm */
     eq((await R.check({ feed: host.url, horizon: hz.url, account })).report.verdict, 'RECONCILED', 'Ed25519 restored');
   } finally { delete subtle.importKey; await hz.close(); await host.close(); }
+});
+
+/* ───────────── week 2 (V3-7c): the feed read at one commit of the evidence repository ───────────── */
+
+const { fakeGithub } = require('../anchor/fake-github');
+const PF = require('../ops/publish-feed');
+const gitOut = (args) => require('child_process').execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
+
+/** makeFeed's pipeline and faults.json, published hour by hour by the real publisher to a local bare acme/qwatt-evidence behind a fake GitHub. */
+async function githubFeed() {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-rc-gh-'));
+  const bare = path.join(root, 'qwatt-evidence.git');
+  gitOut(['init', '--quiet', '--bare', bare]);
+  const dir = path.join(root, 'feed');
+  const p = new Pipeline({ dir, site_id: 'rc', node_id: 'rc' });
+  const run = runFile();
+  fs.writeFileSync(path.join(dir, 'faults.json'), JSON.stringify(run, null, 2) + '\n');
+  const gh = await fakeGithub({ repos: { 'acme/qwatt-evidence': bare } });
+  let n = 0;
+  return {
+    gh, bare, url: `${gh.rawOrigin}/acme/qwatt-evidence/main/run`,
+    pin: { rawOrigin: gh.rawOrigin, gitOrigin: gh.gitOrigin, apiOrigin: gh.apiOrigin },
+    add(hours) { for (let k = 0; k < 12 * hours; k++, n++) p.push(n === 17 ? iv(n, 50) : iv(n)); },
+    publish: () => PF.publishOnce({ kind: 'evidence', feed: dir, run: 'run', remote: bare, branch: 'main', work: path.join(root, 'work') }),
+    head: () => gitOut(['--git-dir', bare, 'rev-parse', 'main']),
+    /** the feed as it is on the proposer's disk */
+    local() {
+      const listed = p.feed.readLedger('batches');
+      return { index: p.feed.readIndex(), run, listed, batches: Object.fromEntries(listed.map((e) => [e.batch_id, p.feed.readBatch(e.batch_id)])), rejected: p.feed.readLedger('rejected') };
+    },
+  };
+}
+
+test('V3-7c: fetchFeed reads a GitHub feed at one commit after Horizon, so an anchor newer than the CDN copy is never BROKEN', async () => {
+  const g = await githubFeed();
+  let hz = null;
+  try {
+    g.add(1);
+    g.publish();
+    const primed = await (await fetch(`${g.url}/ledger/batches.jsonl`)).text();   // a reviewer's read: the CDN keeps this copy
+    eq(primed.trim().split('\n').length, 1, 'the CDN copy holds batch 0 only');
+    g.add(1);
+    g.publish();
+    const feed = g.local();
+    eq(feed.listed.length, 2, 'two batches published');
+    const anchors = anchorsFor(feed, 2);                                        // batch 1 is anchored after the CDN copy was made
+    const got = await R.fetchFeed(g.url, { rawOrigin: g.gh.rawOrigin, gitOrigin: g.gh.gitOrigin, via: 'refs' });
+    const rep = await R.reconcile(got, anchors, chainFor());
+    eq(rep.verdict, 'RECONCILED', rep.problems.join('; '));
+    eq(got.commit, g.head(), 'read at the head commit of main');
+    eq(got.base, `${g.gh.rawOrigin}/acme/qwatt-evidence/${g.head()}/run`, 'every file from the commit path');
+    eq(got.listed.length, 2, 'both batches, not the CDN copy');
+    eq(got.run && got.run.label, LABEL, "the run's faults.json is read at the same commit");
+    /* check(): Horizon first, then the feed pinned through feedOptions */
+    const order = [];
+    hz = await FH.serveHorizon({ account: ACCOUNT, record: () => honestRecord(), anchors: () => anchors, onRequest: () => order.push('horizon') });
+    const mark = g.gh.requests.length;
+    const res = await R.check({ feed: g.url, horizon: hz.url, account: ACCOUNT, feedOptions: { rawOrigin: g.gh.rawOrigin, gitOrigin: g.gh.gitOrigin, via: 'refs' } });
+    eq(res.report.verdict, 'RECONCILED', res.report.problems.join('; '));
+    eq(res.feed.commit, g.head(), 'check() returns the commit it read');
+    const after = g.gh.requests.slice(mark).map((r) => r.path);
+    assert(/info\/refs/.test(after[0] || ''), `the head commit is resolved first: ${after.join(' | ')}`);
+    assert(after.slice(1).every((u) => u.startsWith(`/raw/acme/qwatt-evidence/${g.head()}/run/`)), `then every file at the commit: ${after.join(' | ')}`);
+  } finally { if (hz) await hz.close(); await g.gh.close(); }
+});
+
+test('V3-7c: in a browser (both scripts loaded as classic <script>s, as reconcile.html loads them, pin first) a GitHub feed is pinned through the commits API and read at that commit', async () => {
+  const vm = require('vm');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'reconcile.html'), 'utf8');
+  const pinAt = html.indexOf('<script src="assets/qwatt-pin.js"></script>'), recAt = html.indexOf('<script src="assets/qwatt-reconcile.js"></script>');
+  assert(pinAt >= 0 && recAt > pinAt, 'reconcile.html loads assets/qwatt-pin.js before assets/qwatt-reconcile.js');
+  assert(/evidence read at/.test(html), 'the page says which commit it read');
+  const SHA = 'feed'.repeat(10);
+  const seen = [];
+  const reply = (status, body) => ({ status, ok: status >= 200 && status < 300, text: async () => body });
+  const win = {
+    document: {}, URL, TextEncoder, crypto: globalThis.crypto, atob, AbortSignal,
+    fetch: async (url, init) => {
+      const u = String(url);
+      seen.push({ u, accept: init && init.headers && init.headers.Accept });
+      if (u === 'https://api.github.com/repos/acme/qwatt-evidence/commits/main') return reply(200, SHA + '\n');
+      return reply(404, '404: Not Found');
+    },
+  };
+  win.window = win; win.self = win;
+  const ctx = vm.createContext(win);
+  for (const f of ['qwatt-pin.js', 'qwatt-reconcile.js']) vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'assets', f), 'utf8'), ctx, { filename: f });
+  assert(win.QWATT_PIN && win.QWATT_RECONCILE, 'both load as classic scripts (window.QWATT_PIN, window.QWATT_RECONCILE)');
+  const got = await win.QWATT_RECONCILE.fetchFeed('https://academiaseul.github.io/qwatt-evidence/run'.replace('academiaseul', 'acme'));
+  eq(got.commit, SHA, 'the commit from the API');
+  eq(seen[0].u, 'https://api.github.com/repos/acme/qwatt-evidence/commits/main', 'a browser asks the commits API first (info/refs has no CORS)');
+  eq(seen[0].accept, 'application/vnd.github.sha', 'for the bare sha');
+  assert(seen.slice(1).length > 0 && seen.slice(1).every((x) => x.u.startsWith(`https://raw.githubusercontent.com/acme/qwatt-evidence/${SHA}/run/`)), `then every file from raw at the commit, never Pages: ${seen.map((x) => x.u).join(' | ')}`);
+});
+
+test('V3-7c: pinBase: a raw branch URL resolves to its head commit, a commit URL and any other host stay as given, a github.io project URL maps to its repository, and the browser path asks the API', async () => {
+  const PIN = require('../assets/qwatt-pin.js');
+  const g = await githubFeed();
+  try {
+    g.add(1);
+    g.publish();
+    const head = g.head();
+    const atHead = `${g.gh.rawOrigin}/acme/qwatt-evidence/${head}/run`;
+    const viaRefs = await PIN.pinBase(g.url, g.pin);
+    eq(viaRefs.commit, head, 'a branch URL resolves to its head commit');
+    eq(viaRefs.base, atHead, 'and reads from the commit path');
+    assert(g.gh.requests.some((r) => r.path === '/git/acme/qwatt-evidence.git/info/refs?service=git-upload-pack'), 'in Node it asks info/refs by default');
+    const n = g.gh.requests.length;
+    eq(JSON.stringify(await PIN.pinBase(atHead + '/', g.pin)), JSON.stringify({ base: atHead, commit: head }), 'a URL that names a commit is kept');
+    eq(g.gh.requests.length, n, 'and costs no request');
+    eq(JSON.stringify(await PIN.pinBase('http://127.0.0.1:1/feed', g.pin)), JSON.stringify({ base: 'http://127.0.0.1:1/feed', commit: null }), 'any other host is read as given');
+    eq(JSON.stringify(PIN.parse('https://academiaseul.github.io/qwatt-evidence/run')), JSON.stringify({ owner: 'academiaseul', repo: 'qwatt-evidence', ref: 'main', dir: 'run' }), 'the freeze §7 github.io URL is its repository');
+    eq(JSON.stringify(PIN.parse('https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/run')), JSON.stringify({ owner: 'academiaseul', repo: 'qwatt-evidence', ref: 'main', dir: 'run' }), 'the raw URL');
+    eq(PIN.parse('https://example.org/qwatt-evidence/run'), null, 'another host is not a repository');
+    const pages = await PIN.pinBase('https://acme.github.io/qwatt-evidence/run', g.pin);
+    eq(pages.base, atHead, 'a github.io project URL is read from the repository at its head commit, never from Pages');
+    const viaApi = await PIN.pinBase(g.url, { ...g.pin, via: 'api' });
+    eq(viaApi.commit, head, 'the browser path resolves the same commit');
+    const api = g.gh.requests.filter((r) => r.path.startsWith('/api/')).pop();
+    eq(api && api.path, '/api/repos/acme/qwatt-evidence/commits/main', 'through the commits API');
+    eq(api && api.accept, 'application/vnd.github.sha', 'asking for the bare sha');
+    eq(PIN.describe(g.url, head, g.pin), `acme/qwatt-evidence@${head.slice(0, 7)}`, 'described as owner/repo@sha7');
+    g.gh.failRefs(429);
+    for (const via of ['refs', 'api']) {
+      let err = null;
+      try { await PIN.pinBase(g.url, { ...g.pin, via }); } catch (e) { err = e; }
+      assert(err && /HTTP 429/.test(err.message), `${via}: a 429 rejects: ${err && err.message}`);
+    }
+    g.gh.failRefs(null);
+    let missing = null;
+    try { await PIN.pinBase(`${g.gh.rawOrigin}/acme/qwatt-evidence/no-such-branch/run`, g.pin); } catch (e) { missing = e; }
+    assert(missing && /no-such-branch/.test(missing.message), `a branch that does not exist rejects: ${missing && missing.message}`);
+  } finally { await g.gh.close(); }
 });
 
 (async () => {
