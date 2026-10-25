@@ -64,7 +64,7 @@ function synthDay() {
 }
 
 const mkBuilder = (adapter, register_map) => new IntervalBuilder({
-  site_id: 'bench-santiago', node_id: 'harness', adapter, register_map, dt_s: 300, clock: 'replay',
+  site_id: 'bench-santiago', node_id: 'harness', adapter, register_map, dt_s: 300, clock: 'replay', sample_s: 10,
   meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } },
 });
 

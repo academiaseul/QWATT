@@ -8,8 +8,13 @@
  *
  *   node batch/scale.js                               synthetic month (default)
  *   node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json   a public dataset (batch/datasets/pvdaq.js)
- *   node batch/scale.js --csv month.csv --a a_w --b b_w [--ts ts]
+ *   node batch/scale.js --csv month.csv --a a_w --b b_w [--ts ts] [--sample-s 60]
  *   node batch/scale.js --out out/scale --json
+ *
+ * --sample-s is the input's sample period in seconds (default 60, the cadence of
+ * both shipped sources). The interval builder interpolates no energy across a gap
+ * longer than three sample periods (V3-10), so a CSV at another cadence needs it.
+ * The summary states the value used.
  *
  * The synthetic month is a stand-in until the public PV dataset is chosen
  * (plan unit 1.7): Santiago clear-sky shape from the shared solar-position
@@ -65,6 +70,7 @@ const BENCH_RUN = {
   site_id: 'bench-santiago',
   profile: undefined,                                   // spec profile "bench"
   meters: { a: { id: 'pzem-017:1', class: 'dc' }, b: { id: 'epever-tracer:2', class: 'dc' } },
+  sample_s: 60,                                         // writeSyntheticMonth's stepS (V3-10)
 };
 
 async function runOnce(csvFile, cols, feedDir, run = BENCH_RUN) {
@@ -72,6 +78,7 @@ async function runOnce(csvFile, cols, feedDir, run = BENCH_RUN) {
   const pipe = new Pipeline({ dir: feedDir, site_id: run.site_id, node_id: 'scale', profile: run.profile });
   const builder = new IntervalBuilder({
     site_id: run.site_id, node_id: 'scale', adapter: 'csv', dt_s: 300, clock: 'replay',   // V3-6: a fast replay's receive time is the replayed time
+    sample_s: run.sample_s,                                                    // V3-10: the input's cadence
     meters: { a: { ...run.meters.a, energy: 'integrate' }, b: { ...run.meters.b, energy: 'integrate' } },
     onInterval: (rec) => pipe.push(rec),
   });
@@ -96,10 +103,11 @@ async function main() {
     const ds = JSON.parse(fs.readFileSync(dsFile, 'utf8'));
     csvFile = path.join(path.dirname(path.resolve(dsFile)), ds.csv);
     cols = { ts: ds.ts_column, a: ds.meters.a.column, b: ds.meters.b.column };
-    run = { site_id: ds.site_id, profile: ds.profile, meters: { a: { id: ds.meters.a.id, class: ds.meters.a.class }, b: { id: ds.meters.b.id, class: ds.meters.b.class } } };
+    run = { site_id: ds.site_id, profile: ds.profile, meters: { a: { id: ds.meters.a.id, class: ds.meters.a.class }, b: { id: ds.meters.b.id, class: ds.meters.b.class } }, sample_s: 60 };   // PVDAQ is 1-minute data (dataset.json is pinned, so not read from it)
     source = `${ds.title} · ${ds.licence}`;
   }
   if (!csvFile) { csvFile = path.join(out, 'synthetic-month.csv'); await writeSyntheticMonth(csvFile); }
+  run = { ...run, sample_s: Number(opt('--sample-s', run.sample_s)) };
 
   const r1 = await runOnce(csvFile, cols, path.join(out, 'feed-run1'), run);
   const r2 = await runOnce(csvFile, cols, path.join(out, 'feed-run2'), run);
@@ -107,6 +115,7 @@ async function main() {
   const summary = {
     source,
     rows: r1.rows,
+    sample_s: run.sample_s,
     intervals: r1.intervals,
     batches: v.batches,
     accepted_batches: v.accepted_batches,
@@ -121,7 +130,7 @@ async function main() {
   if (args.includes('--json')) console.log(JSON.stringify(summary, null, 2));
   else {
     console.log(`scale: ${summary.source}`);
-    console.log(`  ${summary.rows} rows → ${summary.intervals} intervals → ${summary.batches} batches (${summary.rejected_batches} rejected) in ${summary.wall_ms_per_run} ms`);
+    console.log(`  ${summary.rows} rows at ${summary.sample_s} s → ${summary.intervals} intervals → ${summary.batches} batches (${summary.rejected_batches} rejected) in ${summary.wall_ms_per_run} ms`);
     console.log(`  cumulative ${summary.cumulative_mwh} mWh · head ${summary.head_sha256}`);
     console.log(`  chain ${summary.chain_verified ? 'VERIFIED' : 'BROKEN'} · second run ${summary.deterministic ? 'IDENTICAL' : 'DIFFERENT'}`);
     for (const p of summary.problems) console.log('  ✗ ' + p);
