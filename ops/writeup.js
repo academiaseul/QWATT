@@ -20,6 +20,7 @@
 const fs = require('fs');
 const path = require('path');
 const R = require('../assets/qwatt-reconcile.js');
+const PIN = require('../assets/qwatt-pin.js');
 const TH = require('../anchor/thresholds');
 
 const EXPLORER = 'https://stellar.expert/explorer/testnet';
@@ -106,17 +107,19 @@ async function build(o) {
      cannot be read is printed below (and makes the verdict BROKEN) instead of stopping the write-up. */
   const acct = await R.fetchAccount(o.horizon, o.account).catch((e) => ({ error: e.message }));
   const anchors = await R.fetchAnchors(o.horizon, o.account);
-  const feed = await R.fetchFeed(o.feed);
+  /* at one commit of the evidence repository, resolved after Horizon (V3-7c); the write-up names it */
+  const feed = await R.fetchFeed(o.feed, o.feedOptions);
   const rep = await R.reconcile(feed, anchors, { account: o.account, record: acct.error ? null : acct, record_error: acct.error || null, roles: o.roles || null });
   const s = rep.summary;
   const now = new Date().toISOString();
   const recLink = `${o.reconcileBase}?feed=${encodeURIComponent(o.feed)}&account=${o.account}`;
   const anchoredRows = rep.rows.filter((r) => r.anchor);
+  const readAt = feed.commit ? `\`${PIN.describe(o.feed, feed.commit, o.feedOptions)}\` (commit \`${feed.commit}\`)` : `\`${feed.base}\` (not a repository, so not pinned to a commit)`;
 
   const lines = [
     `# ${o.title}`,
     '',
-    `Generated ${now} from public data only: Horizon (\`${o.horizon}\`) and the evidence feed (\`${o.feed}\`). Reproduce: \`node ops/writeup.js --feed ${o.feed} --account ${o.account}\`.`,
+    `Generated ${now} from public data only: Horizon (\`${o.horizon}\`) and the evidence feed (\`${o.feed}\`), evidence read at ${readAt}. Reproduce: \`node ops/writeup.js --feed ${o.feed} --account ${o.account}\`.`,
     '',
     '## Result',
     '',

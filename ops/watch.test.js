@@ -102,10 +102,81 @@ test('early in a run the verifier log has status.json but no refusals.jsonl yet:
   assert(!obs.errors.some((e) => /verifier/.test(e)), `no verifier error: ${obs.errors.join('; ')}`);
 });
 
-test('VERIFIER_SILENT allows for the raw CDN: a status 690 s old (status commits up to 360 s apart, a 30 s tick, 300 s of CDN cache) is not silent; 901 s is', () => {
+test('V3-7c: observe() reads the feed and the verifier log each at one commit: a CDN copy of status.json older than the log raises nothing, and a head that cannot be read is SOURCE_DOWN', async () => {
+  const { execFileSync } = require('child_process');
+  const { fakeGithub } = require('../anchor/fake-github');
+  const PF = require('./publish-feed');
+  const { Pipeline } = require('../batch/pipeline');
+  const E = require('../protocol/evidence');
+  const V = require('../batch/verify');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-watch-gh-'));
+  const ev = path.join(root, 'qwatt-evidence.git'), lg = path.join(root, 'qwatt-verifier-log.git');
+  for (const b of [ev, lg]) execFileSync('git', ['init', '--quiet', '--bare', b], { stdio: 'ignore' });
+  /* a feed from the real pipeline, and a verifier state directory, each published by the real publisher */
+  const feedDir = path.join(root, 'feed');
+  const pipe = new Pipeline({ dir: feedDir, site_id: 'wt', node_id: 'wt' });
+  const T0 = Date.parse('2026-11-05T10:00:00Z'), DT = 300;
+  for (let i = 0; i < 12; i++) {
+    const t = T0 + i * DT * 1000;
+    const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
+    const rec = { spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION, site_id: 'wt', node_id: 'wt', seq: i, ts_start: new Date(t).toISOString(), ts_end: new Date(t + DT * 1000).toISOString(), dt_s: DT,
+      meters: { a: m('a', 100), b: m('b', 99) }, source: { adapter: 'simulator', raw_sha256: E.sha256('wt-' + i) } };
+    pipe.push(Object.defineProperty(rec, Symbol.for('qwatt.raw_payloads'), { value: [{ n: 1, utf8: 'wt-' + i }], enumerable: false }));
+  }
+  PF.publishOnce({ kind: 'evidence', feed: feedDir, run: 'run', remote: ev, branch: 'main', work: path.join(root, 'ev-work') });
+  const state = path.join(root, 'state');
+  fs.mkdirSync(state);
+  const status = (lastTick, refused) => fs.writeFileSync(path.join(state, 'status.json'), JSON.stringify({ started_at: iso(7200), last_tick: lastTick, last_result: { action: 'idle' }, feed: 'https://raw.githubusercontent.com/acme/qwatt-evidence/main/run', signed: 0, refused }, null, 2) + '\n');
+  const publishLog = () => PF.publishOnce({ kind: 'verifier-log', feed: state, run: 'run', remote: lg, branch: 'main', work: path.join(root, 'lg-work') });
+  status(iso(3600), 0);
+  fs.writeFileSync(path.join(state, 'decisions.jsonl'), '');
+  fs.writeFileSync(path.join(state, 'refusals.jsonl'), '');
+  publishLog();
+  const gh = await fakeGithub({ repos: { 'acme/qwatt-evidence': ev, 'acme/qwatt-verifier-log': lg } });
+  const o = { feed: `${gh.rawOrigin}/acme/qwatt-evidence/main/run`, verifierLog: `${gh.rawOrigin}/acme/qwatt-verifier-log/main/run`, horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST', pin: { rawOrigin: gh.rawOrigin, gitOrigin: gh.gitOrigin } };
+  try {
+    await (await fetch(`${o.verifierLog}/status.json`)).text();          // a reader of the branch path: the CDN keeps the hour-old status
+    status(iso(30), 1);
+    fs.writeFileSync(path.join(state, 'decisions.jsonl'), '{"batch_id":"wt-000000","decision":"refused","reasons":["verifier.hash_mismatch"]}\n');
+    fs.writeFileSync(path.join(state, 'refusals.jsonl'), '{"batch_id":"wt-000000","reasons":["verifier.hash_mismatch"]}\n');
+    publishLog();
+    const logHead = execFileSync('git', ['--git-dir', lg, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+    const evHead = execFileSync('git', ['--git-dir', ev, 'rev-parse', 'main'], { encoding: 'utf8' }).trim();
+    const obs = await observe(o, NOW);
+    eq(obs.verifier_last_tick, iso(30), 'the heartbeat at the head commit of the log, not the CDN copy');
+    eq(obs.verifier_refusals, 1, 'the refusal at the same commit');
+    eq(obs.verifier_log_read_at, `${gh.rawOrigin}/acme/qwatt-verifier-log/${logHead}/run`, 'the log was read at its head commit');
+    eq(obs.feed_read_at, `${gh.rawOrigin}/acme/qwatt-evidence/${evHead}/run`, 'the feed was read at its head commit');
+    assert(!obs.errors.some((e) => /^(feed|verifier log) \(/.test(e)), `both read: ${obs.errors.join('; ')}`);
+    assert(!decide(obs, {}, NOW).alerts.some((a) => a.code === 'VERIFIER_SILENT'), 'no VERIFIER_SILENT from a stale CDN copy');
+    gh.failRefs(429);
+    const down = await observe(o, NOW);
+    assert(down.errors.some((e) => /^feed \(.*HTTP 429/.test(e)) && down.errors.some((e) => /^verifier log \(.*HTTP 429/.test(e)), `an unreadable head is an unreadable source: ${down.errors.join('; ')}`);
+    assert(decide(down, {}, NOW).alerts.some((a) => a.code === 'SOURCE_DOWN'), 'SOURCE_DOWN');
+  } finally { await gh.close(); try { fs.rmSync(root, { recursive: true, force: true }); } catch (e) { /* best effort */ } }
+});
+
+test('VERIFIER_SILENT keeps its 15-minute margin: a status 690 s old is not silent; 901 s is', () => {
   const silent = (age) => decide({ ...healthy(), verifier_last_tick: iso(age) }, {}, NOW).alerts.some((a) => a.code === 'VERIFIER_SILENT');
-  eq(silent(690), false, '690 s: the worst lag of a healthy verifier log read through raw.githubusercontent.com');
+  eq(silent(690), false, '690 s: inside the margin (a healthy log read at its head commit is at most about 390 s old)');
   eq(silent(901), true, '901 s: silent');
+});
+
+test('V3-7c: a BROKEN alert names where the evidence was read (the reconciliation\'s read_at, kept by observe())', async () => {
+  const { serveDir } = require('../anchor/static-server');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-watch-rec-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  const srv = await serveDir(dir);
+  let obs;
+  try {
+    obs = await observe({ feed: srv.url + '/run', horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST', reconcile: async () => ({ verdict: 'BROKEN', problems: ['anchor QW#3 carries a hash that is not a published batch'], read_at: 'acme/qwatt-evidence@abc1234' }) }, NOW);
+  } finally { await srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+  eq(obs.reconcile_verdict, 'BROKEN', 'the verdict observed');
+  eq(obs.reconcile_read_at, 'acme/qwatt-evidence@abc1234', 'observe() keeps where the reconciliation read the evidence');
+  const broken = decide({ ...healthy(), reconcile_verdict: obs.reconcile_verdict, reconcile_problems: obs.reconcile_problems, reconcile_read_at: obs.reconcile_read_at }, {}, NOW).alerts.find((a) => a.code === 'BROKEN');
+  assert(broken && broken.message.includes('reconciliation BROKEN (evidence read at acme/qwatt-evidence@abc1234): anchor QW#3'), `the alert names the commit judged: ${broken && broken.message}`);
+  const plain = decide({ ...healthy(), reconcile_verdict: 'BROKEN', reconcile_problems: ['x'] }, {}, NOW).alerts.find((a) => a.code === 'BROKEN');
+  assert(plain && plain.message.includes('reconciliation BROKEN: x'), `without a read_at the message is unchanged: ${plain && plain.message}`);
 });
 
 test('the retired --verifier-status flag is a usage error (exit 2) in the watchdog and the preflight, so an old unit file cannot run without watching the verifier', () => {
