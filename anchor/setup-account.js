@@ -12,6 +12,8 @@
  *   2. build:   node anchor/setup-account.js build --account G… --proposer G… --verifier G… --third G… --out setup.xdr
  *   3. submit:  node anchor/setup-account.js submit setup.xdr --account G… --proposer G… --verifier G… --third G… \
  *                    --sign-with-key qwatt-anchor-setup --evidence evidence/account/<G…> --out anchor.json
+ *               (--out only for the real account: without it, as in the backup drill, no public
+ *               config is written and no funding step is printed)
  *   4. holder:  stellar keys rm qwatt-anchor-setup   (its weight is 0 now, so it can sign nothing)
  *   5. funding: node anchor/setup-account.js fund-xdr --account G… --out funding.xdr; the treasury holder
  *               checks, signs and submits it with stellar-cli on their own computer:
@@ -295,6 +297,26 @@ async function verifyAccount(server, o, account) {
   return { ok: checks.every((c) => c.ok), checks, balance: line ? line.balance : null };
 }
 
+/**
+ * What `submit` prints and writes once the setup landed. The public config (anchor.json) and the
+ * funding step belong to the real account only, so they need --out: the backup drill's throwaway
+ * account and rehearsals pass none, and never replace the config the services read.
+ * @returns {{lines:string[], config:{file:string, json:object}|null}}
+ */
+function afterSetup(o, r, { out, identity = 'qwatt-anchor-setup' } = {}) {
+  const config = out ? { file: path.resolve(out), json: configFor(o, o.account) } : null;
+  const lines = [
+    `anchoring account ${o.account} configured in ${r.hash} (ledger ${r.ledger})`,
+    `  ${C.txLink(r.hash)}`,
+    '  no single key can send any transaction for it; anchoring needs 2 of the 3 keys; changing signers needs all 3',
+    config ? `  public config written to ${config.file}` : '  no --out, so no anchor.json: a drill or rehearsal account never replaces the services\' config',
+    '',
+    `NEXT — remove the setup identity (weight 0 now): stellar keys rm ${identity}`,
+  ];
+  if (config) lines.push(`then the funding transaction: node anchor/setup-account.js fund-xdr --account ${o.account} --out funding.xdr`);
+  return { lines, config };
+}
+
 /** The public config the proposer and verifier read: public values only, each signer by role. */
 function configFor(o, account) {
   return {
@@ -313,6 +335,7 @@ function configFor(o, account) {
 const USAGE = [
   'usage: node anchor/setup-account.js build     --account G… --proposer G… --verifier G… --third G… [--out setup.xdr]',
   '       node anchor/setup-account.js submit <file> --account G… --proposer G… --verifier G… --third G… [--sign-with-key <identity>] --evidence <dir> [--out anchor.json]',
+  '         (--out only for the real account: it writes the public config; the backup drill passes none)',
   '       node anchor/setup-account.js fund-xdr  --account G… [--out funding.xdr]',
   '       node anchor/setup-account.js fund-submit <file> --account G… --sign-with-key qwatt-treasury --evidence <dir>',
   '       node anchor/setup-account.js friendbot --account G…',
@@ -361,14 +384,9 @@ async function cli() {
     }
     const r = await submitSetup(server, file, o, { signer, evidenceDir: path.resolve(evidenceDir) });
     if (r.ok) {
-      console.log(`anchoring account ${o.account} configured in ${r.hash} (ledger ${r.ledger})`);
-      console.log(`  ${C.txLink(r.hash)}`);
-      console.log('  no single key can send any transaction for it; anchoring needs 2 of the 3 keys; changing signers needs all 3');
-      const out = path.resolve(opt('--out', path.join(__dirname, 'config.json')));
-      fs.writeFileSync(out, JSON.stringify(configFor(o, o.account), null, 2) + '\n');
-      console.log(`  public config written to ${out}`);
-      console.log('\nNEXT — remove the setup identity (weight 0 now): stellar keys rm qwatt-anchor-setup');
-      console.log(`then the funding transaction: node anchor/setup-account.js fund-xdr --account ${o.account} --out funding.xdr`);
+      const a = afterSetup(o, r, { out: opt('--out'), identity: opt('--sign-with-key', 'qwatt-anchor-setup') });
+      if (a.config) fs.writeFileSync(a.config.file, JSON.stringify(a.config.json, null, 2) + '\n');
+      for (const l of a.lines) console.log(l);
     } else if (r.ok === false) {
       console.log(`refused by the network: ${JSON.stringify(r.codes)} (Horizon's answer in ${path.join(evidenceDir, 'setup.horizon.json')})`);
     } else {
@@ -431,4 +449,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('setup failed:', e.message); process.exitCode = 1; });
 
-module.exports = { setupTxFor, buildSetupTx, matchSetup, submitSetup, friendbot, fundingTxFor, fundingXdr, matchFunding, submitFunding, fundingInstructions, verifyAccount, configFor, checkKeys, DEFAULTS, SETUP_WINDOW_S, FUNDING_WINDOW_S };
+module.exports = { setupTxFor, buildSetupTx, matchSetup, submitSetup, afterSetup, friendbot, fundingTxFor, fundingXdr, matchFunding, submitFunding, fundingInstructions, verifyAccount, configFor, checkKeys, DEFAULTS, SETUP_WINDOW_S, FUNDING_WINDOW_S };

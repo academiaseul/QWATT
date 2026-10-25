@@ -99,6 +99,7 @@ function cliSigner({ identity, passphrase, command = 'stellar', commandArgs = []
   return {
     kind: 'stellar-cli',
     identity,
+    passphrase,
     publicKey: null,
     async init() {
       const out = (await cli(['keys', 'address', identity])).trim();
