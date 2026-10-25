@@ -9,8 +9,11 @@
  * that whole shape on throwaway accounts:
  *
  *   stand-in issuer mints "QWATT" to a stand-in treasury
- *   setup-account.js creates the 2-of-3 anchoring account (trustline, signers, thresholds, master 0)
- *   the "treasury" signs the 1-QWATT funding transaction it is handed (as Jay will)
+ *   setup-account.js builds the setup transaction from public keys for a throwaway, Friendbot-funded
+ *   setup key (trustline, signers, thresholds, master 0); the setup key signs it (in memory here, a
+ *   throwaway; stellar-cli on the real account) and submitSetup re-derives it before sending
+ *   the "treasury" checks the 1-QWATT funding transaction it is handed (matchFunding, as
+ *   setup-account.js fund-submit does for Jay) and signs it
  *   setup-account.js --verify passes every check
  *   proposer + verifier anchor three batches, each paying 0.0000001 QWATT to the treasury
  *   the treasury balance rises by exactly 3 × 0.0000001; reconciliation is RECONCILED
@@ -26,6 +29,7 @@ const E = require('../protocol/evidence');
 const V = require('../batch/verify');
 const { Pipeline } = require('../batch/pipeline');
 const SA = require('./setup-account');
+const { keypairSigner } = require('./signer');
 const { Proposer } = require('./proposer');
 const { Verifier } = require('./verifier');
 const { serveDir } = require('./static-server');
@@ -60,17 +64,23 @@ async function main() {
 
   const o = { ...SA.DEFAULTS, asset_issuer: pub.issuer, treasury: pub.treasury, proposer: pub.proposer, verifier: pub.verifier, third: pub.third };
 
-  log('setup-account: create + configure…');
-  const { account, setup_tx } = await SA.createAndConfigure(server, o);
-  ev.anchoring_account = account; ev.steps.setup = setup_tx;
+  log('setup-account: build from public keys, sign with the throwaway setup key, submit…');
+  const setupKey = S.Keypair.random();                 // throwaway: weight 0 once the setup transaction lands
+  await SA.friendbot(o, setupKey.publicKey());
+  const so = { ...o, account: setupKey.publicKey() };
+  const setup = await SA.submitSetup(server, await SA.buildSetupTx(server, so), so, { signer: keypairSigner(setupKey) });
+  if (!setup.ok) throw new Error(`setup transaction not accepted: ${JSON.stringify(setup.codes || setup.detail)}`);
+  const account = so.account;
+  ev.anchoring_account = account; ev.steps.setup = setup.hash;
   const before = await SA.verifyAccount(server, o, account);
   ev.steps.verify_before_funding = before.checks;
   log(`  before funding: ${before.checks.filter((c) => !c.ok).map((c) => c.name).join(', ') || 'all ok'} (balance check must fail until funded)`);
 
   log('treasury signs the funding transaction it was handed…');
   const xdr = await SA.fundingXdr(server, o, account);
-  const ftx = new S.Transaction(xdr, S.Networks.TESTNET);
-  if (ftx.operations[0].destination !== account || ftx.operations[0].amount !== '1.0000000') throw new Error('funding transaction is not what it claims');
+  const fm = SA.matchFunding(xdr, o, account);                 // the same check fund-submit runs before the treasury signs
+  if (!fm.match) throw new Error(`funding transaction is not what it claims: ${fm.detail}`);
+  const ftx = fm.tx;
   ftx.sign(K.treasury);
   ev.steps.funding = (await server.submitTransaction(ftx)).hash;
 

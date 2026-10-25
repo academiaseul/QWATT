@@ -45,6 +45,9 @@ async function preflight(o) {
     add('config', 'anchor_account and payment_destination are public keys', pub('anchor_account') && pub('payment_destination'));
     add('config', 'no secret in the config file', !/S[A-Z2-7]{55}/.test(JSON.stringify(cfg)), 'a secret key must never be in anchor.json');
   }
+  /* the three signer keys: the flags, else anchor.json's signers by role (setup-account.js writes them) */
+  const sig = (cfg && cfg.signers) || {};
+  o = { ...o, proposer: o.proposer || sig.proposer, verifier: o.verifier || sig.verifier, third: o.third || sig.third };
   const horizon = (cfg && cfg.horizon_url) || 'https://horizon-testnet.stellar.org';
 
   /* clock */
@@ -63,7 +66,7 @@ async function preflight(o) {
       for (const c of v.checks) add('account', c.name, c.ok);
     } catch (e) { add('account', 'anchoring account readable', false, e.message); }
   } else if (cfg) {
-    add('account', 'account checks (pass --proposer --verifier --third to run them)', null);
+    add('account', 'account checks (pass --proposer --verifier --third, or a config with signers, to run them)', null);
   }
 
   /* feed */

@@ -196,6 +196,111 @@ test('selfTest: at start a service signs one throwaway transaction that can neve
   } finally { delete process.env.FAKE_STELLAR_MODE; }
 });
 
+/* ── capture: envelopes in, Horizon's answer and links out (V3-8) ──────────── */
+
+const { FakeHorizon } = require('./fake-horizon');
+const clock = { now: () => Math.floor(Date.now() / 1000) };
+const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
+/** A 2/2/3 account on the fake network and a transaction for it signed by the given keys. */
+async function signedFor(fake, account, ...keys) {
+  const b = new S.TransactionBuilder(await fake.loadAccount(account), { fee: String(S.BASE_FEE), networkPassphrase: TESTNET });
+  const tx = b.addOperation(S.Operation.manageData({ name: 'qwatt.anchor.sha256', value: 'c'.repeat(64) })).setTimeout(300).build();
+  for (const k of keys) tx.sign(k);
+  return tx;
+}
+
+test('readEnvelopeFile reads an envelope saved by Windows PowerShell (UTF-16LE with BOM) or by bash (UTF-8, trailing newline)', async () => {
+  const C = require('./capture');
+  const tx = sampleTx();
+  tx.sign(S.Keypair.random());
+  const xdr = tx.toEnvelope().toXDR('base64');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-envelope-'));
+  const files = {
+    'powershell.xdr': Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`${xdr}\r\n`, 'utf16le')]),
+    'utf16be.xdr': Buffer.concat([Buffer.from([0xfe, 0xff]), Buffer.from(`${xdr}\r\n`, 'utf16le').swap16()]),
+    'bash.xdr': Buffer.from(`${xdr}\n`, 'utf8'),
+    'utf8-bom.xdr': Buffer.concat([Buffer.from([0xef, 0xbb, 0xbf]), Buffer.from(`\n${xdr}\n\n`, 'utf8')]),
+  };
+  for (const [n, b] of Object.entries(files)) {
+    fs.writeFileSync(path.join(dir, n), b);
+    const read = C.readEnvelopeFile(path.join(dir, n));
+    assert(new S.Transaction(read, TESTNET).hash().equals(tx.hash()), `${n}: the same transaction`);
+  }
+  fs.writeFileSync(path.join(dir, 'junk.xdr'), 'not an envelope\n');
+  let msg = '';
+  try { C.readEnvelopeFile(path.join(dir, 'junk.xdr')); } catch (e) { msg = e.message; }
+  assert(msg, 'a file without an envelope is refused');
+});
+
+test('capture.js submit prints the operations stellar-cli is about to sign, keeps the envelopes and the no-answer record when Horizon does not answer (exit 1, never retried); an unknown subcommand exits 2', async () => {
+  const { spawnSync } = require('child_process');
+  const capture = path.join(__dirname, 'capture.js');
+  const log = freshLog();
+  const issuer = S.Keypair.random().publicKey(), to = S.Keypair.random().publicKey();
+  const tx = new S.TransactionBuilder(new S.Account(keyOf('qwatt-treasury').publicKey(), '41'), { fee: String(S.BASE_FEE), networkPassphrase: TESTNET })
+    .addOperation(S.Operation.payment({ destination: to, asset: new S.Asset('QWATT', issuer), amount: '1' }))
+    .addMemo(S.Memo.text('fund QWATT anchoring'))
+    .setTimeout(3600)
+    .build();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-capture-cli-'));
+  const file = path.join(dir, 'funding.xdr');
+  fs.writeFileSync(file, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`${tx.toEnvelope().toXDR('base64')}\r\n`, 'utf16le')]));   // as PowerShell 5.1 writes it
+  const ev = path.join(dir, 'ev');
+  /* https on 127.0.0.1:9: nothing listens there, so Horizon never answers and nothing leaves this machine */
+  const r = spawnSync(process.execPath, [capture, 'submit', file, '--name', 'funding', '--evidence', ev, '--sign-with-key', 'qwatt-treasury', '--stellar-bin', FIXTURE, '--horizon', 'https://127.0.0.1:9'], { encoding: 'utf8', env: { ...process.env }, timeout: 60000 });
+  eq(r.status, 1, `no answer from Horizon: exit status (${r.stderr.trim()})`);
+  const at = r.stdout.search(/payment 1(\.0+)? QWATT/), signedAt = r.stdout.indexOf('signed by');
+  assert(at >= 0 && r.stdout.includes(to), `the payment, its amount and its destination are printed: ${r.stdout}`);
+  assert(signedAt > at, `before stellar-cli signs: ${r.stdout}`);
+  assert(/no answer/.test(r.stdout) && r.stdout.includes(tx.hash().toString('hex')), `the hash to check before sending anything again: ${r.stdout}`);
+  const index = JSON.parse(fs.readFileSync(path.join(ev, 'index.json'), 'utf8'));
+  for (const f of ['funding.xdr', 'funding.signed.xdr', 'funding.horizon.json']) eq(index.files[f], sha256(fs.readFileSync(path.join(ev, f))), `${f}: written, SHA-256 in index.json`);
+  const record = JSON.parse(fs.readFileSync(path.join(ev, 'funding.horizon.json'), 'utf8'));
+  eq(record.timeout, true, 'the no-answer record');
+  eq(record.hash, tx.hash().toString('hex'), 'with the local hash');
+  const signed = new S.Transaction(fs.readFileSync(path.join(ev, 'funding.signed.xdr'), 'utf8').trim(), TESTNET);
+  eq(signed.signatures.length, 1, 'signed once');
+  assert(verifies(keyOf('qwatt-treasury'), signed, signed.signatures[0]), 'by the qwatt-treasury identity');
+  eq(log().filter((a) => a[0] === 'tx').length, 1, 'stellar-cli signed once');
+  const u = spawnSync(process.execPath, [capture, 'frobnicate'], { encoding: 'utf8', env: { ...process.env }, timeout: 60000 });
+  eq(u.status, 2, 'unknown subcommand: exit status');
+  assert(/usage/.test(u.stderr), `prints the usage: ${u.stderr.trim()}`);
+});
+
+test('capture: a submitted envelope is stored with Horizon\'s full response and a stellar.expert link, listed in index.json with its SHA-256', async () => {
+  const C = require('./capture');
+  const K = { account: S.Keypair.random(), p: S.Keypair.random(), v: S.Keypair.random(), t: S.Keypair.random() };
+  const account = K.account.publicKey();
+  const fake = new FakeHorizon({ account, signers: [K.p.publicKey(), K.v.publicKey(), K.t.publicKey()], clock });
+  const tx = await signedFor(fake, account, K.p, K.v);
+  const r = await C.submitEnvelope(fake, tx);
+  eq(r.ok, true, 'landed');
+  eq(r.horizon_response.hash, tx.hash().toString('hex'), 'Horizon\'s answer, verbatim');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-capture-'));
+  C.writeEvidence(dir, 'anchor', { files: { 'anchor.signed.xdr': tx.toEnvelope().toXDR('base64') + '\n', 'anchor.horizon.json': JSON.stringify(r.horizon_response, null, 2) + '\n' }, link: C.txLink(r.hash) });
+  await C.captureAccount(fake, account, dir);
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  for (const f of ['anchor.signed.xdr', 'anchor.horizon.json', 'account.json']) eq(index.files[f], sha256(fs.readFileSync(path.join(dir, f))), `${f}: SHA-256 in index.json`);
+  eq(index.links.anchor, 'https://stellar.expert/explorer/testnet/tx/' + r.hash, 'transaction link');
+  eq(index.links.account, 'https://stellar.expert/explorer/testnet/account/' + account, 'account link');
+  const acct = JSON.parse(fs.readFileSync(path.join(dir, 'account.json'), 'utf8'));
+  eq(JSON.stringify(acct.thresholds), JSON.stringify({ low_threshold: 2, med_threshold: 2, high_threshold: 3 }), 'account.json: thresholds');
+  eq(acct.signers.filter((s) => s.weight === 1).length, 3, 'account.json: three signers of weight 1');
+
+  const refused = await C.submitEnvelope(fake, await signedFor(fake, account, K.p));
+  eq(refused.ok, false, 'one signature is refused');
+  eq(JSON.stringify(refused.codes), JSON.stringify({ transaction: 'tx_bad_auth' }), 'codes');
+  eq(JSON.stringify(refused.horizon_response.extras.result_codes), JSON.stringify({ transaction: 'tx_bad_auth' }), 'Horizon\'s problem JSON, verbatim');
+
+  const n0 = fake.submissions;
+  fake.failNext = 'timeout-before';
+  const late = await signedFor(fake, account, K.p, K.v);
+  const t = await C.submitEnvelope(fake, late);
+  eq(t.ok, null, 'a timeout is neither success nor refusal');
+  eq(t.hash, late.hash().toString('hex'), 'the locally computed hash, to check on Horizon before sending anything again');
+  eq(fake.submissions, n0 + 1, 'never retried');
+});
+
 (async () => {
   console.log('\nanchor keys: signing through stellar-cli (V3-8)');
   for (const t of tests) {

@@ -67,12 +67,19 @@ async function friendbotFor(fake) {
   return `http://127.0.0.1:${srv.address().port}/`;
 }
 
-/** The anchoring account exactly as setup-account.js configures it (its own transaction), on the fake network. */
+/**
+ * The anchoring account exactly as setup-account.js configures it, on the fake network: Friendbot funds
+ * the setup identity's account, build makes the unsigned setup transaction from the public keys, the
+ * setup identity signs it through (fake) stellar-cli, and submit re-derives and sends it.
+ */
 async function configuredAccount() {
   const K = newKeys();
   const fake = new FakeHorizon({ clock });
-  const o = { ...SETUP.DEFAULTS, friendbot_url: await friendbotFor(fake), proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() };
-  const { account } = await SETUP.createAndConfigure(fake, o);
+  const account = keyOf('qwatt-anchor-setup').publicKey();
+  await SETUP.friendbot({ friendbot_url: await friendbotFor(fake) }, account);
+  const o = { ...SETUP.DEFAULTS, account, proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() };
+  const r = await SETUP.submitSetup(fake, await SETUP.buildSetupTx(fake, o), o, { signer: fakeSigner('qwatt-anchor-setup') });
+  if (!r.ok) throw new Error(`setup not accepted: ${JSON.stringify(r)}`);
   return { K, fake, o, account };
 }
 
@@ -483,6 +490,249 @@ test('each CLI checks that its stellar-cli identity is the config\'s signer for 
     eq(r.status, 2, `${file} with a config that names no signers: exit status`);
     assert(/signers\./.test(r.stderr), `${file}: ${r.stderr.trim()}`);
   }
+});
+
+/* ── the anchoring account set up without a secret in Node (freeze v3, V3-8) ─
+ * The holder generates a throwaway setup identity with stellar-cli (Friendbot
+ * funds it), setup-account.js builds the UNSIGNED setup transaction from four
+ * public keys, stellar-cli signs it, and submit re-derives it before sending. */
+
+const sha256 = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
+/** Setup options for an existing account and three signer keys. */
+const setupOpts = (K, account) => ({ ...SETUP.DEFAULTS, account, proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() });
+/** A fresh account on the fake network, funded the way Friendbot funds a new key: master weight 1, thresholds 0/0/0. */
+function freshAccount() {
+  const K = newKeys();
+  const fake = new FakeHorizon({ clock });
+  const master = keyOf('qwatt-anchor-setup');
+  fake.fund(master.publicKey());
+  return { K, fake, master, o: setupOpts(K, master.publicKey()) };
+}
+/** The setup transaction built by hand (not by setup-account.js), with a change applied to its operations and, optionally, other timebounds. */
+async function handSetup(fake, o, change = (ops) => ops, timebounds) {
+  const now = Math.floor(Date.now() / 1000);
+  const tb = timebounds || { minTime: now - 300, maxTime: now + 3300 };          // the one-hour window build uses
+  const b = new S.TransactionBuilder(await fake.loadAccount(o.account), { fee: String(S.BASE_FEE), networkPassphrase: o.network_passphrase, timebounds: tb });
+  const ops = change([
+    S.Operation.changeTrust({ asset: new S.Asset(o.asset_code, o.asset_issuer) }),
+    S.Operation.setOptions({ signer: { ed25519PublicKey: o.proposer, weight: 1 } }),
+    S.Operation.setOptions({ signer: { ed25519PublicKey: o.verifier, weight: 1 } }),
+    S.Operation.setOptions({ signer: { ed25519PublicKey: o.third, weight: 1 } }),
+    S.Operation.setOptions({ masterWeight: 0, lowThreshold: 2, medThreshold: 2, highThreshold: 3 }),
+  ]);
+  for (const op of ops) b.addOperation(op);
+  return b.addMemo(S.Memo.text('QWATT anchoring 2-of-3')).build();
+}
+
+test('setup build: an UNSIGNED setup transaction for an existing, Friendbot-funded account, made from four public keys; no key is created', async () => {
+  const K = newKeys();
+  const fake = new FakeHorizon({ clock });
+  const account = keyOf('qwatt-anchor-setup').publicKey();
+  await SETUP.friendbot({ friendbot_url: await friendbotFor(fake) }, account);         // the fallback for `stellar keys generate --fund`
+  const o = setupOpts(K, account);
+  const t0 = Math.floor(Date.now() / 1000);
+  const tx = await SETUP.buildSetupTx(fake, o);
+  const t1 = Math.floor(Date.now() / 1000);
+  eq(tx.signatures.length, 0, 'unsigned');
+  eq(tx.source, account, 'source is the funded account');
+  eq(tx.operations.map((op) => op.type).join(','), 'changeTrust,setOptions,setOptions,setOptions,setOptions', 'five operations, in order');
+  eq(`${tx.operations[0].line.getCode()}:${tx.operations[0].line.getIssuer()}`, `QWATT:${SETUP.DEFAULTS.asset_issuer}`, 'QWATT trustline');
+  ['proposer', 'verifier', 'third'].forEach((role, i) => {
+    const s = tx.operations[i + 1].signer;
+    eq(`${s.ed25519PublicKey}:${s.weight}`, `${o[role]}:1`, `${role} signer of weight 1`);
+  });
+  const last = tx.operations[4];
+  eq(JSON.stringify([last.masterWeight, last.lowThreshold, last.medThreshold, last.highThreshold]), JSON.stringify([0, 2, 2, 3]), 'master weight 0 and thresholds 2/2/3');
+  eq(tx.memo.value.toString(), 'QWATT anchoring 2-of-3', 'memo');
+  const tb = { min: Number(tx.timeBounds.minTime), max: Number(tx.timeBounds.maxTime) };
+  assert(tb.max > 0, `the setup transaction expires (maxTime 0 would be valid forever): ${JSON.stringify(tx.timeBounds)}`);
+  assert(tb.min >= t0 - 300 && tb.max <= t1 + 3600 && tb.max - tb.min <= 3600, `a window of at most one hour, starting at most 5 minutes before now: ${JSON.stringify(tx.timeBounds)}`);
+  eq(fake.submissions, 0, 'nothing submitted');
+  const src = fs.readFileSync(path.join(__dirname, 'setup-account.js'), 'utf8');
+  assert(!/Keypair\.random/.test(src), 'setup-account.js creates no key');
+  assert(!/\.secret\(/.test(src), 'setup-account.js reads no secret');
+});
+
+test('setup build refuses an account that is not fresh (signers, thresholds, master weight or a QWATT trustline already set), and a signer key equal to the account', async () => {
+  const K = newKeys();
+  const configured = new FakeHorizon({ account: K.account.publicKey(), signers: [K.proposer.publicKey(), K.verifier.publicKey(), K.third.publicKey()], clock });
+  let msg = '';
+  try { await SETUP.buildSetupTx(configured, setupOpts(K, K.account.publicKey())); } catch (e) { msg = e.message; }
+  assert(/not a fresh account/.test(msg), `an account with signers and thresholds 2/2/3 is refused: ${msg}`);
+  /* a Friendbot-funded account on which the setup key already sent ONE thing: each alone makes it not fresh */
+  const already = {
+    'only a QWATT trustline': (o) => [S.Operation.changeTrust({ asset: new S.Asset(o.asset_code, o.asset_issuer) })],
+    'only thresholds set': () => [S.Operation.setOptions({ lowThreshold: 1 })],
+    'only the master weight changed': () => [S.Operation.setOptions({ masterWeight: 2 })],
+  };
+  for (const [what, ops] of Object.entries(already)) {
+    const g = freshAccount();
+    eq(await codesOf(g.fake, await txFor(g.fake, g.o.account, ops(g.o), g.master)), null, `${what}: applied by the setup key`);
+    let m = '';
+    try { await SETUP.buildSetupTx(g.fake, g.o); } catch (e) { m = e.message; }
+    assert(/not a fresh account/.test(m), `${what}: refused as not fresh: ${m}`);
+  }
+  const f = freshAccount();
+  for (const [what, o] of [['the third signer is the account', { ...f.o, third: f.o.account }], ['two signers are the same key', { ...f.o, verifier: f.o.proposer }], ['a signer is not a public key', { ...f.o, proposer: 'S' + 'A'.repeat(55) }]]) {
+    let m = '';
+    try { await SETUP.buildSetupTx(f.fake, o); } catch (e) { m = e.message; }
+    assert(m, `${what}: refused`);
+  }
+  eq(f.fake.submissions, 0, 'nothing submitted');
+});
+
+test('setup submit: signed through stellar-cli, re-derived from the public keys before it is sent; then --verify passes and the key that created the account can send nothing', async () => {
+  const { fake, master, o } = freshAccount();
+  freshLog();
+  const tx = await SETUP.buildSetupTx(fake, o);
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-setup-ev-'));
+  const r = await SETUP.submitSetup(fake, tx, o, { signer: fakeSigner('qwatt-anchor-setup'), evidenceDir: dir });
+  assert(r.ok === true, `submitted: ${JSON.stringify(r)}`);
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  for (const f of ['setup.unsigned.xdr', 'setup.signed.xdr', 'setup.horizon.json', 'account.json']) {
+    assert(fs.existsSync(path.join(dir, f)), `${f} written`);
+    eq(index.files[f], sha256(fs.readFileSync(path.join(dir, f))), `${f}: its SHA-256 is in index.json`);
+  }
+  const signed = new S.Transaction(fs.readFileSync(path.join(dir, 'setup.signed.xdr'), 'utf8').trim(), o.network_passphrase);
+  eq(signed.signatures.length, 1, 'one signature, the setup identity\'s');
+  eq(index.links.setup, `https://stellar.expert/explorer/testnet/tx/${signed.hash().toString('hex')}`, 'stellar.expert link');
+  eq(JSON.parse(fs.readFileSync(path.join(dir, 'setup.horizon.json'), 'utf8')).hash, signed.hash().toString('hex'), 'Horizon\'s answer is stored');
+  fake.credit(o.asset_code, o.asset_issuer, o.funding_amount);                       // the treasury's funding payment
+  const v = await SETUP.verifyAccount(fake, o, o.account);
+  assert(v.ok, `--verify passes: ${JSON.stringify(v.checks.filter((c) => !c.ok))}`);
+  const codes = await codesOf(fake, await txFor(fake, o.account, [S.Operation.bumpSequence({ bumpTo: INT64_MAX })], master));
+  eq(JSON.stringify(codes), JSON.stringify({ transaction: 'tx_bad_auth' }), 'the setup key alone can send nothing (master weight 0)');
+});
+
+test('setup submit refuses an envelope that is not the setup transaction for these public keys, or that never expires or is valid for more than an hour', async () => {
+  const { fake, o } = freshAccount();
+  freshLog();
+  const good = await handSetup(fake, o);
+  assert(SETUP.matchSetup(good.toEnvelope().toXDR('base64'), o).match, 'control: the same transaction built by hand matches');
+  const variants = {
+    'third signer swapped': (ops) => { ops[3] = S.Operation.setOptions({ signer: { ed25519PublicKey: S.Keypair.random().publicKey(), weight: 1 } }); return ops; },
+    'low threshold 1': (ops) => { ops[4] = S.Operation.setOptions({ masterWeight: 0, lowThreshold: 1, medThreshold: 2, highThreshold: 3 }); return ops; },
+    'an extra operation': (ops) => [...ops, S.Operation.manageData({ name: 'extra', value: 'x' })],
+    'no expiry (timebounds 0/0)': [undefined, { minTime: 0, maxTime: 0 }],
+    'valid for a day': [undefined, { minTime: Math.floor(Date.now() / 1000) - 300, maxTime: Math.floor(Date.now() / 1000) + 86400 }],
+  };
+  for (const [what, v] of Object.entries(variants)) {
+    const [change, timebounds] = typeof v === 'function' ? [v] : v;
+    const xdr = (await handSetup(fake, o, change, timebounds)).toEnvelope().toXDR('base64');
+    eq(SETUP.matchSetup(xdr, o).match, false, `${what}: no match`);
+    let refused = false;
+    try { const r = await SETUP.submitSetup(fake, xdr, o, { signer: fakeSigner('qwatt-anchor-setup'), evidenceDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-setup-ev-')) }); refused = !r || r.ok !== true; } catch (e) { refused = true; }
+    assert(refused, `${what}: refused`);
+  }
+  eq(fake.submissions, 0, 'nothing submitted');
+});
+
+test('funding instructions send the treasury holder to fund-submit, which checks the envelope before stellar-cli signs, and never to a browser; config names each signer\'s role', async () => {
+  const K = newKeys(), G = K.account.publicKey();
+  const text = [].concat(SETUP.fundingInstructions(G, 'funding.xdr')).join('\n');
+  assert(text.includes(`setup-account.js fund-submit funding.xdr --account ${G}`), `fund-submit: ${text}`);
+  assert(text.includes('--sign-with-key qwatt-treasury'), `--sign-with-key qwatt-treasury: ${text}`);
+  assert(!/capture\.js submit|stellar tx sign/.test(text), `never a path that signs an unchecked envelope: ${text}`);
+  assert(!/laboratory|lab\.stellar|sign-with-lab/i.test(text), `no browser: ${text}`);
+  const o = setupOpts(K, G);
+  eq(JSON.stringify(SETUP.configFor(o, G).signers), JSON.stringify({ proposer: o.proposer, verifier: o.verifier, third: o.third }), 'signers by role in the public config');
+});
+
+/* ── the treasury's funding payment: checked before the treasury key signs (V3-8) ── */
+
+/** The treasury on the fake network (the fake models one account; here it is the treasury, the stellar-cli identity qwatt-treasury). */
+function treasuryWorld() {
+  const fake = new FakeHorizon({ clock });
+  const treasury = keyOf('qwatt-treasury').publicKey();
+  fake.fund(treasury);
+  return { fake, treasury, account: S.Keypair.random().publicKey(), o: { ...SETUP.DEFAULTS, treasury } };
+}
+/** A funding envelope from the treasury that is NOT what fund-xdr builds. */
+async function forgedFunding(t, ops, { source = t.treasury, timeout = 3600 } = {}) {
+  const src = source === t.treasury && t.fake.account === t.treasury ? await t.fake.loadAccount(t.treasury) : new S.Account(source, '41');
+  const b = new S.TransactionBuilder(src, { fee: String(S.BASE_FEE), networkPassphrase: t.o.network_passphrase });
+  for (const op of ops) b.addOperation(op);
+  return b.addMemo(S.Memo.text('fund QWATT anchoring')).setTimeout(timeout).build().toEnvelope().toXDR('base64');
+}
+const qwattPay = (t, amount, destination = t.account) => S.Operation.payment({ destination, asset: new S.Asset(t.o.asset_code, t.o.asset_issuer), amount });
+
+test('fund-submit checks the funding envelope before the treasury key signs: another amount, destination, asset or source, an extra operation or no expiry is refused with nothing signed or sent; the genuine one is signed by qwatt-treasury and captured', async () => {
+  const t = treasuryWorld();
+  const { calls } = freshLog();
+  const xdr = await SETUP.fundingXdr(t.fake, t.o, t.account);
+  const m = SETUP.matchFunding(xdr, t.o, t.account);
+  assert(m.match, `fund-xdr's own envelope matches: ${m.detail}`);
+  const ftx = new S.Transaction(xdr, t.o.network_passphrase);
+  eq(ftx.operations.map((op) => `${op.type} ${op.amount} ${op.asset && op.asset.getCode()} ${op.destination}`).join(','), `payment 1.0000000 QWATT ${t.account}`, 'one payment of 1 QWATT to the account');
+  assert(Number(ftx.timeBounds.maxTime) > 0, 'it expires');
+  const variants = {
+    'a payment of 1,000,000 QWATT': [qwattPay(t, '1000000')],
+    'a payment to another account': [qwattPay(t, '1', S.Keypair.random().publicKey())],
+    'XLM instead of QWATT': [S.Operation.payment({ destination: t.account, asset: S.Asset.native(), amount: '1' })],
+    'an extra setOptions adding a weight-255 signer': [qwattPay(t, '1'), S.Operation.setOptions({ signer: { ed25519PublicKey: S.Keypair.random().publicKey(), weight: 255 }, masterWeight: 0 })],
+  };
+  const forged = {};
+  for (const [what, ops] of Object.entries(variants)) forged[what] = await forgedFunding(t, ops);
+  forged['no expiry'] = await forgedFunding(t, [qwattPay(t, '1')], { timeout: 0 });
+  forged['another source account'] = await forgedFunding(t, [qwattPay(t, '1')], { source: S.Keypair.random().publicKey() });
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-funding-ev-'));
+  for (const [what, bad] of Object.entries(forged)) {
+    eq(SETUP.matchFunding(bad, t.o, t.account).match, false, `${what}: no match`);
+    let msg = '';
+    try { await SETUP.submitFunding(t.fake, bad, t.o, t.account, { signer: fakeSigner('qwatt-treasury'), evidenceDir: dir }); } catch (e) { msg = e.message; }
+    assert(/refusing/.test(msg), `${what}: refused: ${msg}`);
+  }
+  eq(calls().length, 0, 'stellar-cli never ran for a forged envelope');
+  let msg = '';
+  try { await SETUP.submitFunding(t.fake, xdr, t.o, t.account, { signer: fakeSigner('qwatt-proposer'), evidenceDir: dir }); } catch (e) { msg = e.message; }
+  assert(/treasury/.test(msg), `an identity that is not the treasury's is refused: ${msg}`);
+  eq(calls().filter((a) => a[0] === 'tx').length, 0, 'nothing signed');
+  eq(t.fake.submissions, 0, 'nothing submitted');
+  const r = await SETUP.submitFunding(t.fake, xdr, t.o, t.account, { signer: fakeSigner('qwatt-treasury'), evidenceDir: dir });
+  eq(r.ok, true, `the genuine funding transaction lands: ${JSON.stringify(r.codes || r.detail || null)}`);
+  eq(t.fake.submissions, 1, 'submitted once');
+  const signed = new S.Transaction(fs.readFileSync(path.join(dir, 'funding.signed.xdr'), 'utf8').trim(), t.o.network_passphrase);
+  eq(signed.signatures.length, 1, 'one signature');
+  assert(keyOf('qwatt-treasury').verify(signed.hash(), signed.signatures[0].signature()), 'the treasury identity\'s');
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  for (const f of ['funding.unsigned.xdr', 'funding.signed.xdr', 'funding.horizon.json']) eq(index.files[f], sha256(fs.readFileSync(path.join(dir, f))), `${f}: SHA-256 in index.json`);
+  eq(index.links.funding, `https://stellar.expert/explorer/testnet/tx/${signed.hash().toString('hex')}`, 'stellar.expert link');
+});
+
+test('setup-account.js CLI: an unknown subcommand or a submit without its file exits 2; fund-submit refuses a forged funding envelope before stellar-cli runs (exit 1); config writes the public config with each signer by role', async () => {
+  const unknown = runCli('setup-account.js', ['frobnicate'], cliEnv());
+  eq(unknown.status, 2, 'unknown subcommand: exit status');
+  assert(/usage/.test(unknown.stderr), `prints the usage: ${unknown.stderr.trim()}`);
+  eq(runCli('setup-account.js', ['submit', '--evidence', os.tmpdir()], cliEnv()).status, 2, 'submit without a file: exit status');
+  /* against the real treasury key of the defaults (public key only): the forged envelope pays 1,000,000 QWATT */
+  const t = { ...treasuryWorld(), treasury: SETUP.DEFAULTS.treasury, o: { ...SETUP.DEFAULTS } };
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-fund-cli-'));
+  const file = path.join(dir, 'funding.xdr');
+  fs.writeFileSync(file, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from(`${await forgedFunding(t, [qwattPay(t, '1000000')])}\r\n`, 'utf16le')]));   // as PowerShell 5.1 writes it
+  const { calls } = freshLog();
+  const r = runCli('setup-account.js', ['fund-submit', file, '--account', t.account, '--sign-with-key', 'qwatt-treasury', '--stellar-bin', FIXTURE, '--evidence', path.join(dir, 'ev'), '--horizon', 'https://127.0.0.1:9'], cliEnv());
+  eq(r.status, 1, `fund-submit with a forged envelope: exit status (${r.stderr.trim()})`);
+  assert(/refusing/.test(r.stderr), `says why: ${r.stderr.trim()}`);
+  eq(calls().length, 0, 'stellar-cli never ran');
+  assert(!fs.existsSync(path.join(dir, 'ev')), 'no evidence written for a refused envelope');
+  const K = newKeys();
+  const out = path.join(dir, 'anchor.json');
+  const c = runCli('setup-account.js', ['config', '--account', K.account.publicKey(), '--proposer', K.proposer.publicKey(), '--verifier', K.verifier.publicKey(), '--third', K.third.publicKey(), '--out', out], cliEnv());
+  eq(c.status, 0, `config: exit status (${c.stderr.trim()})`);
+  const cfg = JSON.parse(fs.readFileSync(out, 'utf8'));
+  eq(JSON.stringify(cfg.signers), JSON.stringify({ proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() }), 'signers by role');
+  eq(cfg.anchor_account, K.account.publicKey(), 'anchor_account');
+  assert(!/S[A-Z2-7]{55}/.test(fs.readFileSync(out, 'utf8')), 'public values only');
+});
+
+test('preflight takes the three signer keys from anchor.json\'s signers when no flags are given', async () => {
+  const P = require('../ops/preflight');
+  const withSigners = await P.preflight({ config: cliConfig({ horizon_url: 'https://127.0.0.1:9' }).file });
+  const acct = withSigners.checks.filter((x) => x.group === 'account');
+  assert(!acct.some((x) => /pass --proposer/.test(x.name)), `the account checks are not skipped: ${JSON.stringify(acct)}`);
+  assert(acct.some((x) => /anchoring account readable/.test(x.name) && x.ok === false), `they ran against the config's account and signers (Horizon unreachable here): ${JSON.stringify(acct)}`);
+  const without = await P.preflight({ config: cliConfig({ horizon_url: 'https://127.0.0.1:9', signers: undefined }).file });
+  assert(without.checks.some((x) => x.group === 'account' && x.ok === null && /--proposer/.test(x.name)), 'a config without signers and no flags: skipped, and it says how to run them');
 });
 
 (async () => {
