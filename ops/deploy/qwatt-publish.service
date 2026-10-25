@@ -1,14 +1,17 @@
-# Proposer host — mirrors feed/ to the GitHub Pages branch (two-phase, append-only)
+# Proposer host ONLY — publishes the run's feed to github.com/academiaseul/qwatt-evidence, main, <run>/
+# (two phases, a public history: published files are never rewritten; see ops/publish-feed.js).
 [Unit]
-Description=QWATT feed publisher
+Description=QWATT evidence publisher (qwatt-evidence)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
-# the deploy key for the feed branch is in ~qwatt/.ssh, used by git
-ExecStart=/usr/bin/node ops/publish-feed.js --feed /var/lib/qwatt/feed --remote git@github.com:academiaseul/qwatt.git --branch feed --work /var/lib/qwatt/feed-worktree --interval 120
+# The deploy key is a file on this host only (qwatt-evidence, write access, nothing else); its path is passed to ssh, never read here.
+ExecStart=/usr/bin/node ops/publish-feed.js --kind evidence --feed /var/lib/qwatt/feed --run ${QWATT_RUN} --remote git@github.com:academiaseul/qwatt-evidence.git --branch main --work /var/lib/qwatt/evidence-repo --ssh-key /home/qwatt/.ssh/qwatt-evidence --interval 120
+# QWATT_RUN=run for the seven-day live run; a rehearsal-YYYY-MM-DD name for rehearsals
+EnvironmentFile=/etc/qwatt/publish.env
 Restart=always
 RestartSec=30
 
