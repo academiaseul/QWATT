@@ -48,3 +48,19 @@ node live/run.js --feed /tmp/f --days 7 --speed fast       # the whole week in s
     check. That check uses a purely relative 10% tolerance, so quantization noise near zero trips
     it. The agreement gate already has an absolute deadband for exactly this. Candidate for spec
     1.1: an absolute floor on `energy_power_consistency`. Not changed now (spec frozen).
+
+## Receive time: `clock_skew_s` (V3-6)
+
+Every interval carries `clock_skew_s`, receive time − `ts_end` in whole seconds, stamped by the
+interval builder when it closes the interval (`ingest/README.md`, *clock_skew_s*). Which clock gives
+the receive time depends on the speed (`builderClock` in `run.js`):
+
+- **Real time** (`--speed realtime`, the real run): the host clock. The value is how late the
+  closing sample was replayed, normally 0–10 s. A runner that falls more than 7500 s behind the host
+  clock gets `plausibility.skew` on every interval until it is restarted (`docs/RUNBOOK.md`,
+  `FEED_STALE`).
+- **Accelerated** (`--speed fast` or any number, 1 included, because like any replay it resumes
+  where the feed ends): the replay clock, the latest sample timestamp replayed. In the accelerated
+  week `clock_skew_s` is 0 except on the 8 disconnected-meter intervals (300: meter b is silent, so
+  the one-interval grace closes them) and at the final flush (−10: the last interval is closed 10 s
+  before its end). The verdict counts above are unchanged.

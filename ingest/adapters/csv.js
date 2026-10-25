@@ -16,7 +16,13 @@
  * Each sample's raw payload is its CSV line as read (without its line ending) plus
  * "\n". A line feeds one sample per meter column with a reading (an empty power
  * cell is no sample), so it enters the interval's raw_sha256 once per meter it
- * feeds (ingest/README.md, "raw_sha256"). No dependencies.
+ * feeds (ingest/README.md, "raw_sha256").
+ *
+ * Clock rule (V3-6): a replay faster than real time ('fast' or a factor other
+ * than 1) needs a builder with clock 'replay', so clock_skew_s is measured
+ * against the replayed time, never against the wall clock; it is refused before
+ * the file is opened otherwise. Real-time pace accepts either clock: a real clock
+ * makes clock_skew_s the replay's lateness against the host. No dependencies.
  */
 
 'use strict';
@@ -52,9 +58,11 @@ function parseTs(v) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function replay(config, builder) {
+  const speed = config.pace === 'realtime' ? 1 : (typeof config.pace === 'number' ? config.pace : 0);
+  /* V3-6: only a real-time replay may stamp receive time from a real clock. Checked before the file is opened. */
+  if (speed !== 1 && builder.clock !== 'replay') throw new Error('csv.replay: a replay faster than real time needs an IntervalBuilder with clock "replay" (V3-6)');
   const rl = readline.createInterface({ input: fs.createReadStream(config.file, 'utf8'), crlfDelay: Infinity });
   let header = null, rows = 0, intervals = 0, prevTs = null;
-  const speed = config.pace === 'realtime' ? 1 : (typeof config.pace === 'number' ? config.pace : 0);
   for await (const line of rl) {
     if (!line.trim()) continue;
     if (!header) { header = splitLine(line).map((h) => h.trim()); continue; }

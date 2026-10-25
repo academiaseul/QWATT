@@ -54,6 +54,10 @@ function describeRun(days, speed) {
   return `QWATT accelerated rehearsal, ${days} simulated day(s), not real time: ${rig} replayed through the CSV adapter ${pace}. ${then}`;
 }
 
+/** V3-6: receive time for clock_skew_s. Real time reads the host clock; fast and every numeric speed
+    (1 included: like any replay it resumes where the feed ends) use the replay clock. */
+const builderClock = (speed) => (speed === 'realtime' ? () => Date.now() : 'replay');
+
 /** Load or create the run definition (faults.json). */
 function runDefinition(feedDir, o) {
   const file = path.join(feedDir, 'faults.json');
@@ -113,7 +117,7 @@ async function runLive(o) {
 
   let intervals = 0;
   const builder = new IntervalBuilder({
-    site_id: def.site_id, node_id: def.node_id, adapter: 'csv', dt_s: DT_MS / 1000,
+    site_id: def.site_id, node_id: def.node_id, adapter: 'csv', dt_s: DT_MS / 1000, clock: builderClock(speed),
     meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } },
     onInterval: (rec) => { pipe.push(rec); intervals++; },
   });
@@ -159,4 +163,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('[live] stopped:', e.message); process.exit(1); });
 
-module.exports = { runLive, SITE_ID };
+module.exports = { runLive, SITE_ID, builderClock };
