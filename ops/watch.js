@@ -2,21 +2,22 @@
 /**
  * QWATT — live-run watchdog (plan unit 3.9)
  * ---------------------------------------------------------------------------
- *   node ops/watch.js --account G… --feed https://… [--verifier-status https://…/status.json]
+ *   node ops/watch.js --account G… --feed https://… [--verifier-log https://…/qwatt-verifier-log/main/<run>]
  *                     [--state ops-state] [--interval 300] [--once]
  *   QWATT_ALERT_WEBHOOK=https://ntfy.sh/<topic>   deliver alerts by HTTP POST (otherwise: console only)
  *
  * Independent of what it watches: it imports nothing from the pipeline or the
  * services and reads only public sources — Horizon, the published feed, and the
- * verifier's read-only status page. A watchdog that shares code or a host with
- * the thing it watches cannot detect the failure that matters most: that thing
- * silently not running.
+ * public verifier log (status.json for the heartbeat, refusals.jsonl for the
+ * refusals, which only grows, so a verifier restart cannot reset the count). A
+ * watchdog that shares code or a host with the thing it watches cannot detect
+ * the failure that matters most: that thing silently not running.
  *
  * Conditions (thresholds in POLICY):
  *   NO_ANCHOR        no anchoring transaction for 2 h while the run is live
  *   FEED_STALE       the feed's newest judged interval is older than 30 min
  *   BACKLOG          an accepted batch has waited more than 2 h for its anchor
- *   VERIFIER_SILENT  the verifier's last tick is older than 10 min
+ *   VERIFIER_SILENT  the verifier's last tick, as its public log shows it, is older than 15 min
  *   NEW_REFUSAL      the verifier refused something (always worth a human look)
  *   BROKEN           reconciliation verdict is BROKEN
  *   SOURCE_DOWN      Horizon or the feed could not be read at all
@@ -35,7 +36,9 @@ const POLICY = {
   no_anchor_s: 2 * 3600,
   feed_stale_s: 30 * 60,
   backlog_s: 2 * 3600,
-  verifier_silent_s: 10 * 60,
+  /* status.json reaches the public log at most every 5 min (+1 min publisher interval, +30 s verifier
+     tick), and raw.githubusercontent.com may serve a copy up to 5 min old: ~690 s for a healthy verifier */
+  verifier_silent_s: 15 * 60,
   repeat_s: 6 * 3600,
 };
 
@@ -65,7 +68,7 @@ function decide(obs, state, nowS, policy = POLICY) {
     conditions.BACKLOG = `accepted batch ${obs.oldest_unanchored_batch} has waited since ${obs.oldest_unanchored_published_at} for its second signature`;
   }
   if (obs.verifier_last_tick !== undefined && age(obs.verifier_last_tick) > policy.verifier_silent_s) {
-    conditions.VERIFIER_SILENT = `verifier last ticked at ${obs.verifier_last_tick}`;
+    conditions.VERIFIER_SILENT = `the verifier log says the verifier last ticked at ${obs.verifier_last_tick} (the verifier or its log publisher is down)`;
   }
   if (obs.reconcile_verdict === 'BROKEN') conditions.BROKEN = `reconciliation BROKEN: ${(obs.reconcile_problems || []).slice(0, 3).join(' | ')}`;
 
@@ -84,7 +87,7 @@ function decide(obs, state, nowS, policy = POLICY) {
   /* refusals are events, not conditions: alert on each new one */
   const seen = state.refusals_seen || 0;
   const n = obs.verifier_refusals == null ? seen : obs.verifier_refusals;
-  if (n > seen) alerts.push({ code: 'NEW_REFUSAL', kind: 'alert', message: `the verifier refused ${n - seen} proposal(s); see its /refusals.jsonl` });
+  if (n > seen) alerts.push({ code: 'NEW_REFUSAL', kind: 'alert', message: `the verifier refused ${n - seen} proposal(s); see refusals.jsonl in the public verifier log` });
 
   return { alerts, state: { active, refusals_seen: Math.max(seen, n) } };
 }
@@ -132,12 +135,14 @@ async function observe(o, nowS) {
     obs.last_anchor_at = t ? t.created_at : null;
   } catch (e) { obs.errors.push(`Horizon (${e.message})`); }
 
-  if (o.verifierStatus) {
+  if (o.verifierLog) {
+    const log = o.verifierLog.replace(/\/+$/, '');
     try {
-      const st = await getJson(o.verifierStatus);
+      const st = await getJson(`${log}/status.json`);
       obs.verifier_last_tick = st.last_tick;
-      obs.verifier_refusals = st.refused;
-    } catch (e) { obs.errors.push(`verifier status (${e.message})`); }
+      /* the persistent count: refusals.jsonl only grows, while status counters restart with the process */
+      obs.verifier_refusals = (await getText(`${log}/refusals.jsonl`)).split('\n').filter((l) => l.trim()).length;
+    } catch (e) { obs.errors.push(`verifier log (${e.message})`); }
   }
 
   if (o.reconcile) {
@@ -181,14 +186,15 @@ async function tick(o) {
 async function cli() {
   const args = process.argv.slice(2);
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
+  if (args.includes('--verifier-status')) { console.error('--verifier-status was replaced by --verifier-log <public verifier log URL>/<run> (copy the new qwatt-watch.service)'); process.exit(2); }
   const o = {
     account: opt('--account'),
     feed: opt('--feed'),
     horizon: opt('--horizon', 'https://horizon-testnet.stellar.org'),
-    verifierStatus: opt('--verifier-status'),
+    verifierLog: opt('--verifier-log'),
     stateDir: path.resolve(opt('--state', 'ops-state')),
   };
-  if (!o.account || !o.feed) { console.error('usage: node ops/watch.js --account G… --feed <public feed URL> [--verifier-status URL]'); process.exit(2); }
+  if (!o.account || !o.feed) { console.error('usage: node ops/watch.js --account G… --feed <public feed URL> [--verifier-log <public verifier log URL>/<run>]'); process.exit(2); }
   const R = require('../assets/qwatt-reconcile.js');
   /* Horizon first, then the feed; signer roles from the run's faults.json. A Horizon or feed error
      throws, and observe() reports it as an unreadable source (SOURCE_DOWN), never as BROKEN. */

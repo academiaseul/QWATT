@@ -1,11 +1,14 @@
 /**
- * QWATT ops — watchdog decision tests (pure, offline)
+ * QWATT ops — watchdog tests (offline: the decisions are pure; observe() reads a log served on localhost)
  * Run: node ops/watch.test.js
  */
 
 'use strict';
 
-const { decide, POLICY } = require('./watch');
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { decide, observe, POLICY } = require('./watch');
 
 let passed = 0, failed = 0;
 const tests = [];
@@ -58,6 +61,70 @@ test('each new verifier refusal alerts once; the count is remembered', () => {
 test('an unreadable source is itself an alert — silence is never treated as health', () => {
   const r = decide({ errors: ['Horizon (timeout)'], run_live: true }, {}, NOW);
   assert(codes(r).includes('SOURCE_DOWN:alert'), 'source down');
+});
+
+test('the watchdog reads the heartbeat and the refusals from the public verifier log, so a verifier restart cannot hide a new refusal', async () => {
+  const { serveDir } = require('../anchor/static-server');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-watch-log-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  const T = iso(45);
+  /* the verifier restarted: its status says refused 0, while its persistent refusals.jsonl holds two lines */
+  fs.writeFileSync(path.join(dir, 'run', 'status.json'), JSON.stringify({ started_at: iso(50), last_tick: T, last_result: { action: 'idle' }, feed: 'https://example.invalid/run', signed: 0, refused: 0 }) + '\n');
+  fs.writeFileSync(path.join(dir, 'run', 'refusals.jsonl'), '{"batch_id":"w-000003","reasons":["verifier.hash_mismatch"]}\n{"batch_id":"w-000004","reasons":["verifier.hash_mismatch"]}\n');
+  const srv = await serveDir(dir);
+  let obs, down;
+  try {
+    obs = await observe({ verifierLog: srv.url + '/run', feed: srv.url + '/run', horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST' }, NOW);
+    down = await observe({ verifierLog: srv.url + '/missing', feed: srv.url + '/run', horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST' }, NOW);
+  } finally { await srv.close(); }
+  eq(obs.verifier_refusals, 2, 'refusals counted from the persistent refusals.jsonl');
+  eq(obs.verifier_last_tick, T, 'heartbeat from status.json');
+  assert(!obs.errors.some((e) => /verifier/.test(e)), `the log was read: ${obs.errors.join('; ')}`);
+  assert(down.errors.some((e) => /^verifier log \(/.test(e)), `an unreadable log is an error named after it: ${down.errors.join('; ')}`);
+  const r = decide({ ...healthy(), verifier_refusals: obs.verifier_refusals }, { refusals_seen: 0 }, NOW);
+  const refusal = r.alerts.find((a) => a.code === 'NEW_REFUSAL');
+  assert(refusal && /verifier log/.test(refusal.message), `NEW_REFUSAL points to the public verifier log: ${refusal && refusal.message}`);
+  const silent = decide({ ...healthy(), verifier_last_tick: iso(1200) }, {}, NOW).alerts.find((a) => a.code === 'VERIFIER_SILENT');
+  assert(silent && /verifier log says/.test(silent.message), `VERIFIER_SILENT names its source: ${silent && silent.message}`);
+});
+
+test('early in a run the verifier log has status.json but no refusals.jsonl yet: no refusals and no error', async () => {
+  const { serveDir } = require('../anchor/static-server');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-watch-log-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  fs.writeFileSync(path.join(dir, 'run', 'status.json'), JSON.stringify({ started_at: iso(50), last_tick: iso(20), last_result: { action: 'idle' }, feed: 'https://example.invalid/run', signed: 0, refused: 0 }) + '\n');
+  const srv = await serveDir(dir);
+  let obs;
+  try { obs = await observe({ verifierLog: srv.url + '/run', feed: srv.url + '/run', horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST' }, NOW); }
+  finally { await srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+  eq(obs.verifier_refusals, 0, 'a refusals.jsonl not published yet counts as none');
+  eq(obs.verifier_last_tick, iso(20), 'heartbeat read');
+  assert(!obs.errors.some((e) => /verifier/.test(e)), `no verifier error: ${obs.errors.join('; ')}`);
+});
+
+test('VERIFIER_SILENT allows for the raw CDN: a status 690 s old (status commits up to 360 s apart, a 30 s tick, 300 s of CDN cache) is not silent; 901 s is', () => {
+  const silent = (age) => decide({ ...healthy(), verifier_last_tick: iso(age) }, {}, NOW).alerts.some((a) => a.code === 'VERIFIER_SILENT');
+  eq(silent(690), false, '690 s: the worst lag of a healthy verifier log read through raw.githubusercontent.com');
+  eq(silent(901), true, '901 s: silent');
+});
+
+test('the retired --verifier-status flag is a usage error (exit 2) in the watchdog and the preflight, so an old unit file cannot run without watching the verifier', () => {
+  const { spawnSync } = require('child_process');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-watch-cli-'));
+  const cfg = path.join(dir, 'anchor.json');                            // public values only, every address on localhost
+  fs.writeFileSync(cfg, JSON.stringify({ horizon_url: 'http://127.0.0.1:9', anchor_account: 'G' + 'A'.repeat(55), payment_destination: 'G' + 'B'.repeat(55) }));
+  const env = { ...process.env };
+  delete env.QWATT_ALERT_WEBHOOK;                                       // offline: no alert is delivered anywhere
+  const run = (script, args) => spawnSync(process.execPath, [path.join(__dirname, script), ...args], { encoding: 'utf8', env, timeout: 120e3 });
+  const old = 'http://127.0.0.1:9/status.json';
+  try {
+    const w = run('watch.js', ['--account', 'GWATCHTEST', '--feed', 'http://127.0.0.1:9/run', '--horizon', 'http://127.0.0.1:9', '--verifier-status', old, '--state', path.join(dir, 'state'), '--once']);
+    eq(w.status, 2, 'watch.js --verifier-status');
+    assert(/--verifier-status was replaced by --verifier-log/.test(w.stderr), `the watchdog names the replacement: ${w.stderr}`);
+    const p = run('preflight.js', ['--config', cfg, '--feed', 'http://127.0.0.1:9/run', '--verifier-status', old]);
+    eq(p.status, 2, 'preflight.js --verifier-status');
+    assert(/--verifier-status was replaced by --verifier-log/.test(p.stderr), `the preflight names the replacement: ${p.stderr}`);
+  } finally { fs.rmSync(dir, { recursive: true, force: true }); }
 });
 
 (async () => {

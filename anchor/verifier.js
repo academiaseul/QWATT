@@ -3,7 +3,7 @@
  * QWATT — independent verifier service (Deliverable 3)
  * ---------------------------------------------------------------------------
  *   node anchor/verifier.js --feed https://<public feed> --config anchor/config.json --sign-with-key qwatt-verifier \
- *        [--stellar-bin stellar] [--state ./verifier-state] [--interval 30] [--port 8090] [--max-walk 168]
+ *        [--stellar-bin stellar] [--state ./verifier-state] [--interval 30] [--port 8090 (127.0.0.1 only)] [--max-walk 168]
  *
  * The verifier key is the stellar-cli identity `qwatt-verifier` on this host
  * (freeze v3, V3-8): stellar-cli signs, and Node never reads a secret. A secret
@@ -32,9 +32,15 @@
  *      pending one byte for byte (matchPending);
  *   7. only if everything agrees: add the second signature and submit.
  *
- * Every refusal is appended once to <state>/refusals.jsonl and, with --port,
- * served read-only at /refusals.jsonl and /status.json so anyone can see what
- * the verifier declined and why. A submission that times out is never blindly
+ * Its public log (freeze v3, V3-7), kept in <state>:
+ *   decisions.jsonl  every decision, appended once: 'signed' (with the hash of the
+ *                    transaction it signed, written BEFORE the submission) or
+ *                    'refused' (with the reasons);
+ *   refusals.jsonl   every refusal, appended once (the same format as before);
+ *   status.json      replaced whole each tick (written to a temporary name, then renamed).
+ * Only `ops/publish-feed.js --kind verifier-log` (qwatt-verifier-log.service, verifier
+ * host) publishes them, to academiaseul/qwatt-verifier-log/<run>/. --port serves them
+ * on 127.0.0.1 only, for the operator. A submission that times out is never blindly
  * retried: the next tick re-reads the chain first, so a transaction that landed
  * despite the timeout is recognised instead of being sent twice.
  */
@@ -52,6 +58,18 @@ const { makeFeedClient, FeedUnavailable } = require('./feed-client');
 const { loadConfig } = require('./proposer');
 const SG = require('./signer');
 
+/** The lines of a .jsonl file; a trailing line that does not parse (being written) is ignored. */
+function readJsonl(file) {
+  let text;
+  try { text = fs.readFileSync(file, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return []; throw e; }
+  const lines = text.split('\n').filter((l) => l.trim());
+  const out = [];
+  lines.forEach((l, i) => {
+    try { out.push(JSON.parse(l)); } catch (e) { if (i < lines.length - 1) throw new Error(`${file} line ${i + 1} is not JSON`); }
+  });
+  return out;
+}
+
 class Verifier {
   /**
    * @param {object} o
@@ -59,7 +77,7 @@ class Verifier {
    * @param {object} o.cfg        anchor config + horizon_url
    * @param {object} [o.signer]   signs as the verifier (anchor/signer.js cliSigner: stellar-cli on this host)
    * @param {import('@stellar/stellar-sdk').Keypair} [o.keypair]  instead of a signer, for tests and throwaway rehearsals only
-   * @param {string} o.stateDir   where refusals.jsonl and status.json are kept
+   * @param {string} o.stateDir   where decisions.jsonl, refusals.jsonl and status.json are kept
    * @param {object} [o.server]
    * @param {number} [o.maxWalk]  most batches walked back to the on-chain head (default chain.MAX_WALK_BATCHES; CLI --max-walk)
    */
@@ -74,23 +92,40 @@ class Verifier {
     this.stateDir = o.stateDir;
     fs.mkdirSync(this.stateDir, { recursive: true });
     this.refusalsFile = path.join(this.stateDir, 'refusals.jsonl');
-    this.status = { started_at: new Date().toISOString(), last_tick: null, last_result: null, signed: 0, refused: 0 };
+    this.decisionsFile = path.join(this.stateDir, 'decisions.jsonl');
+    /* the counters are what the logs hold, so a restart never resets them */
+    this.status = {
+      started_at: new Date().toISOString(), last_tick: null, last_result: null, feed: o.feedUrl,
+      signed: readJsonl(this.decisionsFile).filter((d) => d.decision === 'signed').length,
+      refused: readJsonl(this.refusalsFile).length,
+    };
   }
 
-  _refusedAlready(batchId, txHash) {
-    if (!fs.existsSync(this.refusalsFile)) return false;
-    return fs.readFileSync(this.refusalsFile, 'utf8').split('\n').filter(Boolean)
-      .some((l) => { const r = JSON.parse(l); return r.batch_id === batchId && r.pending_tx_hash === txHash; });
+  /** Append one line and fsync it before going on (as batch/feed.js does). */
+  _append(file, obj) {
+    const fd = fs.openSync(file, 'a');
+    try { fs.writeSync(fd, JSON.stringify(obj) + '\n'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
   }
 
-  _refuse(batchId, pendingXdr, reasons, detail) {
+  _logged(file, match) { return readJsonl(file).some(match); }
+
+  /** One decision line per (decision, batch, proposal). @returns whether a line was appended */
+  _decide(entry, decision, txHash, reasons, detail) {
+    if (this._logged(this.decisionsFile, (d) => d.decision === decision && d.batch_id === entry.batch_id && d.pending_tx_hash === txHash)) return false;
+    this._append(this.decisionsFile, { at: new Date().toISOString(), batch_id: entry.batch_id, seq: entry.seq, batch_sha256: entry.sha256, decision, pending_tx_hash: txHash, reasons, detail });
+    return true;
+  }
+
+  /** @param {object} entry  the batch-ledger entry judged ({batch_id, seq, sha256}) */
+  _refuse(entry, pendingXdr, reasons, detail) {
     let txHash = null;
     try { txHash = new S.Transaction(pendingXdr, this.cfg.network_passphrase).hash().toString('hex'); } catch (e) { /* unparseable: hash stays null */ }
-    const result = { action: 'refused', batch_id: batchId, reasons, detail: detail || null };
-    if (!this._refusedAlready(batchId, txHash)) {
-      fs.appendFileSync(this.refusalsFile, JSON.stringify({ at: new Date().toISOString(), batch_id: batchId, pending_tx_hash: txHash, reasons, detail: detail || null }) + '\n');
+    const result = { action: 'refused', batch_id: entry.batch_id, reasons, detail: detail || null };
+    if (!this._logged(this.refusalsFile, (r) => r.batch_id === entry.batch_id && r.pending_tx_hash === txHash)) {
+      this._append(this.refusalsFile, { at: new Date().toISOString(), batch_id: entry.batch_id, pending_tx_hash: txHash, reasons, detail: detail || null });
       this.status.refused++;
     }
+    this._decide(entry, 'refused', txHash, reasons, detail || null);
     return result;
   }
 
@@ -102,7 +137,10 @@ class Verifier {
     }));
     this.status.last_tick = new Date().toISOString();
     this.status.last_result = result;
-    fs.writeFileSync(path.join(this.stateDir, 'status.json'), JSON.stringify(this.status, null, 2) + '\n');
+    /* replaced whole: a reader (the verifier-log publisher) never sees half a file */
+    const file = path.join(this.stateDir, 'status.json'), tmp = `${file}.tmp-${process.pid}`;
+    fs.writeFileSync(tmp, JSON.stringify(this.status, null, 2) + '\n');
+    fs.renameSync(tmp, file);
     return result;
   }
 
@@ -124,25 +162,31 @@ class Verifier {
     } catch (e) { /* unparseable: matchPending below refuses it with a reason */ }
 
     const batch = await this.feed.batch(next.batch_id);
-    if (batch == null) return this._refuse(next.batch_id, pending, ['verifier.not_published'], 'pending transaction names a batch that is not in the public feed');
-    if (batch.sha256 !== next.sha256) return this._refuse(next.batch_id, pending, ['verifier.hash_mismatch'], 'batch file differs from the batch ledger entry');
+    if (batch == null) return this._refuse(next, pending, ['verifier.not_published'], 'pending transaction names a batch that is not in the public feed');
+    if (batch.sha256 !== next.sha256) return this._refuse(next, pending, ['verifier.hash_mismatch'], 'batch file differs from the batch ledger entry');
 
     /* what the batch inherits is believed only once it leads back to the on-chain head (S1). Each
        earlier batch is downloaded once, and the batch is judged against those same rehashed copies:
        the previous batch, and the anchored head as the floor for time, node and counted intervals. */
     const walk = await C.walkToHead(batch, head, (id) => this.feed.batch(id), { maxSteps: this.maxWalk });
-    if (!walk.ok) return this._refuse(next.batch_id, pending, [walk.code], walk.detail);
+    if (!walk.ok) return this._refuse(next, pending, [walk.code], walk.detail);
     const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: await this.feed.rejected(), raw: await this.feed.raw(next.batch_id) });
-    if (!check.ok) return this._refuse(next.batch_id, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
+    if (!check.ok) return this._refuse(next, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
 
     const m = T.matchPending(pending, batch, this.cfg, nowS);
-    if (!m.match) return this._refuse(next.batch_id, pending, m.reasons, m.detail);
+    if (!m.match) return this._refuse(next, pending, m.reasons, m.detail);
     if (BigInt(m.tx.sequence) !== BigInt(head.sequence) + 1n) return { action: 'wait', reason: 'proposal sequence is stale; waiting for a fresh proposal', batch_id: next.batch_id };
 
-    const signed = await this.signer.sign(m.tx);   // stellar-cli returns a new, checked Transaction: submit the returned one
+    /* stellar-cli returns a new, checked Transaction: submit the returned one. A SignerError ends the
+       tick with reason 'signer' before anything is logged as signed. */
+    const signed = await this.signer.sign(m.tx);
+    /* logged BEFORE the submission: if the line cannot be written this throws, tick() reports
+       'internal' and nothing is submitted. The hash is the anchoring transaction's hash on Horizon
+       (the same as m.tx.hash(): a Stellar transaction hash does not cover its signatures). */
+    const txHash = signed.hash().toString('hex');
+    if (this._decide(next, 'signed', txHash, [], null)) this.status.signed++;
     try {
       const res = await this.server.submitTransaction(signed);
-      this.status.signed++;
       return { action: 'anchored', batch_id: next.batch_id, tx_hash: res.hash, ledger: res.ledger };
     } catch (e) {
       const codes = e && e.response && e.response.data && e.response.data.extras && e.response.data.extras.result_codes;
@@ -151,14 +195,16 @@ class Verifier {
     }
   }
 
+  /** For the operator on this host only (127.0.0.1); the public copy is the verifier log. */
   serve(port) {
     return http.createServer((req, res) => {
       const send = (code, type, body) => { res.writeHead(code, { 'Content-Type': type, 'Cache-Control': 'no-store' }); res.end(body); };
       if (req.method !== 'GET') return send(405, 'text/plain', 'read-only');
       if (req.url === '/status.json') return send(200, 'application/json', JSON.stringify(this.status, null, 2));
       if (req.url === '/refusals.jsonl') return send(200, 'application/x-ndjson', fs.existsSync(this.refusalsFile) ? fs.readFileSync(this.refusalsFile) : '');
+      if (req.url === '/decisions.jsonl') return send(200, 'application/x-ndjson', fs.existsSync(this.decisionsFile) ? fs.readFileSync(this.decisionsFile) : '');
       return send(404, 'text/plain', 'not found');
-    }).listen(port);
+    }).listen(port, '127.0.0.1');
   }
 }
 

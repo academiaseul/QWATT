@@ -8,6 +8,8 @@ Wants=network-online.target
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
+# --port 8090 listens on 127.0.0.1 only, for the operator (curl localhost:8090/status.json). The public copy of
+# decisions.jsonl, refusals.jsonl and status.json is the verifier log, published by qwatt-verifier-log.service.
 ExecStart=/usr/bin/node anchor/verifier.js --feed ${QWATT_FEED_URL} --config /etc/qwatt/anchor.json --sign-with-key qwatt-verifier --state /var/lib/qwatt/verifier --interval 30 --port 8090
 # verifier.env holds only QWATT_FEED_URL=https://… (public). The verifier key is the stellar-cli identity
 # qwatt-verifier of user qwatt (~qwatt/.config/stellar), generated on this host (freeze v3, V3-8);
