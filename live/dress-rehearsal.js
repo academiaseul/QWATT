@@ -54,7 +54,7 @@ async function main() {
   const feedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-dress-feed-'));
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-dress-verifier-'));
   log(`live run, ${days} days at fast pace → ${feedDir}`);
-  await runLive({ feedDir, days, startMs: Date.parse('2026-11-03T03:00:00Z'), seed: 20261103, speed: 'fast', log: () => {} });
+  await runLive({ feedDir, days, startMs: Date.parse('2026-11-03T03:00:00Z'), seed: 20261103, speed: 'fast', log: () => {}, signers: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } });
   const audit = auditLive(feedDir);
   log(`audit: ${audit.coverage.judged_slots}/${audit.coverage.expected_slots} intervals, faults ${audit.faults.map((f) => f.status).join(' / ')}`);
 

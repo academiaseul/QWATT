@@ -55,7 +55,7 @@ async function main() {
   const samples = [];
   const errors = [];
   let anchored = 0;
-  const live = runLive({ feedDir, days: hours / 24, startMs: Date.now(), seed: 20261017, speed: 'realtime', log: () => {} });
+  const live = runLive({ feedDir, days: hours / 24, startMs: Date.now(), seed: 20261017, speed: 'realtime', log: () => {}, signers: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } });
 
   let proposer = null, verifier = null;
   const tick = async () => {
