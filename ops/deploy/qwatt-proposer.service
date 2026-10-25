@@ -7,9 +7,10 @@ Wants=network-online.target
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
-ExecStart=/usr/bin/node anchor/proposer.js --feed /var/lib/qwatt/feed --config /etc/qwatt/anchor.json --interval 30
-# QWATT_PROPOSER_SECRET=S… lives only here (chmod 600, owner root)
-EnvironmentFile=/etc/qwatt/proposer.env
+# The proposer key is the stellar-cli identity qwatt-proposer of user qwatt (~qwatt/.config/stellar),
+# generated on this host (freeze v3, V3-8). stellar must be on PATH (/usr/local/bin). No env file:
+# there is no secret to load, and a QWATT_PROPOSER_SECRET in the environment stops the service.
+ExecStart=/usr/bin/node anchor/proposer.js --feed /var/lib/qwatt/feed --config /etc/qwatt/anchor.json --sign-with-key qwatt-proposer --interval 30
 Restart=always
 RestartSec=10
 
