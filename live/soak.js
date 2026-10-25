@@ -82,11 +82,11 @@ async function main() {
 
   await live;
   log('live run finished; settling anchors…');
-  for (let i = 0; i < 20; i++) { await tick(); const rec = await R.reconcile(await R.fetchFeed(host.url), await R.fetchAnchors(HORIZON, pub.account)); if (rec.verdict === 'RECONCILED') break; await new Promise((r) => setTimeout(r, 15000)); }
+  for (let i = 0; i < 20; i++) { await tick(); const rec = (await R.check({ feed: host.url, horizon: HORIZON, account: pub.account, roles: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } })).report; if (rec.verdict === 'RECONCILED') break; await new Promise((r) => setTimeout(r, 15000)); }
   clearInterval(ti); clearInterval(si); sample();
 
   const audit = auditLive(feedDir);
-  const rec = await R.reconcile(await R.fetchFeed(host.url), await R.fetchAnchors(HORIZON, pub.account));
+  const rec = (await R.check({ feed: host.url, horizon: HORIZON, account: pub.account, roles: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } })).report;
   await host.close();
   const lags = samples.map((s) => s.lag_s).filter((x) => x != null);
   const ev = {

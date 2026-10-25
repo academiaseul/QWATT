@@ -3,6 +3,7 @@
  * QWATT — generate the public write-up from public data (plan unit 4.6)
  * ---------------------------------------------------------------------------
  *   node ops/writeup.js --feed <feed URL> --account G… [--feed-dir <local copy>] \
+ *        [--proposer G… --verifier G… --third G…] \
  *        [--tests evidence/rehearsal/<file>.json] [--title "…"] [--out WRITEUP.md]
  *
  * SOW D4: "Public write-up linking every transaction." Every number and every
@@ -72,22 +73,11 @@ function auditSection(feedDir) {
   ].join('\n');
 }
 
-/** The account as Horizon reports it now (GET /accounts/<id>), or { error } when it cannot be loaded. */
-async function fetchAccount(horizon, account) {
-  const url = `${String(horizon).replace(/\/+$/, '')}/accounts/${encodeURIComponent(account)}`;
-  try {
-    const r = await fetch(url, { cache: 'no-store' });
-    if (!r.ok) return { error: `HTTP ${r.status}` };
-    return JSON.parse(await r.text());
-  } catch (e) {
-    return { error: e.message };
-  }
-}
-
 /**
  * The anchoring account's line, from the values Horizon returned, never from a constant.
  * The "no single key" sentence is printed only when the account really is 2/2/3 with
- * master weight 0 and exactly three signers of weight 1.
+ * master weight 0 and exactly three ed25519 signers of weight 1 (a preauth_tx or sha256_hash
+ * signer lets a transaction through without any key; the reconciliation reads it as BROKEN).
  */
 function accountSection(account, acct) {
   const head = `- Anchoring account: [\`${account}\`](${EXPLORER}/account/${account})`;
@@ -98,19 +88,25 @@ function accountSection(account, acct) {
   const master = acct.signers.find((s) => s.key === account);
   const masterWeight = master ? master.weight : 0;
   const others = acct.signers.filter((s) => s.key !== account);
+  const ed25519 = (s) => s.type === 'ed25519_public_key';
   const values = `thresholds ${t.low_threshold}/${t.med_threshold}/${t.high_threshold} (low/medium/high), master weight ${masterWeight}, ` +
-    `${others.length} signer(s): ${others.map((s) => `\`${s.key}\` weight ${s.weight}`).join(', ') || 'none'}`;
-  const ok = TH.matches(t) && masterWeight === 0 && others.length === 3 && others.every((s) => s.weight === 1);
+    `${others.length} signer(s): ${others.map((s) => `\`${s.key}\` weight ${s.weight}${ed25519(s) ? '' : ` (a ${s.type || 'untyped'} signer)`}`).join(', ') || 'none'}`;
+  const ok = TH.matches(t) && masterWeight === 0 && others.length === 3 && others.every((s) => s.weight === 1 && ed25519(s));
   if (ok) return [`${head} — as loaded from Horizon at generation time: ${values}. No single key can send any transaction for it, anchoring needs 2 of the 3 keys, changing signers needs all 3.`];
   return [
     `${head} — as loaded from Horizon at generation time: ${values}.`,
-    `- ✗ These values do not match ${TH.LABEL} (thresholds low ${TH.THRESHOLDS.low} / medium ${TH.THRESHOLDS.med} / high ${TH.THRESHOLDS.high}, master weight 0, exactly three signers of weight 1).`,
+    `- ✗ These values do not match ${TH.LABEL} (thresholds low ${TH.THRESHOLDS.low} / medium ${TH.THRESHOLDS.med} / high ${TH.THRESHOLDS.high}, master weight 0, exactly three ed25519 signers of weight 1).`,
   ];
 }
 
 async function build(o) {
-  const [feed, anchors, acct] = await Promise.all([R.fetchFeed(o.feed), R.fetchAnchors(o.horizon, o.account), fetchAccount(o.horizon, o.account)]);
-  const rep = await R.reconcile(feed, anchors);
+  /* Horizon first (the account, then every anchor with its signatures), then the feed: the order R.check
+     uses, so an anchor newer than the feed copy cannot read as BROKEN. Unlike R.check, an account that
+     cannot be read is printed below (and makes the verdict BROKEN) instead of stopping the write-up. */
+  const acct = await R.fetchAccount(o.horizon, o.account).catch((e) => ({ error: e.message }));
+  const anchors = await R.fetchAnchors(o.horizon, o.account);
+  const feed = await R.fetchFeed(o.feed);
+  const rep = await R.reconcile(feed, anchors, { account: o.account, record: acct.error ? null : acct, record_error: acct.error || null, roles: o.roles || null });
   const s = rep.summary;
   const now = new Date().toISOString();
   const recLink = `${o.reconcileBase}?feed=${encodeURIComponent(o.feed)}&account=${o.account}`;
@@ -171,7 +167,11 @@ async function cli() {
     title: opt('--title', 'QWATT — seven-day live run on Stellar Testnet'),
     reconcileBase: opt('--reconcile-page', 'https://qwatt.org/reconcile.html'),
   };
-  if (!o.feed || !o.account) { console.error('usage: node ops/writeup.js --feed <URL> --account G… [--feed-dir dir] [--tests file] [--out WRITEUP.md]'); process.exit(2); }
+  if (!o.feed || !o.account) { console.error('usage: node ops/writeup.js --feed <URL> --account G… [--proposer G… --verifier G… --third G…] [--feed-dir dir] [--tests file] [--out WRITEUP.md]'); process.exit(2); }
+  /* who is who: from the run's faults.json, or given here for a feed that does not declare it (all three or none) */
+  const given = R.ROLE_NAMES.filter((r) => opt('--' + r));
+  if (given.length && given.length !== 3) { console.error('pass --proposer, --verifier and --third together (public keys)'); process.exit(2); }
+  o.roles = given.length ? { proposer: opt('--proposer'), verifier: opt('--verifier'), third: opt('--third') } : null;
   const { markdown, report } = await build(o);
   const out = path.resolve(opt('--out', 'WRITEUP.md'));
   fs.writeFileSync(out, markdown);
