@@ -4,19 +4,22 @@
  * Wires the assembler to the on-disk feed so that a crash at any instant loses
  * nothing and duplicates nothing:
  *
- *   - every judged interval is appended to its ledger (fsync) BEFORE it counts;
+ *   - every judged interval is appended to its ledger (fsync) BEFORE it counts,
+ *     with the raw payloads it came with (V3-5), so a restart can republish them;
  *   - on start, state comes from the feed, never from memory: the head batch in
  *     index.json gives seq / prev_hash / cumulative, and ledger lines that name
  *     the not-yet-published batch are restored as the open window;
  *   - a restored window is closed immediately ("a batch closes … when the node
  *     restarts", docs/ARCHITECTURE-FREEZE.md §2);
  *   - if the crash fell between writing a batch file and updating the index,
- *     the existing file is adopted rather than a second batch built.
+ *     the existing file is adopted rather than a second batch built. A restored
+ *     window is sorted in the raw-file order (windowOrder), so a batch closed
+ *     after a crash publishes the same raw/<batch_id>.jsonl as one without.
  */
 
 'use strict';
 
-const { BatchAssembler } = require('./assemble');
+const { BatchAssembler, windowOrder } = require('./assemble');
 const { Feed } = require('./feed');
 const V = require('./verify');
 
@@ -54,7 +57,7 @@ class Pipeline {
     if (this.feed.hasBatch(openId)) {
       const batch = this.feed.readBatch(openId);
       const rejected = this.feed.readLedger('rejected');
-      const ctx = { prev: this.asm.prev, floor: this.asm.floor, rejected, profile: this.asm.profile };
+      const ctx = { prev: this.asm.prev, floor: this.asm.floor, rejected, raw: this.feed.readRaw(openId), profile: this.asm.profile };
       const ok = V.verifyBatch(batch, ctx).ok;
       /* a refused batch was written with the total carried forward (F6): its reasons are judged that way */
       const check = ok ? { failures: [] } : V.verifyBatch(batch, { ...ctx, status: 'rejected' });
@@ -70,15 +73,15 @@ class Pipeline {
     /* lines judged but not yet batched: restore them and close on restart */
     const open = [...this.feed.readLedger('accepted'), ...this.feed.readLedger('rejected')].filter((l) => l.batch_id === openId);
     if (open.length) {
-      open.sort((x, y) => Date.parse(x.interval.ts_start) - Date.parse(y.interval.ts_start));
+      open.sort(windowOrder);
       for (const l of open) this.asm.restore(l);
       this.recovered.push(this.close());
     }
   }
 
   /** Judge and persist one interval; closes the window when it is full. @returns the ledger line */
-  push(rec) {
-    const line = this.asm.judge(rec);
+  push(rec, raw) {
+    const line = raw === undefined ? this.asm.judge(rec) : this.asm.judge(rec, raw);
     this.feed.appendInterval(line);
     if (this.asm.full) this.close();
     return line;

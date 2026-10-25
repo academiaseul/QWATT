@@ -2,11 +2,11 @@
  * The repository's own protocol code for the browser (DESIGN D-12): each source below is embedded
  * byte for byte as one module function, so verificacion.html runs exactly what the verifier runs.
  * Sources (SHA-256 of the file bytes, LF line endings as stored in git):
- *   batch/verify.js                2a5afeb5853c54a7ec10d4fb875d7362135e66ff61b8223b4516183c8b9a1229
- *   protocol/batch.schema.json     3d1080f9bb1e07d0dcee63e049a79e9a7210ea4d8b3594cd04e906cd95fb4a35
- *   protocol/evidence.js           aac21d5ed59caa3ec558a2a2e5b4efa281e6be8a877afe250e5218da99e431fc
+ *   batch/verify.js                2ba0cda90f4f06d318727d8e81d6853d6bfc62ed520ef466a98a404cfada6610
+ *   protocol/batch.schema.json     ac2552e43e5c78511152b634d1d472ff03f796bbbd8cfc5ba63cd60c3b96a315
+ *   protocol/evidence.js           250363a6184c0fde8cad95fde0ce3b3f9a0ffb8b60a3301a6665b73f8aa6a8f9
  *   protocol/interval.schema.json  e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda
- *   protocol/reasons.json          d619be0adc270a94b5da65b35fcb2384a9991f197442ee1560194ba78bc4a146
+ *   protocol/reasons.json          a7e4feafb2b3884b1bcb7b0d8674a603bdce08dfc824301be369c59d751aead5
  *   protocol/schema-lite.js        9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9
  *   protocol/browser-shim.js       0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec  (the shim)
  * Loaded before this file, not embedded (the gate engine and the served spec binding):
@@ -269,8 +269,10 @@
  * QWATT — evidence primitives (Deliverable 2)
  * ---------------------------------------------------------------------------
  * The one place batch hashing is defined: canonical JSON, SHA-256, the Merkle
- * root over intervals, and the batch hash. The batch assembler (proposer side),
- * the verifier and the reconciliation page all derive the same bytes from this.
+ * root over intervals, samples_root over the raw payloads (batch schema 1.1.0,
+ * rules R1–R4 in protocol/batch.schema.json), and the batch hash. The batch
+ * assembler (proposer side), the verifier and the reconciliation page all derive
+ * the same bytes from this.
  *
  * Unlike the permissive copies in ingest/lib/normalize.js and the rig's
  * validators.js, `canonical` here REFUSES any number that is not a
@@ -329,14 +331,73 @@ const sha256 = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex'
  */
 function merkleRoot(items) {
   if (!Array.isArray(items)) throw new EvidenceError('merkleRoot: expected an array');
-  if (items.length === 0) return EMPTY_ROOT;
-  let level = items.map((it) => sha256(canonical(it)));
+  return merkleFromLeaves(items.map((it) => sha256(canonical(it))));
+}
+
+/** The same rule over leaf hashes already computed (64-hex strings). No leaves: EMPTY_ROOT. */
+function merkleFromLeaves(leaves) {
+  if (!Array.isArray(leaves)) throw new EvidenceError('merkleFromLeaves: expected an array');
+  if (leaves.length === 0) return EMPTY_ROOT;
+  let level = leaves.slice();
   while (level.length > 1) {
     const next = [];
     for (let i = 0; i < level.length; i += 2) next.push(sha256(level[i] + (level[i + 1] ?? level[i])));
     level = next;
   }
   return level[0];
+}
+
+/* ── raw payloads and samples_root (batch schema 1.1.0, freeze v3 V3-5) ── */
+
+/** Where an interval record carries its raw payloads: a symbol key, so never serialized, validated or hashed. */
+const RAW = Symbol.for('qwatt.raw_payloads');
+const rawPayloads = (rec) => (rec != null && typeof rec === 'object' && Array.isArray(rec[RAW]) ? rec[RAW] : null);
+
+const HEX = /^(?:[0-9a-f]{2})*$/;
+/** Bytes of one payload entry: { n, utf8 } or { n, hex }, n a whole number >= 1. Throws on anything else. */
+function payloadBytes(p) {
+  if (p == null || typeof p !== 'object' || Array.isArray(p) || !Number.isSafeInteger(p.n) || p.n < 1) throw new EvidenceError('raw payload entry needs a whole n >= 1');
+  const keys = Object.keys(p).filter((k) => k !== 'n');
+  if (keys.length === 1 && keys[0] === 'utf8' && typeof p.utf8 === 'string') return Buffer.from(p.utf8, 'utf8');
+  if (keys.length === 1 && keys[0] === 'hex' && typeof p.hex === 'string' && HEX.test(p.hex)) return Buffer.from(p.hex, 'hex');
+  throw new EvidenceError('raw payload entry needs exactly one of utf8 (a string) or hex (lowercase, whole bytes)');
+}
+const sha256Bytes = (buf) => crypto.createHash('sha256').update(buf).digest('hex');
+
+/** samples_root: merkleFromLeaves over SHA-256 of each payload's bytes, raw lines in file order, payloads in order. */
+function samplesRoot(rawLines) {
+  if (!Array.isArray(rawLines)) throw new EvidenceError('samplesRoot: expected an array of raw lines');
+  const leaves = [];
+  rawLines.forEach((l, i) => {
+    if (l == null || !Array.isArray(l.payloads)) throw new EvidenceError(`raw line ${i}: payloads must be an array`);
+    for (const p of l.payloads) leaves.push(sha256Bytes(payloadBytes(p)));
+  });
+  return merkleFromLeaves(leaves);
+}
+
+/** An implementation bound, not a rule: no interval's payload stream (bytes × n) is hashed past 1 GiB,
+    so a non-empty payload published with an n near 2^53 is refused instead of hashed. Honest streams are far
+    smaller. The work follows the bytes, not n: an empty entry adds nothing to the stream and is skipped
+    whatever its n, and a repeated payload is hashed in blocks of about 64 KiB, not once per repeat. */
+const MAX_RAW_STREAM_BYTES = 2 ** 30;
+const RAW_HASH_BLOCK = 65536;
+
+/** SHA-256 of the payload stream, each payload repeated n times: what source.raw_sha256 commits to. */
+function rawStreamSha256(payloads) {
+  const bytes = payloads.map(payloadBytes);
+  const total = bytes.reduce((s, b, i) => s + b.length * payloads[i].n, 0);
+  if (total > MAX_RAW_STREAM_BYTES) throw new EvidenceError(`raw payload stream of ${total} bytes is longer than ${MAX_RAW_STREAM_BYTES}`);
+  const h = crypto.createHash('sha256');
+  bytes.forEach((b, i) => {
+    if (b.length === 0) return;                                        // n repeats of no bytes: nothing to hash
+    const n = payloads[i].n;
+    const reps = Math.min(n, Math.max(1, Math.floor(RAW_HASH_BLOCK / b.length)));
+    const block = reps > 1 ? Buffer.alloc(reps * b.length, b) : b;     // the same bytes, reps times in a row
+    let left = n;
+    for (; left >= reps; left -= reps) h.update(block);
+    if (left > 0) h.update(block.subarray(0, left * b.length));        // the last, shorter run
+  });
+  return h.digest('hex');
 }
 
 /** The batch hash: SHA-256 of the canonical batch with its own `sha256` field removed. */
@@ -367,6 +428,13 @@ module.exports = {
   canonical,
   sha256,
   merkleRoot,
+  merkleFromLeaves,
+  RAW,
+  rawPayloads,
+  payloadBytes,
+  samplesRoot,
+  rawStreamSha256,
+  MAX_RAW_STREAM_BYTES,
   batchSha256,
   batchId,
   basisMwh,
@@ -460,7 +528,10 @@ module.exports = { validate };
  *   timestamps, every interval on its dt_s grid, no interval repeated or
  *   overlapping, within the batch or with the floor) · every contained
  *   interval re-judged by the gates (must accept) · every gate-based rejection
- *   re-judged (must reject) · every reason code registered
+ *   re-judged (must reject) · every reason code registered · when the raw
+ *   lines are given (raw/<batch_id>.jsonl): samples_root recomputed from them,
+ *   one line per judged interval in time order, each accepted and gate-refused
+ *   interval's payloads hashing to its source.raw_sha256 (V3-5)
  *
  * The floor is the last batch published as accepted. A batch published as
  * rejected is never anchored, so its window, node and intervals never become
@@ -526,6 +597,63 @@ function rehashes(b) {
   try { return E.batchSha256(b) === b.sha256; } catch (e) { return false; }
 }
 
+const RAW_HASH = /^[0-9a-f]{64}$/;
+
+/**
+ * Do these raw payloads account for this interval (batch.schema.json R2)? True when the interval
+ * names no source.raw_sha256, or when the payload stream (each payload's bytes n times) hashes to
+ * it. One exemption: a record posted whole to POST /intervals (source.adapter 'http-json') that
+ * kept the node's own raw_sha256, whose frames the gateway never saw. Its one payload (n 1, utf8)
+ * must then be that record as posted: the same canonical JSON apart from the clock_skew_s the
+ * gateway stamps. Any other interval cannot pass off its own JSON as its raw payload.
+ */
+function rawBound(payloads, rec) {
+  const want = rec && rec.source && rec.source.raw_sha256;
+  if (!RAW_HASH.test(want || '')) return true;
+  if (E.rawStreamSha256(payloads) === want) return true;
+  if (rec.source.adapter === 'http-json' && payloads.length === 1 && payloads[0].n === 1 && typeof payloads[0].utf8 === 'string') {
+    try {
+      const b = JSON.parse(payloads[0].utf8);
+      if (b == null || typeof b !== 'object' || Array.isArray(b)) return false;
+      return E.canonical(Object.assign({}, b, { clock_skew_s: rec.clock_skew_s })) === E.canonical(rec);
+    } catch (e) { return false; }
+  }
+  return false;
+}
+
+/** Why an interval's raw payloads cannot be counted, or null. The door and verifyBatch apply the same rule. */
+function rawProblem(payloads, rec) {
+  if (!Array.isArray(payloads) || payloads.length === 0) return { missing: true, why: 'no raw payload' };
+  try { if (!rawBound(payloads, rec)) return { missing: false, why: 'the raw payloads do not hash to source.raw_sha256' }; }
+  catch (e) { return { missing: false, why: e.message }; }
+  return null;
+}
+
+/** The raw line a judged ledger line publishes in raw/<batch_id>.jsonl. */
+function rawLine(l) {
+  const r = l.interval != null && typeof l.interval === 'object' ? l.interval : {};
+  return {
+    payloads: Array.isArray(l.raw) ? l.raw : [],
+    seq: Number.isSafeInteger(r.seq) ? r.seq : null,
+    ts_start: typeof r.ts_start === 'string' ? r.ts_start : null,
+    verdict: l.verdict === 'accept' ? 'accept' : 'reject',
+  };
+}
+const rawKey = (seq, ts) => `${Number.isSafeInteger(seq) ? seq : null}|${typeof ts === 'string' ? ts : null}`;
+
+/**
+ * The order of raw lines in raw/<batch_id>.jsonl (R3), on their published fields only: by
+ * Date.parse(ts_start), an unreadable or missing one last, then an accepted line before a refused
+ * one at the same start. Ties keep judgment order (the sort is stable), which a verifier cannot
+ * see, so it checks only that consecutive lines never go backwards under this comparator.
+ */
+function rawOrder(x, y) {
+  const t = (l) => { const v = typeof l.ts_start === 'string' ? Date.parse(l.ts_start) : NaN; return Number.isFinite(v) ? v : Infinity; };
+  const tx = t(x), ty = t(y);
+  if (tx !== ty) return tx < ty ? -1 : 1;
+  return (x.verdict === 'accept' ? 0 : 1) - (y.verdict === 'accept' ? 0 : 1);
+}
+
 /** Schema + integer-only check of one interval. @returns {string[]} errors */
 function intervalErrors(rec) {
   const errs = validate(rec, INTERVAL_SCHEMA);
@@ -542,6 +670,8 @@ function intervalErrors(rec) {
  * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
  *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
+ * @param {object[]|null} [ctx.raw] the batch's raw lines (raw/<batch_id>.jsonl, parsed); null: the file is
+ *                                 not published (batch.raw_missing); undefined: not checked
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
  * @param {object} [ctx.spec]      generated spec binding
  * @returns {{ok:boolean, failures:Array<{code:string, detail:object}>}}
@@ -610,6 +740,11 @@ function verifyBatch(batch, ctx = {}) {
     });
   }
 
+  /* raw payloads: samples_root recomputed from the published lines, one line per judged interval,
+     accepted lines in the order of the batch's intervals, each accounting for its interval */
+  if (ctx.raw === null) fail('batch.raw_missing', { batch_id: batch.batch_id });
+  else if (ctx.raw !== undefined) checkRaw(batch, ctx.raw, ctx.rejected == null ? null : mine, fail);
+
   /* installation: every interval from the batch's site and node, the batch from the floor's */
   const foreign = batch.intervals.find((r) => r.site_id !== batch.site_id || r.node_id !== batch.node_id);
   if (foreign) fail('batch.site_mismatch', { interval_seq: foreign.seq, site_id: foreign.site_id, node_id: foreign.node_id });
@@ -662,8 +797,50 @@ function verifyBatch(batch, ctx = {}) {
   return { ok: failures.length === 0, failures };
 }
 
+function checkRaw(batch, raw, mine, fail) {
+  const bad = (why, detail = {}) => fail('batch.raw_mismatch', Object.assign({ why }, detail));
+  if (!Array.isArray(raw) || raw.some((l) => l == null || typeof l !== 'object' || !Array.isArray(l.payloads))) return bad('raw lines are not objects with a payloads array');
+  let root;
+  try { root = E.samplesRoot(raw); } catch (e) { return bad(e.message); }
+  if (root !== batch.samples_root) fail('batch.samples_root_mismatch', { claimed: batch.samples_root, recomputed: root });
+  if (raw.length !== batch.interval_count) bad('one raw line per judged interval', { lines: raw.length, interval_count: batch.interval_count });
+  for (let i = 1; i < raw.length; i++) {
+    if (rawOrder(raw[i - 1], raw[i]) > 0) { bad('raw lines not in time order (R3)', { line: i, ts_start: raw[i].ts_start }); break; }
+  }
+  const acc = raw.filter((l) => l.verdict === 'accept'), rej = raw.filter((l) => l.verdict !== 'accept');
+  if (acc.length !== batch.intervals.length) bad('one accepted raw line per interval in the batch', { lines: acc.length, intervals: batch.intervals.length });
+  else {
+    for (let j = 0; j < acc.length; j++) {
+      const r = batch.intervals[j];
+      if (acc[j].seq !== r.seq || acc[j].ts_start !== r.ts_start) { bad('accepted raw lines out of step with the intervals', { interval_seq: r.seq, line_seq: acc[j].seq }); break; }
+      const p = rawProblem(acc[j].payloads, r);
+      if (p) { bad(p.why, { interval_seq: r.seq }); break; }
+    }
+  }
+  if (rej.length !== batch.rejected_count) bad('one raw line per rejected interval', { lines: rej.length, rejected_count: batch.rejected_count });
+  else if (mine) {
+    /* each rejected-ledger line has its raw line (same seq and ts_start, taken in turn). A line the
+       gates refused passed the door's raw check first, so its payloads must account for it; a line
+       refused at the door (ingest.*) publishes whatever came with it, unchecked */
+    const left = rej.slice();
+    for (const line of mine) {
+      const r = line.interval || {};
+      const k = left.findIndex((l) => rawKey(l.seq, l.ts_start) === rawKey(r.seq, r.ts_start));
+      if (k < 0) { bad('a rejected interval has no raw line', { interval_seq: r.seq }); break; }
+      const [l] = left.splice(k, 1);
+      const atDoor = (line.reasons || []).some((c) => c.startsWith('ingest.'));
+      const p = atDoor ? null : rawProblem(l.payloads, r);
+      if (p) { bad(`a gate-refused interval: ${p.why}`, { interval_seq: r.seq }); break; }
+    }
+  }
+}
+
 module.exports = {
   verifyBatch,
+  rawBound,
+  rawProblem,
+  rawLine,
+  rawOrder,
   intervalErrors,
   isRegistered,
   isGateCode,
@@ -737,11 +914,11 @@ module.exports = {
 module.exports = {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://qwatt.org/protocol/batch.schema.json",
-  "x-schema-version": "1.0.0",
+  "x-schema-version": "1.1.0",
   "title": "QWATT evidence batch",
-  "description": "The unit of evidence that gets published and, when accepted, anchored on Stellar. Contains the accepted interval records it vouches for. `sha256` is computed over the canonical JSON of the batch with `sha256` removed. All energies are integers in milliwatt-hours so the canonical bytes are identical in every language. Defined in docs/ARCHITECTURE-FREEZE.md §2.",
+  "description": "The unit of evidence that gets published and, when accepted, anchored on Stellar. Contains the accepted interval records it vouches for. `sha256` is computed over the canonical JSON of the batch with `sha256` removed. All energies are integers in milliwatt-hours so the canonical bytes are identical in every language. Defined in docs/ARCHITECTURE-FREEZE.md §2. Version 1.1.0 (week 2, V3-5) makes samples_root required.",
   "type": "object",
-  "required": ["batch_id", "site_id", "node_id", "seq", "ts_start", "ts_end", "spec_version", "schema_version", "interval_count", "accepted_count", "rejected_count", "intervals", "intervals_root", "energy_mwh", "cumulative_mwh", "prev_hash", "sha256"],
+  "required": ["batch_id", "site_id", "node_id", "seq", "ts_start", "ts_end", "spec_version", "schema_version", "interval_count", "accepted_count", "rejected_count", "intervals", "intervals_root", "samples_root", "energy_mwh", "cumulative_mwh", "prev_hash", "sha256"],
   "additionalProperties": false,
   "properties": {
     "batch_id": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+-[0-9]{6}$", "description": "`<site_id>-<seq zero-padded to 6>`." },
@@ -757,7 +934,7 @@ module.exports = {
     "rejected_count": { "type": "integer", "minimum": 0 },
     "intervals": { "type": "array", "items": { "$ref": "interval.schema.json" }, "description": "The accepted interval records, in sequence order. Rejected intervals are in the rejected ledger, never here." },
     "intervals_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Merkle root (SHA-256, odd node duplicated) over the canonical JSON of each interval." },
-    "samples_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional Merkle root over raw power samples, when the node retains them." },
+    "samples_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Required since batch schema 1.1.0 (V3-5): a fingerprint of every raw reading behind the window. The payloads are published at raw/<batch_id>.jsonl. R1, payload entry: {n, utf8} or {n, hex}. Its bytes are the UTF-8 of utf8, or hex decoded (lowercase, whole bytes); n >= 1 is the number of consecutive samples of the interval that arrived with exactly these bytes. CSV: the row as read plus \"\\n\", one entry per row, n = the meters with a reading. HTTP POST /samples: the request body, as utf8 when its bytes round-trip as UTF-8, otherwise hex; n = its samples in the interval. Modbus: the reply frames of one poll, concatenated, as hex, n 1. POST /intervals: the request body, n 1. R2, binding: SHA-256 of the stream (each entry's bytes n times, in order) equals the interval's source.raw_sha256. Exempt: an interval with no source.raw_sha256; a record posted whole (source.adapter http-json) that kept its node's raw_sha256, whose one payload (n 1, utf8) is that record as posted (the same canonical JSON apart from clock_skew_s). An accepted or gate-refused interval needs a non-empty bound payload list; a line refused at the door is published with what came with it (no payloads when those were malformed). R3, raw line: canonical JSON of {\"payloads\":[...],\"seq\":seq or null,\"ts_start\":ts_start or null,\"verdict\":\"accept\"|\"reject\"} plus \"\\n\" (seq only if a safe integer, ts_start only if a string). Exactly interval_count lines, sorted by Date.parse(ts_start) ascending (unreadable last), an accepted line before a refused one at the same start, otherwise in judgment order. R4: the intervals_root pairing (parent = SHA-256 of the two hex strings concatenated, an odd node paired with itself, no leaves = SHA-256 of no bytes) over SHA-256(bytes) of every payload entry of every raw line, in file order. Neither n nor the encoding enters a leaf." },
     "energy_mwh": { "type": "integer", "minimum": 0, "description": "Sum over accepted intervals of the counted energy (min of the two meters, or the single meter), milliwatt-hours." },
     "cumulative_mwh": { "type": "integer", "minimum": 0, "description": "Site total since genesis, after this batch." },
     "prev_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the previous batch, or 64 zeros for the first." },
@@ -768,7 +945,7 @@ module.exports = {
   "protocol/reasons.json": function (module, exports, require, __filename, __dirname, Buffer) {
 /* ──── protocol/reasons.json (verbatim) ──── */
 module.exports = {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "description": "Every reason code that can appear in a published ledger, other than the gate codes (plausibility.*, nameplate.*, elevation.*, agreement.*), which are registered with their messages in gates.spec.json. A code that is emitted but not listed here fails the test suite, so the proposer, the verifier and the reconciliation page can never disagree on what a rejection means.",
   "codes": {
     "ingest.duplicate_interval": "An interval for this window was already judged; the repeat is recorded and never counted twice.",
@@ -779,11 +956,16 @@ module.exports = {
     "ingest.spec_mismatch": "The node judged this interval under a different gate-spec version than the engine running here.",
     "ingest.schema_invalid": "The record does not validate against interval.schema.json.",
     "ingest.not_integer": "A numeric field is not a safe integer; evidence is integers only.",
+    "ingest.raw_missing": "The interval reached the door without the raw payloads it was built from; it is recorded, never counted, and the batch it falls in is unaffected.",
+    "ingest.raw_mismatch": "The raw payloads that came with the interval are malformed or do not hash to its source.raw_sha256; it is recorded, never counted, and the batch it falls in is unaffected.",
 
     "batch.schema_invalid": "The batch does not validate against batch.schema.json.",
     "batch.id_mismatch": "batch_id is not <site_id>-<seq padded to 6>.",
     "batch.hash_mismatch": "sha256 does not equal the hash of the canonical batch.",
     "batch.root_mismatch": "intervals_root does not equal the Merkle root of the contained intervals.",
+    "batch.samples_root_mismatch": "samples_root does not equal the Merkle root recomputed from the published raw/<batch_id>.jsonl.",
+    "batch.raw_mismatch": "The published raw/<batch_id>.jsonl does not match the batch: malformed, not one line per judged interval in time order, or an accepted or gate-refused interval whose payloads are missing or do not hash to its source.raw_sha256.",
+    "batch.raw_missing": "The raw payload file raw/<batch_id>.jsonl is not published next to the batch.",
     "batch.chain_break": "prev_hash or seq does not continue the previous published batch, or the previous batch or the last accepted one does not rehash to its own sha256.",
     "batch.genesis_invalid": "The first batch must have seq 0 and prev_hash of 64 zeros.",
     "batch.energy_mismatch": "energy_mwh is not the sum of the intervals' basis energy.",
@@ -860,12 +1042,12 @@ module.exports = {
     reasons: reasons,
     versions: { spec: root.QWATT_GATES_SPEC.spec_version, interval_schema: interval['x-schema-version'], batch_schema: batch['x-schema-version'], reasons_registry: reasons.registry_version },
     sources: [
-    { path: "protocol/evidence.js", sha256: "aac21d5ed59caa3ec558a2a2e5b4efa281e6be8a877afe250e5218da99e431fc", bytes: 3937 },
+    { path: "protocol/evidence.js", sha256: "250363a6184c0fde8cad95fde0ce3b3f9a0ffb8b60a3301a6665b73f8aa6a8f9", bytes: 7689 },
     { path: "protocol/schema-lite.js", sha256: "9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9", bytes: 3019 },
-    { path: "batch/verify.js", sha256: "2a5afeb5853c54a7ec10d4fb875d7362135e66ff61b8223b4516183c8b9a1229", bytes: 12232 },
+    { path: "batch/verify.js", sha256: "2ba0cda90f4f06d318727d8e81d6853d6bfc62ed520ef466a98a404cfada6610", bytes: 18572 },
     { path: "protocol/interval.schema.json", sha256: "e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda", bytes: 4619 },
-    { path: "protocol/batch.schema.json", sha256: "3d1080f9bb1e07d0dcee63e049a79e9a7210ea4d8b3594cd04e906cd95fb4a35", bytes: 3006 },
-    { path: "protocol/reasons.json", sha256: "d619be0adc270a94b5da65b35fcb2384a9991f197442ee1560194ba78bc4a146", bytes: 5202 }
+    { path: "protocol/batch.schema.json", sha256: "ac2552e43e5c78511152b634d1d472ff03f796bbbd8cfc5ba63cd60c3b96a315", bytes: 4872 },
+    { path: "protocol/reasons.json", sha256: "a7e4feafb2b3884b1bcb7b0d8674a603bdce08dfc824301be369c59d751aead5", bytes: 6076 }
     ],
     shim: { path: "protocol/browser-shim.js", sha256: "0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec" },
     external: [{"path":"assets/qwatt-gates.js","sha256":"7642446a2e733351256136a31790a6886bdfb13f94cad03751260201c677d22b"},{"path":"assets/gates.browser.js","sha256":"21b50b23f90a71011c2610362cfb5230075b6be6da676c3d76da9ab3a9286994"}],

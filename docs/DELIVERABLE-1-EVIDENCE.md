@@ -87,7 +87,7 @@ The freeze rule asks for deviations to be documented in the write-up, so it is r
   - **PZEM-017:** every field matches PZ1. The bench still has to settle the default unit id, the current-range register 0x0003 against the fitted shunt, and the 5 V power source.
   - **EPEver:** 0x3104 and 0x3105 are not confirmed. They share the PV-power read block, so a refusal from the controller would lose PV power on every poll.
   - **Documents:** the ones read are third-party copies, because the manufacturer sites were unreachable; their hashes are recorded. The documented-frame test decodes the manufacturers' worked examples, not frames captured from our devices.
-- **Raw payloads are not stored,** so only someone holding the original input can recompute `raw_sha256`. Freeze v3 plans `samples_root` and published raw lines (V3-5).
+- **Raw payloads were not stored in week 1,** so only someone holding the original input could recompute `raw_sha256`. Closed in week 2 by V3-5: every interval now carries its raw payloads, the feed publishes them at `raw/<batch_id>.jsonl`, and every batch commits to them with `samples_root` (batch schema 1.1.0; `ingest/README.md`, *samples_root*).
 - **Comparison scope.** The harness compares verdict, mint and failure ids, not the full verdict object. It excludes `source` from the record comparison by design.
 
 ## Needs a founder decision

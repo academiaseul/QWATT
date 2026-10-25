@@ -132,7 +132,7 @@ class Verifier {
        the previous batch, and the anchored head as the floor for time, node and counted intervals. */
     const walk = await C.walkToHead(batch, head, (id) => this.feed.batch(id), { maxSteps: this.maxWalk });
     if (!walk.ok) return this._refuse(next.batch_id, pending, [walk.code], walk.detail);
-    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: await this.feed.rejected() });
+    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: await this.feed.rejected(), raw: await this.feed.raw(next.batch_id) });
     if (!check.ok) return this._refuse(next.batch_id, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
 
     const m = T.matchPending(pending, batch, this.cfg, nowS);

@@ -10,6 +10,10 @@ This directory makes that impossible.
 |---|---|
 | `gates.spec.json` | **Single source of truth.** Every threshold, every gate, every failure message, in one versioned file. |
 | `interval.schema.json` | The normalized record every ingestion adapter emits and the only shape the engine accepts. A new meter is a register map that produces this — never an engine change. |
+| `batch.schema.json` | The evidence batch, schema 1.1.0: the accepted intervals, `intervals_root`, `samples_root` over the raw payloads (required since 1.1.0; rules R1–R4 in its description; the payloads are published at `raw/<batch_id>.jsonl`), energy, cumulative total and chain link. |
+| `evidence.js` | Canonical JSON (integers only), SHA-256, the Merkle roots, the batch hash and id: the one definition of the batch hash rules. |
+| `reasons.json` | Registry 1.1.0 of every non-gate reason code a ledger can carry (`ingest.*`, `batch.*`, `verifier.*`), with `ingest.raw_missing`, `ingest.raw_mismatch`, `batch.samples_root_mismatch`, `batch.raw_mismatch` and `batch.raw_missing` added in 1.1.0. |
+| `conformance/batch-cases.json` | Pinned hashes of a three-batch chain (`intervals_root`, `samples_root`, `sha256`) and `samples_root` vectors (raw lines in, root out). Regenerated only by `node batch/batch.test.js --write`. |
 | `gen.js` | Generates the bindings: `assets/gates.generated.js` (browser + CommonJS), `mining-rig/gates.generated.js`, `docs/GATES.md`. `--check` fails if any is stale. |
 | `conformance/cases.json` | Fixtures: input interval, profile, expected verdict, the **exact** set of failing gates, reason codes, mint string, pinned numeric internals. |
 | `conformance.test.js` | Runs the suite against the shared engine, checks the schema, checks the bindings are current and identical, checks `validators.js` reads the spec, and that every reason code has a message in every language. |

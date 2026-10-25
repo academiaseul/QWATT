@@ -103,7 +103,7 @@ class Proposer {
        copies the walk rehashed: the previous batch, and the anchored head as the floor. */
     const walk = await C.walkToHead(batch, head, (id) => (this.feed.hasBatch(id) ? this.feed.readBatch(id) : null), { maxSteps: this.maxWalk });
     if (!walk.ok) return { action: 'blocked', batch_id: next.batch_id, reasons: [walk.code], detail: walk.detail };
-    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: this.feed.readLedger('rejected') });
+    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: this.feed.readLedger('rejected'), raw: this.feed.readRaw(next.batch_id) });
     if (!check.ok) return { action: 'blocked', batch_id: next.batch_id, reasons: check.failures.map((f) => f.code) };
 
     const pf = this._pendingFile(next.batch_id);

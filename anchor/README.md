@@ -61,7 +61,11 @@ registered in `../protocol/reasons.json`, and nothing is signed:
 3. The batch re-derives with the shared `verifyBatch` against the copies the walk rehashed: hash,
    Merkle root, link to the previous batch, energy and cumulative arithmetic, counts, window and
    every gate (`batch.*`). Time, node and counted intervals are judged against the anchored head
-   (the last accepted batch), never against a batch published as rejected.
+   (the last accepted batch), never against a batch published as rejected. It also recomputes
+   `samples_root` from the published `raw/<batch_id>.jsonl` and ties every raw line to its
+   interval (`batch.samples_root_mismatch`, `batch.raw_mismatch`); with no raw file published the
+   refusal is `batch.raw_missing` (V3-5). The proposer runs the same check over its own feed and
+   reports `blocked` with the same code.
 4. The anchoring transaction rebuilt from the batch is byte-identical to the pending one
    (`verifier.tx_mismatch`, `verifier.hash_mismatch`).
 

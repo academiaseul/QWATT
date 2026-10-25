@@ -30,16 +30,26 @@ function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
 function eq(a, b, w) { assert(a === b, `${w}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
 const DT = 300, T0 = Date.parse('2026-09-20T15:00:00Z');
+/** samples_root by hand (freeze v3 V3-5), independent of protocol/evidence.js: SHA-256 of each payload's bytes, then the intervals_root pairing. */
+const RAW = Symbol.for('qwatt.raw_payloads');
+function refSamplesRoot(lines) {
+  const crypto = require('crypto');
+  let level = lines.flatMap((l) => l.payloads.map((p) => crypto.createHash('sha256').update(p.hex != null ? Buffer.from(p.hex, 'hex') : Buffer.from(p.utf8, 'utf8')).digest('hex')));
+  if (!level.length) return E.EMPTY_ROOT;
+  while (level.length > 1) { const next = []; for (let i = 0; i < level.length; i += 2) next.push(E.sha256(level[i] + (level[i + 1] ?? level[i]))); level = next; }
+  return level[0];
+}
 function iv(i, o = {}) {
   const t = T0 + i * DT * 1000;
   const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
-  return {
+  const rec = {
     spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION,
     site_id: 'rec', node_id: o.node_id ?? 'rec', seq: i,
     ts_start: new Date(t).toISOString(), ts_end: new Date(t + DT * 1000).toISOString(), dt_s: DT,
     meters: { a: m('a', 100), b: m('b', 99) },
     source: { adapter: 'simulator', raw_sha256: E.sha256('rec-' + i) },
   };
+  return Object.defineProperty(rec, RAW, { value: [{ n: 1, utf8: 'rec-' + i }], enumerable: false, configurable: true });
 }
 
 /** A complete world: fake chain, feed on disk served on localhost, both services. */
@@ -102,6 +112,7 @@ function nextBatch(prev, intervals, o = {}) {
     spec_version: prev.spec_version, schema_version: prev.schema_version,
     interval_count: intervals.length, accepted_count: intervals.length, rejected_count: 0,
     intervals, intervals_root: E.merkleRoot(intervals), energy_mwh: energy, cumulative_mwh: o.cumulative_mwh ?? prev.cumulative_mwh + energy, prev_hash: prev.sha256,
+    samples_root: refSamplesRoot(intervals.map((r) => ({ payloads: r[RAW] || [], seq: r.seq, ts_start: r.ts_start, verdict: 'accept' }))),
   };
   b.sha256 = E.batchSha256(b);
   return b;
@@ -540,6 +551,34 @@ test('a lagging Horizon head: whatever the verifier co-signs on a stale head car
   w.invariant();
   eq(onchainTotal(w), String(b0.energy_mwh + b1.energy_mwh), 'on-chain total = energy of the anchored batches, nothing counted twice');
   await w.close();
+});
+
+test('the verifier recomputes samples_root from the public raw file before co-signing: an edited or missing raw file is refused and the proposer blocks with the same code; restored, it anchors (batch.samples_root_mismatch, batch.raw_missing)', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    const f = path.join(w.feedDir, 'raw', 'rec-000000.jsonl');
+    assert(fs.existsSync(f), 'the raw file is published with the batch');
+    const good = fs.readFileSync(f, 'utf8');
+    const lines = good.trim().split('\n').map((l) => JSON.parse(l));
+    lines[0].payloads[0].utf8 = 'rec-forged';
+    fs.writeFileSync(f, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
+    const p = await w.p.tick(w.clock.now());
+    eq(p.action, 'blocked', 'the proposer recomputes the root over its own feed');
+    assert((p.reasons || []).includes('batch.samples_root_mismatch'), `proposer reasons ${p.reasons}`);
+    await propose(w, w.pipe.feed.readBatch('rec-000000'));             // a proposer that signs anyway
+    const v = await w.v.tick(w.clock.now());
+    eq(v.action, 'refused', 'the verifier refuses');
+    assert(v.reasons.includes('batch.samples_root_mismatch'), `verifier reasons ${v.reasons}`);
+    fs.unlinkSync(f);
+    const gone = await w.v.tick(w.clock.now());
+    eq(gone.action, 'refused', 'no raw file, no signature');
+    assert(gone.reasons.includes('batch.raw_missing'), `verifier reasons ${gone.reasons}`);
+    eq(w.fake.txs.length, 0, 'nothing anchored');
+    fs.writeFileSync(f, good);
+    await w.settle(w.p, w.v);
+    w.invariant();
+  } finally { await w.close(); }
 });
 
 (async () => {

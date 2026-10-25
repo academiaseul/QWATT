@@ -34,6 +34,8 @@ function makeFeedClient(baseUrl, { timeoutMs = 15000 } = {}) {
     async batches() { return jsonl(await get('ledger/batches.jsonl')); },
     async rejected() { return jsonl(await get('ledger/rejected.jsonl')); },
     async batch(id) { const t = await get(`batches/${id}.json`); return t == null ? null : JSON.parse(t); },
+    /** The batch's raw lines (raw/<id>.jsonl), or null when that file is not published. */
+    async raw(id) { const t = await get(`raw/${id}.jsonl`); return t == null ? null : jsonl(t); },
     async pending(id) { const t = await get(`pending/${id}.xdr`); return t == null ? null : t.trim(); },
   };
 }
