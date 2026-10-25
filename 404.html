@@ -1,35 +1,85 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-title-en="Page not found · QWATT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>404 — QWATT</title>
+<title>Página no encontrada · QWATT</title>
 <meta name="robots" content="noindex">
+<meta name="theme-color" content="#16100a">
+<meta name="color-scheme" content="dark light">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#16100a;color:#b3a48f;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;
-    min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-  .code{font-size:clamp(60px,14vw,120px);color:#3b2d1d;font-weight:500;letter-spacing:.1em}
-  h1{font-size:15px;color:#f0e8dc;letter-spacing:.14em;margin:10px 0 6px;font-weight:500}
-  p{font-size:12.5px;letter-spacing:.04em}
-  .cursor{color:#d08a57;animation:b .9s steps(1) infinite}
-  @keyframes b{50%{opacity:0}}
-  @media(prefers-reduced-motion:reduce){.cursor{animation:none}}
-  a{display:inline-block;margin-top:26px;color:#d08a57;text-decoration:none;border:1px solid rgba(208,138,87,.4);
-    padding:9px 20px;border-radius:3px;font-size:12px;letter-spacing:.1em;transition:background .15s,color .15s}
-  a:hover{background:#d08a57;color:#16100a}
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<script src="/assets/boot.js"></script>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
 </head>
-<body>
-<div>
-  <div class="code">404</div>
-  <h1>SE&Ntilde;AL NO ENCONTRADA<span class="cursor">&#9613;</span></h1>
-  <p>Esta p&aacute;gina no existe en la red QWATT &#183; this page is off the grid.</p>
-  <a href="/">&#9889; VOLVER A QWATT.ORG</a>
-</div>
+<body data-page="404" data-status="info" data-parts="">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
+  </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
+  <section class="q-404">
+    <div class="q-wrap">
+      <p class="q-404-code" aria-hidden="true">404</p>
+      <h1><span data-l="es">404 · SEÑAL NO ENCONTRADA</span><span data-l="en">404 · SIGNAL NOT FOUND</span></h1>
+      <p class="q-lead"><span data-l="es">Esta página no existe en qwatt.org.</span><span data-l="en">This page is off the grid.</span></p>
+      <p class="q-status" role="note"><span class="q-part"><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span><span><span data-l="es">Información del proyecto · solo Stellar testnet.</span><span data-l="en">Project information · Stellar testnet only.</span></span></span></p>
+      <div class="q-cta">
+        <a class="q-btn is-primary" href="/"><span data-l="es">Volver al inicio</span><span data-l="en">Back home</span></a>
+        <a class="q-btn" href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a class="q-btn" href="https://github.com/academiaseul/QWATT/releases/tag/semana-1" target="_blank" rel="noopener"><span data-l="es">Semana 1</span><span data-l="en">Week 1</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a class="q-btn" href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </div>
+      <p class="q-note"><span data-l="es">Las páginas de agosto 2026 volvieron, cada una con su rótulo: testnet, prototipo o planificado. Están todas en el inicio, en «Todas las ideas».</span><span data-l="en">The August 2026 pages are back, each with its label: testnet, prototype or planned. They are all on the home page, under "All ideas".</span></p>
+      <ul class="q-pages">
+        <li><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><a class="q-link" href="/#vivo"><span data-l="es">Verificación en vivo</span><span data-l="en">Live verification</span></a></li>
+        <li><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><a class="q-link" href="/#lab"><span data-l="es">Intenta engañar al verificador</span><span data-l="en">Try to fool the verifier</span></a></li>
+        <li><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><a class="q-link" href="/#semana2"><span data-l="es">El plan de la semana 2</span><span data-l="en">The week-2 plan</span></a></li>
+        <li><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span><a class="q-link" href="/#ideas"><span data-l="es">Todas las ideas, con su rótulo</span><span data-l="en">Every idea, with its label</span></a></li>
+      </ul>
+    </div>
+  </section>
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
+</footer>
+<!-- /q:footer -->
 </body>
 </html>

@@ -1,4 +1,4 @@
-# stellar.toml · QWATT / Quorelia SpA · SEP-1
+# stellar.toml · QWATT · SEP-1
 # Served at https://qwatt.org/.well-known/stellar.toml with Access-Control-Allow-Origin: *
 # (vercel.json sets the header). Stellar testnet only.
 
@@ -14,18 +14,14 @@ ACCOUNTS = [
 ]
 
 [DOCUMENTATION]
-ORG_NAME = "Quorelia SpA"
-ORG_DBA = "QWATT"
+ORG_NAME = "QWATT"
 ORG_URL = "https://qwatt.org"
 ORG_LOGO = "https://qwatt.org/logo.png"
-ORG_DESCRIPTION = "QWATT is an open-source verification prototype on Stellar testnet. It checks solar meter readings with verification filters and anchors the SHA-256 hash of each batch of readings on Stellar testnet, so anyone can verify the record independently. Project in development, Stellar testnet only. Source code: https://github.com/academiaseul/QWATT"
-ORG_OFFICIAL_EMAIL = "jay@quorelia.org"
-ORG_SUPPORT_EMAIL = "jay@quorelia.org"
+ORG_DESCRIPTION = "QWATT is an open-source verification prototype on Stellar testnet. It checks solar meter readings with verification filters and will anchor the SHA-256 hash of each accepted batch of readings on a 2-of-3 Stellar testnet account (in preparation, week 2 of the Instawards Chile sprint), so anyone can verify the record independently. The 8 October 2026 rehearsals ran on throwaway accounts with simulated input. Project in development, Stellar testnet only. Source code: https://github.com/academiaseul/QWATT"
 ORG_GITHUB = "https://github.com/academiaseul/QWATT"
 
 [[PRINCIPALS]]
 name = "Jay Kim"
-email = "jay@quorelia.org"
 github = "https://github.com/academiaseul"
 
 [[PRINCIPALS]]
@@ -39,9 +35,9 @@ display_decimals = 7
 image = "https://qwatt.org/logo.png"
 status = "test"
 
-desc = "Stellar testnet asset that the QWATT verification prototype uses only as a fixed nominal anchoring marker: each anchoring transaction carries a fixed nominal payment of 0.0000001 QWATT next to the SHA-256 hash of one batch of meter readings. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC) and not a carbon credit. It has no price and is not for sale."
+desc = "Stellar testnet asset that the QWATT verification prototype uses only as a fixed nominal anchoring marker: each anchoring transaction will carry a fixed minimal marker payment next to the SHA-256 hash of one batch of meter readings. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC) and not a carbon credit. It has no price and is not for sale."
 
-conditions = "Stellar testnet only. Holding QWATT gives no right to energy, money or anything else, and QWATT is not redeemable."
+conditions = "Stellar testnet only. Holding QWATT gives no right to energy or to anything else, and QWATT is not redeemable."
 
 # SEP-1 meaning of "anchored": backed by, or redeemable for, an off-chain asset. QWATT is not.
 is_asset_anchored = false

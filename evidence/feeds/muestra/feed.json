@@ -1,0 +1,69 @@
+{
+  "id": "muestra",
+  "title": {
+    "es": "Feed de muestra",
+    "en": "Sample feed"
+  },
+  "label": "prototipo",
+  "prior": false,
+  "batch_schema": "1.0.0",
+  "source": {
+    "es": "Un día simulado (20 sep 2026, de 06:00 a 14:00 hora de Chile) armado con el código del repositorio, con fallas a propósito. No está anclado.",
+    "en": "A simulated day (20 Sep 2026, 06:00 to 14:00 Chile time) built with the repository's code, with deliberate faults. Not anchored."
+  },
+  "anchoring": null,
+  "expected": {
+    "batches": 8,
+    "refusals": [
+      {
+        "seq": 6,
+        "code": "elevation.night",
+        "why": {
+          "es": "generación antes de que salga el sol",
+          "en": "generation before sunrise"
+        }
+      },
+      {
+        "seq": 42,
+        "code": "agreement.diverge",
+        "why": {
+          "es": "un sensor tapado: los dos medidores no coinciden",
+          "en": "a covered sensor: the two meters disagree"
+        }
+      },
+      {
+        "seq": 56,
+        "code": "nameplate.over",
+        "why": {
+          "es": "más energía de la que la placa permite",
+          "en": "more energy than the nameplate allows"
+        }
+      },
+      {
+        "seq": 69,
+        "code": "ingest.duplicate_interval",
+        "why": {
+          "es": "el mismo intervalo, enviado dos veces",
+          "en": "the same interval, sent twice"
+        }
+      },
+      {
+        "seq": 28,
+        "code": "ingest.off_grid",
+        "why": {
+          "es": "una hora fuera de la grilla de 5 minutos",
+          "en": "a time off the 5-minute grid"
+        }
+      },
+      {
+        "batch": 6,
+        "code": "batch.site_mismatch",
+        "why": {
+          "es": "un nodo mal configurado durante una hora: el lote se publica rechazado y arrastra el total",
+          "en": "a node misconfigured for one hour: the batch is published as refused and carries the total forward"
+        }
+      }
+    ]
+  },
+  "generated_by": "ops/sample-feeds.js"
+}

@@ -1,784 +1,397 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-title-en="Solar pilot · hardware plan · QWATT">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Piloto Solar QWATT</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-ESWGGQ9742"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-ESWGGQ9742');
-</script>
-<meta name="description" content="Piloto solar en diseño: del kWh físico al registro onchain. El primer kit fotovoltaico del protocolo de verificación energética QWATT, para una vivienda en la Región Metropolitana.">
+<title>Piloto solar · plan de hardware · QWATT</title>
+<meta name="description" content="Plan de hardware del piloto solar de QWATT (planificado, fuera del sprint): dos medidores, verificación independiente y constancias en Stellar testnet. Ubicación no publicada.">
 <link rel="canonical" href="https://qwatt.org/piloto.html">
-<meta name="theme-color" content="#120c07">
+<meta name="theme-color" content="#16100a">
+<meta name="color-scheme" content="dark light">
 <meta property="og:site_name" content="QWATT">
-<meta property="og:type" content="website">
+<meta property="og:type" content="article">
 <meta property="og:url" content="https://qwatt.org/piloto.html">
-<meta property="og:title" content="Piloto Solar QWATT">
-<meta property="og:description" content="Piloto solar en diseño: del kWh físico al registro onchain. El primer kit fotovoltaico del protocolo de verificación energética QWATT, para una vivienda en la Región Metropolitana.">
+<meta property="og:title" content="Piloto solar · plan de hardware · QWATT">
+<meta property="og:description" content="Plan de hardware del piloto solar de QWATT (planificado, fuera del sprint): dos medidores, verificación independiente y constancias en Stellar testnet. Ubicación no publicada.">
 <meta property="og:locale" content="es_CL">
-<meta property="og:image" content="https://qwatt.org/og-image.png">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://qwatt.org/og-image.png">
-<meta name="twitter:title" content="Piloto Solar QWATT">
-<meta name="twitter:description" content="Piloto solar en diseño: del kWh físico al registro onchain. El primer kit fotovoltaico del protocolo de verificación energética QWATT, para una vivienda en la Región Metropolitana.">
+<meta name="twitter:title" content="Piloto solar · plan de hardware · QWATT">
+<meta name="twitter:description" content="Plan de hardware del piloto solar de QWATT (planificado, fuera del sprint). Ubicación no publicada. Solo Stellar testnet.">
+<meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
-<style>
-  :root{
-    --bg:#16100a; --panel:#231a10; --panel2:#2b2015; --line:#3b2d1d;
-    --ink:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
-    --accent:#d08a57; --cyan:#d9b26a; --good:#3cb87f; --bad:#e05c5c; --sun:#ffd24d;
-    --display:'Chakra Petch','Segoe UI',sans-serif;
-    --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
-    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
-  }
-  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.7;margin:0;padding:28px 24px;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:880px;margin:0 auto}
-  header{display:flex;align-items:center;justify-content:space-between;margin-bottom:26px;flex-wrap:wrap;gap:10px}
-  .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px}
-  .bolt{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:17px;background:linear-gradient(135deg,var(--accent),#a2602f);color:#1a1206}
-  .brand em{font-style:normal;color:var(--accent)}
-  .net-badge{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid rgba(208,138,87,.4);background:rgba(208,138,87,.07);padding:5px 12px;border-radius:99px}
-  .kicker{font-family:var(--mono);font-size:12px;letter-spacing:2.5px;color:var(--accent);text-transform:uppercase;margin-bottom:10px}
-  h1{font-family:var(--display);font-size:clamp(26px,4.5vw,38px);line-height:1.15;margin:0 0 12px;text-wrap:balance}
-  .lead{color:var(--muted);font-size:16px;max-width:46em;margin-bottom:8px}
-  .site-meta{display:flex;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--faint);margin:14px 0 30px}
-  .site-meta span b{color:var(--sun);font-weight:500}
-  section{margin-bottom:38px}
-  h2{font-family:var(--display);font-size:21px;margin:0 0 12px;padding-top:6px}
-  h2 .n{color:var(--accent);font-family:var(--mono);font-size:14px;margin-right:10px}
-  h3{font-family:var(--display);font-size:15.5px;margin:20px 0 8px}
-  p{margin:0 0 13px;color:var(--muted)}
-  p b{color:var(--ink)}
-  .callout{background:var(--panel);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;padding:13px 17px;margin:16px 0;font-size:14px;color:var(--muted)}
-  .callout b{color:var(--accent)}
-  .callout.warn{border-left-color:var(--bad)} .callout.warn b{color:var(--bad)}
-  code{font-family:var(--mono);font-size:.88em;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
-  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13.5px}
-  th,td{text-align:left;padding:8px 11px;border-bottom:1px solid var(--line);vertical-align:top}
-  th{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}
-  td{color:var(--muted)}
-  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-  td b{color:var(--ink)}
-  a{color:var(--cyan)}
-  figure{margin:20px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;overflow-x:auto}
-  figure svg{display:block;width:100%;height:auto;min-width:640px}
-  figcaption{font-size:12.5px;color:var(--faint);text-align:center;margin-top:10px;font-family:var(--mono)}
-  ul.doc{margin:0 0 13px 22px;color:var(--muted);padding:0}
-  ul.doc li{margin-bottom:7px}
-  ol.doc{margin:0 0 13px 22px;color:var(--muted);padding:0}
-  ol.doc li{margin-bottom:7px}
-  .formula{font-family:var(--mono);font-size:13.5px;background:#1e150e;border:1px solid var(--line);border-radius:10px;padding:13px 17px;margin:14px 0;text-align:center;color:var(--accent)}
-  .kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
-  @media(max-width:760px){.kpi{grid-template-columns:repeat(2,1fr)}}
-  .kpi > div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
-  .kpi .l{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px}
-  .kpi .v{font-family:var(--mono);font-size:19px;font-weight:600;margin-top:4px;color:var(--sun)}
-  .kpi .s{font-family:var(--mono);font-size:11px;color:var(--faint)}
-  footer{border-top:1px solid var(--line);margin-top:40px;padding-top:18px;color:var(--faint);font-size:12.5px;text-align:center}
-  @media(max-width:760px){ section div[style*="repeat(4"]{grid-template-columns:repeat(2,minmax(0,1fr)) !important} }
-</style>
-
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/pages/piloto.css">
+<script src="/assets/boot.js"></script>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
+<script defer src="/assets/qwatt-live.js"></script>
+<script defer src="/assets/qwatt-reconcile.js"></script>
+<script defer src="/assets/live-widgets.js"></script>
 </head>
-<body>
-<!-- tema dia/noche QWATT -->
-<style id="qtheme">
-:root{--ch-grid:#3b2d1d;--ch-label:#8b7a64;--ch-line:#d08a57;--ch-avg:#c9a15f;--ch-area:rgba(208,138,87,.10);--ch-ring:#f0e8dc}
-html[data-theme="light"]{
-  --bg:#faf8f2;--bg2:#f5f0e6;
-  --paper:#faf8f2;--paper-2:#f1ecdf;--paper-3:#e6dfcd;
-  --panel:#f1ecdf;--panel2:#e6dfcd;
-  --line:#e6e2d6;
-  --ink:#1b1a14;--text:#1b1a14;--ink-2:#474334;
-  --muted:#5a5244;--grey:#6f6957;--faint:#6f6957;
-  --navy:#291d13;--navy-2:#342619;
-  --teal:#b0582f;--teal-lt:#d08a63;--amber:#6b4a2e;
-  --accent:#b0582f;--accent2:#8a672f;--cyan:#8a672f;--sand:#8a672f;--sun:#b0582f;
-  --good:#1a7f4e;--bad:#b91c1c;--warn:#8a6d1f;
-  --ch-grid:#e6e2d6;--ch-label:#6f6957;--ch-line:#b0582f;--ch-avg:#6b4a2e;--ch-area:rgba(176,88,47,.10);--ch-ring:#faf8f2;
-}
-html[data-theme="light"] .btn.primary{color:#fff}
-html[data-theme="light"] .tf button.on{color:#fff}
-html[data-theme="light"] .sim-row .buy{color:#fff}
-html[data-theme="light"] .st-chip.st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
-html[data-theme="light"] .st-chip.st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
-html[data-theme="light"] .st-chip.st-plan,html[data-theme="light"] .st-chip.st-demo{color:#6f6957;border-color:#d9d3c4}
-html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
-html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
-html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
-html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
-html[data-theme="light"] .drawer,html[data-theme="light"] .qdrawer{background:#f1ecdf;border-right:1px solid #e6e2d6;scrollbar-color:#e6dfcd transparent}
-html[data-theme="light"] .drawer::-webkit-scrollbar-thumb,html[data-theme="light"] .qdrawer::-webkit-scrollbar-thumb{background:#e6dfcd}
-html[data-theme="light"] .d-head,html[data-theme="light"] .qd-head{border-bottom:1px solid #e6e2d6}
-html[data-theme="light"] .d-brand,html[data-theme="light"] .qd-brand{color:#1b1a14}
-html[data-theme="light"] .d-brand .bolt-sm,html[data-theme="light"] .qd-brand .qb{color:#b0582f}
-html[data-theme="light"] .d-close,html[data-theme="light"] .qd-x{color:#6f6957}
-html[data-theme="light"] .d-close:hover,html[data-theme="light"] .qd-x:hover{color:#1b1a14}
-html[data-theme="light"] .d-title,html[data-theme="light"] .qd-t{color:#6f6957}
-html[data-theme="light"] .d-link,html[data-theme="light"] .qd-nav a{color:#474334}
-html[data-theme="light"] .d-link::before,html[data-theme="light"] .qd-nav a::before{color:#b0997f}
-html[data-theme="light"] .d-link:hover,html[data-theme="light"] .qd-nav a:hover{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.10),rgba(176,88,47,0) 70%);border-left-color:rgba(176,88,47,.55)}
-html[data-theme="light"] .d-link.on,html[data-theme="light"] .qd-nav a.on{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.15),rgba(176,88,47,0) 75%);border-left-color:#b0582f}
-html[data-theme="light"] .d-link:hover::before,html[data-theme="light"] .qd-nav a:hover::before,html[data-theme="light"] .d-link.on::before,html[data-theme="light"] .qd-nav a.on::before{color:#b0582f}
-html[data-theme="light"] .d-nav .d-title:not(:first-child),html[data-theme="light"] .qd-t.mt{border-top-color:#e6e2d6}
-html[data-theme="light"] .d-foot,html[data-theme="light"] .qd-foot{border-top:1px solid #e6e2d6;color:#b0582f}
-html[data-theme="light"] body > header,html[data-theme="light"] #qwnav{background:rgba(250,248,242,.92);border-bottom:1px solid #e6e2d6}
-html[data-theme="light"] body > header .brand,html[data-theme="light"] #qwnav .qw-home{color:#1b1a14}
-html[data-theme="light"] body > header .brand .bolt,html[data-theme="light"] #qwnav .qw-home .qw-bolt{color:#b0582f}
-html[data-theme="light"] body > header .brand small{color:#6f6957;border-left-color:#e6e2d6}
-html[data-theme="light"] .menu-btn,html[data-theme="light"] #qwnav .qw-menu,html[data-theme="light"] .qd-trig,html[data-theme="light"] .qtheme-btn{border-color:rgba(176,88,47,.45);color:#b0582f}
-html[data-theme="light"] .menu-btn:hover,html[data-theme="light"] #qwnav .qw-menu:hover,html[data-theme="light"] .qd-trig:hover,html[data-theme="light"] .qtheme-btn:hover{background:rgba(176,88,47,.08);color:#1b1a14}
-html[data-theme="light"] .hd-chip,html[data-theme="light"] #qwnav .qw-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
-html[data-theme="light"] .hd-chip .live-dot,html[data-theme="light"] #qwnav .qw-chip .qw-dot{color:#b0582f}
-html[data-theme="light"] .lang-toggle{border-color:#e6e2d6}
-html[data-theme="light"] .lang-toggle button{color:#6f6957}
-html[data-theme="light"] .lang-toggle button.active{background:#b0582f;color:#fff}
-html[data-theme="light"] body > header .back{color:#474334}
-html[data-theme="light"] body > header .back:hover{color:#1b1a14}
-html[data-theme="light"] body > footer,html[data-theme="light"] #qwfoot{background:#f1ecdf;border-top:1px solid #e6e2d6;color:#474334}
-html[data-theme="light"] body > footer .f-brand,html[data-theme="light"] #qwfoot .qf-brand{color:#1b1a14}
-html[data-theme="light"] body > footer .f-brand small{color:#6f6957}
-html[data-theme="light"] #qwfoot .qf-brand .qf-bolt{color:#b0582f}
-html[data-theme="light"] body > footer .f-lead,html[data-theme="light"] #qwfoot .qf-lead{color:#474334}
-html[data-theme="light"] body > footer .f-chip,html[data-theme="light"] #qwfoot .qf-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
-html[data-theme="light"] body > footer .f-chip .live-dot{color:#b0582f}
-html[data-theme="light"] body > footer .grp h3,html[data-theme="light"] #qwfoot h3{color:#6f6957}
-html[data-theme="light"] body > footer .grp a,html[data-theme="light"] #qwfoot a{color:#474334}
-html[data-theme="light"] body > footer .grp a::before,html[data-theme="light"] #qwfoot .qf-grp a::before{color:#b0997f}
-html[data-theme="light"] body > footer .grp a:hover,html[data-theme="light"] #qwfoot a:hover{color:#1b1a14}
-html[data-theme="light"] body > footer .disclaimer,html[data-theme="light"] #qwfoot .qf-bottom{color:#6f6957;border-top-color:#e0dac9}
-html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
-.d-link::after,.qd-nav a::after{margin-left:auto;flex:none}
-.d-link[href="wallet.html"]::after,.qd-nav a[href="wallet.html"]::after,.d-link[href="console.html"]::after,.qd-nav a[href="console.html"]::after,.d-link[href="pay.html"]::after,.qd-nav a[href="pay.html"]::after,.d-link[href="proof.html"]::after,.qd-nav a[href="proof.html"]::after,.d-link[href="respaldo.html"]::after,.qd-nav a[href="respaldo.html"]::after,.d-link[href="red.html"]::after,.qd-nav a[href="red.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#3cb87f;box-shadow:0 0 6px rgba(60,184,127,.5)}
-.d-link[href="grid.html"]::after,.qd-nav a[href="grid.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#6e5c49}
-.d-link[href="piloto.html"]::after,.qd-nav a[href="piloto.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#c9a15f;box-shadow:0 0 6px rgba(201,161,95,.35)}
-html[data-theme="light"] .d-link[href="wallet.html"]::after,html[data-theme="light"] .qd-nav a[href="wallet.html"]::after,html[data-theme="light"] .d-link[href="console.html"]::after,html[data-theme="light"] .qd-nav a[href="console.html"]::after,html[data-theme="light"] .d-link[href="pay.html"]::after,html[data-theme="light"] .qd-nav a[href="pay.html"]::after,html[data-theme="light"] .d-link[href="proof.html"]::after,html[data-theme="light"] .qd-nav a[href="proof.html"]::after,html[data-theme="light"] .d-link[href="respaldo.html"]::after,html[data-theme="light"] .qd-nav a[href="respaldo.html"]::after,html[data-theme="light"] .d-link[href="red.html"]::after,html[data-theme="light"] .qd-nav a[href="red.html"]::after{background:#15803d;box-shadow:0 0 6px rgba(21,128,61,.3)}
-html[data-theme="light"] .d-link[href="grid.html"]::after,html[data-theme="light"] .qd-nav a[href="grid.html"]::after{background:#c4bca6}
-html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="light"] .qd-nav a[href="piloto.html"]::after{background:#a97b2f;box-shadow:0 0 6px rgba(169,123,47,.3)}
-:root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
-html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
-svg.qm{flex:none}
-html[data-theme="light"] .tag.t,html[data-theme="light"] .s-hero .tag{color:#8f4522}
-html[data-theme="light"] #onchain .tag.t{color:#d08a57}
-html[data-theme="light"] input,html[data-theme="light"] textarea,html[data-theme="light"] select{background:#faf8f2;color:#1b1a14;border-color:#e6e2d6}
-html[data-theme="light"] input::placeholder,html[data-theme="light"] textarea::placeholder{color:#8b8578}
-html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus{border-color:#b0582f}
-html[data-theme="light"] .presets button.on,.presets button.on{background:#a44e26;color:#fff;border-color:#a44e26}
-html[data-theme="light"] .ctl label .v{color:#8f4522}
-.qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-.qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-</style>
-<script>
-(function(){
-  var KEY='qwatt.theme';
-  var saved='light';try{saved=localStorage.getItem(KEY)||'light'}catch(e){}
-  document.documentElement.setAttribute('data-theme',saved);
-  function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
-  syncMeta(saved);
-  function label(t){return t==='light'?'\u263D':'\u2600'}
-  function apply(t){
-    document.documentElement.setAttribute('data-theme',t);
-    var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
-    try{localStorage.setItem(KEY,t)}catch(e){}
-    syncMeta(t);
-    try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
-  }
-  function init(){
-    if(document.getElementById('qthemeBtn'))return;
-    var host=document.querySelector('#qwnav .qw-in')||document.querySelector('header .nav');
-    if(!host)return;
-    var btn=document.createElement('button');
-    btn.id='qthemeBtn';btn.className='qtheme-btn';
-    btn.setAttribute('aria-label','Cambiar tema d\u00EDa/noche');
-    btn.title='D\u00EDa / noche';
-    btn.textContent=label(document.documentElement.getAttribute('data-theme'));
-    btn.addEventListener('click',function(){
-      apply(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
-    });
-    var anchor=host.querySelector('.qw-chip')||host.querySelector('.hd-chip');
-    host.insertBefore(btn,anchor||null);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
-<!-- menu lateral QWATT (compartido) -->
-<div class="qd-overlay" id="qdOverlay"></div>
-<aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
-<style>
-body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
-@media(min-width:1000px){html.qd-docked body{margin-left:300px}.qd-overlay{display:none !important}}
-.qd-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
-.qd-overlay.open{opacity:1;visibility:visible}
-.qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-.qdrawer.open{transform:none}
-.qdrawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
-.qdrawer::-webkit-scrollbar{width:6px}
-.qdrawer::-webkit-scrollbar-track{background:transparent}
-.qdrawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
-.qdrawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
-@media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
-.qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
-.qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
-.qd-brand .qb{color:#d08a57}
-.qd-x{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px;font-family:inherit}
-.qd-x:hover{color:#f0e8dc}
-.qd-nav{padding:16px 14px;flex:1}
-.qd-t{counter-reset:qd;font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin:0 0 8px}
-.qd-t.mt{margin-top:22px;padding-top:16px;border-top:1px solid #2b2115}
-.qd-nav a{display:flex;align-items:center;gap:11px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-left:2px solid transparent;border-radius:0 3px 3px 0;text-decoration:none;transition:color .15s,background .15s,border-color .15s,padding .18s;margin-bottom:1px}
-.qd-nav a::before{counter-increment:qd;content:counter(qd,decimal-leading-zero);font-size:9px;color:#6e5c49;min-width:15px;transition:color .15s}
-.qd-nav a:hover{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.10),rgba(208,138,87,0) 70%);border-left-color:rgba(208,138,87,.5);padding-left:14px}
-.qd-nav a:hover::before{color:#d08a57}
-.qd-nav a.on{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.16),rgba(208,138,87,0) 75%);border-left-color:#d08a57;font-weight:600}
-.qd-nav a.on::before{color:#d08a57}
-.qdrawer.open .qd-nav>*{animation:qdIn .34s cubic-bezier(.22,1,.36,1) both}
-@keyframes qdIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
-.qdrawer.open .qd-nav>:nth-child(2){animation-delay:.012s}
-.qdrawer.open .qd-nav>:nth-child(3){animation-delay:.024s}
-.qdrawer.open .qd-nav>:nth-child(4){animation-delay:.036s}
-.qdrawer.open .qd-nav>:nth-child(5){animation-delay:.048s}
-.qdrawer.open .qd-nav>:nth-child(6){animation-delay:.060s}
-.qdrawer.open .qd-nav>:nth-child(7){animation-delay:.072s}
-.qdrawer.open .qd-nav>:nth-child(8){animation-delay:.084s}
-.qdrawer.open .qd-nav>:nth-child(9){animation-delay:.096s}
-.qdrawer.open .qd-nav>:nth-child(10){animation-delay:.108s}
-.qdrawer.open .qd-nav>:nth-child(11){animation-delay:.120s}
-.qdrawer.open .qd-nav>:nth-child(12){animation-delay:.132s}
-.qdrawer.open .qd-nav>:nth-child(13){animation-delay:.144s}
-.qdrawer.open .qd-nav>:nth-child(14){animation-delay:.156s}
-.qdrawer.open .qd-nav>:nth-child(15){animation-delay:.168s}
-.qdrawer.open .qd-nav>:nth-child(16){animation-delay:.180s}
-.qdrawer.open .qd-nav>:nth-child(17){animation-delay:.192s}
-.qdrawer.open .qd-nav>:nth-child(18){animation-delay:.204s}
-.qdrawer.open .qd-nav>:nth-child(19){animation-delay:.216s}
-.qdrawer.open .qd-nav>:nth-child(20){animation-delay:.228s}
-.qdrawer.open .qd-nav>:nth-child(21){animation-delay:.240s}
-.qdrawer.open .qd-nav>:nth-child(22){animation-delay:.252s}
-.qdrawer.open .qd-nav>:nth-child(23){animation-delay:.264s}
-.qdrawer.open .qd-nav>:nth-child(24){animation-delay:.276s}
-.qdrawer.open .qd-nav>:nth-child(25){animation-delay:.288s}
-.qdrawer.open .qd-nav>:nth-child(26){animation-delay:.300s}
-@media(prefers-reduced-motion:reduce){.qdrawer.open .qd-nav>*{animation:none}}
-.qd-foot{padding:14px 20px;border-top:1px solid #2b2115;font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
-#qwnav .qw-menu{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:13px;line-height:1;padding:6px 11px;cursor:pointer;flex:none}
-#qwnav .qw-menu:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-.qd-trig{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.08em;padding:7px 12px;cursor:pointer}
-.qd-trig:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-</style>
-<div class="qd-head">
-<a class="qd-brand" href="index.html"><span class="qb"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-<button class="qd-x" id="qdClose" aria-label="Cerrar menu">&#10005;</button>
-</div>
-<nav class="qd-nav">
-<div class="qd-t">Explorar QWATT</div>
-<a href="index.html">Inicio</a>
-<a href="index.html#peg">C&oacute;mo funciona</a>
-<a href="index.html#dash">Dashboard</a>
-<a href="index.html#onchain">Onchain</a>
-<a href="index.html#clean">QWATT-Clean</a>
-<a href="index.html#tok">Tokenomics</a>
-<a href="index.html#road">Roadmap</a>
-<a href="index.html#security">Seguridad</a>
-<div class="qd-t mt">Plataforma</div>
-<a href="verificacion.html">Verificaci&oacute;n</a>
-<a title="Demo — datos simulados" href="grid.html">QWATT Grid</a>
-<a title="Testnet — transacciones reales" href="proof.html">QWATT Explorer</a>
-<a title="Testnet — transacciones reales" href="respaldo.html">Reservas</a>
-<a title="Testnet — transacciones reales" href="wallet.html">QWATT Wallet</a>
-<a title="Testnet — transacciones reales" href="pay.html">QWATT Pay</a>
-<div class="qd-t mt">Herramientas</div>
-<a title="Testnet — transacciones reales" href="console.html">Consola Onchain</a>
-<a title="Testnet — transacciones reales" href="red.html">QWATT Pulse</a>
-<a title="Prototipo — hardware en diseño" href="piloto.html">Piloto Solar</a>
-<a href="backup.html">Backup de claves</a>
-<div class="qd-t mt">Recursos</div>
-<a href="whitepaper.html">Whitepaper</a>
-<a href="terminos.html">T&eacute;rminos</a>
-<a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
-<a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
-</nav>
-<div class="qd-foot">&#9679; STELLAR TESTNET</div>
-</aside>
-<script>
-(function(){
-  var d=document.getElementById('qdrawer'),o=document.getElementById('qdOverlay');
-  var MQ=window.matchMedia('(min-width:1000px)');
-  function set(open){
-    d.classList.toggle('open',open);
-    o.classList.toggle('open',open);
-    document.documentElement.classList.toggle('qd-docked',open&&MQ.matches);
-    var b=document.getElementById('qdOpen');
-    if(b)b.setAttribute('aria-expanded',open);
-    try{localStorage.setItem('qwatt.drawer',open?'1':'0')}catch(e){}
-  }
-  document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('#qdOpen'))set(!d.classList.contains('open'));
-  });
-  document.getElementById('qdClose').addEventListener('click',function(){set(false)});
-  o.addEventListener('click',function(){set(false)});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
-  d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(!MQ.matches)set(false)})});
-  if(MQ.addEventListener)MQ.addEventListener('change',function(){set(d.classList.contains('open'))});
-  try{if(localStorage.getItem('qwatt.drawer')==='1'&&MQ.matches)set(true)}catch(e){}
-  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
-  if(location.pathname.indexOf('/proof')===0)page='proof';
-  d.querySelectorAll('a[href]').forEach(function(a){
-    var h=a.getAttribute('href');
-    if(h.indexOf('#')<0&&h.indexOf('http')!==0&&h.replace(/\.html$/,'')===page)a.classList.add('on');
-  });
-})();
-</script>
-<!-- barra QWATT: navegacion entre apps -->
-<nav id="qwnav" aria-label="QWATT apps">
-<style>
-#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
-#qwnav a{text-decoration:none;white-space:nowrap}
-#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
-#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
-#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
-#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
-#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
-#qwnav .qw-links::-webkit-scrollbar{display:none}
-#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
-#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
-#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
-#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
-#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
-@keyframes qwblink{50%{opacity:.25}}
-@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
-#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
-@media(max-width:860px){
-#qwnav .qw-links{display:none}
-#qwnav .qw-chip{display:none}
-#qwnav .qw-sep{display:none}
-#qwnav .qw-burger{display:block}
-#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
-#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
-#qwnav.open .qw-links a:last-child{border-bottom:0}
-#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
-}
-</style>
-<div class="qw-in">
-<button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
-<a class="qw-home" href="index.html"><span class="qw-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span>QWATT</a>
-<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
-</div>
-<script>
-(function(){
-  var nav=document.getElementById('qwnav');
-  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
-  document.body.style.paddingTop=(pad+52)+'px';
-  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
-})();
-</script>
-</nav>
-<div class="wrap">
-  <header>
-    <div class="brand"><a href="index.html" style="display:flex;align-items:center;gap:10px;color:inherit;text-decoration:none"><span class="bolt" style="background:none"><svg class="qm" viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span><em>QWATT</em></a></div>
-    <div class="net-badge">PILOTO EN DISE&Ntilde;O v1</div>
-  </header>
-
-  <div class="kicker">Blueprint del piloto &#183; una vivienda en la Regi&oacute;n Metropolitana</div>
-  <h1>Piloto solar: el primer kWh real que se convertir&aacute; en QWATT</h1>
-  <p class="lead">
-    Un kit solar con bater&iacute;as dise&ntilde;ado para una vivienda en la Regi&oacute;n Metropolitana, cuyo medidor
-    <b>mintear&aacute; QWATT autom&aacute;ticamente</b> por cada kWh verificado que genere. El kit est&aacute; <b>en dise&ntilde;o</b>: a&uacute;n no est&aacute; instalado. Este documento
-    especifica el equipo, el mecanismo cripto completo, la econom&iacute;a y el plan de instalaci&oacute;n.
-  </p>
-  <div class="site-meta">
-    <span>&#128205; una vivienda en la <b>Regi&oacute;n Metropolitana</b>, Chile &#183; <b>en dise&ntilde;o</b>, sin instalar</span>
-    <span>&#9728;&#65039; irradiaci&oacute;n Santiago: <b>&#8776;5,5 kWh/m&sup2;/d&iacute;a</b> prom.</span>
-    <span>&#9889; sistema: <b>4,4 kWp + 9,6 kWh</b></span>
-    <span>&#127760; red: Stellar testnet</span>
+<body data-page="piloto" data-status="planificado" data-parts="planificado">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
   </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
 
-  <!-- ============ 1. LA IDEA ============ -->
-  <section>
-    <h2><span class="n">1.</span>Qu&eacute; demuestra el piloto</h2>
-    <p>
-      Hasta ahora QWATT vive en software: el sol de la app es simulado. Este piloto busca cerrar el
-      c&iacute;rculo con hardware real: <b>paneles reales generan kWh reales, un medidor real los firma,
-      y la blockchain los registra como tokens de demostraci&oacute;n en testnet, sin valor econ&oacute;mico</b> — sin intervenci&oacute;n humana. Si funciona en esta
-      vivienda, el mismo kit podr&aacute; replicarse en cualquier techo de Chile.
-    </p>
-    <p>
-      A diferencia de proyectos como d.energy (validadores con KYC que hacen staking de certificados
-      de energ&iacute;a), aqu&iacute; el minteo sale <b>directo del fierro</b>: la cadena de custodia va del
-      panel al medidor, del medidor a la firma criptogr&aacute;fica, y de la firma al token. Todo auditable
-      de punta a punta en el explorador.
-    </p>
-    <div class="callout">
-      <b>La regla no cambia:</b> 1 QWATT = 1 MWh. El kit del piloto generar&iacute;a &#8776;0,5 MWh al mes,
-      as&iacute; que mintear&iacute;a &#8776;0,5 QWATT mensuales. Pocos tokens, todos respaldados por electricidad
-      que existi&oacute; de verdad — eso es exactamente lo que queremos demostrar.
+<section class="q-phero" id="top" aria-labelledby="h1">
+  <div class="q-wrap">
+    <p class="q-tag"><span data-l="es">Plan del piloto · una vivienda (ubicación no publicada) · planificado, sin instalar</span><span data-l="en">Pilot plan · one home (location not published) · planned, not installed</span></p>
+    <h1 id="h1"><span data-l="es">Piloto solar: del kWh medido a una <b>constancia verificable</b> en Stellar testnet</span><span data-l="en">Solar pilot: from a measured kWh to a <b>verifiable record</b> on Stellar testnet</span></h1>
+    <p class="q-lead"><span data-l="es">Hasta ahora QWATT vive en software: el sol de las demos es simulado. Este es el plan para leer un medidor real; el hardware queda fuera de este sprint.</span><span data-l="en">So far QWATT lives in software: the sun in the demos is simulated. This is the plan to read a real meter; hardware is outside this sprint.</span></p>
+    <p class="q-en-note" lang="en">The body of this page is in Spanish. Headings, labels, live data and the disclaimer are translated.</p>
+    <p class="q-status" role="note"><span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">Idea o plan, aún no construido. Lo que ya existe lleva su propio rótulo.</span><span data-l="en">An idea or plan, not built yet. Anything that already exists carries its own label.</span></span></span></p>
+    <ul class="q-facts">
+      <li><p class="q-tile-k"><span data-l="es">Sitio</span><span data-l="en">Site</span></p><p class="q-tile-v"><span data-l="es">una vivienda</span><span data-l="en">one home</span></p><p class="q-tile-s"><span data-l="es">ubicación no publicada</span><span data-l="en">location not published</span></p></li>
+      <li><p class="q-tile-k"><span data-l="es">Sistema (diseño)</span><span data-l="en">System (design)</span></p><p class="q-tile-v"><span class="q-num" data-src="dato">4,4 kWp + 9,6 kWh</span></p><p class="q-tile-s"><span data-l="es">paneles y batería LiFePO4</span><span data-l="en">panels and LiFePO4 battery</span></p></li>
+      <li><p class="q-tile-k"><span data-l="es">Irradiación de referencia</span><span data-l="en">Reference irradiation</span></p><p class="q-tile-v"><span class="q-num" data-src="dato">≈5,5 kWh/m²/día</span></p><p class="q-tile-s"><span data-l="es">estimación de diseño, no medición</span><span data-l="en">design estimate, not a measurement</span></p></li>
+      <li><p class="q-tile-k"><span data-l="es">Red</span><span data-l="en">Network</span></p><p class="q-tile-v">Stellar testnet</p><p class="q-tile-s"><span data-l="es">solo testnet</span><span data-l="en">testnet only</span></p></li>
+    </ul>
+    <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · plan de agosto 2026 · cifras de diseño, no mediciones</span><span data-l="en">Repository fact · August 2026 plan · design figures, not measurements</span></p>
+  </div>
+</section>
+
+<section class="q-sec" id="hoy" aria-labelledby="hHoy">
+  <div class="q-wrap">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hHoy"><span data-l="es">Hoy, en software: lo que ya existe del plan</span><span data-l="en">Today, in software: what already exists of the plan</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div>
+      <p><span data-l="es">El hardware no está instalado. El ciclo que el piloto usaría (medir, publicar, verificar, anclar) ya corrió entero en software, con entrada simulada, en una cuenta desechable de Stellar testnet. Estos datos se leen ahora desde Horizon testnet.</span><span data-l="en">The hardware is not installed. The cycle the pilot would use (measure, publish, verify, anchor) already ran end to end in software, with simulated input, on a throwaway Stellar testnet account. This data is read now from Horizon testnet.</span></p>
     </div>
-  </section>
-  <!-- ============ PROOF OF GENERATION · 4 PASOS ============ -->
-  <section>
-    <h2><span class="n">&#9889;</span>C&oacute;mo funciona Proof of Generation</h2>
-    <p style="color:#b3a48f">Las blockchains tradicionales consumen energ&iacute;a. <b style="color:#f0e8dc">QWATT exige crearla.</b></p>
-    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0">
-      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:30px;line-height:1">&#9728;&#65039;</div>
-        <div style="font-family:var(--display);font-weight:700;font-size:15px">1 &#183; Genera</div>
-        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Los paneles producen kWh f&iacute;sicos. Sin validadores, sin staking de certificados: <b style="color:var(--sun)">el sol es el consenso</b>.</div>
-      </div>
-      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:30px;line-height:1">&#128269;</div>
-        <div style="font-family:var(--display);font-weight:700;font-size:15px">2 &#183; Verifica</div>
-        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Dos medidores independientes deben coincidir. El gateway firma cada lectura con su clave y <b style="color:var(--cyan)">ancla el hash en la blockchain</b>.</div>
-      </div>
-      <div style="background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:30px;line-height:1">&#9889;</div>
-        <div style="font-family:var(--display);font-weight:700;font-size:15px">3 &#183; Mintea</div>
-        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Una transacci&oacute;n at&oacute;mica entrega <b style="color:var(--accent)">1 QWATT por cada MWh verificado</b>. Evidencia y pago son inseparables.</div>
-      </div>
-      <div style="background:var(--panel);border:1px solid rgba(60,184,127,.4);border-radius:14px;padding:18px 16px;display:flex;flex-direction:column;gap:8px">
-        <div style="font-size:30px;line-height:1">&#9989;</div>
-        <div style="font-family:var(--display);font-weight:700;font-size:15px">4 &#183; El resultado</div>
-        <div style="font-size:12.5px;color:var(--muted);line-height:1.55">Cada QWATT en circulaci&oacute;n representa energ&iacute;a que existi&oacute; de verdad. <b style="color:var(--good)">Sin generaci&oacute;n, no hay QWATT nuevos.</b></div>
-      </div>
+    <div class="q-livegrid">
+      <article class="q-wt is-prior" data-widget="rehearsal-energy" data-rehearsal="dress">
+        <h3 class="q-tile-k"><span data-l="es">Ensayo acelerado del 8 oct: energía anclada (48 horas simuladas en 4 min 18 s)</span><span data-l="en">8 Oct accelerated rehearsal: energy anchored (48 simulated hours in 4 min 18 s)</span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></h3>
+        <div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div>
+      </article>
+      <article class="q-wt is-prior">
+        <h3 class="q-tile-k"><span data-l="es">La cuenta desechable de ese ensayo, leída ahora</span><span data-l="en">That rehearsal's throwaway account, read now</span><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></h3>
+        <div data-widget="account-card" data-account="REHEARSAL.dress"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+        <p class="q-tile-s"><span data-l="es">Umbrales 1/2/3: diseño anterior. La cuenta definitiva tendrá 2/2/3, y ninguna clave sola podrá enviar una transacción.</span><span data-l="en">Thresholds 1/2/3: the earlier design. The real account will use 2/2/3, and no single key will be able to send a transaction.</span></p>
+      </article>
+      <article class="q-wt is-plan" data-widget="anchor-slot">
+        <h3 class="q-tile-k"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></h3>
+        <div data-slot><p class="q-tile-v q-plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></div>
+        <p class="q-tile-s"><span data-l="es">Tendrá tres firmantes: el proponente, el verificador independiente y un firmante externo al equipo (confirmado). Anclar exigirá 2 de las 3 claves, y cambiar firmantes o umbrales, las 3.</span><span data-l="en">It will have three signers: the proposer, the independent verifier and a signer from outside the team (confirmed). Anchoring will need 2 of the 3 keys, and changing signers or thresholds all 3.</span></p>
+      </article>
     </div>
-    <div class="callout">
-      <b>La diferencia con d.energy:</b> su &laquo;Proof of Energy&raquo; exige validadores con KYC que hacen
-      staking de certificados (EACs) y compensan 1000:1. QWATT mintea <b>directo del medidor</b>:
-      la cadena de custodia va del panel al token sin intermediarios que creer.
-    </div>
-  </section>
+    <ul class="q-rules">
+      <li><span><b>Mapas de registros del PZEM-017 y del EPEver Tracer.</b> Construidos y revisados contra los documentos del fabricante; la lectura en vivo espera hardware real.</span><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="abierto" data-status-of="item:D1-OPEN-EPEVER"><span data-l="es">ABIERTO · DECISIÓN PENDIENTE</span><span data-l="en">OPEN · DECISION PENDING</span></span></span></li>
+      <li><span><b>Filtros de verificación G0–G3.</b> El mismo motor que corren las pruebas automáticas; pruébalo en <a href="/grid.html">Grid</a> o en <a href="/#lab">Intenta engañar al verificador</a>.</span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></li>
+      <li><span><b>Identidad de la instalación.</b> Desde la semana 1 el verificador rechaza un lote de otra instalación.</span><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></li>
+      <li><span><b>El piloto con hardware.</b> Paneles, inversor, batería, medidores y gateway en una vivienda.</span><span class="q-chip" data-st="fuera" data-status-of="item:HW-PILOT"><span data-l="es">FUERA DEL SPRINT</span><span data-l="en">OUTSIDE THE SPRINT</span></span></li>
+    </ul>
+  </div>
+</section>
 
+<section class="q-sec" id="muestra" aria-labelledby="h01">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">01</span>
+    <div class="q-head"><h2 id="h01"><span data-l="es">Qué mostraría el piloto</span><span data-l="en">What the pilot would show</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <p>Hasta ahora QWATT vive en software: el sol de las demos es simulado y toda la entrada del sprint es simulada (nivel A0). Este piloto cerraría el círculo con hardware: paneles en una vivienda, <b>dos medidores independientes</b> y un gateway cuyas lecturas pasarán los filtros de verificación y quedarán como constancias (huella SHA-256 y total acumulado) en Stellar testnet.</p>
+    <p>Un piloto con medidores reales sería el paso de <b>A0, simulado</b>, a <b>A1, medido</b>, en la escalera de garantía. Si funciona en una vivienda, el mismo kit se puede repetir en otros techos, y cada constancia se podría volver a comprobar con datos públicos, sin pedirnos nada.</p>
+    <p>Una constancia es un registro verificable de lecturas. No entrega electricidad a nadie, no tiene precio y no es un certificado de energía renovable.</p>
+  </div>
+</section>
 
-  <!-- ============ 2. DIAGRAMA SISTEMA ============ -->
-  <section>
-    <h2><span class="n">2.</span>El sistema completo</h2>
-    <p>
-      Tres capas conectadas: la <b style="color:var(--sun)">energ&iacute;a</b> fluye de los paneles a la casa,
-      los <b style="color:var(--cyan)">datos</b> fluyen del medidor a la blockchain,
-      y el <b style="color:var(--accent)">valor</b> fluye de vuelta a la wallet del hogar.
-    </p>
-    <figure>
-      <svg viewBox="0 0 900 560" role="img" aria-label="Sistema del piloto: capa de energía (paneles, inversor híbrido, batería, casa), capa de datos (medidor, gateway, oráculo, Stellar) y capa de valor (mint de QWATT a la wallet)">
-        <defs>
-          <marker id="arw" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#b3a48f"/>
-          </marker>
-          <marker id="arwsun" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#ffd24d"/>
-          </marker>
-          <marker id="arwcyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#d9b26a"/>
-          </marker>
-          <marker id="arwacc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#d08a57"/>
-          </marker>
-        </defs>
-
-        <!-- ===== ENERGY LAYER band ===== -->
-        <text x="18" y="30" font-family="IBM Plex Mono,monospace" font-size="11" fill="#ffd24d" letter-spacing="2">CAPA ENERG&Iacute;A &#183; DC/AC</text>
-        <!-- sun -->
-        <circle cx="60" cy="86" r="20" fill="none" stroke="#ffd24d" stroke-width="2.5"/>
-        <path d="M60 56 v-10 M60 116 v10 M30 86 h-10 M90 86 h10 M39 65 l-7 -7 M81 107 l7 7 M81 65 l7 -7 M39 107 l-7 7" stroke="#ffd24d" stroke-width="2.5" stroke-linecap="round"/>
-        <!-- panels -->
-        <rect x="130" y="52" width="150" height="68" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
-        <text x="205" y="79" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">8 paneles 550 Wp</text>
-        <text x="205" y="99" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">4,4 kWp &#183; 30&#176; norte</text>
-        <line x1="90" y1="86" x2="126" y2="86" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
-        <!-- inverter -->
-        <rect x="360" y="52" width="180" height="68" rx="10" fill="#2b2015" stroke="#5c4a1e"/>
-        <text x="450" y="79" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d08a57">Inversor h&iacute;brido 5 kW</text>
-        <text x="450" y="99" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">MPPT + cargador 48 V</text>
-        <line x1="280" y1="86" x2="356" y2="86" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
-        <text x="318" y="78" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">DC 6 mm&sup2;</text>
-        <!-- battery -->
-        <rect x="360" y="160" width="180" height="60" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
-        <text x="450" y="185" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">Bater&iacute;a LiFePO4</text>
-        <text x="450" y="204" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">9,6 kWh &#183; 48 V</text>
-        <line x1="450" y1="120" x2="450" y2="156" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
-        <line x1="470" y1="156" x2="470" y2="120" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#arw)"/>
-        <text x="530" y="142" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">carga / descarga</text>
-        <!-- house -->
-        <rect x="640" y="52" width="150" height="68" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
-        <text x="715" y="79" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">Vivienda piloto</text>
-        <text x="715" y="99" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">consumos AC 220 V</text>
-        <line x1="540" y1="86" x2="636" y2="86" stroke="#ffd24d" stroke-width="2" marker-end="url(#arwsun)"/>
-        <text x="588" y="78" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">AC 220 V</text>
-        <!-- grid optional -->
-        <rect x="640" y="160" width="150" height="52" rx="10" fill="#10141f" stroke="#3b2d1d" stroke-dasharray="5 4"/>
-        <text x="715" y="182" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="12" fill="#b3a48f">Red Enel (respaldo)</text>
-        <text x="715" y="199" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">fase 1: sin inyecci&oacute;n</text>
-        <line x1="715" y1="156" x2="715" y2="124" stroke="#b3a48f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#arw)"/>
-
-        <!-- ===== DATA LAYER ===== -->
-        <text x="18" y="292" font-family="IBM Plex Mono,monospace" font-size="11" fill="#d9b26a" letter-spacing="2">CAPA DATOS &#183; TELEMETR&Iacute;A + FIRMA</text>
-        <!-- meter -->
-        <rect x="60" y="312" width="170" height="66" rx="10" fill="#2b2015" stroke="#1e4b63"/>
-        <text x="145" y="338" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">Medidor (CTs)</text>
-        <text x="145" y="358" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">Shelly Pro 3EM / Modbus</text>
-        <line x1="450" y1="224" x2="180" y2="308" stroke="#d9b26a" stroke-width="1.5" marker-end="url(#arwcyan)"/>
-        <text x="270" y="272" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">mide kWh generados</text>
-        <!-- gateway -->
-        <rect x="310" y="312" width="180" height="66" rx="10" fill="#2b2015" stroke="#1e4b63"/>
-        <text x="400" y="338" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">Gateway Raspberry Pi</text>
-        <text x="400" y="358" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">or&aacute;culo local &#183; clave ed25519</text>
-        <line x1="230" y1="345" x2="306" y2="345" stroke="#d9b26a" stroke-width="1.5" marker-end="url(#arwcyan)"/>
-        <text x="268" y="337" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">cada 5 min</text>
-        <!-- stellar -->
-        <rect x="570" y="312" width="200" height="66" rx="10" fill="#2b2015" stroke="#1e4b63"/>
-        <text x="670" y="338" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">Stellar testnet</text>
-        <text x="670" y="358" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">hash anclado + mint at&oacute;mico</text>
-        <line x1="490" y1="345" x2="566" y2="345" stroke="#d9b26a" stroke-width="1.5" marker-end="url(#arwcyan)"/>
-        <text x="528" y="337" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">4G / WiFi</text>
-
-        <!-- ===== VALUE LAYER ===== -->
-        <text x="18" y="446" font-family="IBM Plex Mono,monospace" font-size="11" fill="#d08a57" letter-spacing="2">CAPA VALOR &#183; QWATT</text>
-        <rect x="60" y="466" width="190" height="66" rx="10" fill="#241d0e" stroke="#5c4a1e"/>
-        <text x="155" y="492" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d08a57">Wallet del hogar</text>
-        <text x="155" y="512" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">+0,5 QWATT / mes</text>
-        <line x1="620" y1="382" x2="230" y2="464" stroke="#d08a57" stroke-width="2" marker-end="url(#arwacc)"/>
-        <text x="430" y="430" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#d08a57">mint: 1 QWATT por MWh verificado</text>
-        <rect x="330" y="466" width="150" height="66" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
-        <text x="405" y="492" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="12.5" font-weight="600" fill="#f0e8dc">Vender / gastar</text>
-        <text x="405" y="512" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">recompra &#183; DEX &#183; P2P</text>
-        <line x1="250" y1="499" x2="326" y2="499" stroke="#d08a57" stroke-width="1.5" marker-end="url(#arwacc)"/>
-        <rect x="560" y="466" width="210" height="66" rx="10" fill="#2b2015" stroke="#3b2d1d"/>
-        <text x="665" y="492" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="12.5" font-weight="600" fill="#f0e8dc">stellar.expert</text>
-        <text x="665" y="512" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">cualquiera audita el mint</text>
-        <line x1="480" y1="499" x2="556" y2="499" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#arw)"/>
-      </svg>
-      <figcaption>Fig. 1 &#183; La energ&iacute;a fluye hacia la derecha; los datos bajan firmados a la blockchain; el valor vuelve como QWATT.</figcaption>
-    </figure>
-  </section>
-  <!-- ============ 3. EL KIT ============ -->
-  <section>
-    <h2><span class="n">3.</span>El kit solar &#183; lista de equipos (BOM)</h2>
-    <p>
-      Dimensionado para una vivienda con cortes de red ocasionales: genera de d&iacute;a,
-      guarda en bater&iacute;a para la noche, y la red de Enel queda solo como respaldo.
-      Precios estimados para cotizar en Chile (SolarStore, Naturenergy, tiendas Deye/Pylontech) — <b>[cotizar]</b>.
-    </p>
-    <table>
-      <tr><th>#</th><th>Equipo</th><th>Especificaci&oacute;n</th><th>Cant.</th><th>Est. USD</th></tr>
-      <tr><td>1</td><td><b>Paneles solares</b></td><td>Mono PERC 550 Wp (Trina / JA / Canadian Solar), Vmp&#8776;42 V</td><td class="num">8</td><td class="num">$800&#8211;1.050</td></tr>
-      <tr><td>2</td><td><b>Inversor h&iacute;brido</b></td><td>5 kW 48 V, MPPT 500 V, cargador AC (Deye SUN-5K-SG04LP1 o Growatt SPF 5000ES) — con puerto <b>Modbus/RS485</b> para telemetr&iacute;a</td><td class="num">1</td><td class="num">$900&#8211;1.300</td></tr>
-      <tr><td>3</td><td><b>Bater&iacute;a LiFePO4</b></td><td>48 V, 4,8 kWh c/u, BMS integrado (Pylontech US5000 o equiv. Deye)</td><td class="num">2</td><td class="num">$2.600&#8211;3.000</td></tr>
-      <tr><td>4</td><td>Estructura de montaje</td><td>Aluminio, techo inclinado o suelo, apta para viento, inclinaci&oacute;n 30&#176; orientaci&oacute;n norte</td><td class="num">1</td><td class="num">$300&#8211;450</td></tr>
-      <tr><td>5</td><td>Protecciones DC</td><td>Fusibles gPV 15 A + portafusibles, seccionador DC, SPD tipo II, tablero estanco</td><td class="num">1</td><td class="num">$150&#8211;250</td></tr>
-      <tr><td>6</td><td>Protecciones AC</td><td>Diferencial 30 mA, termomagn&eacute;tico, SPD AC</td><td class="num">1</td><td class="num">$100&#8211;180</td></tr>
-      <tr><td>7</td><td>Cableado</td><td>Solar 6 mm&sup2; + conectores MC4; bater&iacute;a 25&#8211;35 mm&sup2;; canalizaci&oacute;n EMT</td><td class="num">—</td><td class="num">$150&#8211;250</td></tr>
-      <tr><td>8</td><td>Puesta a tierra</td><td>Jabalina + barra + conductor 10 mm&sup2;</td><td class="num">1</td><td class="num">$80&#8211;120</td></tr>
-      <tr><td>9</td><td><b>Medici&oacute;n</b></td><td>Shelly Pro 3EM con CTs 120 A (o directamente el Modbus del inversor) — mide generaci&oacute;n FV, bater&iacute;a y consumo</td><td class="num">1</td><td class="num">$120&#8211;160</td></tr>
-      <tr><td>10</td><td><b>Gateway / or&aacute;culo</b></td><td>Raspberry Pi 4 (2 GB) + microSD industrial + fuente + gabinete riel DIN + dongle 4G con SIM de datos</td><td class="num">1</td><td class="num">$150&#8211;220</td></tr>
-      <tr><td colspan="4"><b>Total equipos</b></td><td class="num"><b>$5.350&#8211;6.980</b></td></tr>
-      <tr><td colspan="4">Mano de obra (instalador autorizado SEC, 2 d&iacute;as) — <b>[cotizar]</b></td><td class="num">$600&#8211;1.000</td></tr>
-    </table>
-    <div class="callout">
-      <b>Los tres fierros que hacen la magia cripto:</b> el <b>inversor con Modbus</b> (#2) reporta cada
-      kWh generado; el <b>medidor con CTs</b> (#9) lo verifica de forma independiente — dos fuentes que
-      deben coincidir; y el <b>gateway</b> (#10) guarda la clave que firma. Sin esos tres, es un kit solar
-      com&uacute;n; con ellos, es una m&aacute;quina de mintear verdad.
-    </div>
-  </section>
-
-  <!-- ============ 4. MECANISMO CRIPTO ============ -->
-  <section>
-    <h2><span class="n">4.</span>El mecanismo cripto: proof-of-generation</h2>
-    <p>
-      El coraz&oacute;n del sistema es un ciclo de medici&oacute;n &#8594; firma &#8594; minteo que corre solo,
-      24/7, en el gateway:
-    </p>
-    <ol class="doc">
-      <li><b>Registro del sitio (una vez, en la instalaci&oacute;n).</b> Se crea la cuenta Stellar del sistema y se escribe su identidad en la blockchain con <code>manageData</code>: <code>panel:size_kw=4.4</code>, <code>panel:battery_kwh=9.6</code>, <code>panel:site=sha256(coordenadas)</code>, <code>panel:installer</code>. El sistema queda registrado p&uacute;blicamente antes de generar su primer kWh.</li>
-      <li><b>Medici&oacute;n (cada 5 minutos).</b> El gateway lee del inversor v&iacute;a Modbus: kWh acumulados FV, potencia instant&aacute;nea, estado de carga de la bater&iacute;a — y del Shelly (CTs) la medici&oacute;n independiente. Ambas lecturas van a un lote JSON con timestamp.</li>
-      <li><b>Firma.</b> El lote se hashea (SHA-256) y el gateway lo firma con su clave ed25519 — la misma que controla la cuenta Stellar del sistema. La clave nunca sale del Pi.</li>
-      <li><b>Minteo at&oacute;mico (cada hora, o al acumular &#8805;1 kWh).</b> Una sola transacci&oacute;n Stellar con tres operaciones inseparables: <code>manageData meter:{ts} = hash</code> (ancla la evidencia) + <code>manageData panel:total_kwh</code> (acumulado p&uacute;blico) + <code>payment</code> de la distribuidora al sistema por <code>kWh/1000</code> QWATT. Memo: <code>SOLAR:{kwh}kWh</code>. Firman el gateway y la tesorer&iacute;a: todo o nada.</li>
-      <li><b>Auditor&iacute;a permanente.</b> Cualquier persona abre la cuenta del sistema en stellar.expert y ve: su identidad, cada hash de lectura, el total generado y cada QWATT recibido. La p&aacute;gina Pulse del sitio lo muestra en vivo.</li>
+<section class="q-sec" id="lectura" aria-labelledby="h02">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">02</span>
+    <div class="q-head"><h2 id="h02"><span data-l="es">Cómo se verifica una lectura (y qué no prueba)</span><span data-l="en">How a reading is checked (and what it does not prove)</span></h2></div>
+    <ol class="q-steps">
+      <li class="q-step"><span class="q-k"><span data-l="es">1 · Medir</span><span data-l="en">1 · Measure</span></span><p>Dos medidores independientes miden la misma instalación cada 5 minutos.</p><span class="q-chips"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></li>
+      <li class="q-step"><span class="q-k"><span data-l="es">2 · Juzgar</span><span data-l="en">2 · Judge</span></span><p>Cada intervalo pasa los filtros G0–G3; si uno falla, se rechaza con un motivo público.</p><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></li>
+      <li class="q-step"><span class="q-k"><span data-l="es">3 · Anclar</span><span data-l="en">3 · Anchor</span></span><p>Una transacción atómica escribe <code>qwatt.anchor.sha256</code> y <code>qwatt.cumulative_mwh</code> con 2 de 3 firmas; todo o nada.</p><span class="q-chips"><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></li>
+      <li class="q-step"><span class="q-k"><span data-l="es">4 · Cualquiera re-verifica</span><span data-l="en">4 · Anyone re-checks</span></span><p>Descarga el lote público y compara su huella con la anclada en Stellar testnet.</p><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></span></li>
     </ol>
+    <div class="q-callout"><b>Lo que una constancia prueba, y lo que no.</b> Prueba que el lote publicado se vuelve a derivar bajo reglas públicas, no que el medidor sea exacto. Tampoco prueba que la energía se haya producido de verdad: un medidor real acerca la constancia a la realidad, pero un medidor también puede fallar. Por eso hay dos, y por eso los filtros.</div>
+    <p>Hoy puedes hacer el paso 4 con los lotes del ensayo del 8 oct en <a href="/verificacion.html">Compruébalo tú</a>.</p>
+  </div>
+</section>
 
-    <h3>Anti-fraude: por qu&eacute; no se puede mintear aire</h3>
-    <ul class="doc">
-      <li><b>Tope f&iacute;sico:</b> la tesorer&iacute;a rechaza cualquier lote donde <code>kWh &gt; 4,4 kW &times; horas &times; 1,15</code> — un sistema no puede generar m&aacute;s que su capacidad.</li>
-      <li><b>Curva solar:</b> generaci&oacute;n reportada de noche (seg&uacute;n hora solar del sitio) = lote rechazado + alerta.</li>
-      <li><b>Doble medici&oacute;n:</b> inversor y CTs independientes deben coincidir dentro de &plusmn;5%; divergencia sostenida = sistema en cuarentena.</li>
-      <li><b>Plausibilidad clim&aacute;tica:</b> el or&aacute;culo compara contra irradiancia de referencia (API meteorol&oacute;gica del sector) — un d&iacute;a nublado no puede rendir como uno despejado.</li>
-      <li><b>Identidad anclada:</b> el hash de las coordenadas y la capacidad viven onchain desde el d&iacute;a uno; no se puede inflar la capacidad despu&eacute;s sin dejar rastro.</li>
-    </ul>
-
-    <h3>El ciclo del QWATT: generar, guardar, vender</h3>
-    <figure>
-      <svg viewBox="0 0 900 360" role="img" aria-label="Ciclo del QWATT: el sistema solar mintea, la wallet guarda, y existen tres salidas: recompra de tesorería al precio del oráculo, orden en el DEX de Stellar, y pago P2P a vecinos o comercios">
+<section class="q-sec" id="sistema" aria-labelledby="h03">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">03</span>
+    <div class="q-head"><h2 id="h03"><span data-l="es">El sistema</span><span data-l="en">The system</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <p>Tres capas conectadas: la <b>energía</b> fluye de los paneles a la casa; las <b>lecturas</b> salen de dos medidores y forman lotes públicos; la <b>verificación</b> vuelve a derivar cada lote y lo ancla con 2 de 3 firmas.</p>
+    <figure class="q-fig">
+      <svg viewBox="0 0 900 540" role="img" aria-label="Sistema del piloto en tres capas: energía (paneles, inversor híbrido, batería, vivienda y red de respaldo), datos (medidor con CTs, gateway, feed público) y verificación (verificador independiente, 2 de 3 firmas, Stellar testnet, cualquiera re-verifica)" data-aria-en="The pilot system in three layers: energy (panels, hybrid inverter, battery, home and backup grid), data (CT meter, gateway, public feed) and verification (independent verifier, 2 of 3 signatures, Stellar testnet, anyone re-checks)">
         <defs>
-          <marker id="cyc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#d08a57"/>
-          </marker>
-          <marker id="cycg" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-            <path d="M0,0 L10,5 L0,10 z" fill="#b3a48f"/>
-          </marker>
+          <marker id="pa" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="f-arw" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="pae" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="f-arw is-e" d="M0,0 L10,5 L0,10 z"/></marker>
+          <marker id="pav" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="f-arw is-v" d="M0,0 L10,5 L0,10 z"/></marker>
         </defs>
-        <!-- mint -->
-        <rect x="30" y="130" width="190" height="80" rx="12" fill="#241d0e" stroke="#5c4a1e"/>
-        <text x="125" y="162" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="14" font-weight="600" fill="#ffd24d">&#9728;&#65039; GENERAR</text>
-        <text x="125" y="184" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">kWh verificados &#8594; mint</text>
-        <!-- wallet -->
-        <rect x="330" y="130" width="190" height="80" rx="12" fill="#2b2015" stroke="#5c4a1e"/>
-        <text x="425" y="162" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="14" font-weight="600" fill="#d08a57">&#128091; GUARDAR</text>
-        <text x="425" y="184" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10.5" fill="#b3a48f">wallet Stellar del hogar</text>
-        <line x1="220" y1="170" x2="326" y2="170" stroke="#d08a57" stroke-width="2" marker-end="url(#cyc)"/>
-        <text x="273" y="162" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">0,5 QWATT/mes</text>
-        <!-- three exits -->
-        <rect x="650" y="30" width="220" height="76" rx="12" fill="#15251c" stroke="#2a5c42"/>
-        <text x="760" y="58" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#3cb87f">1 &#183; Recompra tesorer&iacute;a</text>
-        <text x="760" y="78" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">QWATT &#8594; XLM al precio or&aacute;culo</text>
-        <text x="760" y="94" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">1 tx at&oacute;mica, en la app</text>
-        <rect x="650" y="140" width="220" height="76" rx="12" fill="#2b2015" stroke="#1e4b63"/>
-        <text x="760" y="168" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#d9b26a">2 &#183; DEX de Stellar</text>
-        <text x="760" y="188" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">orden QWATT/XLM en el libro</text>
-        <text x="760" y="204" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">precio de mercado</text>
-        <rect x="650" y="250" width="220" height="76" rx="12" fill="#2b2015" stroke="#3b2d1d"/>
-        <text x="760" y="278" text-anchor="middle" font-family="Chakra Petch,sans-serif" font-size="13" font-weight="600" fill="#f0e8dc">3 &#183; P2P</text>
-        <text x="760" y="298" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#b3a48f">pagar a vecinos con QR</text>
-        <text x="760" y="314" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#8b7a64">pago de prueba en testnet</text>
-        <line x1="520" y1="150" x2="646" y2="72" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#cycg)"/>
-        <line x1="520" y1="172" x2="646" y2="176" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#cycg)"/>
-        <line x1="520" y1="194" x2="646" y2="284" stroke="#b3a48f" stroke-width="1.5" marker-end="url(#cycg)"/>
-        <!-- burn return -->
-        <path d="M 650 96 C 420 96 240 110 130 126" fill="none" stroke="#3cb87f" stroke-width="1.5" stroke-dasharray="5 4" marker-end="url(#cycg)"/>
-        <text x="330" y="86" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="10" fill="#3cb87f">la tesorer&iacute;a quema o re-reserva lo recomprado</text>
+        <text class="f-band is-e" x="18" y="30" data-l="es">CAPA ENERGÍA · DC/AC</text><text class="f-band is-e" x="18" y="30" data-l="en">ENERGY LAYER · DC/AC</text>
+        <circle class="f-sun" cx="62" cy="90" r="17"/>
+        <path class="f-sun" d="M62 62 v-9 M62 118 v9 M34 90 h-9 M90 90 h9 M42 70 l-6 -6 M82 110 l6 6 M82 70 l6 -6 M42 110 l-6 6"/>
+        <rect class="f-box" x="120" y="56" width="160" height="68" rx="8"/>
+        <text class="f-t" x="200" y="83" data-l="es">8 paneles 550 Wp</text><text class="f-t" x="200" y="83" data-l="en">8 panels 550 Wp</text>
+        <text class="f-s" x="200" y="103" data-l="es">4,4 kWp · ≈30° al norte</text><text class="f-s" x="200" y="103" data-l="en">4.4 kWp · ≈30° facing north</text>
+        <line class="f-ln is-e" x1="96" y1="90" x2="116" y2="90" marker-end="url(#pae)"/>
+        <rect class="f-box" x="350" y="56" width="180" height="68" rx="8"/>
+        <text class="f-t" x="440" y="83" data-l="es">Inversor híbrido 5 kW</text><text class="f-t" x="440" y="83" data-l="en">Hybrid inverter 5 kW</text>
+        <text class="f-s" x="440" y="103" data-l="es">MPPT + cargador 48 V</text><text class="f-s" x="440" y="103" data-l="en">MPPT + 48 V charger</text>
+        <line class="f-ln is-e" x1="280" y1="90" x2="346" y2="90" marker-end="url(#pae)"/>
+        <text class="f-l" x="292" y="82">DC 6 mm²</text>
+        <rect class="f-box" x="630" y="56" width="170" height="68" rx="8"/>
+        <text class="f-t" x="715" y="83" data-l="es">Vivienda piloto</text><text class="f-t" x="715" y="83" data-l="en">Pilot home</text>
+        <text class="f-s" x="715" y="103" data-l="es">consumos AC 220 V</text><text class="f-s" x="715" y="103" data-l="en">AC loads 220 V</text>
+        <line class="f-ln is-e" x1="530" y1="90" x2="626" y2="90" marker-end="url(#pae)"/>
+        <text class="f-l" x="552" y="82">AC 220 V</text>
+        <rect class="f-box" x="350" y="160" width="180" height="56" rx="8"/>
+        <text class="f-t" x="440" y="184" data-l="es">Batería LiFePO4</text><text class="f-t" x="440" y="184" data-l="en">LiFePO4 battery</text>
+        <text class="f-s" x="440" y="202">9,6 kWh · 48 V</text>
+        <line class="f-ln is-e" x1="430" y1="124" x2="430" y2="156" marker-end="url(#pae)"/>
+        <line class="f-ln" x1="452" y1="156" x2="452" y2="128" marker-end="url(#pa)"/>
+        <text class="f-l" x="462" y="146" data-l="es">carga / descarga</text><text class="f-l" x="462" y="146" data-l="en">charge / discharge</text>
+        <rect class="f-box is-dash" x="630" y="160" width="170" height="56" rx="8"/>
+        <text class="f-t" x="715" y="184" data-l="es">Red de distribución</text><text class="f-t" x="715" y="184" data-l="en">Distribution grid</text>
+        <text class="f-s" x="715" y="202" data-l="es">respaldo · sin inyección</text><text class="f-s" x="715" y="202" data-l="en">backup · no export</text>
+        <line class="f-ln is-dash" x1="715" y1="156" x2="715" y2="128" marker-end="url(#pa)"/>
+
+        <text class="f-band is-d" x="18" y="262" data-l="es">CAPA DATOS · LECTURAS CADA 5 MIN</text><text class="f-band is-d" x="18" y="262" data-l="en">DATA LAYER · READINGS EVERY 5 MIN</text>
+        <rect class="f-box" x="40" y="282" width="180" height="64" rx="8"/>
+        <text class="f-t" x="130" y="308" data-l="es">Medidor con CTs</text><text class="f-t" x="130" y="308" data-l="en">CT meter</text>
+        <text class="f-s" x="130" y="327" data-l="es">medición independiente</text><text class="f-s" x="130" y="327" data-l="en">independent measurement</text>
+        <rect class="f-box is-key" x="300" y="282" width="200" height="64" rx="8"/>
+        <text class="f-t" x="400" y="308" data-l="es">Gateway Raspberry Pi</text><text class="f-t" x="400" y="308" data-l="en">Raspberry Pi gateway</text>
+        <text class="f-s" x="400" y="327" data-l="es">proponente · su propia clave</text><text class="f-s" x="400" y="327" data-l="en">proposer · its own key</text>
+        <line class="f-ln" x1="430" y1="216" x2="414" y2="278" marker-end="url(#pa)"/>
+        <text class="f-l" x="434" y="252">Modbus</text>
+        <line class="f-ln" x1="220" y1="314" x2="296" y2="314" marker-end="url(#pa)"/>
+        <text class="f-l" x="226" y="306" data-l="es">2.ª lectura</text><text class="f-l" x="226" y="306" data-l="en">2nd reading</text>
+        <text class="f-l" x="320" y="364" data-l="es">búfer local de 72 h</text><text class="f-l" x="320" y="364" data-l="en">72 h local buffer</text>
+        <rect class="f-box" x="600" y="282" width="240" height="64" rx="8"/>
+        <text class="f-t" x="720" y="308" data-l="es">Feed público de evidencia</text><text class="f-t" x="720" y="308" data-l="en">Public evidence feed</text>
+        <text class="f-s" x="720" y="327" data-l="es">cada lote, aceptado o rechazado</text><text class="f-s" x="720" y="327" data-l="en">every batch, accepted or refused</text>
+        <line class="f-ln" x1="500" y1="314" x2="596" y2="314" marker-end="url(#pa)"/>
+        <text class="f-l" x="508" y="306" data-l="es">lote + huella</text><text class="f-l" x="508" y="306" data-l="en">batch + hash</text>
+
+        <text class="f-band is-v" x="18" y="428" data-l="es">CAPA VERIFICACIÓN</text><text class="f-band is-v" x="18" y="428" data-l="en">VERIFICATION LAYER</text>
+        <path class="f-ln is-v" d="M720 346 V392 H200 V438" marker-end="url(#pav)"/>
+        <text class="f-l" x="420" y="386" data-l="es">descarga solo lo público</text><text class="f-l" x="420" y="386" data-l="en">downloads only what is public</text>
+        <rect class="f-box" x="40" y="442" width="190" height="64" rx="8"/>
+        <text class="f-t" x="135" y="468" data-l="es">Verificador independiente</text><text class="f-t" x="135" y="468" data-l="en">Independent verifier</text>
+        <text class="f-s" x="135" y="487" data-l="es">re-deriva y cofirma</text><text class="f-s" x="135" y="487" data-l="en">re-derives and co-signs</text>
+        <rect class="f-box is-key" x="280" y="442" width="150" height="64" rx="8"/>
+        <text class="f-t" x="355" y="468" data-l="es">2 de 3 firmas</text><text class="f-t" x="355" y="468" data-l="en">2 of 3 signatures</text>
+        <text class="f-s" x="355" y="487" data-l="es">umbrales 2/2/3</text><text class="f-s" x="355" y="487" data-l="en">thresholds 2/2/3</text>
+        <line class="f-ln is-v" x1="230" y1="474" x2="276" y2="474" marker-end="url(#pav)"/>
+        <rect class="f-box is-net" x="480" y="442" width="160" height="64" rx="8"/>
+        <text class="f-t" x="560" y="468">Stellar testnet</text>
+        <text class="f-s" x="560" y="487" data-l="es">huella + total · QW#n</text><text class="f-s" x="560" y="487" data-l="en">hash + total · QW#n</text>
+        <line class="f-ln is-v" x1="430" y1="474" x2="476" y2="474" marker-end="url(#pav)"/>
+        <rect class="f-box" x="690" y="442" width="170" height="64" rx="8"/>
+        <text class="f-t" x="775" y="468">stellar.expert</text>
+        <text class="f-s" x="775" y="487" data-l="es">cualquiera re-verifica</text><text class="f-s" x="775" y="487" data-l="en">anyone re-checks</text>
+        <line class="f-ln" x1="640" y1="474" x2="686" y2="474" marker-end="url(#pa)"/>
       </svg>
-      <figcaption>Fig. 2 &#183; En la demo en testnet, un QWATT minteado puede seguir tres rutas de prueba; son operaciones de demostraci&oacute;n, sin valor econ&oacute;mico.</figcaption>
+      <figcaption class="q-figcap"><span data-l="es">Fig. 1 · La energía fluye hacia la derecha; las lecturas bajan como lotes públicos; la verificación termina en una constancia que cualquiera puede volver a comprobar.</span><span data-l="en">Fig. 1 · Energy flows to the right; readings go down as public batches; verification ends in a record anyone can check again.</span></figcaption>
     </figure>
-  </section>
+  </div>
+</section>
 
-  <!-- ============ 5. ECONOMÍA ============ -->
-  <section>
-    <h2><span class="n">5.</span>La econom&iacute;a real del piloto</h2>
-    <div class="formula">4,4 kWp &times; 5,5 HSP &times; 75% rendimiento &#8776; 18 kWh/d&iacute;a &#8776; 0,55 MWh/mes &#8776; 6,5 MWh/a&ntilde;o</div>
-    <div class="kpi">
-      <div><div class="l">Minteo mensual</div><div class="v">&#8776;0,55 QWATT</div><div class="s">1 QWATT = 1 MWh</div></div>
-      <div><div class="l">Valor anual</div><div class="v">&#8776;US$490</div><div class="s">@ $75/MWh or&aacute;culo</div></div>
-      <div><div class="l">Ahorro en cuenta luz</div><div class="v">&#8776;CLP 80&#8211;110 mil</div><div class="s">mensual, autoconsumo</div></div>
-      <div><div class="l">Retorno del kit</div><div class="v">5&#8211;7 a&ntilde;os</div><div class="s">ahorro + QWATT</div></div>
+<section class="q-sec" id="componentes" aria-labelledby="h04">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">04</span>
+    <div class="q-head"><h2 id="h04"><span data-l="es">Lista de componentes</span><span data-l="en">Parts list</span></h2></div>
+    <p>Dimensionado para una vivienda con cortes de red ocasionales: genera de día, guarda en batería para la noche, y la red de distribución queda solo como respaldo. Solo especificaciones y cantidades.</p>
+    <div class="q-tier"><h3><span data-l="es">Kit del piloto</span><span data-l="en">Pilot kit</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <div class="q-table-wrap">
+      <table class="q-table">
+        <caption><span data-l="es">Kit del piloto · especificaciones de diseño, sin instalar</span><span data-l="en">Pilot kit · design specifications, not installed</span></caption>
+        <thead><tr><th scope="col">#</th><th scope="col"><span data-l="es">Componente</span><span data-l="en">Part</span></th><th scope="col"><span data-l="es">Especificación</span><span data-l="en">Specification</span></th><th scope="col"><span data-l="es">Cant.</span><span data-l="en">Qty</span></th></tr></thead>
+        <tbody>
+          <tr><td class="q-tn">1</td><td><b>Paneles solares</b></td><td>Monocristalinos 550 Wp, Vmp ≈ 42 V</td><td class="q-tn">8</td></tr>
+          <tr><td class="q-tn">2</td><td><b>Inversor híbrido</b></td><td>5 kW, 48 V, MPPT 500 V, cargador AC, con puerto <b>Modbus/RS485</b> para telemetría</td><td class="q-tn">1</td></tr>
+          <tr><td class="q-tn">3</td><td><b>Batería LiFePO4</b></td><td>48 V, 4,8 kWh cada una, BMS integrado (9,6 kWh en total)</td><td class="q-tn">2</td></tr>
+          <tr><td class="q-tn">4</td><td>Estructura de montaje</td><td>Aluminio, apta para viento, inclinación ≈30°, orientación norte</td><td class="q-tn">1</td></tr>
+          <tr><td class="q-tn">5</td><td>Protecciones DC</td><td>Fusibles gPV 15 A con portafusibles, seccionador DC, protector de sobretensión tipo II, tablero estanco</td><td class="q-tn">1</td></tr>
+          <tr><td class="q-tn">6</td><td>Protecciones AC</td><td>Diferencial 30 mA, termomagnético, protector de sobretensión AC</td><td class="q-tn">1</td></tr>
+          <tr><td class="q-tn">7</td><td>Cableado</td><td>Solar 6 mm² con conectores MC4; batería 25–35 mm²; canalización</td><td class="q-tn">—</td></tr>
+          <tr><td class="q-tn">8</td><td>Puesta a tierra</td><td>Jabalina, barra y conductor de 10 mm²</td><td class="q-tn">1</td></tr>
+          <tr><td class="q-tn">9</td><td><b>Medición independiente</b></td><td>Medidor de corriente con CTs de 120 A: generación, batería y consumo</td><td class="q-tn">1</td></tr>
+          <tr><td class="q-tn">10</td><td><b>Gateway</b></td><td>Raspberry Pi 4 (2 GB), microSD industrial, fuente, gabinete en riel DIN y módem 4G</td><td class="q-tn">1</td></tr>
+        </tbody>
+      </table>
     </div>
-    <p>
-      Los n&uacute;meros son deliberadamente honestos: la energ&iacute;a real vale lo que vale. El valor del
-      piloto no es hacerse rico minteando — es demostrar que <b>cada token del sistema corresponde a
-      electricidad f&iacute;sica verificable</b>, algo que casi ninguna cripto puede decir. El ahorro
-      principal del hogar vendr&iacute;a del autoconsumo (deja de comprarle esos kWh a Enel); el QWATT es la
-      capa de valor digital encima.
-    </p>
-  </section>
-
-  <!-- ============ 6. INSTALACIÓN ============ -->
-  <section>
-    <h2><span class="n">6.</span>Instalaci&oacute;n: sitio y normativa</h2>
-    <h3>El sitio</h3>
-    <ul class="doc">
-      <li><b>Orientaci&oacute;n e inclinaci&oacute;n:</b> paneles al norte, ~30&#176; (latitud 33&#176;S). Los paneles rinden m&aacute;s a baja temperatura, as&iacute; que el fr&iacute;o mejora el rendimiento.</li>
-      <li><b>Sombras del entorno:</b> analizar el horizonte hacia el norte en invierno (sol bajo). Una hora de sombra matinal en junio puede costar 10% del d&iacute;a — elegir el punto del terreno con horizonte despejado.</li>
-      <li><b>Viento:</b> estructura con torque certificado y 30&#176; de inclinaci&oacute;n; los cables con holgura t&eacute;rmica.</li>
-      <li><b>Conectividad:</b> se&ntilde;al 4G a confirmar en la visita al sitio; el dongle del gateway con SIM de datos (Entel/WOM) + b&uacute;fer local de 72 h si se cae el enlace — los lotes se firman offline y se suben al volver la conexi&oacute;n.</li>
+    <div class="q-callout"><b>Las tres piezas que hacen verificable la lectura:</b> el inversor con Modbus (#2) reporta cada intervalo; el medidor con CTs (#9) lo mide de forma independiente, y los dos deben coincidir; el gateway (#10) arma y firma cada lote con su propia clave. Sin ellas, es un kit solar común.</div>
+    <div class="q-tier"><h3><span data-l="es">Kit de banco · 150 Wp · 12 V</span><span data-l="en">Bench kit · 150 Wp · 12 V</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+    <p>Dos medidores DC, <b>PZEM-017</b> y <b>EPEver Tracer1210AN</b>. Sus mapas de registros están construidos y revisados contra los documentos del fabricante (<a href="https://github.com/academiaseul/QWATT/blob/main/ingest/maps/pzem-017.json" target="_blank" rel="noopener">pzem-017.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a>, <a href="https://github.com/academiaseul/QWATT/blob/main/ingest/maps/epever-tracer.json" target="_blank" rel="noopener">epever-tracer.json<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a>); la lectura en vivo espera hardware real. Las mismas lecturas por Modbus, HTTP y CSV producen registros idénticos byte a byte (evidencia del Entregable 1, con Modbus leído desde un simulador).</p>
+    <ul class="q-items">
+      <li><span class="q-chip" data-st="abierto" data-status-of="item:D1-OPEN-EPEVER"><span data-l="es">ABIERTO · DECISIÓN PENDIENTE</span><span data-l="en">OPEN · DECISION PENDING</span></span><span>Dos registros del EPEver (0x3104, 0x3105)</span></li>
+      <li><span class="q-chip" data-st="abierto" data-status-of="item:D1-OPEN-PZEM"><span data-l="es">ABIERTO · DECISIÓN PENDIENTE</span><span data-l="en">OPEN · DECISION PENDING</span></span><span>Ajustes del banco del PZEM-017</span></li>
     </ul>
-    <h3>Normativa (Chile) — en simple</h3>
-    <ul class="doc">
-      <li>Toda instalaci&oacute;n el&eacute;ctrica fija debe ser ejecutada/declarada por un <b>instalador autorizado SEC</b> (tr&aacute;mite TE4). No es opcional y protege a los residentes.</li>
-      <li><b>Fase 1 sin inyecci&oacute;n a la red</b> (el inversor h&iacute;brido se configura con export = 0): evita el tr&aacute;mite de netbilling y simplifica todo. La casa consume su sol y su bater&iacute;a; Enel solo respalda.</li>
-      <li>Si m&aacute;s adelante quieren <b>vender excedentes a Enel</b>, se hace el tr&aacute;mite de la Ley 21.118 (netbilling) — y ah&iacute; el piloto gana su segunda fuente de ingreso, esta vez en pesos.</li>
+  </div>
+</section>
+
+<section class="q-sec" id="ciclo" aria-labelledby="h05">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">05</span>
+    <div class="q-head"><h2 id="h05"><span data-l="es">El ciclo de verificación: medir, publicar, verificar, anclar</span><span data-l="en">The verification cycle: measure, publish, verify, anchor</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+    <p>El ciclo ya existe en software y corre con entrada simulada; con el piloto correría solo, día y noche, en el gateway y en el verificador:</p>
+    <ol class="q-list">
+      <li><b>Identidad de la instalación (al instalar).</b> Cada lote lleva identificadores opacos de la instalación y del nodo; desde la semana 1 el verificador rechaza un lote de otra instalación (<code>batch.site_mismatch</code>).</li>
+      <li><b>Medición (cada 5 minutos).</b> El gateway lee del inversor por Modbus y, del medidor con CTs, la medición independiente. Las dos forman un intervalo de 5 minutos con su hora.</li>
+      <li><b>Lote (cada hora).</b> Los intervalos aceptados forman un lote encadenado: lleva la huella del lote anterior, la raíz de sus intervalos y su total acumulado en milivatios-hora. Todo lote se publica, aceptado o rechazado, y un lote rechazado no suma energía.</li>
+      <li><b>Anclaje.</b> Una sola transacción de Stellar con tres operaciones inseparables: <code>manageData qwatt.anchor.sha256</code> (la huella del lote), <code>manageData qwatt.cumulative_mwh</code> (el total acumulado) y el pago marcador fijo; memo <code>QW#n</code>. El proponente firma; el verificador independiente reconstruye la transacción y cofirma (2 de 3). Todo o nada.</li>
+      <li><b>Re-verificación permanente.</b> Cualquiera descarga el lote público, recalcula su huella y la compara con la anclada; <a href="/red.html">Pulse</a> muestra en vivo la actividad de cada cuenta.</li>
+    </ol>
+    <h3><span data-l="es">Fig. 2 · El ciclo de una constancia</span><span data-l="en">Fig. 2 · The life of a record</span></h3>
+    <ol class="q-cycle">
+      <li><span class="q-cy"><span data-l="es">Medir</span><span data-l="en">Measure</span></span></li>
+      <li><span class="q-cy"><span data-l="es">Lote</span><span data-l="en">Batch</span></span></li>
+      <li><span class="q-cy"><span data-l="es">Verificar</span><span data-l="en">Verify</span></span></li>
+      <li><span class="q-cy"><span data-l="es">Anclar</span><span data-l="en">Anchor</span></span></li>
+      <li><span class="q-cy"><span data-l="es">Re-verificar</span><span data-l="en">Re-check</span></span></li>
+    </ol>
+    <p class="q-figcap"><span data-l="es">Ningún paso necesita confiar en el anterior: cada uno vuelve a comprobar lo que recibe.</span><span data-l="en">No step needs to trust the previous one: each re-checks what it receives.</span></p>
+  </div>
+</section>
+
+<section class="q-sec" id="fraude" aria-labelledby="h06">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">06</span>
+    <div class="q-head"><h2 id="h06"><span data-l="es">Reglas contra el fraude</span><span data-l="en">Anti-fraud rules</span></h2></div>
+    <ul class="q-rules">
+      <li><span><b>Techo de placa.</b> El filtro rechaza el intervalo si supera 1,15 × la potencia nominal × el tiempo: un sistema no puede generar más que su capacidad.</span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></li>
+      <li><span><b>Sin generación de noche.</b> Si se reporta generación con el sol bajo el umbral del perfil (elevación solar), el intervalo se rechaza.</span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></li>
+      <li><span><b>Dos medidores de acuerdo dentro de ±5 %.</b> Si no coinciden, el intervalo se rechaza (<code>agreement.diverge</code>) y se cuenta siempre el menor de los dos.</span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></li>
+      <li><span><b>Identidad de la instalación.</b> Los identificadores de la instalación y del nodo deben coincidir con los del último lote aceptado.</span><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></li>
+      <li><span><b>La misma energía, una sola vez.</b> Se rechazan intervalos repetidos, superpuestos o fuera de la grilla de 5 minutos.</span><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></li>
+      <li><span><b>Filtro testigo de irradiancia (fase 2).</b> Comparar con un sensor de irradiancia propio: un día nublado no puede rendir como uno despejado.</span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
     </ul>
-    <div class="callout warn">
-      <b>Seguridad primero:</b> 48 V de bater&iacute;a LiFePO4 y 400+ V DC de strings no perdonan improvisaci&oacute;n.
-      El montaje el&eacute;ctrico lo hace un instalador autorizado por la SEC (Clase A o B); nosotros ponemos el software, la telemetr&iacute;a
-      y la capa cripto. (Esto es dise&ntilde;o de ingenier&iacute;a, no asesor&iacute;a legal ni el&eacute;ctrica.)
-    </div>
-  </section>
+    <p>Cada regla con rótulo PROTOTIPO corre hoy en el motor de filtros de las pruebas automáticas (<a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-gates.js" target="_blank" rel="noopener">qwatt-gates.js<span class="q-ext" aria-hidden="true">↗</span><span class="q-vh">(abre en una pestaña nueva)</span></a>, umbrales en <a href="/assets/gates.browser.js">gates.browser.js</a>). Ponlas a prueba con una instalación simulada en <a href="/grid.html">Grid</a>.</p>
+  </div>
+</section>
 
-  <!-- ============ 7. PLAN 4 SEMANAS ============ -->
-  <section>
-    <h2><span class="n">7.</span>Plan de 4 semanas</h2>
-    <table>
-      <tr><th>Semana</th><th>Hito</th><th>Entregable</th></tr>
-      <tr><td class="num"><b>S1</b></td><td>Cotizar el kit (3 proveedores), visita al sitio con el instalador, an&aacute;lisis de sombras, contratar TE4</td><td>BOM cerrado + fecha de instalaci&oacute;n</td></tr>
-      <tr><td class="num"><b>S2</b></td><td>Instalaci&oacute;n f&iacute;sica (2 d&iacute;as): estructura, paneles, inversor, bater&iacute;as, protecciones, tierra. Comisionado el&eacute;ctrico</td><td>Sistema generando y respaldando la casa</td></tr>
-      <tr><td class="num"><b>S3</b></td><td>Telemetr&iacute;a: Shelly + Modbus + gateway. Or&aacute;culo en modo observaci&oacute;n (mide y firma, sin mintear) — validar doble medici&oacute;n</td><td>72 h de datos limpios, dashboard en vivo</td></tr>
-      <tr><td class="num"><b>S4</b></td><td>Registro del sitio onchain, primer minteo real, primera venta (recompra de tesorer&iacute;a), integraci&oacute;n con Pulse y Proof del sitio</td><td><b>El primer QWATT respaldado por generaci&oacute;n solar medida</b> &#128293;</td></tr>
-    </table>
-    <h3>Qu&eacute; medimos para declarar &eacute;xito</h3>
-    <ul class="doc">
-      <li>Uptime de telemetr&iacute;a &gt; 99% en 30 d&iacute;as; divergencia inversor/CTs &lt; 5%.</li>
-      <li>100% de los lotes anclados onchain con su hash verificable; cero minteos rechazados por fraude falso-positivo.</li>
-      <li>Una venta completa QWATT &#8594; XLM ejecutada por el hogar participante desde su tel&eacute;fono.</li>
-      <li>Un tercero (juez, amigo, inversionista) audita un lote de punta a punta sin nuestra ayuda: lectura &#8594; hash &#8594; tx &#8594; token.</li>
+<section class="q-sec" id="instalacion" aria-labelledby="h07">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">07</span>
+    <div class="q-head"><h2 id="h07"><span data-l="es">Instalación</span><span data-l="en">Installation</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <ul class="q-list">
+      <li><b>Orientación e inclinación:</b> paneles al norte, inclinación ≈30°.</li>
+      <li><b>Sombras:</b> analizar el horizonte hacia el norte en invierno, con el sol bajo; una hora de sombra en la mañana puede costar una parte importante del día. Elegir el punto con el horizonte más despejado.</li>
+      <li><b>Viento:</b> estructura con torque certificado; cables con holgura térmica.</li>
+      <li><b>Conectividad:</b> señal 4G a confirmar en la visita técnica. El gateway guarda un búfer local de 72 h si se cae el enlace y publica los lotes cuando vuelve la conexión.</li>
     </ul>
-  </section>
+    <p><span data-l="es">Estimación de diseño, no medición:</span><span data-l="en">Design estimate, not a measurement:</span> <span class="q-num" data-src="dato">4,4 kWp × 5,5 h solares × 75 % ≈ 18 kWh/día</span></p>
+    <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · plan de agosto 2026 · estimación de diseño, no medición</span><span data-l="en">Repository fact · August 2026 plan · design estimate, not a measurement</span></p>
+  </div>
+</section>
 
-  <footer>
-    <a href="index.html" style="color:inherit">QWATT</a> &#183; Piloto solar v1 &#183; una vivienda en la Regi&oacute;n Metropolitana, Chile &#183;
-    dise&ntilde;o de ingenier&iacute;a del prototipo — precios [cotizar] &#183; testnet only
-  </footer>
-</div>
+<section class="q-sec" id="normas" aria-labelledby="h08">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">08</span>
+    <div class="q-head"><h2 id="h08"><span data-l="es">Normas</span><span data-l="en">Rules and permits</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <ul class="q-list">
+      <li>Toda instalación eléctrica fija la ejecuta y declara un <b>instalador autorizado por la SEC</b> (trámite TE4). No es opcional y protege a quienes viven en la casa.</li>
+      <li><b>Fase 1 sin inyección a la red:</b> el inversor híbrido se configura sin exportar energía. La casa consume su sol y su batería; la red de distribución solo respalda.</li>
+    </ul>
+    <p>Esto es diseño de ingeniería, no asesoría legal ni eléctrica.</p>
+  </div>
+</section>
 
+<section class="q-sec" id="seguridad" aria-labelledby="h09">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">09</span>
+    <div class="q-head"><h2 id="h09"><span data-l="es">Seguridad primero</span><span data-l="en">Safety first</span></h2></div>
+    <div class="q-callout is-warn"><b>Electricidad:</b> 48 V de batería LiFePO4 y más de 400 V DC en los strings no perdonan improvisación. El montaje eléctrico lo hace un instalador autorizado por la SEC (clase A o B); el equipo de QWATT pone el software y la telemetría.</div>
+    <ul class="q-rules">
+      <li><span><b>La clave del gateway nunca sale del gateway.</b> Se crea en el propio equipo con stellar-cli, nunca en un navegador, con una copia offline probada.</span><span class="q-chip" data-st="planificado" data-status-of="item:V3-8"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
+      <li><span><b>Ninguna página de qwatt.org genera, pide, guarda ni muestra claves secretas, ni firma transacciones.</b> Una prueba automática lo revisa en cada cambio.</span><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+    </ul>
+    <p>Más sobre las tres claves del anclaje en <a href="/backup.html">Custodia de claves</a>.</p>
+  </div>
+</section>
 
-<!-- pie QWATT unificado -->
-<footer id="qwfoot">
-<style>
-#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
-#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
-#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
-@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
-#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
-#qwfoot a:hover{color:#f0e8dc}
-#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
-#qwfoot .qf-brand .qf-bolt{color:#d08a57}
-#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
-#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
-#qwfoot h3{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
-#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
-#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
-#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
-#qwfoot .qf-bottom a{color:#d08a57}
-</style>
-<div class="qf-in">
-  <div class="qf-cols">
-    <div>
-      <a class="qf-brand" href="index.html"><span class="qf-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-      <p class="qf-lead">The Clean Token: energ&iacute;a renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo.</p>
-      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
-    </div>
-    <div class="qf-grp">
-      <h3>Apps</h3>
-      <a href="console.html">Consola Onchain</a>
-      <a href="verificacion.html">Verificaci&oacute;n</a>
-      <a href="grid.html">QWATT Grid</a>
-      <a href="pay.html">QWATT Pay</a>
-      <a href="wallet.html">QWATT Wallet</a>
-      <a href="proof.html">QWATT Explorer</a>
-      <a href="respaldo.html">Reservas</a>
-      <a href="red.html">QWATT Pulse</a>
-      <a href="piloto.html">Piloto Solar</a>
-    </div>
-    <div class="qf-grp">
-      <h3>Recursos</h3>
-      <a href="index.html">Inicio</a>
-      <a href="index.html#clean">QWATT-Clean</a>
-      <a href="whitepaper.html">Whitepaper</a>
-      <a href="backup.html">Backup de claves</a>
-      <a href="terminos.html">T&eacute;rminos y seguridad</a>
-      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+<section class="q-sec" id="plan" aria-labelledby="h10">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">10</span>
+    <div class="q-head"><h2 id="h10"><span data-l="es">Plan de 4 semanas</span><span data-l="en">4-week plan</span></h2><span class="q-chips"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span class="q-chip" data-st="fuera"><span data-l="es">FUERA DEL SPRINT</span><span data-l="en">OUTSIDE THE SPRINT</span></span></span></div>
+    <p>Cuatro semanas de trabajo, después del sprint. Ninguna ha empezado.</p>
+    <div class="q-table-wrap">
+      <table class="q-table">
+        <caption><span data-l="es">Plan del piloto, después del sprint</span><span data-l="en">Pilot plan, after the sprint</span></caption>
+        <thead><tr><th scope="col"><span data-l="es">Semana</span><span data-l="en">Week</span></th><th scope="col"><span data-l="es">Hito</span><span data-l="en">Milestone</span></th><th scope="col"><span data-l="es">Entregable</span><span data-l="en">Deliverable</span></th></tr></thead>
+        <tbody>
+          <tr><td class="q-tn"><b>S1</b></td><td>Cerrar la lista de componentes con el instalador, visita técnica, análisis de sombras y trámite TE4</td><td>Lista cerrada y fecha de instalación</td></tr>
+          <tr><td class="q-tn"><b>S2</b></td><td>Instalación física (2 días): estructura, paneles, inversor, baterías, protecciones y tierra. Puesta en marcha eléctrica</td><td>Sistema generando y respaldando la vivienda</td></tr>
+          <tr><td class="q-tn"><b>S3</b></td><td>Telemetría: medidor con CTs, Modbus y gateway. Verificación en modo observación: mide y publica lotes, sin anclar; se valida la doble medición</td><td>72 h de datos limpios y publicados</td></tr>
+          <tr><td class="q-tn"><b>S4</b></td><td>Primer lote del medidor real verificado y anclado en la cuenta 2 de 3 (Stellar testnet), visible en Pulse</td><td><b>Una constancia de lecturas reales, re-verificable por cualquiera</b></td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
-  <div class="qf-bottom">
-    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
-    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+</section>
+
+<section class="q-sec" id="metricas" aria-labelledby="h11">
+  <div class="q-wrap q-doc">
+    <span class="q-sec-n">11</span>
+    <div class="q-head"><h2 id="h11"><span data-l="es">Métricas de éxito</span><span data-l="en">Success metrics</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <ul class="q-list">
+      <li>Disponibilidad de la telemetría &gt; 99 % en 30 días.</li>
+      <li>Divergencia entre los dos medidores &lt; 5 %.</li>
+      <li>100 % de los lotes anclados con una huella verificable.</li>
+      <li>Cero lotes rechazados por error (falsos positivos).</li>
+      <li>Un tercero re-verifica un lote de punta a punta sin nuestra ayuda: lectura → huella → transacción en testnet.</li>
+    </ul>
+    <p class="q-note"><span data-l="es">Objetivos del plan, no resultados: el piloto no está instalado.</span><span data-l="en">Plan targets, not results: the pilot is not installed.</span></p>
+    <h3><span data-l="es">Puntos del plan relacionados</span><span data-l="en">Related plan items</span></h3>
+    <ul class="q-items">
+      <li><span class="q-chip" data-st="fuera" data-status-of="item:HW-PILOT"><span data-l="es">FUERA DEL SPRINT</span><span data-l="en">OUTSIDE THE SPRINT</span></span><a class="q-link" href="/hoja-de-ruta.html#HW-PILOT"><span data-l="es">Piloto con hardware real</span><span data-l="en">Pilot with real hardware</span></a></li>
+      <li><span class="q-chip" data-st="previo" data-status-of="item:D1-READER"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span><a class="q-link" href="/hoja-de-ruta.html#D1-READER"><span data-l="es">Lector de medidores: Modbus, HTTP y CSV</span><span data-l="en">Meter reader: Modbus, HTTP and CSV</span></a></li>
+      <li><span class="q-chip" data-st="planificado" data-status-of="item:V3-4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><a class="q-link" href="/hoja-de-ruta.html#V3-4"><span data-l="es">Cuenta 2 de 3 real y pruebas A–D</span><span data-l="en">Real 2-of-3 account and tests A–D</span></a></li>
+      <li><span class="q-chip" data-st="planificado" data-status-of="item:V3-8"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><a class="q-link" href="/hoja-de-ruta.html#V3-8"><span data-l="es">Claves sin navegador</span><span data-l="en">Keys without a browser</span></a></li>
+    </ul>
   </div>
-</div>
+</section>
+
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
 </footer>
+<!-- /q:footer -->
 </body>
 </html>

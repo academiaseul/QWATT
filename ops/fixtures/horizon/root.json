@@ -1,0 +1,8 @@
+{
+  "horizon_version": "30.0.0-b3ff4119cc99ebcc8048334f5ec64e78c16d1666",
+  "core_version": "stellar-core 30.0.0 (0e49751aa9ddf892302cca02cea7f3f5d97df9f1)",
+  "history_latest_ledger": 5359488,
+  "history_latest_ledger_closed_at": "2026-10-24T05:50:27Z",
+  "network_passphrase": "Test SDF Network ; September 2015",
+  "current_protocol_version": 29
+}

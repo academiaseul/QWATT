@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="es" data-title-en="How it works · the mechanism, piece by piece · QWATT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cómo funciona · el mecanismo, pieza por pieza · QWATT</title>
+<meta name="description" content="Del medidor a Stellar testnet: qué comprueba cada pieza de QWATT, en qué archivo está y en qué estado está hoy. Entrada simulada, solo Stellar testnet.">
+<link rel="canonical" href="https://qwatt.org/como-funciona.html">
+<meta name="theme-color" content="#16100a">
+<meta name="color-scheme" content="dark light">
+<meta property="og:site_name" content="QWATT">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://qwatt.org/como-funciona.html">
+<meta property="og:title" content="Cómo funciona · el mecanismo, pieza por pieza · QWATT">
+<meta property="og:description" content="Del medidor a Stellar testnet: qué comprueba cada pieza de QWATT, en qué archivo está y en qué estado está hoy. Entrada simulada, solo Stellar testnet.">
+<meta property="og:locale" content="es_CL">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://qwatt.org/og-sprint.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Cómo funciona · el mecanismo, pieza por pieza · QWATT">
+<meta name="twitter:description" content="Del medidor a Stellar testnet: qué comprueba cada pieza de QWATT, en qué archivo está y en qué estado está hoy. Entrada simulada, solo Stellar testnet.">
+<meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/pages/como-funciona.css">
+<script src="/assets/boot.js"></script>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
+<script defer src="/assets/qwatt-live.js"></script>
+<script defer src="/assets/live-widgets.js"></script>
+<script defer src="/assets/pages/como-funciona.js"></script>
+</head>
+<body data-page="como-funciona" data-status="mixto" data-parts="testnet prototipo planificado">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
+  </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
+
+<section class="q-phero" id="top" aria-labelledby="h1">
+  <div class="q-wrap is-wide">
+    <p class="q-tag"><span data-l="es">Cómo funciona</span><span data-l="en">How it works</span></p>
+    <h1 id="h1"><span data-l="es">Del medidor a Stellar testnet, <b>pieza por pieza</b></span><span data-l="en">From the meter to Stellar testnet, <b>piece by piece</b></span></h1>
+    <p class="q-lead"><span data-l="es">En palabras simples: dos medidores leen la misma instalación; unos filtros descartan lo imposible; las lecturas aceptadas forman lotes encadenados por su huella; un proponente publica cada lote y firma su anclaje; un verificador independiente vuelve a derivar todo desde lo publicado y solo entonces cofirma; Stellar testnet guarda la huella y el total. Cualquiera puede volver a comprobarlo.</span><span data-l="en">In plain words: two meters read the same installation; filters throw out the impossible; accepted readings form batches chained by their fingerprints; a proposer publishes each batch and signs its anchor; an independent verifier re-derives everything from what was published and only then co-signs; Stellar testnet keeps the fingerprint and the total. Anyone can check it again.</span></p>
+    <p class="q-status" role="note">
+      <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">lo que ya se lee en vivo en Stellar testnet</span><span data-l="en">what is already read live on Stellar testnet</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span><span data-l="es">lo construido y probado con entrada simulada</span><span data-l="en">what is built and tested with simulated input</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">lo que llega en la semana 2 o después</span><span data-l="en">what arrives in week 2 or later</span></span></span>
+    </p>
+  </div>
+</section>
+
+<section class="q-sec" id="figura" aria-labelledby="hFig">
+  <div class="q-wrap is-wide">
+    <div class="q-head"><h2 id="hFig"><span data-l="es">El camino de una lectura hasta una constancia</span><span data-l="en">The path of a reading to a record</span></h2><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+    <p class="q-sub"><span data-l="es">Toca o selecciona cualquier pieza para ver qué comprueba, en qué archivo está y en qué estado está hoy.</span><span data-l="en">Tap or select any piece to see what it checks, which file it lives in and what state it is in today.</span></p>
+    <figure class="q-fig" id="q-fig">
+      <figcaption id="fig1cap"><span data-l="es">Figura 1 · El camino de una lectura hasta una constancia. Las flechas dicen qué pasa de una pieza a la siguiente.</span><span data-l="en">Figure 1 · The path of a reading to a record. The arrows say what passes from one piece to the next.</span></figcaption>
+      <div class="q-fig-tools"><button type="button" class="q-btn is-small" id="qFigToggle" aria-pressed="false"><span data-l="es">Ver como lista</span><span data-l="en">Show as a list</span></button></div>
+      <div class="q-fig-grid">
+        <div class="q-fig-svg">
+<svg class="q-flowsvg" viewBox="0 0 960 600" role="group" aria-labelledby="fig1cap">
+<defs><marker id="qArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10Z" class="q-ah"/></marker></defs>
+<g class="q-edges" aria-hidden="true">
+<line class="q-ea" x1="220" y1="88" x2="376" y2="88" marker-end="url(#qArrow)"/><text class="q-el" x="298" y="76" text-anchor="middle" data-l="es"><tspan x="298" dy="0">lecturas crudas (bytes)</tspan></text><text class="q-el" x="298" y="76" text-anchor="middle" data-l="en"><tspan x="298" dy="0">raw readings (bytes)</tspan></text>
+<line class="q-ea" x1="580" y1="88" x2="736" y2="88" marker-end="url(#qArrow)"/><text class="q-el" x="658" y="76" text-anchor="middle" data-l="es"><tspan x="658" dy="0">registro normalizado</tspan></text><text class="q-el" x="658" y="76" text-anchor="middle" data-l="en"><tspan x="658" dy="0">normalized record</tspan></text>
+<line class="q-ea" x1="840" y1="136" x2="840" y2="248" marker-end="url(#qArrow)"/><text class="q-el" x="828" y="182" text-anchor="end" data-l="es"><tspan x="828" dy="0">intervalo aceptado, o</tspan><tspan x="828" dy="13">rechazado con su motivo</tspan></text><text class="q-el" x="828" y="182" text-anchor="end" data-l="en"><tspan x="828" dy="0">accepted interval, or</tspan><tspan x="828" dy="13">refused with its reason</tspan></text>
+<line class="q-ea" x1="740" y1="296" x2="584" y2="296" marker-end="url(#qArrow)"/><text class="q-el" x="662" y="272" text-anchor="middle" data-l="es"><tspan x="662" dy="0">lote y su huella</tspan><tspan x="662" dy="13">SHA-256</tspan></text><text class="q-el" x="662" y="272" text-anchor="middle" data-l="en"><tspan x="662" dy="0">batch and its</tspan><tspan x="662" dy="13">SHA-256 fingerprint</tspan></text>
+<line class="q-ea" x1="380" y1="286" x2="224" y2="286" marker-end="url(#qArrow)"/><text class="q-el" x="302" y="274" text-anchor="middle" data-l="es"><tspan x="302" dy="0">lote publicado</tspan></text><text class="q-el" x="302" y="274" text-anchor="middle" data-l="en"><tspan x="302" dy="0">published batch</tspan></text>
+<line class="q-ea" x1="220" y1="312" x2="376" y2="312" marker-end="url(#qArrow)"/><text class="q-el" x="298" y="330" text-anchor="middle" data-l="es"><tspan x="298" dy="0">transacción firmada</tspan><tspan x="298" dy="13">por el proponente</tspan><tspan x="298" dy="13">(publicada)</tspan></text><text class="q-el" x="298" y="330" text-anchor="middle" data-l="en"><tspan x="298" dy="0">transaction signed</tspan><tspan x="298" dy="13">by the proposer</tspan><tspan x="298" dy="13">(published)</tspan></text>
+<line class="q-ea" x1="430" y1="348" x2="172" y2="460" marker-end="url(#qArrow)"/><text class="q-el" x="340" y="398" text-anchor="start" data-l="es"><tspan x="340" dy="0">descarga solo</tspan><tspan x="340" dy="13">lo público</tspan></text><text class="q-el" x="340" y="398" text-anchor="start" data-l="en"><tspan x="340" dy="0">downloads only</tspan><tspan x="340" dy="13">what is public</tspan></text>
+<line class="q-ea" x1="220" y1="512" x2="376" y2="512" marker-end="url(#qArrow)"/><text class="q-el" x="298" y="486" text-anchor="middle" data-l="es"><tspan x="298" dy="0">cofirma si es idéntica</tspan><tspan x="298" dy="13">y la envía</tspan></text><text class="q-el" x="298" y="486" text-anchor="middle" data-l="en"><tspan x="298" dy="0">co-signs if identical</tspan><tspan x="298" dy="13">and submits</tspan></text>
+<line class="q-ea" x1="580" y1="512" x2="736" y2="512" marker-end="url(#qArrow)"/><text class="q-el" x="658" y="486" text-anchor="middle" data-l="es"><tspan x="658" dy="0">huella, total y pago</tspan><tspan x="658" dy="13">marcador · memo QW#n</tspan></text><text class="q-el" x="658" y="486" text-anchor="middle" data-l="en"><tspan x="658" dy="0">fingerprint, total and</tspan><tspan x="658" dy="13">marker payment · memo QW#n</tspan></text>
+<line class="q-ea is-dash" x1="530" y1="348" x2="788" y2="460" marker-end="url(#qArrow)"/><text class="q-el" x="668" y="402" text-anchor="start" data-l="es"><tspan x="668" dy="0">lotes publicados</tspan></text><text class="q-el" x="668" y="402" text-anchor="start" data-l="en"><tspan x="668" dy="0">published batches</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="medidor" data-status-of="node:medidor" data-st="prototipo" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-medidor" transform="translate(20 40)">
+  <title id="n-medidor">1 · Medidor o simulador · PROTOTIPO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PROTOTIPO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PROTOTYPE</text>
+  <text class="q-nn" x="14" y="22">1</text>
+  <text class="q-nt" x="14" y="52" data-l="es"><tspan x="14" dy="0">Medidor o simulador</tspan></text><text class="q-nt" x="14" y="52" data-l="en"><tspan x="14" dy="0">Meter or simulator</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="entrada" data-status-of="node:entrada" data-st="prototipo" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-entrada" transform="translate(380 40)">
+  <title id="n-entrada">2 · Entradas Modbus, HTTP y CSV · PROTOTIPO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PROTOTIPO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PROTOTYPE</text>
+  <text class="q-nn" x="14" y="22">2</text>
+  <text class="q-nt" x="14" y="44" data-l="es"><tspan x="14" dy="0">Entradas Modbus,</tspan><tspan x="14" dy="17">HTTP y CSV</tspan></text><text class="q-nt" x="14" y="44" data-l="en"><tspan x="14" dy="0">Modbus, HTTP</tspan><tspan x="14" dy="17">and CSV inputs</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="filtros" data-status-of="node:filtros" data-st="prototipo" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-filtros" transform="translate(740 40)">
+  <title id="n-filtros">3 · Intervalos y filtros G0–G3 · PROTOTIPO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PROTOTIPO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PROTOTYPE</text>
+  <text class="q-nn" x="14" y="22">3</text>
+  <text class="q-nt" x="14" y="44" data-l="es"><tspan x="14" dy="0">Intervalos y</tspan><tspan x="14" dy="17">filtros G0–G3</tspan></text><text class="q-nt" x="14" y="44" data-l="en"><tspan x="14" dy="0">Intervals and</tspan><tspan x="14" dy="17">filters G0–G3</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="lotes" data-status-of="node:lotes" data-st="prototipo" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-lotes" transform="translate(740 252)">
+  <title id="n-lotes">4 · Lotes encadenados · PROTOTIPO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PROTOTIPO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PROTOTYPE</text>
+  <text class="q-nn" x="14" y="22">4</text>
+  <text class="q-nt" x="14" y="52" data-l="es"><tspan x="14" dy="0">Lotes encadenados</tspan></text><text class="q-nt" x="14" y="52" data-l="en"><tspan x="14" dy="0">Chained batches</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="feed" data-status-of="node:feed" data-st="planificado" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-feed" transform="translate(380 252)">
+  <title id="n-feed">5 · Feed público de evidencia · PLANIFICADO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PLANIFICADO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PLANNED</text>
+  <text class="q-nn" x="14" y="22">5</text>
+  <text class="q-nt" x="14" y="44" data-l="es"><tspan x="14" dy="0">Feed público</tspan><tspan x="14" dy="17">de evidencia</tspan></text><text class="q-nt" x="14" y="44" data-l="en"><tspan x="14" dy="0">Public evidence</tspan><tspan x="14" dy="17">feed</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="proponente" data-status-of="node:proponente" data-st="prototipo" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-proponente" transform="translate(20 252)">
+  <title id="n-proponente">6 · Proponente · PROTOTIPO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PROTOTIPO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PROTOTYPE</text>
+  <text class="q-nn" x="14" y="22">6</text>
+  <text class="q-nt" x="14" y="52" data-l="es"><tspan x="14" dy="0">Proponente</tspan></text><text class="q-nt" x="14" y="52" data-l="en"><tspan x="14" dy="0">Proposer</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="verificador" data-status-of="node:verificador" data-st="prototipo" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-verificador" transform="translate(20 464)">
+  <title id="n-verificador">7 · Verificador independiente · PROTOTIPO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PROTOTIPO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PROTOTYPE</text>
+  <text class="q-nn" x="14" y="22">7</text>
+  <text class="q-nt" x="14" y="44" data-l="es"><tspan x="14" dy="0">Verificador</tspan><tspan x="14" dy="17">independiente</tspan></text><text class="q-nt" x="14" y="44" data-l="en"><tspan x="14" dy="0">Independent</tspan><tspan x="14" dy="17">verifier</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="cuenta" data-status-of="node:cuenta" data-st="planificado" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-cuenta" transform="translate(380 464)">
+  <title id="n-cuenta">8 · Cuenta 2 de 3 en Stellar testnet · PLANIFICADO</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">PLANIFICADO</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">PLANNED</text>
+  <text class="q-nn" x="14" y="22">8</text>
+  <text class="q-nt" x="14" y="44" data-l="es"><tspan x="14" dy="0">Cuenta 2 de 3 en</tspan><tspan x="14" dy="17">Stellar testnet</tspan></text><text class="q-nt" x="14" y="44" data-l="en"><tspan x="14" dy="0">2-of-3 account on</tspan><tspan x="14" dy="17">Stellar testnet</tspan></text>
+</g>
+<g class="q-node" role="button" tabindex="0" data-node="cualquiera" data-status-of="node:cualquiera" data-st="testnet" aria-controls="q-node-panel" aria-expanded="false" aria-labelledby="n-cualquiera" transform="translate(740 464)">
+  <title id="n-cualquiera">9 · Cualquiera vuelve a comprobar · TESTNET</title>
+  <rect class="q-nb" width="200" height="96" rx="3"/>
+  <text class="q-nchip" x="186" y="22" text-anchor="end" data-l="es">TESTNET</text><text class="q-nchip" x="186" y="22" text-anchor="end" data-l="en">TESTNET</text>
+  <text class="q-nn" x="14" y="22">9</text>
+  <text class="q-nt" x="14" y="44" data-l="es"><tspan x="14" dy="0">Cualquiera vuelve</tspan><tspan x="14" dy="17">a comprobar</tspan></text><text class="q-nt" x="14" y="44" data-l="en"><tspan x="14" dy="0">Anyone checks</tspan><tspan x="14" dy="17">again</tspan></text>
+</g>
+</svg>
+        </div>
+        <aside class="q-node-panel" id="q-node-panel" aria-live="polite" hidden>
+          <div class="q-np-head"><h3 id="qnpTitle" tabindex="-1"></h3><button type="button" class="q-btn is-small" id="qnpClose"><span data-l="es">Cerrar</span><span data-l="en">Close</span></button></div>
+          <div class="q-np-meta"><span class="q-np-k"><span data-l="es">Estado hoy</span><span data-l="en">Status today</span></span> <span id="qnpChip"></span></div>
+          <p class="q-np-s" id="qnpSent"></p>
+          <div id="qnpBody"></div>
+          <details class="q-np-tech"><summary><span data-l="es">Detalle técnico</span><span data-l="en">Technical detail</span></summary><p><span data-l="es">Todo lo de esta figura está en el repositorio público; los números de los puntos del plan llevan a su fila en la hoja de ruta, con el PR, el commit o la corrida del CI que lo prueba.</span><span data-l="en">Everything in this figure is in the public repository; the plan item numbers lead to their row in the roadmap, with the PR, commit or CI run that proves it.</span></p></details>
+        </aside>
+      </div>
+<ol class="q-flowlist" id="q-flowlist">
+<li class="q-fl" id="nodo-medidor" data-node="medidor">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">1</span><h3><span data-l="es">Medidor o simulador</span><span data-l="en">Meter or simulator</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Dos medidores independientes miden la misma instalación. En este sprint no hay hardware: un simulador determinista produce las lecturas.</span><span data-l="en">Two independent meters measure the same installation. There is no hardware in this sprint: a deterministic simulator produces the readings.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="medidor">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">Nada todavía: es la fuente. Por eso cada número que sale de aquí dice «Entrada simulada».</span><span data-l="en">Nothing yet: it is the source. That is why every number that comes out of it says &quot;Simulated input&quot;.</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/live/simulator.js" target="_blank" rel="noopener"><code>live/simulator.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/ingest/maps/pzem-017.json" target="_blank" rel="noopener"><code>ingest/maps/pzem-017.json</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/ingest/maps/epever-tracer.json" target="_blank" rel="noopener"><code>ingest/maps/epever-tracer.json</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#D1-READER"><span translate="no">D1-READER</span></a> <span class="q-chip" data-st="previo" data-status-of="item:D1-READER"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span> <span class="q-item-t" data-item="D1-READER"></span></li><li><a href="/hoja-de-ruta.html#D1-OPEN-EPEVER"><span translate="no">D1-OPEN-EPEVER</span></a> <span class="q-chip" data-st="abierto" data-status-of="item:D1-OPEN-EPEVER"><span data-l="es">ABIERTO · DECISIÓN PENDIENTE</span><span data-l="en">OPEN · DECISION PENDING</span></span> <span class="q-item-t" data-item="D1-OPEN-EPEVER"></span></li><li><a href="/hoja-de-ruta.html#D1-OPEN-PZEM"><span translate="no">D1-OPEN-PZEM</span></a> <span class="q-chip" data-st="abierto" data-status-of="item:D1-OPEN-PZEM"><span data-l="es">ABIERTO · DECISIÓN PENDIENTE</span><span data-l="en">OPEN · DECISION PENDING</span></span> <span class="q-item-t" data-item="D1-OPEN-PZEM"></span></li><li><a href="/hoja-de-ruta.html#HW-PILOT"><span translate="no">HW-PILOT</span></a> <span class="q-chip" data-st="fuera" data-status-of="item:HW-PILOT"><span data-l="es">FUERA DEL SPRINT</span><span data-l="en">OUTSIDE THE SPRINT</span></span> <span class="q-item-t" data-item="HW-PILOT"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">lecturas crudas (bytes)</span><span data-l="en">raw readings (bytes)</span></p>
+</li>
+<li class="q-fl" id="nodo-entrada" data-node="entrada">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">2</span><h3><span data-l="es">Entradas Modbus, HTTP y CSV</span><span data-l="en">Modbus, HTTP and CSV inputs</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Tres caminos de entrada producen exactamente el mismo registro, byte a byte.</span><span data-l="en">Three input paths produce exactly the same record, byte for byte.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="entrada">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">El esquema y que solo haya números enteros; una sola forma de escribir cada instante en la entrada HTTP (DV-4); el desfase de reloj de cada entrada (V3-6, semana 2).</span><span data-l="en">The schema and integers only; one spelling per instant at the HTTP input (DV-4); the clock offset of every input (V3-6, week 2).</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/ingest/adapters/modbus.js" target="_blank" rel="noopener"><code>ingest/adapters/modbus.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/ingest/adapters/http.js" target="_blank" rel="noopener"><code>ingest/adapters/http.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/ingest/adapters/csv.js" target="_blank" rel="noopener"><code>ingest/adapters/csv.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/ingest/lib/normalize.js" target="_blank" rel="noopener"><code>ingest/lib/normalize.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#D1-EVID"><span translate="no">D1-EVID</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:D1-EVID"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="D1-EVID"></span></li><li><a href="/hoja-de-ruta.html#DV-1-4"><span translate="no">DV-1-4</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:DV-1-4"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="DV-1-4"></span></li><li><a href="/hoja-de-ruta.html#V3-6"><span translate="no">V3-6</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-6"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-6"></span></li><li><a href="/hoja-de-ruta.html#D1-1"><span translate="no">D1-1</span></a> <span class="q-chip" data-st="abierto" data-status-of="item:D1-1"><span data-l="es">ABIERTO · DECISIÓN PENDIENTE</span><span data-l="en">OPEN · DECISION PENDING</span></span> <span class="q-item-t" data-item="D1-1"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">registro normalizado</span><span data-l="en">normalized record</span></p>
+</li>
+<li class="q-fl" id="nodo-filtros" data-node="filtros">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">3</span><h3><span data-l="es">Intervalos y filtros G0–G3</span><span data-l="en">Intervals and filters G0–G3</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Las lecturas se agrupan en intervalos de 5 minutos y cada intervalo pasa cuatro filtros que fallan cerrados; si uno falla, el intervalo se rechaza con un motivo público.</span><span data-l="en">Readings are grouped into 5-minute intervals and each interval passes four filters that fail closed; if one fails, the interval is refused with a public reason.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="filtros">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">G0 verosimilitud, G1 techo de placa, G2 sol sobre el horizonte, G3 acuerdo entre medidores. En la puerta: intervalos repetidos, superpuestos, fuera de la grilla o de otra instalación (V3-2, DV-3). Sin energía estimada en un hueco de más de tres lecturas (V3-10, semana 2).</span><span data-l="en">G0 plausibility, G1 nameplate ceiling, G2 sun above the horizon, G3 meter agreement. At the door: repeated, overlapping, off-grid or other-installation intervals (V3-2, DV-3). No energy estimated across a gap of more than three readings (V3-10, week 2).</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-gates.js" target="_blank" rel="noopener"><code>assets/qwatt-gates.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="/assets/gates.browser.js"><code>assets/gates.browser.js</code></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/assemble.js" target="_blank" rel="noopener"><code>batch/assemble.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#V3-2"><span translate="no">V3-2</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:V3-2"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="V3-2"></span></li><li><a href="/hoja-de-ruta.html#DV-1-4"><span translate="no">DV-1-4</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:DV-1-4"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="DV-1-4"></span></li><li><a href="/hoja-de-ruta.html#V3-10"><span translate="no">V3-10</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-10"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-10"></span></li><li><a href="/hoja-de-ruta.html#V3-12"><span translate="no">V3-12</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-12"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-12"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">intervalo aceptado, o rechazado con su motivo</span><span data-l="en">accepted interval, or refused with its reason</span></p>
+</li>
+<li class="q-fl" id="nodo-lotes" data-node="lotes">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">4</span><h3><span data-l="es">Lotes encadenados</span><span data-l="en">Chained batches</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Cada hora, los intervalos aceptados forman un lote que lleva la huella del lote anterior: cambiar uno rompe todos los siguientes.</span><span data-l="en">Every hour, the accepted intervals form a batch that carries the previous batch's fingerprint: changing one breaks every later one.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="lotes">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">La raíz de los intervalos; la raíz de las lecturas crudas (V3-5, semana 2); la huella del lote; un lote rechazado no suma energía (V3-3).</span><span data-l="en">The interval root; the raw-reading root (V3-5, week 2); the batch fingerprint; a refused batch adds no energy (V3-3).</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/evidence.js" target="_blank" rel="noopener"><code>protocol/evidence.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/batch.schema.json" target="_blank" rel="noopener"><code>protocol/batch.schema.json</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/assemble.js" target="_blank" rel="noopener"><code>batch/assemble.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/verify.js" target="_blank" rel="noopener"><code>batch/verify.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#D2-CHAIN"><span translate="no">D2-CHAIN</span></a> <span class="q-chip" data-st="previo" data-status-of="item:D2-CHAIN"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span> <span class="q-item-t" data-item="D2-CHAIN"></span></li><li><a href="/hoja-de-ruta.html#V3-3"><span translate="no">V3-3</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:V3-3"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="V3-3"></span></li><li><a href="/hoja-de-ruta.html#V3-5"><span translate="no">V3-5</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-5"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-5"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">lote y su huella SHA-256</span><span data-l="en">batch and its SHA-256 fingerprint</span></p>
+</li>
+<li class="q-fl" id="nodo-feed" data-node="feed">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">5</span><h3><span data-l="es">Feed público de evidencia</span><span data-l="en">Public evidence feed</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Todo lote se publica, aceptado o rechazado, con cada intervalo rechazado y su motivo. Lo publicado no se reescribe.</span><span data-l="en">Every batch is published, accepted or refused, with each refused interval and its reason. What is published is never rewritten.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="feed">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">Se escribe una sola vez; los registros solo crecen; un solo escritor por repositorio (V3-7, semana 2). Los feeds de muestra de este sitio ya usan el formato: PROTOTIPO.</span><span data-l="en">Written once; registers only grow; one writer per repository (V3-7, week 2). The sample feeds on this site already use the format: PROTOTYPE.</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/feed.js" target="_blank" rel="noopener"><code>batch/feed.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/ops/publish-feed.js" target="_blank" rel="noopener"><code>ops/publish-feed.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/tree/main/evidence/feeds/muestra" target="_blank" rel="noopener"><code>evidence/feeds/muestra/</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#V3-7"><span translate="no">V3-7</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-7"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-7"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">lote publicado · y de vuelta, la transacción firmada por el proponente (publicada) · el verificador descarga solo lo público · lotes publicados para cualquiera</span><span data-l="en">published batch · and back, the transaction signed by the proposer (published) · the verifier downloads only what is public · published batches for anyone</span></p>
+</li>
+<li class="q-fl" id="nodo-proponente" data-node="proponente">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">6</span><h3><span data-l="es">Proponente</span><span data-l="en">Proposer</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Arma la transacción de anclaje del lote, la firma y la publica. Nunca la envía: con una sola firma la red la rechazaría.</span><span data-l="en">Builds the batch's anchoring transaction, signs it and publishes it. It never submits it: with one signature the network would refuse it.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="proponente">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">Recorre la cadena hasta la cabeza anclada antes de proponer (DV-5); arma la transacción desde el lote publicado; la firma; nunca la envía.</span><span data-l="en">Walks the chain to the anchored head before proposing (DV-5); builds the transaction from the published batch; signs it; never submits it.</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/proposer.js" target="_blank" rel="noopener"><code>anchor/proposer.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/tx.js" target="_blank" rel="noopener"><code>anchor/tx.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/chain.js" target="_blank" rel="noopener"><code>anchor/chain.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#DV-5"><span translate="no">DV-5</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:DV-5"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="DV-5"></span></li><li><a href="/hoja-de-ruta.html#D3-REHEARSAL"><span translate="no">D3-REHEARSAL</span></a> <span class="q-chip" data-st="previo" data-status-of="item:D3-REHEARSAL"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span> <span class="q-item-t" data-item="D3-REHEARSAL"></span></li><li><a href="/hoja-de-ruta.html#V3-8"><span translate="no">V3-8</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-8"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-8"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">transacción firmada por el proponente (publicada)</span><span data-l="en">transaction signed by the proposer (published)</span></p>
+</li>
+<li class="q-fl" id="nodo-verificador" data-node="verificador">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">7</span><h3><span data-l="es">Verificador independiente</span><span data-l="en">Independent verifier</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Con su propia clave, descarga solo lo publicado, vuelve a correr cada comprobación, reconstruye la transacción y cofirma solo si es idéntica. Hoy lo opera nuestro propio equipo: es independiente en código y en datos, no en organización.</span><span data-l="en">With its own key, it downloads only what is published, runs every check again, rebuilds the transaction and co-signs only if it is identical. Today our own team operates it: independent in code and data, not in organization.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="verificador">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">Recorre hasta la huella anclada (V3-1); verifyBatch; transacción idéntica; rechaza lotes no publicados (verifier.not_published) y alterados (verifier.hash_mismatch); un rechazo será definitivo (V3-11, semana 3).</span><span data-l="en">Walks back to the anchored fingerprint (V3-1); verifyBatch; identical transaction; refuses unpublished (verifier.not_published) and altered (verifier.hash_mismatch) batches; a refusal will be final (V3-11, week 3).</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/verifier.js" target="_blank" rel="noopener"><code>anchor/verifier.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/verify.js" target="_blank" rel="noopener"><code>batch/verify.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/chain.js" target="_blank" rel="noopener"><code>anchor/chain.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#V3-1"><span translate="no">V3-1</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:V3-1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="V3-1"></span></li><li><a href="/hoja-de-ruta.html#DV-1-4"><span translate="no">DV-1-4</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:DV-1-4"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="DV-1-4"></span></li><li><a href="/hoja-de-ruta.html#V3-11"><span translate="no">V3-11</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-11"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-11"></span></li><li><a href="/hoja-de-ruta.html#V3-13"><span translate="no">V3-13</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-13"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-13"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">cofirma si es idéntica y la envía</span><span data-l="en">co-signs if identical and submits</span></p>
+</li>
+<li class="q-fl" id="nodo-cuenta" data-node="cuenta">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">8</span><h3><span data-l="es">Cuenta 2 de 3 en Stellar testnet</span><span data-l="en">2-of-3 account on Stellar testnet</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Tendrá tres firmantes: el proponente, el verificador y un firmante externo al equipo. Con umbrales 2/2/3, ninguna clave sola podrá enviar una transacción; dos claves anclarán; cambiar firmantes exigirá las tres. En preparación (semana 2).</span><span data-l="en">It will have three signers: the proposer, the verifier and a signer from outside the team. With thresholds 2/2/3, no single key will be able to send a transaction; two keys will anchor; changing signers will take all three. In preparation (week 2).</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="cuenta">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">Umbrales 2/2/3, tres firmantes de peso 1 y la clave con que se crea la cuenta en peso 0: decidido y construido en la herramienta de la cuenta, probado contra una red simulada (OD-1). La cuenta definitiva (V3-4) y las claves sin navegador (V3-8), en la semana 2.</span><span data-l="en">Thresholds 2/2/3, three signers of weight 1 and the key that creates the account at weight 0: decided and built into the account tool, tested against a simulated network (OD-1). The real account (V3-4) and keys without a browser (V3-8), in week 2.</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/setup-account.js" target="_blank" rel="noopener"><code>anchor/setup-account.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/thresholds.js" target="_blank" rel="noopener"><code>anchor/thresholds.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#OD-1"><span translate="no">OD-1</span></a> <span class="q-chip" data-st="hecho" data-status-of="item:OD-1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> <span class="q-item-t" data-item="OD-1"></span></li><li><a href="/hoja-de-ruta.html#V3-4"><span translate="no">V3-4</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-4"></span></li><li><a href="/hoja-de-ruta.html#V3-8"><span translate="no">V3-8</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-8"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-8"></span></li></ul>
+  </div></details>
+  <p class="q-fl-edge" aria-hidden="true">↓ <span data-l="es">huella, total y pago marcador · memo QW#n</span><span data-l="en">fingerprint, total and marker payment · memo QW#n</span></p>
+</li>
+<li class="q-fl" id="nodo-cualquiera" data-node="cualquiera">
+  <div class="q-fl-h"><span class="q-fl-n" aria-hidden="true">9</span><h3><span data-l="es">Cualquiera vuelve a comprobar</span><span data-l="en">Anyone checks again</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+  <p class="q-fl-s"><span data-l="es">Con datos públicos y sin claves: este sitio vuelve a derivar lotes en tu navegador, y la conciliación comparará cada ancla con su lote.</span><span data-l="en">With public data and no keys: this site re-derives batches in your browser, and reconciliation will compare every anchor with its batch.</span></p>
+  <details class="q-fl-more"><summary><span data-l="es">Qué comprueba, dónde está el código y puntos del plan</span><span data-l="en">What it checks, where the code is and plan items</span></summary>
+  <div class="q-fl-d" data-panel="cualquiera">
+    <h4><span data-l="es">Qué comprueba</span><span data-l="en">What it checks</span></h4>
+    <p><span data-l="es">Vuelve a derivar lotes en el navegador con el código del repositorio (este sitio, en vivo sobre el ensayo del 8 oct); la conciliación leerá firmantes y umbrales desde Stellar (V3-9, semana 2).</span><span data-l="en">Re-derives batches in the browser with the repository's code (this site, live on the 8 Oct rehearsal); reconciliation will read signers and thresholds from Stellar (V3-9, week 2).</span></p>
+    <h4><span data-l="es">Dónde está el código</span><span data-l="en">Where the code is</span></h4>
+    <ul class="q-files"><li><a href="https://github.com/academiaseul/QWATT/blob/main/protocol/build-browser.js" target="_blank" rel="noopener"><code>protocol/build-browser.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/batch/verify-cli.js" target="_blank" rel="noopener"><code>batch/verify-cli.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/assets/qwatt-reconcile.js" target="_blank" rel="noopener"><code>assets/qwatt-reconcile.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a href="https://github.com/academiaseul/QWATT/blob/main/anchor/reconcile-cli.js" target="_blank" rel="noopener"><code>anchor/reconcile-cli.js</code><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
+    <h4><span data-l="es">Puntos del plan</span><span data-l="en">Plan items</span></h4>
+    <ul class="q-items"><li><a href="/hoja-de-ruta.html#D4-REHEARSAL"><span translate="no">D4-REHEARSAL</span></a> <span class="q-chip" data-st="previo" data-status-of="item:D4-REHEARSAL"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span> <span class="q-item-t" data-item="D4-REHEARSAL"></span></li><li><a href="/hoja-de-ruta.html#V3-9"><span translate="no">V3-9</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-9"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-9"></span></li><li><a href="/hoja-de-ruta.html#V3-14"><span translate="no">V3-14</span></a> <span class="q-chip" data-st="planificado" data-status-of="item:V3-14"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span class="q-item-t" data-item="V3-14"></span></li></ul>
+  </div></details>
+</li>
+</ol>
+    </figure>
+    <div class="q-anchorline" data-widget="anchor-slot" data-compact>
+      <p class="q-fallback"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3: en preparación (semana 2).</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3: in preparation (week 2).</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="claves" aria-labelledby="hKeys">
+  <div class="q-wrap is-wide">
+    <div class="q-head"><h2 id="hKeys"><span data-l="es">Figura 2 · Qué puede hacer cada clave</span><span data-l="en">Figure 2 · What each key can do</span></h2><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">DECIDIDO · SEMANA 1</span><span data-l="en">DECIDED · WEEK 1</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+    <p class="q-sub"><span data-l="es">Con umbrales 2/2/3 (cuenta en preparación, semana 2) y tres firmantes de peso 1, será la propia red de Stellar la que decida, no nuestro código. P = proponente, V = verificador, E = firmante externo al equipo.</span><span data-l="en">With thresholds 2/2/3 (account in preparation, week 2) and three signers of weight 1, Stellar's own network will decide, not our code. P = proposer, V = verifier, E = signer from outside the team.</span></p>
+<div class="q-table-wrap"><table class="q-table q-keys">
+<caption><span data-l="es">Quién firma → qué hace la red → por qué</span><span data-l="en">Who signs → what the network does → why</span></caption>
+<thead><tr><th scope="col"><span data-l="es">Quién firma</span><span data-l="en">Who signs</span></th><th scope="col" class="q-kcol"><span class="q-kh" aria-hidden="true" translate="no">P · V · E</span><span class="q-vh"><span data-l="es">Claves</span><span data-l="en">Keys</span></span></th><th scope="col"><span data-l="es">Qué hace la red</span><span data-l="en">What the network does</span></th><th scope="col"><span data-l="es">Por qué</span><span data-l="en">Why</span></th></tr></thead>
+<tbody>
+<tr><th scope="row"><span data-l="es">Una clave sola, cualquiera de las tres</span><span data-l="en">One key alone, any of the three</span></th><td class="q-kcol"><span class="q-kdots" aria-hidden="true"><span class="q-kdot is-on"></span><span class="q-kdot"></span><span class="q-kdot"></span></span></td><td class="q-knet is-rechazo"><span data-l="es">la rechazará (tx_bad_auth)</span><span data-l="en">will refuse it (tx_bad_auth)</span></td><td><span data-l="es">No podrá anclar y ni siquiera podrá subir el número de secuencia.</span><span data-l="en">It will not be able to anchor, or even bump the sequence number.</span></td></tr>
+<tr><th scope="row"><span data-l="es">Proponente + verificador</span><span data-l="en">Proposer + verifier</span></th><td class="q-kcol"><span class="q-kdots" aria-hidden="true"><span class="q-kdot is-on"></span><span class="q-kdot is-on"></span><span class="q-kdot"></span></span></td><td class="q-knet is-ok"><span data-l="es">la aceptará: anclarán</span><span data-l="en">will accept it: they will anchor</span></td><td><span data-l="es">Será lo normal.</span><span data-l="en">This will be the normal case.</span></td></tr>
+<tr><th scope="row"><span data-l="es">Proponente + firmante externo</span><span data-l="en">Proposer + outside signer</span></th><td class="q-kcol"><span class="q-kdots" aria-hidden="true"><span class="q-kdot is-on"></span><span class="q-kdot"></span><span class="q-kdot is-on"></span></span></td><td class="q-knet is-ok"><span data-l="es">la aceptará: anclarán</span><span data-l="en">will accept it: they will anchor</span></td><td><span data-l="es">Será el suplente cuando el verificador esté caído; la conciliación lo mostrará como SUPLENTE.</span><span data-l="en">This will be the stand-in when the verifier is down; reconciliation will show it as STAND-IN.</span></td></tr>
+<tr><th scope="row"><span data-l="es">Verificador + firmante externo</span><span data-l="en">Verifier + outside signer</span></th><td class="q-kcol"><span class="q-kdots" aria-hidden="true"><span class="q-kdot"></span><span class="q-kdot is-on"></span><span class="q-kdot is-on"></span></span></td><td class="q-knet is-warn"><span data-l="es">la aceptará</span><span data-l="en">will accept it</span></td><td><span data-l="es">Pero la conciliación lo marcará ROTO, porque no es una pareja acordada.</span><span data-l="en">But reconciliation will mark it BROKEN, because it is not an agreed pair.</span></td></tr>
+<tr><th scope="row"><span data-l="es">Las tres juntas</span><span data-l="en">All three together</span></th><td class="q-kcol"><span class="q-kdots" aria-hidden="true"><span class="q-kdot is-on"></span><span class="q-kdot is-on"></span><span class="q-kdot is-on"></span></span></td><td class="q-knet is-ok"><span data-l="es">aceptará cambiar firmantes y umbrales</span><span data-l="en">will accept changing signers and thresholds</span></td><td><span data-l="es">Nadie más podrá hacerlo.</span><span data-l="en">Nobody else will be able to.</span></td></tr>
+</tbody></table></div>
+    <ul class="q-lines">
+      <li><span data-l="es"><b>Lo que la red no garantiza:</b> que el firmante externo participe en cada anclaje (dos claves bastan), qué pareja firmó (lo revisa la conciliación) ni que la entrada sea verdadera.</span><span data-l="en"><b>What the network does not guarantee:</b> that the outside signer takes part in every anchor (two keys suffice), which pair signed (reconciliation checks that) or that the input is true.</span></li>
+      <li><span data-l="es"><b>Si se pierde una clave,</b> el anclaje sigue pero los firmantes ya no se pueden cambiar. <b>Si se pierden dos,</b> el anclaje se detiene y la recuperación es una cuenta nueva.</span><span data-l="en"><b>If one key is lost,</b> anchoring continues but signers can no longer be changed. <b>If two are lost,</b> anchoring stops and recovery means a new account.</span></li>
+    </ul>
+    <p class="q-keystatus"><span data-l="es">Regla decidida y construida en la herramienta de la cuenta</span><span data-l="en">Rule decided and built into the account tool</span> <span class="q-chip" data-st="hecho" data-status-of="item:OD-1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span> · <span data-l="es">la cuenta definitiva</span><span data-l="en">the real account</span> <span class="q-chip" data-st="planificado" data-status-of="item:V3-4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></p>
+    <p class="q-callout"><span data-l="es">Míralo ocurrir:</span><span data-l="en">Watch it happen:</span> <a href="/pruebas.html"><span data-l="es">La red dice que no →</span><span data-l="en">The network says no →</span></a> · <a href="/verificacion.html"><span data-l="es">Compruébalo tú →</span><span data-l="en">Check it yourself →</span></a></p>
+  </div>
+</section>
+
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
+</footer>
+<!-- /q:footer -->
+</body>
+</html>

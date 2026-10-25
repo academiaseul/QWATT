@@ -1,0 +1,53 @@
+{
+  "id": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+  "account_id": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+  "sequence": "18370322449301505",
+  "sequence_ledger": 4277175,
+  "sequence_time": "1787408597",
+  "subentry_count": 1,
+  "last_modified_ledger": 4277175,
+  "last_modified_time": "2026-08-22T14:23:17Z",
+  "thresholds": {
+    "low_threshold": 0,
+    "med_threshold": 0,
+    "high_threshold": 0
+  },
+  "flags": {
+    "auth_required": false,
+    "auth_revocable": false,
+    "auth_immutable": false,
+    "auth_clawback_enabled": false
+  },
+  "balances": [
+    {
+      "balance": "1.0000000",
+      "limit": "1.0000000",
+      "buying_liabilities": "0.0000000",
+      "selling_liabilities": "0.0000000",
+      "last_modified_ledger": 4277175,
+      "is_authorized": true,
+      "is_authorized_to_maintain_liabilities": true,
+      "asset_type": "credit_alphanum12",
+      "asset_code": "QWATT",
+      "asset_issuer": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
+    },
+    {
+      "balance": "1.0000000",
+      "buying_liabilities": "0.0000000",
+      "selling_liabilities": "0.0000000",
+      "asset_type": "native"
+    }
+  ],
+  "signers": [
+    {
+      "weight": 1,
+      "key": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+      "type": "ed25519_public_key"
+    }
+  ],
+  "data": {},
+  "num_sponsoring": 0,
+  "num_sponsored": 0,
+  "paging_token": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
+  "_fixture_note": "balances replaced with 1.0000000 in this fixture"
+}

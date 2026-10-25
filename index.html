@@ -1,134 +1,540 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-title-en="QWATT · solar generation verifier on Stellar testnet">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>QWATT · verificador de generación solar en Stellar testnet</title>
 <meta name="description" content="Verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet. Proyecto en desarrollo, solo testnet.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="canonical" href="https://qwatt.org/">
 <meta name="theme-color" content="#16100a">
-<meta name="color-scheme" content="dark">
+<meta name="color-scheme" content="dark light">
 <meta property="og:site_name" content="QWATT">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://qwatt.org/">
 <meta property="og:title" content="QWATT · verificador de generación solar en Stellar testnet">
 <meta property="og:description" content="Verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet. Proyecto en desarrollo, solo testnet.">
 <meta property="og:locale" content="es_CL">
+<meta property="og:locale:alternate" content="en_US">
 <meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="QWATT · verificador de generación solar en Stellar testnet">
 <meta name="twitter:description" content="Verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet. Proyecto en desarrollo, solo testnet.">
 <meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
-<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: energía solar medida, verificable por cualquiera. Verificador de código abierto en Stellar testnet.">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/pages/index.css">
+<script src="/assets/boot.js"></script>
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"Organization","name":"QWATT","url":"https://qwatt.org/","description":"Verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet.","sameAs":["https://github.com/academiaseul/QWATT"]}
+{"@context":"https://schema.org","@type":"Organization","name":"QWATT","url":"https://qwatt.org/","description":"Verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet. Proyecto en desarrollo, solo testnet.","sameAs":["https://github.com/academiaseul/QWATT","https://www.youtube.com/@qwatt.energy","https://x.com/ch1ngukim"]}
 </script>
-<style>
-  /* Página del sprint: autocontenida, sin JS. Misma paleta que verificacion.html. */
-  :root{
-    --ink:#f0e8dc; --ink-2:#b3a48f; --grey:#8b7a64; --line:#3b2d1d;
-    --paper:#16100a; --paper-2:#231a10; --teal:#d08a57;
-    --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-    --mono:'IBM Plex Mono','SF Mono',Consolas,monospace;
-    --gut:28px;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{-webkit-text-size-adjust:100%}
-  body{font-family:var(--sans);background:var(--paper);color:var(--ink);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;overflow-wrap:break-word}
-  a{color:inherit;text-decoration:none}
-  :focus-visible{outline:2px solid var(--teal);outline-offset:3px;border-radius:3px}
-  .wrap{max-width:1040px;margin:0 auto;padding:0 var(--gut)}
-  @media(max-width:600px){:root{--gut:18px}}
-
-  header.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:28px 0;border-bottom:1px solid var(--line)}
-  .brand{font-family:var(--mono);font-weight:600;font-size:17px;letter-spacing:.24em;color:var(--ink);display:inline-flex;align-items:center}
-  .brand svg{font-size:1.3em}
-  .chip{font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--teal);border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap}
-
-  .tag{font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.18em;text-transform:uppercase;color:var(--teal);display:block}
-
-  .hero{padding:64px 0 56px;border-bottom:1px solid var(--line)}
-  h1{font-size:clamp(1.55rem,1.05rem + 2.3vw,2.6rem);font-weight:300;letter-spacing:-.02em;line-height:1.18;max-width:30ch}
-  h1 b{font-weight:600;color:var(--teal)}
-  .en{font-size:15px;line-height:1.6;color:var(--grey);max-width:62ch;margin-top:18px}
-
-  .sprint{background:var(--paper-2);border-left:3px solid var(--teal);padding:16px 20px;margin-top:32px;max-width:62ch}
-  .sprint p{font-size:15px;line-height:1.6;color:var(--ink-2);margin-top:6px}
-
-  .links{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
-  .btn{font-family:var(--mono);font-size:12.5px;letter-spacing:.06em;display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:10px 18px;border:1px solid var(--line);border-radius:6px;color:var(--ink);background:var(--paper-2);transition:border-color .15s,color .15s}
-  .btn:hover{border-color:var(--teal);color:var(--teal)}
-  .btn.primary{background:var(--teal);border-color:var(--teal);color:#16100a;font-weight:500}
-  .btn.primary:hover{background:#d9a074;border-color:#d9a074;color:#16100a}
-  @media(max-width:520px){.btn{flex:1 1 100%}}
-
-  .how{padding:52px 0;border-bottom:1px solid var(--line)}
-  .how h2{margin-bottom:22px}
-  .steps{list-style:none;counter-reset:s;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px}
-  .steps li{counter-increment:s;position:relative;background:var(--paper-2);border:1px solid var(--line);border-radius:8px;padding:16px 16px 18px}
-  .steps li::before{content:counter(s,decimal-leading-zero);display:block;font-family:var(--mono);font-size:11px;font-weight:500;letter-spacing:.1em;color:var(--teal);margin-bottom:10px}
-  .steps li:not(:last-child)::after{content:'\2192';position:absolute;right:-12px;top:14px;font-family:var(--mono);font-size:13px;color:var(--teal);background:var(--paper);line-height:1;padding:2px 0}
-  .steps b{display:block;font-size:15px;font-weight:600;line-height:1.3;margin-bottom:6px}
-  .steps span{display:block;font-size:13.5px;line-height:1.55;color:var(--ink-2)}
-  @media(max-width:900px){
-    .steps{grid-template-columns:1fr;gap:12px}
-    .steps li:not(:last-child)::after{content:'\2193';right:auto;left:20px;top:auto;bottom:-13px;padding:0 2px}
-  }
-
-  .disclaimer{padding:34px 0 30px}
-  .disclaimer p{font-size:13.5px;line-height:1.65;color:var(--ink-2);max-width:78ch;border:1px solid var(--line);border-radius:8px;padding:16px 20px}
-  footer{padding:0 0 36px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--grey)}
-  @media(prefers-reduced-motion:reduce){*{transition:none !important}}
-</style>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
+<script defer src="/assets/qwatt-live.js"></script>
+<script defer src="/assets/qwatt-reconcile.js"></script>
+<script defer src="/assets/live-widgets.js"></script>
+<script defer src="/assets/gates.browser.js"></script>
+<script defer src="/assets/qwatt-gates.js"></script>
+<script defer src="/assets/pages/index.js"></script>
 </head>
-<body>
-<div class="wrap">
-  <header class="top">
-    <a class="brand" href="./" aria-label="QWATT, inicio"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg> QWATT</a>
-    <span class="chip">&#9679; STELLAR TESTNET</span>
-  </header>
+<body data-page="index" data-status="mixto" data-parts="testnet prototipo planificado">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
+  </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
 
-  <main>
-    <section class="hero">
-      <h1>QWATT es un verificador de c&oacute;digo abierto que convierte lecturas de medidores solares en <b>constancias verificables de forma independiente</b> en Stellar testnet.</h1>
-      <p class="en" lang="en">An open-source verifier that turns solar meter readings into independently verifiable records on Stellar testnet.</p>
-
-      <div class="sprint">
-        <span class="tag">Sprint Instawards Chile</span>
-        <p>desde el 19 oct 2026 &middot; Jay Kim y Diego Ostertag, Santiago</p>
+<section class="q-hero" id="top" aria-labelledby="h1">
+  <canvas id="qWave" aria-hidden="true"></canvas>
+  <div class="q-hero-in">
+    <div>
+      <p class="q-eyebrow q-type"><span data-l="es">Sprint Instawards Chile · desde el 19 oct 2026</span><span data-l="en">Instawards Chile sprint · since 19 Oct 2026</span></p>
+      <h1 id="h1"><span data-l="es">Lecturas solares, <b>verificables por cualquiera.</b></span><span data-l="en">Solar readings, <b>verifiable by anyone.</b></span></h1>
+      <p class="q-lead"><span data-l="es">QWATT es un verificador de código abierto que convierte lecturas de medidores solares en constancias verificables de forma independiente en Stellar testnet. Toda la entrada es simulada; solo Stellar testnet.</span><span data-l="en">QWATT is an open-source verifier that turns solar meter readings into independently verifiable records on Stellar testnet. All input is simulated; Stellar testnet only.</span></p>
+      <p class="q-status" role="note">
+        <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">los datos en vivo de esta página se leen ahora desde Horizon testnet</span><span data-l="en">the live data on this page is read now from Horizon testnet</span></span></span>
+        <span class="q-part"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span><span data-l="es">el laboratorio usa entrada simulada</span><span data-l="en">the lab uses simulated input</span></span></span>
+        <span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">el plan de la semana 2 aún no está construido</span><span data-l="en">the week-2 plan is not built yet</span></span></span>
+      </p>
+      <div class="q-cta">
+        <a class="q-btn is-primary" href="/verificacion.html"><span data-l="es">Compruébalo tú →</span><span data-l="en">Check it yourself →</span></a>
+        <a class="q-btn" href="/hoja-de-ruta.html"><span data-l="es">Hoja de ruta →</span><span data-l="en">Roadmap →</span></a>
+        <a class="q-btn" href="#ideas"><span data-l="es">Todas las ideas ↓</span><span data-l="en">All ideas ↓</span></a>
       </div>
-
-      <nav class="links" aria-label="Enlaces">
-        <a class="btn primary" href="verificacion.html">Prueba el verificador <span aria-hidden="true">&rarr;</span></a>
-        <a class="btn" href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener">C&oacute;digo <span aria-hidden="true">&#8599;</span></a>
-        <a class="btn" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener">Lo hecho cada semana <span aria-hidden="true">&#8599;</span></a>
-      </nav>
-    </section>
-
-    <section class="how" aria-labelledby="como">
-      <h2 id="como" class="tag">C&oacute;mo funciona</h2>
-      <ol class="steps">
-        <li><b>Lecturas de 2 medidores</b><span>Dos medidores independientes leen la misma instalaci&oacute;n; los filtros de verificaci&oacute;n rechazan lo f&iacute;sicamente imposible.</span></li>
-        <li><b>Lote con huella</b><span>Los intervalos aceptados forman un lote p&uacute;blico, identificado por su huella SHA-256.</span></li>
-        <li><b>Verificador independiente</b><span>Un segundo servicio, en otro servidor y con su propia clave, descarga el lote p&uacute;blico, vuelve a correr cada filtro y reconstruye la transacci&oacute;n por su cuenta.</span></li>
-        <li><b>2 de 3 firmas</b><span>La cuenta de anclaje tiene umbrales 2/2/3: ninguna clave sola puede enviar transacci&oacute;n alguna por ella, anclar exige dos de tres claves y cambiar sus firmantes exige las tres.</span></li>
-        <li><b>Stellar testnet</b><span>La huella del lote queda anclada en Stellar testnet, donde cualquiera puede compararla con el lote p&uacute;blico.</span></li>
-      </ol>
-    </section>
-
-    <aside class="disclaimer" aria-label="Aviso">
-      <p>QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversi&oacute;n, ni un valor o instrumento financiero, ni un certificado de energ&iacute;a renovable (REC), ni un cr&eacute;dito de carbono. No tiene precio y no se vende.</p>
+    </div>
+    <aside class="q-livecard" data-widget="ledger-livecard" aria-labelledby="lcTitle">
+      <div class="q-lc-head">
+        <p class="q-lc-k" id="lcTitle"><span class="q-live" aria-hidden="true"></span><span data-l="es">VERIFICACIÓN EN VIVO · STELLAR TESTNET</span><span data-l="en">LIVE VERIFICATION · STELLAR TESTNET</span></p>
+        <span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span>
+      </div>
+      <div data-slot aria-live="off">
+        <p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p>
+        <p class="q-lc-anchor"><span data-l="es">Cuenta de anclaje 2 de 3: en preparación (semana 2)</span><span data-l="en">2-of-3 anchoring account: in preparation (week 2)</span></p>
+      </div>
     </aside>
-  </main>
+  </div>
+</section>
 
-  <footer>&copy; 2026 QWATT &middot; c&oacute;digo abierto, licencia MIT &middot; solo Stellar testnet</footer>
+<section class="q-sec" id="sprint" aria-labelledby="hSprint">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <span class="q-tag"><span data-l="es">Instawards Chile · 30 días</span><span data-l="en">Instawards Chile · 30 days</span></span>
+      <h2 id="hSprint"><span data-l="es">El sprint</span><span data-l="en">The sprint</span></h2>
+      <p><span data-l="es">Instawards Chile, 30 días desde el lunes 19 de octubre de 2026 (Día 1) hasta el martes 17 de noviembre (Día 30). Equipo: Jay Kim y Diego Ostertag. El trabajo anterior al 19 oct es trabajo previo: está público, rotulado y no lo financia el programa.</span><span data-l="en">Instawards Chile, 30 days from Monday 19 October 2026 (Day 1) to Tuesday 17 November (Day 30). Team: Jay Kim and Diego Ostertag. Work from before 19 Oct is prior work: public, labeled, and not funded by the programme.</span></p>
+    </div>
+<!-- q:calendar -->
+<ol class="q-cal">
+<li class="q-cal-mark"><p class="q-cal-k"><span data-l="es">Día 1</span><span data-l="en">Day 1</span></p><p class="q-cal-d"><span data-l="es">19 oct</span><span data-l="en">19 Oct</span></p></li>
+<li class="q-cal-week" data-week="1"><p class="q-cal-k"><span data-l="es">Semana 1</span><span data-l="en">Week 1</span></p><p class="q-cal-d"><span data-l="es">19–23 oct</span><span data-l="en">19–23 Oct</span></p><span class="q-chip" data-st="hecho" data-status-of="week:1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></li>
+<li class="q-cal-week" data-week="2"><p class="q-cal-k"><span data-l="es">Semana 2</span><span data-l="en">Week 2</span></p><p class="q-cal-d"><span data-l="es">26–30 oct</span><span data-l="en">26–30 Oct</span></p><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
+<li class="q-cal-week" data-week="3"><p class="q-cal-k"><span data-l="es">Semana 3</span><span data-l="en">Week 3</span></p><p class="q-cal-d"><span data-l="es">2–6 nov · congelación del código 6 nov</span><span data-l="en">2–6 Nov · code freeze 6 Nov</span></p><span class="q-chip" data-st="planificado" data-status-of="week:3"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
+<li class="q-cal-week" data-week="4"><p class="q-cal-k"><span data-l="es">Corrida contada</span><span data-l="en">Counted run</span></p><p class="q-cal-d"><span data-l="es">8–15 nov</span><span data-l="en">8–15 Nov</span></p><span class="q-chip" data-st="planificado" data-status-of="week:4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></li>
+<li class="q-cal-mark"><p class="q-cal-k"><span data-l="es">Día 30</span><span data-l="en">Day 30</span></p><p class="q-cal-d"><span data-l="es">17 nov</span><span data-l="en">17 Nov</span></p></li>
+</ol>
+<!-- /q:calendar -->
+    <p class="q-note"><span data-l="es">Corrida contada: del domingo 8 nov 00:00 al domingo 15 nov 00:00, hora de Chile, con entrada simulada.</span><span data-l="en">Counted run: from Sunday 8 Nov 00:00 to Sunday 15 Nov 00:00, Chile time, with simulated input.</span></p>
+  </div>
+</section>
+
+<section class="q-sec" id="semana1" aria-labelledby="hS1">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hS1"><span data-l="es">Semana 1: lo que hicimos (19–23 oct)</span><span data-l="en">Week 1: what we did (19–23 Oct)</span></h2><span class="q-chip" data-st="hecho" data-status-of="week:1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></div>
+      <p><span data-l="es">Cada tarjeta enlaza la prueba en el repositorio: un PR, una corrida del CI en rojo antes y en verde después, un commit o un documento.</span><span data-l="en">Every card links its proof in the repository: a PR, a CI run red before and green after, a commit or a document.</span></p>
+    </div>
+<!-- q:week 1 -->
+<div class="q-cards q-weekblock" data-week="1">
+<article class="q-card q-hl" id="hl-h-fallas"><div class="q-head"><h3><span data-l="es">Dos formas de engañar a nuestro propio verificador, cerradas</span><span data-l="en">Two ways to fool our own verifier, closed</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div><p><span data-l="es">Falla 1, «el total heredado»: el verificador ahora recorre la cadena hasta el último lote anclado y recalcula cada huella y cada total. Falla 2, «la misma energía, dos veces»: se rechazan intervalos repetidos, superpuestos, fuera de la grilla de 5 minutos o de otra instalación. En rojo en el CI antes del arreglo, en verde después.</span><span data-l="en">Flaw 1, &quot;the inherited total&quot;: the verifier now walks back to the last anchored batch and recomputes every fingerprint and total. Flaw 2, &quot;the same energy, twice&quot;: repeated, overlapping, off-grid or other-installation intervals are refused. Red in CI before the fix, green after.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/7" target="_blank" rel="noopener"><span translate="no">PR #7</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/5" target="_blank" rel="noopener"><span translate="no">PR #5</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/1" target="_blank" rel="noopener"><span translate="no">PR #1</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-run is-red" href="https://github.com/academiaseul/QWATT/actions/runs/39589564074" target="_blank" rel="noopener"><span data-l="es">CI …4074 · en rojo antes</span><span data-l="en">CI …4074 · red before</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-run is-red" href="https://github.com/academiaseul/QWATT/actions/runs/39589526847" target="_blank" rel="noopener"><span data-l="es">CI …6847 · en rojo antes</span><span data-l="en">CI …6847 · red before</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-run is-green" href="https://github.com/academiaseul/QWATT/actions/runs/39593831385" target="_blank" rel="noopener"><span data-l="es">CI …1385 · en verde después</span><span data-l="en">CI …1385 · green after</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-run is-green" href="https://github.com/academiaseul/QWATT/actions/runs/39593847463" target="_blank" rel="noopener"><span data-l="es">CI …7463 · en verde después</span><span data-l="en">CI …7463 · green after</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-revision"><div class="q-head"><h3><span data-l="es">Cuatro más, encontradas al revisar esos arreglos; y el anclaje ya no puede quedar detenido</span><span data-l="en">Four more, found by reviewing those fixes; and anchoring can no longer stall for good</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div><p><span data-l="es">DV-1 a DV-4 cierran otras formas de contar dos veces la misma energía. Además, el anclaje ya no puede quedar detenido para siempre después de muchos lotes rechazados seguidos (nuevo código verifier.walk_too_long).</span><span data-l="en">DV-1 to DV-4 close other ways to count the same energy twice. Also, anchoring can no longer stop for good after a long run of rejected batches (new code verifier.walk_too_long).</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/1" target="_blank" rel="noopener"><span translate="no">PR #1</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/8" target="_blank" rel="noopener"><span translate="no">PR #8</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-pruebas"><div class="q-head"><h3><span data-l="es">Pruebas automáticas: 154 → 194, 0 en rojo</span><span data-l="en">Automated tests: 154 → 194, 0 failing</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div><p><span data-l="es">La mayoría de las 40 nuevas son intentos de manipulación que deben ser rechazados.</span><span data-l="en">Most of the 40 new ones are tampering attempts that must be refused.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-run is-green" href="https://github.com/academiaseul/QWATT/actions/runs/39943161382" target="_blank" rel="noopener"><span data-l="es">CI …1382 · en verde después</span><span data-l="en">CI …1382 · green after</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-umbrales"><div class="q-head"><h3><span data-l="es">Umbrales 2/2/3 decididos para la cuenta de anclaje</span><span data-l="en">Thresholds 2/2/3 decided for the anchoring account</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div><p><span data-l="es">En esa cuenta, en preparación para la semana 2, ninguna clave sola, ni siquiera una de nuestras dos, podrá enviar una transacción; anclar exigirá 2 de las 3 claves, y cambiar firmantes o umbrales, las 3. Ya está en la herramienta que configura la cuenta, probado contra una red simulada.</span><span data-l="en">On that account, in preparation for week 2, no single key, not even one of our two, will be able to send a transaction; anchoring will need 2 of the 3 keys, and changing signers or thresholds all 3. Already in the account setup tool, tested against a simulated network.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/9" target="_blank" rel="noopener"><span translate="no">PR #9</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-acuerdo"><div class="q-head"><h3><span data-l="es">Acuerdo de arquitectura v3</span><span data-l="en">Architecture freeze v3</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div><p><span data-l="es">Acordado por los dos fundadores el miércoles 21 oct. Fija el formato de la evidencia, las reglas de firma y de rechazo, y el plan de cada semana.</span><span data-l="en">Agreed by both founders on Wednesday 21 Oct. It sets the evidence format, the signing and rejection rules, and the plan for each week.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-commit" href="https://github.com/academiaseul/QWATT/commit/b304ddb" target="_blank" rel="noopener"><span translate="no">commit b304ddb</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/docs/ARCHITECTURE-FREEZE-v3.md" target="_blank" rel="noopener"><span translate="no">ARCHITECTURE-FREEZE-v3.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-d1"><div class="q-head"><h3><span data-l="es">Evidencia de la Entrega 1</span><span data-l="en">Deliverable 1 evidence</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div><p><span data-l="es">Modbus, HTTP y CSV producen registros idénticos byte a byte; 24 de 24 intervalos aceptados en cada vía, con Modbus leído desde un simulador. Abierto: dos registros del controlador EPEver y el banco del PZEM-017 necesitan hardware real, fuera de este sprint.</span><span data-l="en">Modbus, HTTP and CSV produce byte-identical records; 24 of 24 intervals accepted on every path, with Modbus read from a simulator. Open: two EPEver controller registers and the PZEM-017 bench settings need real hardware, outside this sprint.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/10" target="_blank" rel="noopener"><span translate="no">PR #10</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/docs/DELIVERABLE-1-EVIDENCE.md" target="_blank" rel="noopener"><span translate="no">DELIVERABLE-1-EVIDENCE.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-rechazado"><div class="q-head"><h3><span data-l="es">Un lote rechazado ya no suma energía al total</span><span data-l="en">A rejected batch no longer adds energy to the total</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div><p><span data-l="es">Estaba planificado para la semana 3; lo adelantamos porque sin esta regla la misma energía podía contarse dos veces.</span><span data-l="en">It was planned for week 3; we moved it up because without it the same energy could count twice.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/8" target="_blank" rel="noopener"><span translate="no">PR #8</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-cero-tx"><div class="q-head"><h3><span data-l="es">0 transacciones en testnet en la semana 1, a propósito</span><span data-l="en">0 testnet transactions in week 1, on purpose</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></span></div><p><span data-l="es">Compruébalo en vivo: contamos las transacciones de cada cuenta que nombra el repositorio (11) entre el lunes 19 y el viernes 23 de octubre, hora de Chile; las claves que solo firman no tienen cuenta.</span><span data-l="en">Check it live: we count the transactions of every account the repository names (11) from Monday 19 to Friday 23 October, Chile time; keys that only sign have no account.</span></p><div class="q-live-slot" data-widget="week-tx" data-week="1" data-set="core" data-compact="1"><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span translate="no">CHANGELOG.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-cero-claves"><div class="q-head"><h3><span data-l="es">0 claves secretas de Stellar en el repositorio</span><span data-l="en">0 Stellar secret keys in the repository</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div><p><span data-l="es">Revisando cada commit de cada rama y etiqueta públicas: 156 commits al 23 oct.</span><span data-l="en">Checking every commit of every public branch and tag: 156 commits on 23 Oct.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span translate="no">CHANGELOG.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-firmante"><div class="q-head"><h3><span data-l="es">Firmante externo al equipo: confirmado</span><span data-l="en">Signer from outside the team: confirmed</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div><p><span data-l="es">Su clave secreta queda en su poder; su clave pública se agregará al crear la cuenta definitiva.</span><span data-l="en">Their secret key stays with them; their public key is added when the real account is created.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span translate="no">CHANGELOG.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-previo"><div class="q-head"><h3><span data-l="es">Trabajo previo, público y rotulado</span><span data-l="en">Prior work, public and labeled</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div><p><span data-l="es">Los 20 commits de Diego Ostertag del 8 al 17 oct, con sus fechas originales; el ensayo del 8 oct se describe como lo que fue: 48 horas simuladas en 4 min 18 s, con cuentas desechables.</span><span data-l="en">Diego Ostertag's 20 commits from 8 to 17 Oct, with their original dates; the 8 Oct run is described as what it was: 48 simulated hours in 4 min 18 s, on throwaway accounts.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/4" target="_blank" rel="noopener"><span translate="no">PR #4</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/docs/PRIOR-WORK.md" target="_blank" rel="noopener"><span translate="no">PRIOR-WORK.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-hl" id="hl-h-quitamos"><div class="q-head"><h3><span data-l="es">Quitamos lo que no correspondía</span><span data-l="en">We removed what did not belong</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div><p><span data-l="es">Google Analytics, las páginas de agosto (vuelven ahora, rotuladas) y la página de conciliación, hasta que lea desde Stellar los firmantes y los umbrales.</span><span data-l="en">Google Analytics, the August pages (back now, labeled) and the reconciliation page, until it reads signers and thresholds from Stellar.</span></p><p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-pr" href="https://github.com/academiaseul/QWATT/pull/3" target="_blank" rel="noopener"><span translate="no">PR #3</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-commit" href="https://github.com/academiaseul/QWATT/commit/8175ba9" target="_blank" rel="noopener"><span translate="no">commit 8175ba9</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev q-ev-commit" href="https://github.com/academiaseul/QWATT/commit/141089a" target="_blank" rel="noopener"><span translate="no">commit 141089a</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
 </div>
+<!-- /q:week 1 -->
+  </div>
+</section>
+
+<section class="q-sec" id="semana2" aria-labelledby="hS2">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hS2"><span data-l="es">Semana 2: el plan (26–30 oct)</span><span data-l="en">Week 2: the plan (26–30 Oct)</span></h2><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+      <p><span data-l="es">Planificado, todavía no construido. La cuenta definitiva 2 de 3 tendrá tres firmantes: el proponente, el verificador independiente y un firmante externo al equipo (confirmado).</span><span data-l="en">Planned, not built yet. The real 2-of-3 account will have three signers: the proposer, the independent verifier and a signer from outside the team (confirmed).</span></p>
+    </div>
+<!-- q:week 2 -->
+<div class="q-cards q-weekblock" data-week="2">
+<article class="q-card q-item" id="item-V3-4"><div class="q-head"><h3><span data-l="es">Cuenta 2 de 3 real en Stellar testnet y pruebas A–D</span><span data-l="en">Real 2-of-3 account on Stellar testnet and tests A–D</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">Proponente, verificador independiente y firmante externo al equipo; umbrales 2/2/3; la clave con que se crea la cuenta queda en peso 0. Pruebas A y B (la red las rechaza), C (anclada), D (el verificador la rechaza) e independencia.</span><span data-l="en">Proposer, independent verifier and a signer from outside the team; thresholds 2/2/3; the key that creates the account goes to weight 0. Tests A and B (the network refuses them), C (anchored), D (the verifier refuses it) and independence.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p><ul class="q-ev-list"><li><a class="q-ev q-ev-doc" href="https://github.com/academiaseul/QWATT/blob/main/docs/ARCHITECTURE-FREEZE-v3.md" target="_blank" rel="noopener"><span translate="no">ARCHITECTURE-FREEZE-v3.md</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul></article>
+<article class="q-card q-item" id="item-V3-5"><div class="q-head"><h3><span data-l="es">samples_root: una huella de todas las lecturas crudas de cada lote</span><span data-l="en">samples_root: a fingerprint of every raw reading in each batch</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-5"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">Esquema de lote 1.1.0; las lecturas crudas se publican junto a cada lote y el verificador recalcula la raíz.</span><span data-l="en">Batch schema 1.1.0; raw readings are published next to each batch and the verifier recomputes the root.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></article>
+<article class="q-card q-item" id="item-V3-6"><div class="q-head"><h3><span data-l="es">Cada entrada registra cuánto se desvía su reloj</span><span data-l="en">Every input records how far its clock is off</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-6"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">clock_skew_s en Modbus, CSV, HTTP y el simulador.</span><span data-l="en">clock_skew_s on Modbus, CSV, HTTP and the simulator.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></article>
+<article class="q-card q-item" id="item-V3-7"><div class="q-head"><h3><span data-l="es">Dos repositorios públicos de evidencia</span><span data-l="en">Two public evidence repositories</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-7"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">Uno que escribe solo el proponente y otro que escribe solo el verificador; lo publicado no se reescribe.</span><span data-l="en">One written only by the proposer and one only by the verifier; what is published is never rewritten.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></article>
+<article class="q-card q-item" id="item-V3-8"><div class="q-head"><h3><span data-l="es">Claves sin navegador</span><span data-l="en">Keys without a browser</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-8"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">Cada clave se crea con stellar-cli en la máquina que la usa; una copia offline por titular, probada una vez antes de la congelación del código.</span><span data-l="en">Each key is created with stellar-cli on the machine that uses it; one offline copy per holder, tested once before the code freeze.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></article>
+<article class="q-card q-item" id="item-V3-9"><div class="q-head"><h3><span data-l="es">Rótulo fijo con el nivel A0 y una conciliación que lee firmantes y umbrales desde Stellar</span><span data-l="en">Fixed label with level A0 and a reconciliation that reads signers and thresholds from Stellar</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-9"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">«Entrada simulada · assurance A0 · Stellar testnet» en la corrida, la conciliación y el informe.</span><span data-l="en">&quot;Simulated input · assurance A0 · Stellar testnet&quot; on the run, the reconciliation and the report.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></article>
+<article class="q-card q-item" id="item-V3-10"><div class="q-head"><h3><span data-l="es">Sin energía estimada en un hueco de más de tres lecturas</span><span data-l="en">No energy estimated across a gap of more than three readings</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado" data-status-of="item:V3-10"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div><p><span data-l="es">Cuando un medidor se corta, el hueco queda a la vista.</span><span data-l="en">When a meter drops out, the gap stays visible.</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></article>
+</div>
+<!-- /q:week 2 -->
+    <p class="q-note"><span data-l="es">Post de mitad de semana: la prueba A, rechazada por la red.</span><span data-l="en">Mid-week post: test A, rejected by the network.</span></p>
+  </div>
+</section>
+
+<section class="q-sec" id="compruebalo" aria-labelledby="hCheck">
+  <div class="q-wrap is-wide">
+    <div class="q-band">
+      <div class="q-head"><h2 id="hCheck"><span data-l="es">No nos creas: compruébalo</span><span data-l="en">Don't take our word for it: check it</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div>
+      <p><span data-l="es">Tres cosas que puedes hacer ahora mismo, en tu navegador y sin cuenta: volver a derivar un lote publicado con el mismo código que usa el verificador; leer en Stellar testnet la huella que quedó anclada y quién la firmó; y ver la respuesta con que la red rechazó, el 8 oct, una transacción con una sola firma (archivo de evidencia publicado).</span><span data-l="en">Three things you can do right now, in your browser and without an account: re-derive a published batch with the same code the verifier uses; read on Stellar testnet the fingerprint that was anchored and who signed it; and see the answer the network gave on 8 Oct when it refused a single-signature transaction (published evidence file).</span></p>
+      <div class="q-cta">
+        <a class="q-btn is-primary" href="/verificacion.html"><span data-l="es">Vuelve a derivar un lote →</span><span data-l="en">Re-derive a batch →</span></a>
+        <a class="q-btn" href="/pruebas.html"><span data-l="es">La red dice que no →</span><span data-l="en">The network says no →</span></a>
+        <a class="q-btn" href="/como-funciona.html"><span data-l="es">Cómo funciona →</span><span data-l="en">How it works →</span></a>
+      </div>
+      <p class="q-note"><span data-l="es">Hoy lo haces con el ensayo del 8 oct (cuentas desechables, entrada simulada). Desde la semana 2, con la cuenta definitiva y el feed público.</span><span data-l="en">Today you do it with the 8 Oct rehearsal (throwaway accounts, simulated input). From week 2, with the real account and the public feed.</span></p>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="vivo" aria-labelledby="hLive">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hLive"><span data-l="es">Verificación en vivo</span><span data-l="en">Live verification</span></h2><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+      <p><span data-l="es">Todo lo de esta sección se lee ahora desde Horizon testnet, la interfaz pública de Stellar. Este sitio solo lee: no firma ni envía nada.</span><span data-l="en">Everything in this section is read now from Horizon testnet, Stellar's public interface. This site only reads: it signs and sends nothing.</span></p>
+    </div>
+    <div class="q-live-top">
+      <p class="q-note" data-paused-note hidden><span data-l="es">Pausado mientras la pestaña no está visible</span><span data-l="en">Paused while the tab is hidden</span></p>
+      <button type="button" class="q-btn is-small" data-refresh><span data-l="es">Actualizar</span><span data-l="en">Refresh</span></button>
+    </div>
+    <div class="q-livegrid">
+      <article class="q-wt is-live" data-widget="week-tx" data-week="1" data-set="core">
+        <h3 class="q-tile-k"><span data-l="es">Transacciones en testnet · semana 1 (lun 19 – vie 23 oct) · a propósito</span><span data-l="en">Testnet transactions · week 1 (Mon 19 – Fri 23 Oct) · on purpose</span></h3>
+        <div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div>
+      </article>
+      <article class="q-wt is-plan" data-widget="anchor-slot">
+        <h3 class="q-tile-k"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3</span></h3>
+        <div data-slot><p class="q-tile-v q-plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></div>
+        <p class="q-tile-s"><span data-l="es">Tendrá tres firmantes: el proponente, el verificador independiente y un firmante externo al equipo (confirmado). Ninguna clave sola podrá enviar una transacción.</span><span data-l="en">It will have three signers: the proposer, the independent verifier and a signer from outside the team (confirmed). No single key will be able to send a transaction.</span></p>
+      </article>
+      <article class="q-wt is-prior" data-widget="rehearsal-match" data-rehearsal="abcd">
+        <h3 class="q-tile-k"><span data-l="es">El anclaje del ensayo coincide con la evidencia publicada</span><span data-l="en">The rehearsal anchor matches the published evidence</span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></h3>
+        <div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div>
+      </article>
+      <article class="q-wt is-prior" data-widget="rehearsal-energy" data-rehearsal="dress">
+        <h3 class="q-tile-k"><span data-l="es">Energía anclada en el ensayo acelerado (48 horas simuladas en 4 min 18 s)</span><span data-l="en">Energy anchored in the accelerated rehearsal (48 simulated hours in 4 min 18 s)</span></h3>
+        <div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div>
+      </article>
+      <article class="q-wt is-live">
+        <h3 class="q-tile-k"><span data-l="es">Pruebas automáticas</span><span data-l="en">Automated tests</span></h3>
+        <p class="q-tile-v"><span class="q-num" data-src="dato">154 → 194</span></p>
+        <p class="q-tile-s"><span data-l="es">0 en rojo, en la corrida #34 del CI sobre main</span><span data-l="en">0 failing, in CI run #34 on main</span></p>
+        <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct · </span><span data-l="en">Repository fact · 23 Oct · </span><a class="q-link" href="https://github.com/academiaseul/QWATT/actions/runs/39943161382" target="_blank" rel="noopener"><span data-l="es">fuente</span><span data-l="en">source</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></p>
+      </article>
+    </div>
+    <div class="q-chart-panel" data-widget="ledger-chart" data-n="50">
+      <div class="q-chart-head">
+        <div>
+          <h3><span data-l="es">Ritmo de Stellar testnet</span><span data-l="en">Stellar testnet rhythm</span></h3>
+          <p class="q-legend"><span><i class="q-sw" aria-hidden="true"></i><span data-l="es">segundos entre ledgers</span><span data-l="en">seconds between ledgers</span></span><span><i class="q-sw is-bar" aria-hidden="true"></i><span data-l="es">operaciones por ledger</span><span data-l="en">operations per ledger</span></span></p>
+        </div>
+        <div class="q-seg-btns" role="group" aria-label="Cantidad de ledgers" data-aria-en="Number of ledgers">
+          <span class="q-seg-k"><span data-l="es">ledgers:</span><span data-l="en">ledgers:</span></span>
+          <button type="button" class="q-btn is-small" data-n="20" aria-pressed="false"><span data-l="es">20</span><span data-l="en">20</span></button>
+          <button type="button" class="q-btn is-small" data-n="50" aria-pressed="true"><span data-l="es">50</span><span data-l="en">50</span></button>
+          <button type="button" class="q-btn is-small" data-n="100" aria-pressed="false"><span data-l="es">100</span><span data-l="en">100</span></button>
+          <button type="button" class="q-btn is-small" data-n="200" aria-pressed="false"><span data-l="es">200</span><span data-l="en">200</span></button>
+        </div>
+      </div>
+      <div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec q-dark" id="onchain" aria-labelledby="hOnchain">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hOnchain"><span data-l="es">No confíes en nosotros: verifícalo</span><span data-l="en">Don't trust us: check it</span></h2><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+      <p><span data-l="es">Por qué Stellar, en cuatro hechos que puedes comprobar:</span><span data-l="en">Why Stellar, in four facts you can check:</span></p>
+    </div>
+    <ul class="q-why">
+      <li><b><span data-l="es">~5 s</span><span data-l="en">~5 s</span></b><small><span data-l="es">un ledger cada ~5 s (medido arriba)</span><span data-l="en">a ledger every ~5 s (measured above)</span></small></li>
+      <li><b translate="no">manageData</b><small><span data-l="es">datos en la cuenta: huella y total por anclaje</span><span data-l="en">data on the account: fingerprint and total per anchor</span></small></li>
+      <li><b translate="no">QW#n</b><small><span data-l="es">el memo que numera cada anclaje</span><span data-l="en">the memo numbering each anchor</span></small></li>
+      <li><b><span data-l="es">2 de 3</span><span data-l="en">2 of 3</span></b><small><span data-l="es">firmas múltiples nativas, sin contrato</span><span data-l="en">native multi-signature, without a contract</span></small></li>
+    </ul>
+    <div class="q-two">
+      <article class="q-card">
+        <div class="q-head"><h3><span data-l="es">Cuenta de agosto que creó el activo de testnet</span><span data-l="en">August account that created the testnet asset</span></h3><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></div>
+        <div data-widget="account-card" data-account="AUGUST.assetAccount"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+      </article>
+      <article class="q-card">
+        <div class="q-head"><h3><span data-l="es">Cuenta de agosto, destino del pago marcador en la configuración de ejemplo</span><span data-l="en">August account, marker-payment destination in the example configuration</span></h3><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></div>
+        <div data-widget="account-card" data-account="AUGUST.markerDestination"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+      </article>
+    </div>
+    <p class="q-note"><span data-l="es">Las cuentas de agosto en stellar.toml tienen umbrales 0/0/0, una sola clave y su última transacción el 22 ago 2026. No son la cuenta de anclaje: una sola clave las controla, por eso la cuenta de anclaje será otra. El activo QWATT de testnet, creado en agosto (trabajo previo), solo se usa en cada transacción de anclaje como el pago marcador fijo: siempre el mismo y el mínimo que admite Stellar; no representa energía.</span><span data-l="en">The August accounts in stellar.toml have thresholds 0/0/0, a single key and their last transaction on 22 Aug 2026. They are not the anchoring account: one key controls them, which is why the anchoring account will be a different one. The QWATT testnet asset, created in August (prior work), is used only in each anchoring transaction as the fixed marker payment: always the same, the smallest Stellar allows; it does not represent energy.</span></p>
+    <div class="q-two q-mt">
+      <article class="q-card">
+        <div class="q-head"><h3><span data-l="es">Una transacción atómica por anclaje</span><span data-l="en">One atomic transaction per anchor</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></span></div>
+        <p><span data-l="es">Op 1 escribe la huella del lote (qwatt.anchor.sha256), op 2 el total acumulado en milivatios-hora (qwatt.cumulative_mwh), op 3 es el pago marcador fijo; memo QW#n. Todo o nada, con 2 de 3 firmas. Ejemplo en vivo: la prueba C del ensayo del 8 oct.</span><span data-l="en">Op 1 writes the batch fingerprint (qwatt.anchor.sha256), op 2 the running total in milliwatt-hours (qwatt.cumulative_mwh), op 3 is the fixed marker payment; memo QW#n. All or nothing, with 2 of 3 signatures. Live example: test C of the 8 Oct rehearsal.</span></p>
+        <div data-widget="tx-anatomy" data-tx="testC"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+      </article>
+      <article class="q-card">
+        <div class="q-head"><h3><span data-l="es">Pruebas A–D del ensayo del 8 oct</span><span data-l="en">Tests A–D of the 8 Oct rehearsal</span></h3><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></div>
+        <p><span data-l="es">A, B y C son el mismo cuerpo de transacción: con una firma, rechazada; con dos, anclada. A y B nunca entraron en un ledger. Umbrales 1/2/3 del diseño anterior; la cuenta definitiva tendrá 2/2/3.</span><span data-l="en">A, B and C are the same transaction body: with one signature, refused; with two, anchored. A and B never entered a ledger. Thresholds 1/2/3 of the earlier design; the real account will use 2/2/3.</span></p>
+        <div data-widget="tests-abcd"><div data-slot><p class="q-fallback"><span data-l="es">Se lee del archivo de evidencia publicado al abrir la página.</span><span data-l="en">Read from the published evidence file when the page opens.</span></p></div></div>
+        <p><a class="q-link" href="/console.html"><span data-l="es">Pruebas A, B y D del ensayo, en la consola →</span><span data-l="en">Tests A, B and D of the rehearsal, in the console →</span></a></p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="como" aria-labelledby="hHow">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <h2 id="hHow"><span data-l="es">Cómo funciona</span><span data-l="en">How it works</span></h2>
+    </div>
+    <ol class="q-flow">
+      <li><div class="q-fm"><b><span data-l="es">ENERGÍA</span><span data-l="en">ENERGY</span></b><small><span data-l="es">solar</span><span data-l="en">solar</span></small></div></li>
+      <li><div class="q-fm"><b><span data-l="es">DATOS</span><span data-l="en">DATA</span></b><small><span data-l="es">dos medidores · Modbus · HTTP · CSV</span><span data-l="en">two meters · Modbus · HTTP · CSV</span></small></div></li>
+      <li><div class="q-fm"><b><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></b><small><span data-l="es">filtros · verificador independiente</span><span data-l="en">filters · independent verifier</span></small></div></li>
+      <li><div class="q-fm is-chain"><b translate="no">STELLAR TESTNET</b><small><span data-l="es">huella y total anclados</span><span data-l="en">fingerprint and total anchored</span></small></div></li>
+    </ol>
+    <div class="q-cards">
+      <article class="q-card q-stage"><div class="q-head"><h3><span class="q-k">01 </span><span data-l="es">Generar</span><span data-l="en">Generate</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span class="q-chip" data-st="fuera" data-status-of="item:HW-PILOT"><span data-l="es">FUERA DEL SPRINT</span><span data-l="en">OUTSIDE THE SPRINT</span></span></span></div>
+        <p><span data-l="es">Una instalación solar real. El kit fotovoltaico está en diseño; el hardware queda fuera de este sprint.</span><span data-l="en">A real solar installation. The PV kit is being designed; hardware is outside this sprint.</span></p></article>
+      <article class="q-card q-stage"><div class="q-head"><h3><span class="q-k">02 </span><span data-l="es">Medir</span><span data-l="en">Measure</span></h3><span class="q-chip" data-st="prototipo" data-status-of="node:entrada"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">Tres entradas (Modbus, HTTP, CSV) producen el mismo registro de intervalo: 24 de 24 intervalos idénticos (evidencia de la Entrega 1).</span><span data-l="en">Three inputs (Modbus, HTTP, CSV) produce the same interval record: 24 of 24 intervals identical (Deliverable 1 evidence).</span></p>
+        <p class="q-src" data-src="sim"><span data-l="es">Entrada simulada · Stellar testnet</span><span data-l="en">Simulated input · Stellar testnet</span></p></article>
+      <article class="q-card q-stage"><div class="q-head"><h3><span class="q-k">03 </span><span data-l="es">Verificar</span><span data-l="en">Verify</span></h3><span class="q-chip" data-st="prototipo" data-status-of="node:verificador"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">Filtros G0–G3 y un verificador independiente que vuelve a revisar cada lote solo con datos públicos (probado con entrada simulada). Hoy lo opera nuestro propio equipo: es independiente en código y en datos, no en organización.</span><span data-l="en">Filters G0–G3 and an independent verifier that re-checks every batch from public data only (tested with simulated input). Today our own team operates it: independent in code and data, not in organization.</span></p></article>
+      <article class="q-card q-stage"><div class="q-head"><h3><span class="q-k">04 </span><span data-l="es">Registrar</span><span data-l="en">Record</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span><span class="q-chip" data-st="planificado" data-status-of="node:cuenta"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+        <p><span data-l="es">Cada lote aceptado se ancla en una transacción con su huella y su total en mWh. Ensayos del 8 oct en cuentas desechables; cuenta definitiva 2 de 3: en preparación (semana 2).</span><span data-l="en">Each accepted batch is anchored in one transaction with its fingerprint and its total in mWh. 8 Oct rehearsals on throwaway accounts; real 2-of-3 account: in preparation (week 2).</span></p></article>
+      <article class="q-card q-stage"><div class="q-head"><h3><span class="q-k">05 </span><span data-l="es">Seguir</span><span data-l="en">Follow</span></h3><span class="q-chip" data-st="testnet" data-status-of="node:cualquiera"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Cualquiera lee en vivo desde Horizon las cuentas, sus firmantes y cada anclaje. Este sitio solo lee.</span><span data-l="en">Anyone reads the accounts, their signers and every anchor live from Horizon. This site only reads.</span></p></article>
+      <article class="q-card q-stage"><div class="q-head"><h3><span class="q-k">06 </span><span data-l="es">Consultar</span><span data-l="en">Check</span></h3><span class="q-chip" data-st="planificado" data-status-of="item:V3-9"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Cualquiera podrá comparar cada constancia de la cuenta definitiva con su lote publicado: sin pagos y sin precio.</span><span data-l="en">Anyone will be able to compare every record of the real account with its published batch: no payments, no price.</span></p></article>
+    </div>
+    <p class="q-more-link"><a class="q-link" href="/como-funciona.html"><span data-l="es">El mecanismo completo, pieza por pieza →</span><span data-l="en">The whole mechanism, piece by piece →</span></a></p>
+  </div>
+</section>
+
+<section class="q-sec" id="lab" aria-labelledby="hLab">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hLab"><span data-l="es">Intenta engañar al verificador</span><span data-l="en">Try to fool the verifier</span></h2><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+      <p><span data-l="es">Elige un intento. Corre el mismo motor de filtros que las pruebas automáticas, en tu navegador. Entrada simulada · demo local, no envía nada.</span><span data-l="en">Pick an attempt. It runs the same filter engine as the automated tests, in your browser. Simulated input · local demo, sends nothing.</span></p>
+    </div>
+    <div class="q-lab">
+      <div class="q-presets" id="labPresets" role="group" aria-label="Intentos" data-aria-en="Attempts">
+        <button type="button" class="q-btn" data-preset="honest" aria-pressed="true"><span data-l="es">Intervalo honesto</span><span data-l="en">Honest interval</span></button>
+        <button type="button" class="q-btn" data-preset="night" aria-pressed="false"><span data-l="es">Generar de noche</span><span data-l="en">Generate at night</span></button>
+        <button type="button" class="q-btn" data-preset="covered" aria-pressed="false"><span data-l="es">Sensor tapado</span><span data-l="en">Covered sensor</span></button>
+        <p class="q-note"><a class="q-link" href="/verificacion.html#laboratorio"><span data-l="es">Más intentos y cómo funciona cada filtro → Verificación</span><span data-l="en">More attempts and how each filter works → Verification</span></a></p>
+      </div>
+      <div class="q-lab-out" id="labOut" aria-live="polite">
+        <p class="q-fallback"><span data-l="es">El laboratorio necesita JavaScript, porque corre el motor de filtros en tu navegador.</span><span data-l="en">The lab needs JavaScript, because it runs the filter engine in your browser.</span></p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="evidencia" aria-labelledby="hEvid">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <h2 id="hEvid"><span data-l="es">La evidencia, no la declaración</span><span data-l="en">Evidence, not claims</span></h2>
+    </div>
+    <div class="q-cards">
+      <article class="q-card"><div class="q-head"><h3><span data-l="es">Qué respalda una constancia</span><span data-l="en">What backs a record</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">Una constancia se sostiene en lo que cualquiera puede recalcular: lecturas de dos medidores, filtros públicos y una huella anclada; no en lo que alguien declara.</span><span data-l="en">A record rests on what anyone can recompute: readings from two meters, public filters and an anchored fingerprint; not on what someone claims.</span></p></article>
+      <article class="q-card"><div class="q-head"><h3><span data-l="es">La misma energía, una sola vez</span><span data-l="en">The same energy, once</span></h3><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></span></div>
+        <p><span data-l="es">Desde la semana 1 se rechazan intervalos repetidos, superpuestos, fuera de la grilla o de otra instalación, y un lote rechazado no suma energía. Probado con entrada simulada.</span><span data-l="en">Since week 1, repeated, overlapping, off-grid or other-installation intervals are refused, and a rejected batch adds no energy. Tested with simulated input.</span></p></article>
+      <article class="q-card"><div class="q-head"><h3><span data-l="es">Atributo de origen para reportes voluntarios</span><span data-l="en">Origin attribute for voluntary reporting</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Agregar a cada constancia su origen (solar, hora, instalación). No crea otro activo y no es un REC.</span><span data-l="en">Add its origin (solar, hour, installation) to each record. It creates no other asset and is not a REC.</span></p></article>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="ideas" aria-labelledby="hIdeas">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <h2 id="hIdeas"><span data-l="es">Todas las ideas, con su rótulo</span><span data-l="en">Every idea, with its label</span></h2>
+      <p><span data-l="es">Todo lo de agosto 2026 sigue aquí: lo que funciona en testnet, lo que funciona con entrada simulada, lo planificado y lo descartado.</span><span data-l="en">Everything from August 2026 is still here: what works on testnet, what works with simulated input, what is planned and what was dropped.</span></p>
+    </div>
+    <div class="q-filters" id="ideaFilters" role="group" aria-label="Filtrar ideas" data-aria-en="Filter ideas">
+      <button type="button" class="q-btn is-small" data-filter="all" aria-pressed="true"><span data-l="es">Todas</span><span data-l="en">All</span><span class="q-count"></span></button>
+      <button type="button" class="q-btn is-small" data-filter="testnet" aria-pressed="false"><span data-l="es">Testnet</span><span data-l="en">Testnet</span><span class="q-count"></span></button>
+      <button type="button" class="q-btn is-small" data-filter="prototipo" aria-pressed="false"><span data-l="es">Prototipo</span><span data-l="en">Prototype</span><span class="q-count"></span></button>
+      <button type="button" class="q-btn is-small" data-filter="planificado" aria-pressed="false"><span data-l="es">Planificado</span><span data-l="en">Planned</span><span class="q-count"></span></button>
+      <button type="button" class="q-btn is-small" data-filter="previo" aria-pressed="false"><span data-l="es">Trabajo previo</span><span data-l="en">Prior work</span><span class="q-count"></span></button>
+      <button type="button" class="q-btn is-small" data-filter="descartada" aria-pressed="false"><span data-l="es">Descartadas</span><span data-l="en">Dropped</span><span class="q-count"></span></button>
+    </div>
+    <div class="q-cards">
+      <article class="q-card q-idea" data-tags="testnet"><div class="q-head"><h3><span data-l="es">Compruébalo tú</span><span data-l="en">Check it yourself</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Vuelve a derivar un lote anclado con el código del repositorio, en tu navegador.</span><span data-l="en">Re-derive an anchored batch with the repository's code, in your browser.</span></p>
+        <p class="q-from"><span data-l="es">Nuevo</span><span data-l="en">New</span></p><a class="q-go" href="/verificacion.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet planificado"><div class="q-head"><h3><span data-l="es">La red dice que no</span><span data-l="en">The network says no</span></h3><span class="q-chips"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></span></div>
+        <p><span data-l="es">Pruebas A–D: una sola clave no basta; el ensayo del 8 oct, comprobado en vivo.</span><span data-l="en">Tests A–D: one key is not enough; the 8 Oct rehearsal, checked live.</span></p>
+        <p class="q-from"><span data-l="es">Nuevo</span><span data-l="en">New</span></p><a class="q-go" href="/pruebas.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet"><div class="q-head"><h3><span data-l="es">Verificación en vivo</span><span data-l="en">Live verification</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Último ledger de Stellar testnet, leído ahora.</span><span data-l="en">Latest Stellar testnet ledger, read now.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code></p><a class="q-go" href="#vivo"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet"><div class="q-head"><h3><span data-l="es">Ritmo de Stellar testnet</span><span data-l="en">Stellar testnet rhythm</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Segundos entre ledgers, medidos en vivo.</span><span data-l="en">Seconds between ledgers, measured live.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code></p><a class="q-go" href="#vivo"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet previo"><div class="q-head"><h3><span data-l="es">Explorador de anclajes</span><span data-l="en">Anchor explorer</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Cada anclaje QW#n con su huella, su total y sus firmas.</span><span data-l="en">Every QW#n anchor with its fingerprint, total and signatures.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>proof.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/proof.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet previo"><div class="q-head"><h3><span data-l="es">Pulse</span><span data-l="en">Pulse</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Actividad de las cuentas del proyecto por semana del sprint.</span><span data-l="en">Activity of the project accounts per sprint week.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>red.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/red.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet previo"><div class="q-head"><h3><span data-l="es">Consola de verificación</span><span data-l="en">Verification console</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Lee cualquier cuenta pública o transacción, solo lectura.</span><span data-l="en">Read any public account or transaction, read-only.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>console.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/console.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet previo"><div class="q-head"><h3><span data-l="es">Cuentas y firmas</span><span data-l="en">Accounts and signatures</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Quién puede firmar qué, leído de Horizon.</span><span data-l="en">Who can sign what, read from Horizon.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>wallet.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/wallet.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet previo"><div class="q-head"><h3><span data-l="es">Cómo se confirma una transacción</span><span data-l="en">How a transaction is confirmed</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Ledgers en vivo y el ciclo de un anclaje.</span><span data-l="en">Live ledgers and the life of one anchor.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>pay.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/pay.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet prototipo planificado previo"><div class="q-head"><h3><span data-l="es">Cuentas públicas y evidencia</span><span data-l="en">Public accounts and evidence</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+        <p><span data-l="es">Qué respalda una constancia, con el estado real de cada parte.</span><span data-l="en">What backs a record, with the real status of each part.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>respaldo.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/respaldo.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet previo"><div class="q-head"><h3><span data-l="es">No confíes en nosotros: verifícalo</span><span data-l="en">Don't trust us: check it</span></h3><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></div>
+        <p><span data-l="es">Cuentas de agosto y la anatomía de un anclaje, en vivo.</span><span data-l="en">August accounts and the anatomy of an anchor, live.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="#onchain"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="prototipo previo"><div class="q-head"><h3><span data-l="es">Intenta engañar al verificador</span><span data-l="en">Try to fool the verifier</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">Tres intentos contra el motor de filtros real.</span><span data-l="en">Three attempts against the real filter engine.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code></p><a class="q-go" href="#lab"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="prototipo"><div class="q-head"><h3><span data-l="es">Laboratorio de filtros</span><span data-l="en">Filter lab</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">Laboratorio completo, filtros, bitácora de rechazos y escalera de garantía.</span><span data-l="en">Full lab, filters, rejection log and assurance ladder.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>verificacion.html</code></p><a class="q-go" href="/verificacion.html#laboratorio"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="prototipo previo"><div class="q-head"><h3><span data-l="es">Grid</span><span data-l="en">Grid</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">De una instalación simulada a un lote con huella, sin red.</span><span data-l="en">From a simulated installation to a fingerprinted batch, offline.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>grid.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/grid.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="prototipo planificado previo"><div class="q-head"><h3><span data-l="es">Flujo y seis etapas</span><span data-l="en">Flow and six stages</span></h3><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+        <p><span data-l="es">Generar, medir, verificar, registrar, seguir, consultar.</span><span data-l="en">Generate, measure, verify, record, follow, check.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="#como"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="prototipo"><div class="q-head"><h3><span data-l="es">La misma energía, una sola vez</span><span data-l="en">The same energy, once</span></h3><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></span></div>
+        <p><span data-l="es">Intervalos repetidos o superpuestos, rechazados.</span><span data-l="en">Repeated or overlapping intervals, refused.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code></p><a class="q-go" href="#evidencia"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="prototipo previo"><div class="q-head"><h3><span data-l="es">Prueba a escala con datos públicos</span><span data-l="en">Scale test on public data</span></h3><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></div>
+        <p><span data-l="es">Un mes de NREL PVDAQ, 720 lotes, 0 rechazados, sin Stellar.</span><span data-l="en">One month of NREL PVDAQ, 720 batches, 0 rejected, no Stellar.</span></p>
+        <p class="q-src" data-src="publico"><span data-l="es">Datos públicos NREL PVDAQ · no son mediciones nuestras</span><span data-l="en">Public NREL PVDAQ data · not our measurements</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>evidence/scale</code></p><a class="q-go" href="/grid.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="planificado"><div class="q-head"><h3><span data-l="es">Cuenta de anclaje 2 de 3</span><span data-l="en">2-of-3 anchoring account</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Umbrales 2/2/3; en preparación (semana 2).</span><span data-l="en">Thresholds 2/2/3; in preparation (week 2).</span></p>
+        <p class="q-from"><span data-l="es">Semana 2</span><span data-l="en">Week 2</span></p><a class="q-go" href="/wallet.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="planificado"><div class="q-head"><h3><span data-l="es">Conciliación</span><span data-l="en">Reconciliation</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Comparar cada anclaje con su lote, leyendo firmantes y umbrales desde Stellar.</span><span data-l="en">Compare every anchor with its batch, reading signers and thresholds from Stellar.</span></p>
+        <p class="q-from"><span data-l="es">Semana 2</span><span data-l="en">Week 2</span></p><p class="q-nolink"><span data-l="es">sin enlace todavía</span><span data-l="en">no link yet</span></p></article>
+      <article class="q-card q-idea" data-tags="planificado previo"><div class="q-head"><h3><span data-l="es">Custodia de claves</span><span data-l="en">Key custody</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Claves creadas con stellar-cli, nunca en un navegador.</span><span data-l="en">Keys created with stellar-cli, never in a browser.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>backup.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/backup.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="planificado previo"><div class="q-head"><h3><span data-l="es">Piloto solar</span><span data-l="en">Solar pilot</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Plan de hardware, fuera de este sprint.</span><span data-l="en">Hardware plan, outside this sprint.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>piloto.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/piloto.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="planificado previo"><div class="q-head"><h3><span data-l="es">Atributo de origen</span><span data-l="en">Origin attribute</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <p><span data-l="es">Origen de cada constancia para reportes voluntarios; no es un REC.</span><span data-l="en">The origin of each record for voluntary reporting; not a REC.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>index.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="#evidencia"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet prototipo planificado"><div class="q-head"><h3><span data-l="es">Cómo funciona</span><span data-l="en">How it works</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+        <p><span data-l="es">Del medidor a Stellar testnet, pieza por pieza, con el estado de cada una.</span><span data-l="en">From the meter to Stellar testnet, piece by piece, with the status of each.</span></p>
+        <p class="q-from"><span data-l="es">Nuevo</span><span data-l="en">New</span></p><a class="q-go" href="/como-funciona.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet prototipo planificado"><div class="q-head"><h3><span data-l="es">Hoja de ruta</span><span data-l="en">Roadmap</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+        <p><span data-l="es">Cada punto del plan con su evidencia: PR, commit, corrida del CI o release.</span><span data-l="en">Every plan item with its evidence: PR, commit, CI run or release.</span></p>
+        <p class="q-from"><span data-l="es">Nuevo</span><span data-l="en">New</span></p><a class="q-go" href="/hoja-de-ruta.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="testnet prototipo planificado previo"><div class="q-head"><h3><span data-l="es">Documento técnico v3</span><span data-l="en">Technical paper v3</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+        <p><span data-l="es">El modelo de verificación y el acuerdo v3.</span><span data-l="en">The verification model and freeze v3.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>whitepaper.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/whitepaper.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="info previo"><div class="q-head"><h3><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></h3><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+        <p><span data-l="es">Qué es, qué no es, qué datos se recogen.</span><span data-l="en">What it is, what it is not, what data is collected.</span></p>
+        <p class="q-from"><span data-l="es">Desde: </span><span data-l="en">From: </span><code>terminos.html</code><span data-l="es"> (agosto 2026)</span><span data-l="en"> (August 2026)</span></p><a class="q-go" href="/terminos.html"><span data-l="es">Abrir →</span><span data-l="en">Open →</span></a></article>
+      <article class="q-card q-idea" data-tags="info"><div class="q-head"><h3><span data-l="es">Reglas de seguridad del sitio</span><span data-l="en">Site safety rules</span></h3><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></div>
+        <p><span data-l="es">Sin claves en el navegador, sin analítica, revisado en cada cambio.</span><span data-l="en">No keys in the browser, no analytics, checked on every change.</span></p>
+        <p class="q-from"><span data-l="es">Nuevo</span><span data-l="en">New</span></p><a class="q-go" href="#seguridad"><span data-l="es">Ir →</span><span data-l="en">Go →</span></a></article>
+      <article class="q-card q-idea" data-tags="descartada previo"><div class="q-head"><h3><span data-l="es">Ideas de agosto descartadas</span><span data-l="en">Dropped August ideas</span></h3><span class="q-chip" data-st="descartada"><span data-l="es">DESCARTADA</span><span data-l="en">DROPPED</span></span></div>
+        <p><span data-l="es">Las que presentaban a QWATT como algo con valor monetario. No vuelven: QWATT no tiene precio y no se vende.</span><span data-l="en">Those that presented QWATT as something with monetary value. They do not come back: QWATT has no price and is not for sale.</span></p>
+        <p class="q-from"><span data-l="es">Agosto 2026</span><span data-l="en">August 2026</span></p><a class="q-go" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Detalle en el registro de cambios</span><span data-l="en">Details in the changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></article>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="ruta" aria-labelledby="hRoute">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <h2 id="hRoute"><span data-l="es">Ruta del sprint</span><span data-l="en">Sprint route</span></h2>
+    </div>
+<!-- q:route -->
+<ol class="q-route">
+<li class="q-route-step" data-week="0"><p class="q-route-when"><span data-l="es">22 ago – 18 oct</span><span data-l="en">22 Aug – 18 Oct</span></p><h3><span data-l="es">Trabajo previo</span><span data-l="en">Prior work</span></h3><span class="q-chip" data-st="previo" data-status-of="week:0"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span><p><span data-l="es">Prototipo del hackathon de agosto 2026 y el trabajo anterior al Día 1: público, rotulado y no financiado por el programa.</span><span data-l="en">The August 2026 hackathon prototype and the work before Day 1: public, labeled and not funded by the programme.</span></p></li>
+<li class="q-route-step" data-week="1"><p class="q-route-when"><span data-l="es">19–23 oct</span><span data-l="en">19–23 Oct</span></p><h3><span data-l="es">Semana 1</span><span data-l="en">Week 1</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><p><span data-l="es">Seis formas de engañar al verificador, cerradas; pruebas 154 → 194; umbrales 2/2/3 decididos; acuerdo de arquitectura v3.</span><span data-l="en">Six ways to fool the verifier, closed; tests 154 → 194; thresholds 2/2/3 decided; architecture freeze v3.</span></p></li>
+<li class="q-route-step" data-week="2"><p class="q-route-when"><span data-l="es">26–30 oct</span><span data-l="en">26–30 Oct</span></p><h3><span data-l="es">Semana 2</span><span data-l="en">Week 2</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><p><span data-l="es">Cuenta 2 de 3 real, pruebas A–D, samples_root, dos repositorios de evidencia.</span><span data-l="en">Real 2-of-3 account, tests A–D, samples_root, two evidence repositories.</span></p></li>
+<li class="q-route-step" data-week="3"><p class="q-route-when"><span data-l="es">2–6 nov</span><span data-l="en">2–6 Nov</span></p><h3><span data-l="es">Semana 3</span><span data-l="en">Week 3</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:3"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><p><span data-l="es">Un rechazo del verificador es definitivo; ventana de validez de 60 minutos como máximo; marca de error de reloj; recuperación reforzada; congelación del código el viernes 6 nov.</span><span data-l="en">A verifier refusal is final; validity window of at most 60 minutes; clock-error watermark; hardened recovery; code freeze on Friday 6 Nov.</span></p></li>
+<li class="q-route-step" data-week="4"><p class="q-route-when"><span data-l="es">8–15 nov</span><span data-l="en">8–15 Nov</span></p><h3><span data-l="es">Corrida contada</span><span data-l="en">Counted run</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><p><span data-l="es">7 días en testnet, del domingo 8 nov 00:00 al domingo 15 nov 00:00, hora de Chile, con entrada simulada.</span><span data-l="en">7 days on testnet, from Sunday 8 Nov 00:00 to Sunday 15 Nov 00:00, Chile time, with simulated input.</span></p></li>
+</ol>
+<!-- /q:route -->
+    <p class="q-more-link"><a class="q-link" href="/hoja-de-ruta.html"><span data-l="es">Ver cada punto del plan y su evidencia → Hoja de ruta</span><span data-l="en">See every plan item and its evidence → Roadmap</span></a></p>
+  </div>
+</section>
+
+<section class="q-sec" id="seguridad" aria-labelledby="hSafe">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <h2 id="hSafe"><span data-l="es">Seguridad</span><span data-l="en">Safety</span></h2>
+    </div>
+    <ul class="q-lines">
+      <li><span><span data-l="es">Ninguna clave secreta entra a un navegador: este sitio solo lee datos públicos y no firma nada.</span><span data-l="en">No secret key ever enters a browser: this site only reads public data and signs nothing.</span></span><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+      <li><span><span data-l="es">El equipo de QWATT nunca te pedirá una clave secreta (las que empiezan con S).</span><span data-l="en">The QWATT team will never ask for a secret key (the ones that start with S).</span></span><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+      <li><span><span data-l="es">Cada anclaje es una transacción atómica: se ejecuta completa o no se ejecuta.</span><span data-l="en">Each anchor is one atomic transaction: it runs completely or not at all.</span></span><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+      <li><span><span data-l="es">Las claves del anclaje se crearán con stellar-cli en la máquina que las usa.</span><span data-l="en">The anchoring keys will be created with stellar-cli on the machine that uses them.</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO · SEMANA 2</span><span data-l="en">PLANNED · WEEK 2</span></span></li>
+      <li><span><span data-l="es">Una prueba automática revisa cada página publicada en cada cambio: sin claves, sin analítica, sin servicios externos no autorizados.</span><span data-l="en">An automated test checks every published page on every change: no keys, no analytics, no unapproved outside services.</span></span><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+      <li><span><span data-l="es">QWATT opera solo en Stellar testnet.</span><span data-l="en">QWATT runs only on Stellar testnet.</span></span><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+    </ul>
+  </div>
+</section>
+
+<section class="q-sec" id="que-es" aria-labelledby="hWhat">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <div class="q-head"><h2 id="hWhat"><span data-l="es">Qué es y qué no es QWATT</span><span data-l="en">What QWATT is and is not</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+    </div>
+    <div class="q-is">
+      <div class="q-card"><h3><span data-l="es">Es</span><span data-l="en">It is</span></h3><p><span data-l="es">Un verificador de código abierto: convierte lecturas de medidores solares en constancias en Stellar testnet que cualquiera puede volver a comprobar solo con datos públicos.</span><span data-l="en">An open-source verifier: it turns solar meter readings into records on Stellar testnet that anyone can re-check from public data alone.</span></p></div>
+      <div class="q-card"><h3><span data-l="es">No puede</span><span data-l="en">It cannot</span></h3><p><span data-l="es">Demostrar que un medidor sea exacto ni que la energía se haya producido de verdad.</span><span data-l="en">Show that a meter is accurate or that the energy was really produced.</span></p></div>
+    </div>
+    <div class="q-disclaimer-big">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+  </div>
+</section>
+
+<section class="q-sec" id="enlaces" aria-labelledby="hLinks">
+  <div class="q-wrap is-wide">
+    <div class="q-sec-head">
+      <h2 id="hLinks"><span data-l="es">Enlaces</span><span data-l="en">Links</span></h2>
+    </div>
+    <div class="q-linkgrid">
+      <a class="q-lk" href="https://youtube.com/shorts/4PBe8vSmcwM" target="_blank" rel="noopener"><span class="q-play" aria-hidden="true"></span><span><b><span data-l="es">Video (2:56)</span><span data-l="en">Video (2:56)</span></b><small translate="no">youtube.com ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://x.com/ch1ngukim/status/2113590210952921290" target="_blank" rel="noopener"><span><b><span data-l="es">Post en X</span><span data-l="en">Post on X</span></b><small translate="no">x.com ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://www.youtube.com/@qwatt.energy" target="_blank" rel="noopener"><span><b><span data-l="es">Canal de YouTube</span><span data-l="en">YouTube channel</span></b><small translate="no">@qwatt.energy ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://x.com/ch1ngukim" target="_blank" rel="noopener"><span><b translate="no">X</b><small translate="no">@ch1ngukim ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span><b><span data-l="es">Código en GitHub</span><span data-l="en">Code on GitHub</span></b><small translate="no">academiaseul/QWATT ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" target="_blank" rel="noopener"><span><b><span data-l="es">Registro de cambios (español)</span><span data-l="en">Changelog (Spanish)</span></b><small translate="no">CHANGELOG.es.md ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span><b><span data-l="es">Changelog (inglés)</span><span data-l="en">Changelog (English)</span></b><small translate="no">CHANGELOG.md ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/releases/tag/semana-1" target="_blank" rel="noopener"><span><b><span data-l="es">Release semana 1</span><span data-l="en">Week 1 release</span></b><small translate="no">semana-1 ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/compare/dia-1...semana-1" target="_blank" rel="noopener"><span><b><span data-l="es">Lo nuevo, commit por commit</span><span data-l="en">What's new, commit by commit</span></b><small translate="no">dia-1…semana-1 ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/blob/main/docs/PRIOR-WORK.md" target="_blank" rel="noopener"><span><b><span data-l="es">Trabajo previo</span><span data-l="en">Prior work</span></b><small translate="no">docs/PRIOR-WORK.md ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/blob/main/docs/ARCHITECTURE-FREEZE-v3.md" target="_blank" rel="noopener"><span><b><span data-l="es">Acuerdo de arquitectura v3</span><span data-l="en">Architecture freeze v3</span></b><small translate="no">ARCHITECTURE-FREEZE-v3.md ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      <a class="q-lk" href="https://github.com/academiaseul/QWATT/blob/main/docs/DELIVERABLE-1-EVIDENCE.md" target="_blank" rel="noopener"><span><b><span data-l="es">Evidencia de la Entrega 1</span><span data-l="en">Deliverable 1 evidence</span></b><small translate="no">DELIVERABLE-1-EVIDENCE.md ↗</small></span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+    </div>
+  </div>
+</section>
+
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
+</footer>
+<!-- /q:footer -->
 </body>
 </html>

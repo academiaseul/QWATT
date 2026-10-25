@@ -22,7 +22,7 @@
     "intervals": { "type": "array", "items": { "$ref": "interval.schema.json" }, "description": "The accepted interval records, in sequence order. Rejected intervals are in the rejected ledger, never here." },
     "intervals_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Merkle root (SHA-256, odd node duplicated) over the canonical JSON of each interval." },
     "samples_root": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "Optional Merkle root over raw power samples, when the node retains them." },
-    "energy_mwh": { "type": "integer", "minimum": 0, "description": "Sum over accepted intervals of the mint basis (min of the two meters, or the single meter), milliwatt-hours." },
+    "energy_mwh": { "type": "integer", "minimum": 0, "description": "Sum over accepted intervals of the counted energy (min of the two meters, or the single meter), milliwatt-hours." },
     "cumulative_mwh": { "type": "integer", "minimum": 0, "description": "Site total since genesis, after this batch." },
     "prev_hash": { "type": "string", "pattern": "^[0-9a-f]{64}$", "description": "sha256 of the previous batch, or 64 zeros for the first." },
     "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }

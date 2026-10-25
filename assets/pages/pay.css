@@ -1,0 +1,57 @@
+/* QWATT · pay.html (Cómo se confirma una transacción). Shared values live in /assets/site.css;
+   the hero, live card, tiles and chart come from /assets/pages/index.css. */
+
+html:not([data-lang="en"]) .q-en-note{display:none}
+.q-phero .q-hero-in{padding-top:56px;padding-bottom:56px}
+.q-phero h1{max-width:19ch}
+
+/* live tiles: four in a row on wide screens */
+#pTiles{grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr))}
+#pTiles .q-tile-v small{font-size:13px;color:var(--ink-3)}
+
+/* the ledger stream */
+.q-stream{margin-top:14px;display:grid;gap:8px}
+.q-stream-t td{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.q-stream-t th{white-space:nowrap}
+.q-stream-t td:first-child{color:var(--ink)}
+@media(prefers-reduced-motion:no-preference){
+  .q-stream-t tr.is-new td{animation:qrow 1.6s ease-out}
+  @keyframes qrow{from{background:color-mix(in srgb,var(--green) 18%,transparent)}to{background:transparent}}
+}
+
+/* the life of one anchor */
+.q-life-top{display:flex;justify-content:flex-end;margin:-14px 0 14px}
+.q-life{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:12px;counter-reset:none}
+.q-step{display:grid;grid-template-columns:auto minmax(0,1fr);gap:14px;background:var(--panel);padding:18px 18px 18px 16px;border-left:2px solid var(--line);
+  transition:border-color .3s,background .3s}
+.q-step h3{font-size:15px;line-height:1.3}
+.q-step p{font-size:13.5px;line-height:1.6;color:var(--ink-2);margin-top:8px}
+.q-step .q-code{margin-top:8px;white-space:pre-wrap;word-break:break-all;font-size:11.5px}
+.q-step-n{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--copper);line-height:1;min-width:1.4em;margin-top:0 !important}
+.q-step-v:empty{display:none}
+.q-step-v{font-size:13px !important;color:var(--ink) !important;border-top:1px dashed var(--line);padding-top:8px}
+.q-step-v .q-state{margin-right:6px}
+.q-step.is-on{border-left-color:var(--copper);background:color-mix(in srgb,var(--copper) 9%,var(--panel))}
+.q-step[data-step="5"],.q-step[data-step="6"]{border-left-color:color-mix(in srgb,var(--green) 55%,var(--line))}
+.q-step[data-step="5"].is-on,.q-step[data-step="6"].is-on{border-left-color:var(--green)}
+
+.q-who:empty{display:none}
+.q-who{border-top:1px solid var(--line);padding-top:10px}
+.q-who .q-checks li{padding-left:0;text-indent:0}
+.q-who .q-checks .q-state{display:block;min-width:0;margin:0 0 1px}
+
+.q-plan-card{border-top:2px solid var(--copper)}
+.q-plan-card h2,.q-dropped h2{font-size:clamp(1.15rem,1rem + .6vw,1.45rem);font-weight:600;letter-spacing:-.01em}
+.q-dropped{border-top:2px solid var(--red)}
+
+/* phones: the ledger stream fits without sideways scrolling (short column names) */
+.q-th-s{display:none}
+@media(max-width:600px){
+  .q-th-l{display:none}
+  .q-th-s{display:inline}
+  .q-stream-t th,.q-stream-t td{padding:7px 4px}
+  .q-stream-t thead th{letter-spacing:.04em}
+  .q-stream-t td{font-size:11px}
+  .q-stream-t caption{letter-spacing:.08em}
+}
+@media(max-width:380px){.q-stream-t th:nth-child(6),.q-stream-t td:nth-child(6){display:none}}

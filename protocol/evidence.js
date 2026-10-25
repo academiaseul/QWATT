@@ -5,8 +5,8 @@
  * root over intervals, and the batch hash. The batch assembler (proposer side),
  * the verifier and the reconciliation page all derive the same bytes from this.
  *
- * Unlike the permissive copies in ingest/lib/normalize.js and
- * mining-rig/validators.js, `canonical` here REFUSES any number that is not a
+ * Unlike the permissive copies in ingest/lib/normalize.js and the rig's
+ * validators.js, `canonical` here REFUSES any number that is not a
  * safe integer. JSON.stringify(Infinity) is "null" and JSON.parse('1e999') is
  * Infinity, so a permissive serializer lets an overflow reach a hash silently.
  * Evidence is integers only (docs/ARCHITECTURE-FREEZE.md §1); anything else is
@@ -85,7 +85,7 @@ function batchId(siteId, seq) {
 
 /**
  * The energy an accepted interval vouches for, in integer mWh: the lower of the
- * two meters, or the single meter when the profile allows one (spec issuance.basis).
+ * two meters, or the single meter when the profile allows one (the counted energy).
  */
 function basisMwh(interval) {
   const a = interval.meters.a.mwh;

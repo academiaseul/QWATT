@@ -1,0 +1,68 @@
+/* QWATT · terminos.html (Términos, límites y privacidad): a document page.
+   Shared design values, chips, header and footer live in /assets/site.css. */
+
+/* hero */
+.q-dhero{border-bottom:1px solid var(--line);padding:56px 0 40px;background:linear-gradient(180deg,color-mix(in srgb,var(--copper) 6%,transparent),transparent 75%)}
+.q-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--copper);margin-bottom:18px}
+.q-dhero h1{max-width:18ch}
+.q-dhero .q-lead{max-width:60ch}
+.q-updated{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3)}
+
+/* table of contents */
+.q-toc{margin-top:28px;max-width:760px}
+.q-toc-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+.q-toc ol{list-style:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 28px;border-top:1px solid var(--line)}
+@media(max-width:600px){.q-toc ol{grid-template-columns:1fr}}
+.q-toc li{border-bottom:1px solid var(--line)}
+.q-toc a{display:flex;gap:12px;align-items:baseline;padding:10px 0;min-height:44px;color:var(--ink);text-decoration:none;font-size:14.5px}
+.q-toc a:hover{color:var(--copper)}
+.q-toc-n{font-family:var(--mono);font-size:11px;color:var(--copper);min-width:2ch}
+
+/* body */
+.q-doc{padding-top:8px;padding-bottom:72px}
+.q-dsec{max-width:760px;padding:44px 0 6px;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--nav-h) + 12px)}
+.q-dsec:last-child{border-bottom:0}
+.q-dsec h2{display:flex;gap:14px;align-items:baseline;font-size:clamp(1.35rem,1.1rem + 1vw,1.85rem);font-weight:600;letter-spacing:-.01em;margin-bottom:16px}
+.q-dsec-n{font-family:var(--mono);font-size:.62em;font-weight:500;color:var(--copper);letter-spacing:.06em}
+.q-dsec h3{font-size:16px;margin:26px 0 10px}
+.q-dsec p{font-size:15.5px;line-height:1.7;color:var(--ink-2);margin-bottom:14px;max-width:68ch}
+.q-dlist{margin:0 0 16px 1.1em;display:grid;gap:8px;max-width:68ch}
+.q-dlist li{font-size:15px;line-height:1.6;color:var(--ink-2);padding-left:4px}
+.q-dlist li::marker{color:var(--copper)}
+
+/* the disclaimer, set apart */
+.q-disc{border-left:2px solid var(--copper);background:var(--panel);padding:14px 16px;margin:6px 0 18px;display:grid;gap:8px}
+.q-disc p{font-size:13.5px;line-height:1.6;margin:0;color:var(--ink)}
+.q-disc p+p{color:var(--ink-2)}
+
+/* label legend */
+.q-legend-dl{display:grid;grid-template-columns:max-content minmax(0,1fr);gap:0 18px;margin:4px 0 18px;border-top:1px solid var(--line)}
+.q-legend-dl dt,.q-legend-dl dd{padding:10px 0;border-bottom:1px solid var(--line)}
+.q-legend-dl dd{font-size:14.5px;line-height:1.55;color:var(--ink-2)}
+@media(max-width:520px){.q-legend-dl{grid-template-columns:1fr}.q-legend-dl dt{border-bottom:0;padding-bottom:2px}.q-legend-dl dd{padding-top:4px}}
+
+/* assurance ladder */
+.q-ladder{list-style:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px;margin:6px 0 16px}
+@media(max-width:700px){.q-ladder{grid-template-columns:1fr}}
+.q-ladder li{background:var(--panel);border-top:2px solid var(--line);padding:12px 12px 14px;display:grid;gap:6px;font-size:13px;line-height:1.45;color:var(--ink-2)}
+.q-ladder b{font-family:var(--mono);font-size:15px;font-weight:500;color:var(--copper)}
+.q-ladder li.is-here{border-top-color:var(--green)}
+.q-ladder li.is-here b{color:var(--green)}
+
+/* host list */
+.q-hosts{list-style:none;margin:0 0 16px;border-top:1px solid var(--line);max-width:68ch}
+.q-hosts li{padding:10px 0;border-bottom:1px solid var(--line);font-size:14.5px;line-height:1.55;color:var(--ink-2)}
+.q-host{font-size:13px;color:var(--ink);background:var(--panel);padding:1px 6px}
+
+/* glossary */
+.q-gloss{display:grid;grid-template-columns:minmax(0,15em) minmax(0,1fr);gap:0 22px;border-top:1px solid var(--line);margin-bottom:18px}
+.q-gloss dt,.q-gloss dd{padding:12px 0;border-bottom:1px solid var(--line)}
+.q-gloss dt{font-weight:600;font-size:14.5px;color:var(--ink)}
+.q-gloss dd{font-size:14.5px;line-height:1.6;color:var(--ink-2)}
+@media(max-width:640px){.q-gloss{grid-template-columns:1fr}.q-gloss dt{border-bottom:0;padding-bottom:2px}.q-gloss dd{padding-top:2px}}
+.q-doc-links{display:flex;flex-wrap:wrap;gap:8px 22px}
+
+@media print{
+  .q-toc{display:none}
+  .q-dsec{border-bottom:0;padding-top:18px;break-inside:avoid-page}
+}

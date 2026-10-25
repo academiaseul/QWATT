@@ -1,0 +1,38 @@
+{
+  "id": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
+  "account_id": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
+  "sequence": "18370318154334208",
+  "subentry_count": 0,
+  "last_modified_ledger": 4277173,
+  "last_modified_time": "2026-08-22T14:23:07Z",
+  "thresholds": {
+    "low_threshold": 0,
+    "med_threshold": 0,
+    "high_threshold": 0
+  },
+  "flags": {
+    "auth_required": false,
+    "auth_revocable": false,
+    "auth_immutable": false,
+    "auth_clawback_enabled": false
+  },
+  "balances": [
+    {
+      "balance": "10000.0000000",
+      "buying_liabilities": "0.0000000",
+      "selling_liabilities": "0.0000000",
+      "asset_type": "native"
+    }
+  ],
+  "signers": [
+    {
+      "weight": 1,
+      "key": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
+      "type": "ed25519_public_key"
+    }
+  ],
+  "data": {},
+  "num_sponsoring": 0,
+  "num_sponsored": 0,
+  "paging_token": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
+}

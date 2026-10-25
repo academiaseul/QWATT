@@ -1,0 +1,58 @@
+{
+  "id": "GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET",
+  "account_id": "GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET",
+  "sequence": "21877536908640259",
+  "sequence_ledger": 5093765,
+  "sequence_time": "1791492412",
+  "subentry_count": 5,
+  "last_modified_ledger": 5093765,
+  "last_modified_time": "2026-10-08T20:46:52Z",
+  "thresholds": {
+    "low_threshold": 1,
+    "med_threshold": 2,
+    "high_threshold": 3
+  },
+  "flags": {
+    "auth_required": false,
+    "auth_revocable": false,
+    "auth_immutable": false,
+    "auth_clawback_enabled": false
+  },
+  "balances": [
+    {
+      "balance": "9999.9998998",
+      "buying_liabilities": "0.0000000",
+      "selling_liabilities": "0.0000000",
+      "asset_type": "native"
+    }
+  ],
+  "signers": [
+    {
+      "weight": 1,
+      "key": "GDO5EL2AB4A5REHWU7AG5FTZWLMBKOKBECZRJBJC4MXTB674XONKR3FI",
+      "type": "ed25519_public_key"
+    },
+    {
+      "weight": 1,
+      "key": "GDWN3AOGMNUS2ZFRBEW3I2SYJMU67FUAFMTMCLAODTUUVRW7VSG5TG53",
+      "type": "ed25519_public_key"
+    },
+    {
+      "weight": 1,
+      "key": "GDWVD7H2CKN3S2XZ756I7EITTQF2J3FBBFAMRL3RHBDRALEVOMNRF3I2",
+      "type": "ed25519_public_key"
+    },
+    {
+      "weight": 0,
+      "key": "GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET",
+      "type": "ed25519_public_key"
+    }
+  ],
+  "data": {
+    "qwatt.anchor.sha256": "ODUyMzE0YTJhMTFmODY1NDhlM2Y4YjA5YzE2YWEyZmQ2ZWY4MmFlOGU4NjQxZGI1ZWYyMGE0YmMyZDBmNTQ2Ng==",
+    "qwatt.cumulative_mwh": "MTk4MDAw"
+  },
+  "num_sponsoring": 0,
+  "num_sponsored": 0,
+  "paging_token": "GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET"
+}

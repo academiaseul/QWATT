@@ -1,796 +1,476 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-title-en="QWATT · technical paper v3 (October 2026)">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>QWATT — Whitepaper</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-ESWGGQ9742"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-ESWGGQ9742');
-</script>
-<meta name="description" content="Whitepaper de QWATT: arquitectura del protocolo de verificación energética, modelo de oráculo, ciclo de vida del activo e integración con Stellar.">
+<title>QWATT · documento técnico v3 (octubre 2026)</title>
+<meta name="description" content="Documento técnico de QWATT: cómo un verificador de código abierto convierte lecturas de medidores solares en constancias verificables en Stellar testnet, y el estado real de cada parte.">
 <link rel="canonical" href="https://qwatt.org/whitepaper.html">
-<meta name="theme-color" content="#120c07">
+<meta name="theme-color" content="#16100a">
+<meta name="color-scheme" content="dark light">
 <meta property="og:site_name" content="QWATT">
-<meta property="og:type" content="website">
+<meta property="og:type" content="article">
 <meta property="og:url" content="https://qwatt.org/whitepaper.html">
-<meta property="og:title" content="QWATT — Whitepaper">
-<meta property="og:description" content="Whitepaper de QWATT: arquitectura del protocolo de verificación energética, modelo de oráculo, ciclo de vida del activo e integración con Stellar.">
+<meta property="og:title" content="QWATT · documento técnico v3 (octubre 2026)">
+<meta property="og:description" content="Documento técnico de QWATT: cómo un verificador de código abierto convierte lecturas de medidores solares en constancias verificables en Stellar testnet, y el estado real de cada parte.">
 <meta property="og:locale" content="es_CL">
-<meta property="og:image" content="https://qwatt.org/og-image.png">
+<meta property="og:locale:alternate" content="en_US">
+<meta property="og:image" content="https://qwatt.org/og-sprint.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:image" content="https://qwatt.org/og-image.png">
-<meta name="twitter:title" content="QWATT — Whitepaper">
-<meta name="twitter:description" content="Whitepaper de QWATT: arquitectura del protocolo de verificación energética, modelo de oráculo, ciclo de vida del activo e integración con Stellar.">
+<meta name="twitter:title" content="QWATT · documento técnico v3 (octubre 2026)">
+<meta name="twitter:description" content="Documento técnico de QWATT: cómo un verificador de código abierto convierte lecturas de medidores solares en constancias verificables en Stellar testnet, y el estado real de cada parte.">
+<meta name="twitter:image" content="https://qwatt.org/og-sprint.png">
+<meta name="twitter:image:alt" content="QWATT, sprint Instawards Chile 2026: lecturas solares verificables por cualquiera, con entrada simulada. Verificador de código abierto en Stellar testnet.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='21' fill='none' stroke='%232e3d54' stroke-width='7' stroke-dasharray='5.5 22 104.4'/%3E%3Cpath d='M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z' fill='%23c96f3f' transform='translate(46 46) rotate(-45) scale(.92)'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<style>
-  :root{
-    --bg:#16100a; --panel:#231a10; --panel2:#2b2015; --line:#3b2d1d;
-    --ink:#f0e8dc; --muted:#b3a48f; --faint:#8b7a64;
-    --accent:#d08a57; --cyan:#d9b26a; --good:#3cb87f;
-    --display:'Chakra Petch','Segoe UI',sans-serif;
-    --body:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;
-    --mono:'IBM Plex Mono',ui-monospace,Consolas,monospace;
-  }
-  *{box-sizing:border-box;margin:0;padding:0}
-  html{scroll-behavior:smooth}
-  body{background:var(--bg);color:var(--ink);font-family:var(--body);line-height:1.75;padding:24px;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:760px;margin:0 auto}
-  header.site{display:flex;align-items:center;justify-content:space-between;margin-bottom:34px;flex-wrap:wrap;gap:10px}
-  .brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:20px}
-  .brand a{color:inherit;text-decoration:none;display:flex;align-items:center;gap:10px}
-  .bolt{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:17px;background:linear-gradient(135deg,var(--accent),#a2602f);color:#1a1206}
-  .brand em{font-style:normal;color:var(--accent)}
-  .net-badge{font-family:var(--mono);font-size:12px;color:var(--accent);border:1px solid rgba(208,138,87,.4);background:rgba(208,138,87,.07);padding:5px 12px;border-radius:99px}
-
-  .titlepage{border-bottom:1px solid var(--line);padding-bottom:30px;margin-bottom:34px}
-  .doc-kicker{font-family:var(--mono);font-size:12px;letter-spacing:2.5px;color:var(--accent);text-transform:uppercase;margin-bottom:12px}
-  h1{font-family:var(--display);font-size:clamp(28px,5vw,42px);line-height:1.15;text-wrap:balance;margin-bottom:14px}
-  .subtitle{color:var(--muted);font-size:16px;max-width:38em}
-  .doc-meta{display:flex;gap:18px;flex-wrap:wrap;margin-top:18px;font-family:var(--mono);font-size:12px;color:var(--faint)}
-
-  nav.toc{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px 22px;margin-bottom:36px}
-  nav.toc .t{font-family:var(--display);font-size:13px;letter-spacing:1.5px;color:var(--muted);text-transform:uppercase;margin-bottom:10px}
-  nav.toc ol{margin-left:20px;font-size:14px;columns:2;column-gap:30px}
-  @media(max-width:640px){nav.toc ol{columns:1}}
-  nav.toc li{margin:4px 0;-webkit-column-break-inside:avoid;break-inside:avoid}
-  nav.toc a{color:var(--ink);text-decoration:none}
-  nav.toc a:hover{color:var(--accent)}
-
-  section{margin-bottom:40px}
-  h2{font-family:var(--display);font-size:22px;margin-bottom:14px;padding-top:8px}
-  h2 .n{color:var(--accent);font-family:var(--mono);font-size:15px;margin-right:10px}
-  h3{font-family:var(--display);font-size:16px;margin:22px 0 8px}
-  p{margin-bottom:14px;color:var(--muted)}
-  p b{color:var(--ink)}
-  .callout{
-    background:var(--panel);border-left:3px solid var(--accent);border-radius:0 12px 12px 0;
-    padding:14px 18px;margin:18px 0;font-size:14.5px;color:var(--muted);
-  }
-  .callout b{color:var(--accent)}
-  code{font-family:var(--mono);font-size:.9em;background:var(--panel2);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
-  .formula{
-    font-family:var(--mono);font-size:14px;background:#1e150e;border:1px solid var(--line);border-radius:10px;
-    padding:14px 18px;margin:16px 0;text-align:center;color:var(--accent);
-  }
-  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
-  th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line)}
-  th{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-weight:500}
-  td{color:var(--muted)}
-  td.mono{font-family:var(--mono);font-size:12.5px;word-break:break-all}
-  td.num{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
-  a{color:var(--cyan)}
-  .diagram{margin:20px 0;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px}
-  .diagram svg{display:block;width:100%;height:auto}
-  .diagram .cap{font-size:12.5px;color:var(--faint);text-align:center;margin-top:8px;font-family:var(--mono)}
-  ul.doc{margin:0 0 14px 22px;color:var(--muted)}
-  ul.doc li{margin-bottom:8px}
-  .disclaimer{
-    background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
-    font-size:13px;color:var(--muted);margin-top:8px;
-  }
-  footer{border-top:1px solid var(--line);margin-top:44px;padding-top:20px;color:var(--faint);font-size:12.5px;text-align:center}
-  @media print{
-    body{background:#fff;color:#111;padding:0}
-    :root{--ink:#111;--muted:#444;--faint:#666;--panel:#f5f5f5;--panel2:#eee;--line:#ccc}
-    header.site,nav.toc{display:none}
-    p,td,ul.doc{color:#222}
-  }
-</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/pages/index.css">
+<link rel="stylesheet" href="/assets/pages/whitepaper.css">
+<script src="/assets/boot.js"></script>
+<script defer src="/assets/site.js"></script>
+<script defer src="/assets/qwatt-status.js"></script>
+<script defer src="/assets/qwatt-live.js"></script>
+<script defer src="/assets/live-widgets.js"></script>
 </head>
-<body>
-<!-- tema dia/noche QWATT -->
-<style id="qtheme">
-:root{--ch-grid:#3b2d1d;--ch-label:#8b7a64;--ch-line:#d08a57;--ch-avg:#c9a15f;--ch-area:rgba(208,138,87,.10);--ch-ring:#f0e8dc}
-html[data-theme="light"]{
-  --bg:#faf8f2;--bg2:#f5f0e6;
-  --paper:#faf8f2;--paper-2:#f1ecdf;--paper-3:#e6dfcd;
-  --panel:#f1ecdf;--panel2:#e6dfcd;
-  --line:#e6e2d6;
-  --ink:#1b1a14;--text:#1b1a14;--ink-2:#474334;
-  --muted:#5a5244;--grey:#6f6957;--faint:#6f6957;
-  --navy:#291d13;--navy-2:#342619;
-  --teal:#b0582f;--teal-lt:#d08a63;--amber:#6b4a2e;
-  --accent:#b0582f;--accent2:#8a672f;--cyan:#8a672f;--sand:#8a672f;--sun:#b0582f;
-  --good:#1a7f4e;--bad:#b91c1c;--warn:#8a6d1f;
-  --ch-grid:#e6e2d6;--ch-label:#6f6957;--ch-line:#b0582f;--ch-avg:#6b4a2e;--ch-area:rgba(176,88,47,.10);--ch-ring:#faf8f2;
-}
-html[data-theme="light"] .btn.primary{color:#fff}
-html[data-theme="light"] .tf button.on{color:#fff}
-html[data-theme="light"] .sim-row .buy{color:#fff}
-html[data-theme="light"] .st-chip.st-testnet{color:#b0582f;border-color:rgba(176,88,47,.45)}
-html[data-theme="light"] .st-chip.st-proto{color:#8a672f;border-color:rgba(138,103,47,.45)}
-html[data-theme="light"] .st-chip.st-plan,html[data-theme="light"] .st-chip.st-demo{color:#6f6957;border-color:#d9d3c4}
-html[data-theme="light"] .st-chip.st-pilot{color:#3e7032;border-color:rgba(62,112,50,.4)}
-html[data-theme="light"] .st-chip.st-live{color:#15803d;border-color:rgba(21,128,61,.4)}
-html[data-theme="light"] .legend span:first-child .swatch{background:#b0582f !important}
-html[data-theme="light"] .legend span:last-child .swatch{background:#6b4a2e !important}
-html[data-theme="light"] .drawer,html[data-theme="light"] .qdrawer{background:#f1ecdf;border-right:1px solid #e6e2d6;scrollbar-color:#e6dfcd transparent}
-html[data-theme="light"] .drawer::-webkit-scrollbar-thumb,html[data-theme="light"] .qdrawer::-webkit-scrollbar-thumb{background:#e6dfcd}
-html[data-theme="light"] .d-head,html[data-theme="light"] .qd-head{border-bottom:1px solid #e6e2d6}
-html[data-theme="light"] .d-brand,html[data-theme="light"] .qd-brand{color:#1b1a14}
-html[data-theme="light"] .d-brand .bolt-sm,html[data-theme="light"] .qd-brand .qb{color:#b0582f}
-html[data-theme="light"] .d-close,html[data-theme="light"] .qd-x{color:#6f6957}
-html[data-theme="light"] .d-close:hover,html[data-theme="light"] .qd-x:hover{color:#1b1a14}
-html[data-theme="light"] .d-title,html[data-theme="light"] .qd-t{color:#6f6957}
-html[data-theme="light"] .d-link,html[data-theme="light"] .qd-nav a{color:#474334}
-html[data-theme="light"] .d-link::before,html[data-theme="light"] .qd-nav a::before{color:#b0997f}
-html[data-theme="light"] .d-link:hover,html[data-theme="light"] .qd-nav a:hover{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.10),rgba(176,88,47,0) 70%);border-left-color:rgba(176,88,47,.55)}
-html[data-theme="light"] .d-link.on,html[data-theme="light"] .qd-nav a.on{color:#1b1a14;background:linear-gradient(90deg,rgba(176,88,47,.15),rgba(176,88,47,0) 75%);border-left-color:#b0582f}
-html[data-theme="light"] .d-link:hover::before,html[data-theme="light"] .qd-nav a:hover::before,html[data-theme="light"] .d-link.on::before,html[data-theme="light"] .qd-nav a.on::before{color:#b0582f}
-html[data-theme="light"] .d-nav .d-title:not(:first-child),html[data-theme="light"] .qd-t.mt{border-top-color:#e6e2d6}
-html[data-theme="light"] .d-foot,html[data-theme="light"] .qd-foot{border-top:1px solid #e6e2d6;color:#b0582f}
-html[data-theme="light"] body > header,html[data-theme="light"] #qwnav{background:rgba(250,248,242,.92);border-bottom:1px solid #e6e2d6}
-html[data-theme="light"] body > header .brand,html[data-theme="light"] #qwnav .qw-home{color:#1b1a14}
-html[data-theme="light"] body > header .brand .bolt,html[data-theme="light"] #qwnav .qw-home .qw-bolt{color:#b0582f}
-html[data-theme="light"] body > header .brand small{color:#6f6957;border-left-color:#e6e2d6}
-html[data-theme="light"] .menu-btn,html[data-theme="light"] #qwnav .qw-menu,html[data-theme="light"] .qd-trig,html[data-theme="light"] .qtheme-btn{border-color:rgba(176,88,47,.45);color:#b0582f}
-html[data-theme="light"] .menu-btn:hover,html[data-theme="light"] #qwnav .qw-menu:hover,html[data-theme="light"] .qd-trig:hover,html[data-theme="light"] .qtheme-btn:hover{background:rgba(176,88,47,.08);color:#1b1a14}
-html[data-theme="light"] .hd-chip,html[data-theme="light"] #qwnav .qw-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
-html[data-theme="light"] .hd-chip .live-dot,html[data-theme="light"] #qwnav .qw-chip .qw-dot{color:#b0582f}
-html[data-theme="light"] .lang-toggle{border-color:#e6e2d6}
-html[data-theme="light"] .lang-toggle button{color:#6f6957}
-html[data-theme="light"] .lang-toggle button.active{background:#b0582f;color:#fff}
-html[data-theme="light"] body > header .back{color:#474334}
-html[data-theme="light"] body > header .back:hover{color:#1b1a14}
-html[data-theme="light"] body > footer,html[data-theme="light"] #qwfoot{background:#f1ecdf;border-top:1px solid #e6e2d6;color:#474334}
-html[data-theme="light"] body > footer .f-brand,html[data-theme="light"] #qwfoot .qf-brand{color:#1b1a14}
-html[data-theme="light"] body > footer .f-brand small{color:#6f6957}
-html[data-theme="light"] #qwfoot .qf-brand .qf-bolt{color:#b0582f}
-html[data-theme="light"] body > footer .f-lead,html[data-theme="light"] #qwfoot .qf-lead{color:#474334}
-html[data-theme="light"] body > footer .f-chip,html[data-theme="light"] #qwfoot .qf-chip{color:#b0582f;border-color:rgba(176,88,47,.4)}
-html[data-theme="light"] body > footer .f-chip .live-dot{color:#b0582f}
-html[data-theme="light"] body > footer .grp h3,html[data-theme="light"] #qwfoot h3{color:#6f6957}
-html[data-theme="light"] body > footer .grp a,html[data-theme="light"] #qwfoot a{color:#474334}
-html[data-theme="light"] body > footer .grp a::before,html[data-theme="light"] #qwfoot .qf-grp a::before{color:#b0997f}
-html[data-theme="light"] body > footer .grp a:hover,html[data-theme="light"] #qwfoot a:hover{color:#1b1a14}
-html[data-theme="light"] body > footer .disclaimer,html[data-theme="light"] #qwfoot .qf-bottom{color:#6f6957;border-top-color:#e0dac9}
-html[data-theme="light"] #qwfoot .qf-bottom a{color:#b0582f}
-.d-link::after,.qd-nav a::after{margin-left:auto;flex:none}
-.d-link[href="wallet.html"]::after,.qd-nav a[href="wallet.html"]::after,.d-link[href="console.html"]::after,.qd-nav a[href="console.html"]::after,.d-link[href="pay.html"]::after,.qd-nav a[href="pay.html"]::after,.d-link[href="proof.html"]::after,.qd-nav a[href="proof.html"]::after,.d-link[href="respaldo.html"]::after,.qd-nav a[href="respaldo.html"]::after,.d-link[href="red.html"]::after,.qd-nav a[href="red.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#3cb87f;box-shadow:0 0 6px rgba(60,184,127,.5)}
-.d-link[href="grid.html"]::after,.qd-nav a[href="grid.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#6e5c49}
-.d-link[href="piloto.html"]::after,.qd-nav a[href="piloto.html"]::after{content:"";width:6px;height:6px;border-radius:50%;background:#c9a15f;box-shadow:0 0 6px rgba(201,161,95,.35)}
-html[data-theme="light"] .d-link[href="wallet.html"]::after,html[data-theme="light"] .qd-nav a[href="wallet.html"]::after,html[data-theme="light"] .d-link[href="console.html"]::after,html[data-theme="light"] .qd-nav a[href="console.html"]::after,html[data-theme="light"] .d-link[href="pay.html"]::after,html[data-theme="light"] .qd-nav a[href="pay.html"]::after,html[data-theme="light"] .d-link[href="proof.html"]::after,html[data-theme="light"] .qd-nav a[href="proof.html"]::after,html[data-theme="light"] .d-link[href="respaldo.html"]::after,html[data-theme="light"] .qd-nav a[href="respaldo.html"]::after,html[data-theme="light"] .d-link[href="red.html"]::after,html[data-theme="light"] .qd-nav a[href="red.html"]::after{background:#15803d;box-shadow:0 0 6px rgba(21,128,61,.3)}
-html[data-theme="light"] .d-link[href="grid.html"]::after,html[data-theme="light"] .qd-nav a[href="grid.html"]::after{background:#c4bca6}
-html[data-theme="light"] .d-link[href="piloto.html"]::after,html[data-theme="light"] .qd-nav a[href="piloto.html"]::after{background:#a97b2f;box-shadow:0 0 6px rgba(169,123,47,.3)}
-:root{--qlogo-ink:#f0e8dc;--qlogo-bolt:#d08a57}
-html[data-theme="light"]{--qlogo-ink:#1b1a14;--qlogo-bolt:#b0582f}
-svg.qm{flex:none}
-html[data-theme="light"] .tag.t,html[data-theme="light"] .s-hero .tag{color:#8f4522}
-html[data-theme="light"] #onchain .tag.t{color:#d08a57}
-html[data-theme="light"] input,html[data-theme="light"] textarea,html[data-theme="light"] select{background:#faf8f2;color:#1b1a14;border-color:#e6e2d6}
-html[data-theme="light"] input::placeholder,html[data-theme="light"] textarea::placeholder{color:#8b8578}
-html[data-theme="light"] input:focus,html[data-theme="light"] textarea:focus{border-color:#b0582f}
-html[data-theme="light"] .presets button.on,.presets button.on{background:#a44e26;color:#fff;border-color:#a44e26}
-html[data-theme="light"] .ctl label .v{color:#8f4522}
-.qtheme-btn{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-size:13px;line-height:1;padding:6px 10px;cursor:pointer;flex:none;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-.qtheme-btn:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-</style>
-<script>
-(function(){
-  var KEY='qwatt.theme';
-  var saved='light';try{saved=localStorage.getItem(KEY)||'light'}catch(e){}
-  document.documentElement.setAttribute('data-theme',saved);
-  function syncMeta(t){var mc=document.querySelector('meta[name="theme-color"]');if(mc)mc.setAttribute('content',t==='light'?'#faf8f2':'#120c07')}
-  syncMeta(saved);
-  function label(t){return t==='light'?'\u263D':'\u2600'}
-  function apply(t){
-    document.documentElement.setAttribute('data-theme',t);
-    var b=document.getElementById('qthemeBtn');if(b)b.textContent=label(t);
-    try{localStorage.setItem(KEY,t)}catch(e){}
-    syncMeta(t);
-    try{window.dispatchEvent(new Event('qwatt-theme'))}catch(e){}
-  }
-  function init(){
-    if(document.getElementById('qthemeBtn'))return;
-    var host=document.querySelector('#qwnav .qw-in')||document.querySelector('header .nav');
-    if(!host)return;
-    var btn=document.createElement('button');
-    btn.id='qthemeBtn';btn.className='qtheme-btn';
-    btn.setAttribute('aria-label','Cambiar tema d\u00EDa/noche');
-    btn.title='D\u00EDa / noche';
-    btn.textContent=label(document.documentElement.getAttribute('data-theme'));
-    btn.addEventListener('click',function(){
-      apply(document.documentElement.getAttribute('data-theme')==='light'?'dark':'light');
-    });
-    var anchor=host.querySelector('.qw-chip')||host.querySelector('.hd-chip');
-    host.insertBefore(btn,anchor||null);
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
-})();
-</script>
-<!-- menu lateral QWATT (compartido) -->
-<div class="qd-overlay" id="qdOverlay"></div>
-<aside class="qdrawer" id="qdrawer" aria-label="Menu QWATT">
-<style>
-body{transition:margin-left .28s cubic-bezier(.22,1,.36,1)}
-@media(min-width:1000px){html.qd-docked body{margin-left:300px}.qd-overlay{display:none !important}}
-.qd-overlay{position:fixed;inset:0;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;z-index:98}
-.qd-overlay.open{opacity:1;visibility:visible}
-.qdrawer{position:fixed;top:0;left:0;bottom:0;width:300px;max-width:85vw;background:#120c07;border-right:1px solid #3b2d1d;z-index:99;transform:translateX(-102%);transition:transform .28s cubic-bezier(.22,1,.36,1);display:flex;flex-direction:column;overflow-y:auto;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-.qdrawer.open{transform:none}
-.qdrawer{scrollbar-width:thin;scrollbar-color:#3b2d1d transparent}
-.qdrawer::-webkit-scrollbar{width:6px}
-.qdrawer::-webkit-scrollbar-track{background:transparent}
-.qdrawer::-webkit-scrollbar-thumb{background:#3b2d1d;border-radius:3px}
-.qdrawer::-webkit-scrollbar-thumb:hover{background:#6e5c49}
-@media(prefers-reduced-motion:reduce){.qdrawer,.qd-overlay,body{transition:none}}
-.qd-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid #2b2115;flex:none}
-.qd-brand{font-weight:600;font-size:13px;letter-spacing:.22em;color:#f0e8dc;text-decoration:none}
-.qd-brand .qb{color:#d08a57}
-.qd-x{background:none;border:0;color:#8b7a64;font-size:15px;cursor:pointer;padding:4px 8px;font-family:inherit}
-.qd-x:hover{color:#f0e8dc}
-.qd-nav{padding:16px 14px;flex:1}
-.qd-t{counter-reset:qd;font-size:9.5px;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;padding:0 10px;margin:0 0 8px}
-.qd-t.mt{margin-top:22px;padding-top:16px;border-top:1px solid #2b2115}
-.qd-nav a{display:flex;align-items:center;gap:11px;font-size:11.5px;letter-spacing:.13em;text-transform:uppercase;color:#b3a48f;padding:8px 10px;border-left:2px solid transparent;border-radius:0 3px 3px 0;text-decoration:none;transition:color .15s,background .15s,border-color .15s,padding .18s;margin-bottom:1px}
-.qd-nav a::before{counter-increment:qd;content:counter(qd,decimal-leading-zero);font-size:9px;color:#6e5c49;min-width:15px;transition:color .15s}
-.qd-nav a:hover{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.10),rgba(208,138,87,0) 70%);border-left-color:rgba(208,138,87,.5);padding-left:14px}
-.qd-nav a:hover::before{color:#d08a57}
-.qd-nav a.on{color:#f0e8dc;background:linear-gradient(90deg,rgba(208,138,87,.16),rgba(208,138,87,0) 75%);border-left-color:#d08a57;font-weight:600}
-.qd-nav a.on::before{color:#d08a57}
-.qdrawer.open .qd-nav>*{animation:qdIn .34s cubic-bezier(.22,1,.36,1) both}
-@keyframes qdIn{from{opacity:0;transform:translateX(-7px)}to{opacity:1;transform:none}}
-.qdrawer.open .qd-nav>:nth-child(2){animation-delay:.012s}
-.qdrawer.open .qd-nav>:nth-child(3){animation-delay:.024s}
-.qdrawer.open .qd-nav>:nth-child(4){animation-delay:.036s}
-.qdrawer.open .qd-nav>:nth-child(5){animation-delay:.048s}
-.qdrawer.open .qd-nav>:nth-child(6){animation-delay:.060s}
-.qdrawer.open .qd-nav>:nth-child(7){animation-delay:.072s}
-.qdrawer.open .qd-nav>:nth-child(8){animation-delay:.084s}
-.qdrawer.open .qd-nav>:nth-child(9){animation-delay:.096s}
-.qdrawer.open .qd-nav>:nth-child(10){animation-delay:.108s}
-.qdrawer.open .qd-nav>:nth-child(11){animation-delay:.120s}
-.qdrawer.open .qd-nav>:nth-child(12){animation-delay:.132s}
-.qdrawer.open .qd-nav>:nth-child(13){animation-delay:.144s}
-.qdrawer.open .qd-nav>:nth-child(14){animation-delay:.156s}
-.qdrawer.open .qd-nav>:nth-child(15){animation-delay:.168s}
-.qdrawer.open .qd-nav>:nth-child(16){animation-delay:.180s}
-.qdrawer.open .qd-nav>:nth-child(17){animation-delay:.192s}
-.qdrawer.open .qd-nav>:nth-child(18){animation-delay:.204s}
-.qdrawer.open .qd-nav>:nth-child(19){animation-delay:.216s}
-.qdrawer.open .qd-nav>:nth-child(20){animation-delay:.228s}
-.qdrawer.open .qd-nav>:nth-child(21){animation-delay:.240s}
-.qdrawer.open .qd-nav>:nth-child(22){animation-delay:.252s}
-.qdrawer.open .qd-nav>:nth-child(23){animation-delay:.264s}
-.qdrawer.open .qd-nav>:nth-child(24){animation-delay:.276s}
-.qdrawer.open .qd-nav>:nth-child(25){animation-delay:.288s}
-.qdrawer.open .qd-nav>:nth-child(26){animation-delay:.300s}
-@media(prefers-reduced-motion:reduce){.qdrawer.open .qd-nav>*{animation:none}}
-.qd-foot{padding:14px 20px;border-top:1px solid #2b2115;font-size:10px;letter-spacing:.16em;color:#d08a57;flex:none}
-#qwnav .qw-menu{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:13px;line-height:1;padding:6px 11px;cursor:pointer;flex:none}
-#qwnav .qw-menu:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-.qd-trig{background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:12px;letter-spacing:.08em;padding:7px 12px;cursor:pointer}
-.qd-trig:hover{background:rgba(208,138,87,.09);color:#f0e8dc}
-</style>
-<div class="qd-head">
-<a class="qd-brand" href="index.html"><span class="qb"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-<button class="qd-x" id="qdClose" aria-label="Cerrar menu">&#10005;</button>
-</div>
-<nav class="qd-nav">
-<div class="qd-t">Explorar QWATT</div>
-<a href="index.html">Inicio</a>
-<a href="index.html#peg">C&oacute;mo funciona</a>
-<a href="index.html#dash">Dashboard</a>
-<a href="index.html#onchain">Onchain</a>
-<a href="index.html#clean">QWATT-Clean</a>
-<a href="index.html#tok">Tokenomics</a>
-<a href="index.html#road">Roadmap</a>
-<a href="index.html#security">Seguridad</a>
-<div class="qd-t mt">Plataforma</div>
-<a href="verificacion.html">Verificaci&oacute;n</a>
-<a title="Demo — datos simulados" href="grid.html">QWATT Grid</a>
-<a title="Testnet — transacciones reales" href="proof.html">QWATT Explorer</a>
-<a title="Testnet — transacciones reales" href="respaldo.html">Reservas</a>
-<a title="Testnet — transacciones reales" href="wallet.html">QWATT Wallet</a>
-<a title="Testnet — transacciones reales" href="pay.html">QWATT Pay</a>
-<div class="qd-t mt">Herramientas</div>
-<a title="Testnet — transacciones reales" href="console.html">Consola Onchain</a>
-<a title="Testnet — transacciones reales" href="red.html">QWATT Pulse</a>
-<a title="Prototipo — hardware en diseño" href="piloto.html">Piloto Solar</a>
-<a href="backup.html">Backup de claves</a>
-<div class="qd-t mt">Recursos</div>
-<a href="whitepaper.html">Whitepaper</a>
-<a href="terminos.html">T&eacute;rminos</a>
-<a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
-<a target="_blank" rel="noopener" href="https://github.com/academiaseul/QWATT">GitHub &#8599;</a>
-</nav>
-<div class="qd-foot">&#9679; STELLAR TESTNET</div>
-</aside>
-<script>
-(function(){
-  var d=document.getElementById('qdrawer'),o=document.getElementById('qdOverlay');
-  var MQ=window.matchMedia('(min-width:1000px)');
-  function set(open){
-    d.classList.toggle('open',open);
-    o.classList.toggle('open',open);
-    document.documentElement.classList.toggle('qd-docked',open&&MQ.matches);
-    var b=document.getElementById('qdOpen');
-    if(b)b.setAttribute('aria-expanded',open);
-    try{localStorage.setItem('qwatt.drawer',open?'1':'0')}catch(e){}
-  }
-  document.addEventListener('click',function(e){
-    if(e.target.closest&&e.target.closest('#qdOpen'))set(!d.classList.contains('open'));
-  });
-  document.getElementById('qdClose').addEventListener('click',function(){set(false)});
-  o.addEventListener('click',function(){set(false)});
-  document.addEventListener('keydown',function(e){if(e.key==='Escape')set(false)});
-  d.querySelectorAll('a').forEach(function(a){a.addEventListener('click',function(){if(!MQ.matches)set(false)})});
-  if(MQ.addEventListener)MQ.addEventListener('change',function(){set(d.classList.contains('open'))});
-  try{if(localStorage.getItem('qwatt.drawer')==='1'&&MQ.matches)set(true)}catch(e){}
-  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'')||'index';
-  if(location.pathname.indexOf('/proof')===0)page='proof';
-  d.querySelectorAll('a[href]').forEach(function(a){
-    var h=a.getAttribute('href');
-    if(h.indexOf('#')<0&&h.indexOf('http')!==0&&h.replace(/\.html$/,'')===page)a.classList.add('on');
-  });
-})();
-</script>
-<!-- barra QWATT: navegacion entre apps -->
-<nav id="qwnav" aria-label="QWATT apps">
-<style>
-#qwnav{position:fixed;top:0;left:0;right:0;z-index:90;background:rgba(18,12,7,.92);-webkit-backdrop-filter:saturate(160%) blur(12px);backdrop-filter:saturate(160%) blur(12px);border-bottom:1px solid #3b2d1d;font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace}
-#qwnav .qw-in{max-width:1240px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:20px;height:50px}
-#qwnav a{text-decoration:none;white-space:nowrap}
-#qwnav .qw-home{color:#f0e8dc;font-weight:600;letter-spacing:.22em;font-size:13px;display:inline-flex;align-items:center;gap:9px}
-#qwnav .qw-home .qw-bolt{color:#d08a57;letter-spacing:0}
-#qwnav .qw-home:hover .qw-bolt{color:#d9b26a}
-#qwnav .qw-sep{width:1px;height:18px;background:#3b2d1d;flex:none}
-#qwnav .qw-links{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none}
-#qwnav .qw-links::-webkit-scrollbar{display:none}
-#qwnav .qw-links a{color:#b3a48f;font-size:11.5px;letter-spacing:.1em;padding:6px 11px;border-radius:3px;transition:color .15s,background .15s}
-#qwnav .qw-links a:hover{color:#f0e8dc;background:rgba(208,138,87,.09)}
-#qwnav .qw-links a.qw-on{color:#16100a;background:#d08a57;font-weight:600}
-#qwnav .qw-chip{margin-left:auto;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;white-space:nowrap;flex:none}
-#qwnav .qw-chip .qw-dot{animation:qwblink 1.6s infinite}
-@keyframes qwblink{50%{opacity:.25}}
-@media(prefers-reduced-motion:reduce){#qwnav .qw-chip .qw-dot{animation:none}}
-#qwnav .qw-burger{display:none;margin-left:auto;background:none;border:1px solid #3b2d1d;border-radius:3px;color:#d08a57;font:inherit;font-size:11px;letter-spacing:.1em;padding:6px 11px;cursor:pointer}
-@media(max-width:860px){
-#qwnav .qw-links{display:none}
-#qwnav .qw-chip{display:none}
-#qwnav .qw-sep{display:none}
-#qwnav .qw-burger{display:block}
-#qwnav.open .qw-links{display:flex;flex-direction:column;position:absolute;top:50px;left:0;right:0;background:rgba(18,12,7,.98);border-bottom:1px solid #3b2d1d;padding:10px 22px 16px;gap:2px}
-#qwnav.open .qw-links a{padding:11px 10px;font-size:12.5px;border-bottom:1px solid rgba(59,45,29,.5);border-radius:0}
-#qwnav.open .qw-links a:last-child{border-bottom:0}
-#qwnav.open .qw-links a.qw-on{border-radius:3px;border-bottom:0}
-}
-</style>
-<div class="qw-in">
-<button class="qw-menu" id="qdOpen" aria-label="Abrir menu" aria-expanded="false">&#9776;</button>
-<a class="qw-home" href="index.html"><span class="qw-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span>QWATT</a>
-<span class="qw-chip"><span class="qw-dot">&#9679;</span> STELLAR TESTNET</span>
-</div>
-<script>
-(function(){
-  var nav=document.getElementById('qwnav');
-  var pad=parseFloat(getComputedStyle(document.body).paddingTop)||0;
-  document.body.style.paddingTop=(pad+52)+'px';
-  var page=(location.pathname.split('/').pop()||'index.html').replace(/\.html$/,'');
-})();
-</script>
-</nav>
-<div class="wrap">
-  <style>
-    .stx{font-family:var(--mono);font-size:9.5px;letter-spacing:.14em;border:1px solid;border-radius:99px;padding:2px 9px;vertical-align:2px;margin-left:8px;white-space:nowrap}
-    .stx.t{color:#d08a57;border-color:rgba(208,138,87,.45)}
-    .stx.p{color:#d9b26a;border-color:rgba(217,178,106,.4)}
-    .stx.f{color:#8b7a64;border-color:#3b2d1d}
-    .stx.d{color:#8b7a64;border-color:#3b2d1d}
-    .flow{font-family:var(--mono);font-size:13px;line-height:2;background:#1e150e;border:1px solid var(--line);border-radius:10px;padding:16px 20px;margin:16px 0;color:var(--muted);overflow-x:auto;white-space:pre}
-    .flow b{color:var(--accent);font-weight:600}
-  </style>
-  <header class="site">
-    <div class="brand"><a href="index.html"><span class="bolt" style="background:none"><svg class="qm" viewBox="0 0 64 64" width="30" height="30" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span><span><em>QWATT</em></span></a></div>
-    <div class="net-badge">WHITEPAPER v2.0</div>
-  </header>
+<body data-page="whitepaper" data-status="mixto" data-parts="testnet prototipo planificado">
+<!-- q:header -->
+<a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
+<header class="q-top">
+  <div class="q-top-in">
+    <button type="button" class="q-menu" id="qdOpen" aria-controls="qdrawer" aria-expanded="false" aria-label="Abrir menú" data-aria-en="Open menu"><span class="q-burger" aria-hidden="true"><i></i><i></i><i></i></span><span class="q-menu-w"><span data-l="es">Menú</span><span data-l="en">Menu</span></span></button>
+    <a class="q-brand" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span><small><span data-l="es">VERIFICADOR</span><span data-l="en">VERIFIER</span></small></a>
+    <span class="q-net"><span class="q-net-dot" aria-hidden="true"></span><span class="q-net-w"><span data-l="es">SOLO TESTNET</span><span data-l="en">TESTNET ONLY</span></span></span>
+    <span class="q-top-sp"></span>
+    <div class="q-lang" role="group" aria-label="Idioma" data-aria-en="Language"><button type="button" class="q-lang-b" data-lang="es" aria-pressed="true" translate="no">ES</button><button type="button" class="q-lang-b" data-lang="en" aria-pressed="false" translate="no">EN</button></div>
+    <button type="button" class="q-theme" id="qTheme" aria-label="Modo día" data-aria-en="Day mode"><span class="q-theme-i" aria-hidden="true">☀</span></button>
+  </div>
+</header>
+<div class="q-overlay" id="qdOverlay" hidden></div>
+<div class="q-drawer" id="qdrawer" hidden></div>
+<!-- /q:header -->
+<main id="main">
 
-  <div class="titlepage">
-    <div class="doc-kicker">Whitepaper &#183; v2.0 &#183; protocolo de verificaci&oacute;n energ&eacute;tica</div>
-    <h1>QWATT: energ&iacute;a verificada onchain</h1>
-    <p class="subtitle">
-      Un protocolo que conecta la producci&oacute;n renovable medible con registros digitales
-      transparentes sobre la red Stellar. La unidad del protocolo es f&iacute;sica y universal:
-      <b style="color:var(--accent)">1 QWATT representa 1 MWh</b>. Este documento describe el problema,
-      la arquitectura, el modelo de or&aacute;culo, la seguridad y el estado real de cada componente.
+<section class="q-title" id="top" aria-labelledby="h1">
+  <div class="q-wrap">
+    <p class="q-eyebrow"><span data-l="es">Documento técnico · v3</span><span data-l="en">Technical paper · v3</span></p>
+    <h1 id="h1"><span data-l="es">QWATT: constancias de generación solar <b>verificables de forma independiente</b></span><span data-l="en">QWATT: <b>independently verifiable</b> solar generation records</span></h1>
+    <p class="q-lead"><span data-l="es">Cómo un verificador de código abierto convierte lecturas de medidores solares en constancias en Stellar testnet que cualquiera puede volver a comprobar solo con datos públicos, y en qué estado está hoy cada parte.</span><span data-l="en">How an open-source verifier turns solar meter readings into records on Stellar testnet that anyone can re-check from public data alone, and what state each part is in today.</span></p>
+    <p class="q-en-note" lang="en">The body of this page is in Spanish. Headings, labels, live data and the disclaimer are translated.</p>
+    <p class="q-docmeta"><span data-l="es">v3 · octubre 2026 · red: Stellar testnet · estado: en desarrollo (sprint Instawards Chile) · Jay Kim y Diego Ostertag</span><span data-l="en">v3 · October 2026 · network: Stellar testnet · status: in development (Instawards Chile sprint) · Jay Kim and Diego Ostertag</span></p>
+    <p class="q-status" role="note">
+      <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">las direcciones y los ensayos se leen en vivo</span><span data-l="en">addresses and rehearsals are read live</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span><span data-l="es">verificador y filtros con entrada simulada</span><span data-l="en">verifier and filters with simulated input</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">cuenta 2 de 3, hardware e ideas futuras</span><span data-l="en">2-of-3 account, hardware and future ideas</span></span></span>
     </p>
-    <div class="doc-meta">
-      <span>agosto de 2026</span>
-      <span>red: Stellar testnet</span>
-      <span>estado: prototipo</span>
-    </div>
+    <nav class="q-toc" aria-label="Contenido" data-aria-en="Contents">
+      <p class="q-toc-k"><span data-l="es">Contenido</span><span data-l="en">Contents</span></p>
+      <ol>
+        <li><a href="#s1"><span class="q-toc-n">1</span><span data-l="es">Resumen</span><span data-l="en">Summary</span></a></li>
+        <li><a href="#s2"><span class="q-toc-n">2</span><span data-l="es">El problema</span><span data-l="en">The problem</span></a></li>
+        <li><a href="#s3"><span class="q-toc-n">3</span><span data-l="es">Datos fragmentados</span><span data-l="en">Fragmented data</span></a></li>
+        <li><a href="#s4"><span class="q-toc-n">4</span><span data-l="es">Arquitectura por capas</span><span data-l="en">Layered architecture</span></a></li>
+        <li><a href="#s5"><span class="q-toc-n">5</span><span data-l="es">Qué se valida hoy y qué falta</span><span data-l="en">What is validated today and what is missing</span></a></li>
+        <li><a href="#s6"><span class="q-toc-n">6</span><span data-l="es">Modelo de confianza</span><span data-l="en">Trust model</span></a></li>
+        <li><a href="#s7"><span class="q-toc-n">7</span><span data-l="es">Por qué una cadena pública, y lo que no prueba</span><span data-l="en">Why a public chain, and what it does not prove</span></a></li>
+        <li><a href="#s8"><span class="q-toc-n">8</span><span data-l="es">Por qué Stellar y las direcciones públicas</span><span data-l="en">Why Stellar, and the public addresses</span></a></li>
+        <li><a href="#s9"><span class="q-toc-n">9</span><span data-l="es">El ciclo de un lote</span><span data-l="en">The life of a batch</span></a></li>
+        <li><a href="#s10"><span class="q-toc-n">10</span><span data-l="es">Modelo de datos</span><span data-l="en">Data model</span></a></li>
+        <li><a href="#s11"><span class="q-toc-n">11</span><span data-l="es">Seguridad y claves</span><span data-l="en">Safety and keys</span></a></li>
+        <li><a href="#s12"><span class="q-toc-n">12</span><span data-l="es">El rol del activo QWATT en testnet</span><span data-l="en">The role of the QWATT asset on testnet</span></a></li>
+        <li><a href="#s13"><span class="q-toc-n">13</span><span data-l="es">Piloto (planificado)</span><span data-l="en">Pilot (planned)</span></a></li>
+        <li><a href="#s14"><span class="q-toc-n">14</span><span data-l="es">Calendario del sprint</span><span data-l="en">Sprint calendar</span></a></li>
+        <li><a href="#s15"><span class="q-toc-n">15</span><span data-l="es">Consideraciones regulatorias</span><span data-l="en">Regulatory considerations</span></a></li>
+        <li><a href="#s16"><span class="q-toc-n">16</span><span data-l="es">Ideas futuras (planificadas)</span><span data-l="en">Future ideas (planned)</span></a></li>
+        <li><a href="#s17"><span class="q-toc-n">17</span><span data-l="es">Lo que el sprint demostrará y lo que no</span><span data-l="en">What the sprint will and will not show</span></a></li>
+        <li><a href="#s18"><span class="q-toc-n">18</span><span data-l="es">Cómo reproducir una verificación</span><span data-l="en">How to reproduce a verification</span></a></li>
+      </ol>
+    </nav>
   </div>
+</section>
 
-  <nav class="toc">
-    <div class="t">Contenido</div>
-    <ol>
-      <li><a href="#s1">Resumen</a></li>
-      <li><a href="#s2">El problema</a></li>
-      <li><a href="#s3">Fragmentaci&oacute;n del dato energ&eacute;tico</a></li>
-      <li><a href="#s4">Arquitectura QWATT</a></li>
-      <li><a href="#s5">Verificaci&oacute;n energ&eacute;tica</a></li>
-      <li><a href="#s6">Modelo de or&aacute;culo</a></li>
-      <li><a href="#s7">Capa blockchain</a></li>
-      <li><a href="#s8">Integraci&oacute;n con Stellar</a></li>
-      <li><a href="#s9">Ciclo de vida QWATT</a></li>
-      <li><a href="#s10">Modelo de datos</a></li>
-      <li><a href="#s11">Modelo de seguridad</a></li>
-      <li><a href="#s12">Modelo de activo</a></li>
-      <li><a href="#s13">Piloto solar residencial</a></li>
-      <li><a href="#s14">Roadmap</a></li>
-      <li><a href="#s15">Consideraciones regulatorias</a></li>
-      <li><a href="#s16">Aplicaciones futuras</a></li>
-    </ol>
-  </nav>
+<div class="q-wrap q-paper">
 
-  <section id="s1">
-    <h2><span class="n">1.</span>Resumen</h2>
-    <p>QWATT es un <b>protocolo de verificaci&oacute;n y registro energ&eacute;tico</b>: una capa de
-    infraestructura que toma evidencia medible de producci&oacute;n renovable y la convierte en
-    registros digitales transparentes, auditables por cualquiera, sobre la red Stellar.</p>
-    <p>La convenci&oacute;n central del protocolo es simple: <b>1 QWATT representa 1 MWh de
-    energ&iacute;a bajo el protocolo</b>. QWATT no es electricidad f&iacute;sica ni un certificado
-    regulado: es la representaci&oacute;n digital de un evento energ&eacute;tico medido, con su
-    evidencia anclada en una cadena p&uacute;blica.</p>
-    <div class="callout"><b>Estado actual:</b> prototipo funcional. El activo QWATT existe realmente en la
-    testnet de Stellar (42.7M emitidos, verificables en el explorador p&uacute;blico); el puente de
-    medici&oacute;n opera con hardware simulado; el primer kit fotovoltaico est&aacute; en dise&ntilde;o.
-    Cada componente de este documento indica su estado: <span class="stx t">TESTNET</span>
-    <span class="stx p">PROTOTIPO</span> <span class="stx f">PLANIFICADO</span></div>
-  </section>
+<section class="q-psec" id="s1" aria-labelledby="h-s1">
+  <div class="q-head"><h2 id="h-s1"><span class="q-psec-n" aria-hidden="true">1</span><span data-l="es">Resumen</span><span data-l="en">Summary</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+  <p>QWATT es un verificador de código abierto. Toma las lecturas de dos medidores de una misma instalación solar, descarta lo imposible con filtros públicos, agrupa lo aceptado en lotes encadenados por su huella SHA-256 y anclará la huella y el total de cada lote en Stellar testnet con una cuenta 2 de 3 (en preparación, semana 2; el 8 oct se ensayó en cuentas desechables). Cualquiera puede descargar lo publicado, volver a derivar cada lote con el mismo código y compararlo con lo anclado, sin pedir permiso y sin confiar en nosotros.</p>
+  <p>Estado al 24 oct 2026, al cierre de la semana 1 del sprint Instawards Chile:</p>
+  <ul class="q-status-list">
+    <li><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span>el verificador, los filtros, los lotes y la conciliación funcionan y se prueban en cada cambio, con entrada simulada.</span></li>
+    <li><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET · TRABAJO PREVIO · 8 OCT</span><span data-l="en">TESTNET · PRIOR WORK · 8 OCT</span></span><span>el anclaje con varias firmas se ensayó el 8 oct en cuentas desechables de Stellar testnet, y este documento lo lee en vivo (§8).</span></li>
+    <li><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span>la cuenta definitiva 2 de 3 y el feed público (semana 2), la corrida contada de 7 días (8–15 nov) y, después del sprint, el hardware.</span></li>
+  </ul>
+  <p>Toda la entrada del sprint es simulada (nivel A0): lo que se demuestra es el software y los filtros, no que una instalación haya producido energía. Cada componente de este documento lleva su rótulo.</p>
+</section>
 
-  <section id="s2">
-    <h2><span class="n">2.</span>El problema</h2>
-    <p>La energ&iacute;a renovable se produce, se consume y se paga — pero la <b>evidencia</b> de
-    d&oacute;nde vino, cu&aacute;ndo se gener&oacute; y qui&eacute;n la produjo vive en sistemas cerrados.
-    Quien quiere demostrar que consumi&oacute; energ&iacute;a limpia depende de intermediarios, procesos
-    manuales y certificados que se emiten meses despu&eacute;s del hecho f&iacute;sico.</p>
-    <p>El resultado: la confianza en la energ&iacute;a renovable se compra cara. Auditor&iacute;as,
-    registros duplicados y verificaci&oacute;n manual agregan costo a cada MWh limpio — justo lo
-    contrario de lo que una red el&eacute;ctrica descarbonizada necesita.</p>
-  </section>
+<section class="q-psec" id="s2" aria-labelledby="h-s2">
+  <div class="q-head"><h2 id="h-s2"><span class="q-psec-n" aria-hidden="true">2</span><span data-l="es">El problema</span><span data-l="en">The problem</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+  <p>La generación solar se mide, pero la evidencia de cuánto se generó, cuándo y dónde vive en sistemas cerrados: el inversor, el portal del fabricante, una planilla. Quien quiere usar ese dato, para un reporte voluntario, un contrato o una auditoría, tiene que confiar en quien se lo entrega, porque no puede volver a calcularlo por su cuenta.</p>
+  <p>QWATT no reemplaza a nadie. Busca algo más acotado: que una lectura, y todo lo que se haga con ella, pueda comprobarse de forma independiente, con reglas públicas y datos públicos.</p>
+</section>
 
-  <section id="s3">
-    <h2><span class="n">3.</span>Fragmentaci&oacute;n del dato energ&eacute;tico</h2>
-    <p>El dato que probar&iacute;a el origen de un MWh existe — pero est&aacute; fragmentado entre
-    medidores, sistemas SCADA, plataformas de facturaci&oacute;n y registros de certificados que no
-    comparten un lenguaje com&uacute;n:</p>
-    <ul class="doc">
-      <li><b>Medidores</b> registran la generaci&oacute;n con precisi&oacute;n, pero su dato rara vez sale de la planta en forma verificable.</li>
-      <li><b>SCADA</b> opera en tiempo real, en formatos propietarios y redes cerradas.</li>
-      <li><b>Certificados</b> (REC, GdO) se emiten en registros centralizados, con ventanas de tiempo gruesas y poca granularidad.</li>
-      <li><b>Facturaci&oacute;n</b> liquida el valor econ&oacute;mico semanas despu&eacute;s, desconectada de la evidencia f&iacute;sica.</li>
-    </ul>
-    <p>Esa fragmentaci&oacute;n habilita doble conteo, dificulta el reporte ESG serio y hace del
-    <i>greenwashing</i> un problema estructural, no una excepci&oacute;n. QWATT propone un registro
-    com&uacute;n, p&uacute;blico y granular donde la evidencia y el registro viven juntos.</p>
-  </section>
+<section class="q-psec" id="s3" aria-labelledby="h-s3">
+  <div class="q-head"><h2 id="h-s3"><span class="q-psec-n" aria-hidden="true">3</span><span data-l="es">Datos fragmentados</span><span data-l="en">Fragmented data</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+  <p>El dato que respondería "¿cuánta energía generó esta instalación, y cuándo?" existe, pero está repartido en lugares que no hablan el mismo idioma:</p>
+  <ul class="q-plist">
+    <li><b>Medidores:</b> registran bien, pero su dato rara vez sale de la instalación en una forma que otro pueda comprobar.</li>
+    <li><b>Inversores y portales:</b> formatos propios, accesos cerrados y frecuencias distintas.</li>
+    <li><b>Planillas:</b> fáciles de editar sin dejar rastro.</li>
+    <li><b>Registros de certificados:</b> agregan por períodos largos, lejos de la lectura original.</li>
+  </ul>
+  <p>Esa fragmentación permite contar dos veces la misma energía y hace difícil distinguir un error de una manipulación. QWATT propone un formato común de evidencia: intervalos de 5 minutos con dos medidores, lotes encadenados y una huella pública por lote.</p>
+</section>
 
-  <section id="s4">
-    <h2><span class="n">4.</span>Arquitectura QWATT</h2>
-    <p>El protocolo se organiza en capas con una regla estricta: <b>cada capa solo conf&iacute;a en la
-    evidencia que recibe de la capa anterior</b>, y toda salida hacia la cadena es p&uacute;blica.</p>
-    <div class="flow">ENERG&Iacute;A F&Iacute;SICA        solar &#183; e&oacute;lica &#183; BESS         <b>&#8595;</b>
-MEDICI&Oacute;N              medidores Modbus &#183; SCADA      <b>&#8595;</b>
-VALIDACI&Oacute;N            integraci&oacute;n de kWh &#183; sanidad   <b>&#8595;</b>
-OR&Aacute;CULO QWATT         atestaci&oacute;n de precio y evento  <b>&#8595;</b>
-PROTOCOLO QWATT       emisi&oacute;n &#183; registro &#183; PoG       <b>&#8595;</b>
-STELLAR               transacci&oacute;n &#183; memo &#183; ledger    <b>&#8595;</b>
-CAPA DE APLICACI&Oacute;N    Grid &#183; Proof &#183; Pulse &#183; Pay</div>
-    <table>
-      <tr><th>Capa</th><th>Implementaci&oacute;n</th><th>Estado</th></tr>
-      <tr><td>Energ&iacute;a f&iacute;sica</td><td>Kit FV del piloto residencial (dise&ntilde;o de ingenier&iacute;a)</td><td><span class="stx f">PLANIFICADO</span></td></tr>
-      <tr><td>Medici&oacute;n</td><td>Puente Modbus TCP (cliente propio, sin drivers)</td><td><span class="stx p">PROTOTIPO</span></td></tr>
-      <tr><td>Or&aacute;culo de precio</td><td>EPEX day-ahead v&iacute;a aWATTar + FX</td><td><span class="stx t">EN VIVO</span></td></tr>
-      <tr><td>Protocolo / emisi&oacute;n</td><td>Activo QWATT + pagos PoG</td><td><span class="stx t">TESTNET</span></td></tr>
-      <tr><td>Registro Stellar</td><td>Transacciones reales, auditables</td><td><span class="stx t">TESTNET</span></td></tr>
-      <tr><td>Aplicaciones</td><td>Grid, Proof, Pulse, Pay</td><td><span class="stx t">TESTNET</span> <span class="stx d">DEMO</span></td></tr>
+<section class="q-psec" id="s4" aria-labelledby="h-s4">
+  <div class="q-head"><h2 id="h-s4"><span class="q-psec-n" aria-hidden="true">4</span><span data-l="es">Arquitectura por capas</span><span data-l="en">Layered architecture</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+  <p>Cada capa solo confía en la evidencia que recibe de la anterior; todo lo que va a la cadena es público.</p>
+  <ol class="q-pipe" aria-label="Del medidor a la conciliación pública" data-aria-en="From the meter to public reconciliation">
+    <li><b>2 medidores</b><small>Modbus · HTTP · CSV</small></li>
+    <li><b>filtros G0–G3</b><small>cada intervalo de 5 min</small></li>
+    <li><b>lote con huella SHA-256</b><small>encadenado al anterior</small></li>
+    <li><b>proponente</b><small>publica y firma</small></li>
+    <li><b>verificador independiente</b><small>re-deriva y cofirma</small></li>
+    <li class="is-plan"><b>cuenta de anclaje 2 de 3</b><small>umbrales 2/2/3 · en preparación (semana 2)</small></li>
+    <li><b>Stellar testnet</b><small>huella y total anclados</small></li>
+    <li class="is-plan"><b>conciliación pública</b><small>cualquiera compara anclas y lotes</small></li>
+  </ol>
+  <div class="q-table-wrap">
+    <table class="q-table q-ptable q-stack">
+      <caption><span data-l="es">Capas, dónde está el código y en qué estado está cada una</span><span data-l="en">Layers, where the code is and what state each one is in</span></caption>
+      <thead><tr>
+        <th scope="col"><span data-l="es">Capa</span><span data-l="en">Layer</span></th>
+        <th scope="col"><span data-l="es">Implementación</span><span data-l="en">Implementation</span></th>
+        <th scope="col"><span data-l="es">Estado</span><span data-l="en">Status</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><th scope="row"><span data-l="es">Medición</span><span data-l="en">Metering</span></th><td data-k-es="Implementación" data-k-en="Implementation">Dos medidores DC por instalación (diseño: PZEM-017 + EPEver Tracer). En el sprint, un simulador determinista (<code>live/simulator.js</code>).</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span> <span class="q-chip" data-st="planificado"><span data-l="es">HARDWARE: PLANIFICADO</span><span data-l="en">HARDWARE: PLANNED</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Entrada</span><span data-l="en">Input</span></th><td data-k-es="Implementación" data-k-en="Implementation">Adaptadores Modbus, HTTP y CSV (<code>ingest/</code>) que producen el mismo registro de intervalo, byte a byte.</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Filtros</span><span data-l="en">Filters</span></th><td data-k-es="Implementación" data-k-en="Implementation">G0–G3, especificación 1.0.0 (<code>protocol/gates.spec.json</code>), el mismo motor en Node y en el navegador.</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Lotes</span><span data-l="en">Batches</span></th><td data-k-es="Implementación" data-k-en="Implementation">JSON canónico, raíz Merkle de los intervalos, huella SHA-256, cadena por <code>prev_hash</code> (<code>protocol/evidence.js</code>, <code>batch/</code>).</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Feed público</span><span data-l="en">Public feed</span></th><td data-k-es="Implementación" data-k-en="Implementation">Dos repositorios públicos de evidencia: uno que escribe solo el proponente y otro que escribe solo el verificador.</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="planificado" data-status-of="item:V3-7"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Proponente y verificador</span><span data-l="en">Proposer and verifier</span></th><td data-k-es="Implementación" data-k-en="Implementation">Dos servicios con claves distintas (<code>anchor/proposer.js</code>, <code>anchor/verifier.js</code>); el verificador reconstruye toda la transacción desde lo publicado.</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span> <span class="q-chip" data-st="previo"><span data-l="es">ENSAYO 8 OCT</span><span data-l="en">8 OCT REHEARSAL</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Cuenta de anclaje</span><span data-l="en">Anchoring account</span></th><td data-k-es="Implementación" data-k-en="Implementation">Tres firmantes de peso 1, umbrales 2/2/3, clave maestra en peso 0 (<code>anchor/setup-account.js</code>).</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="planificado" data-status-of="item:V3-4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Conciliación</span><span data-l="en">Reconciliation</span></th><td data-k-es="Implementación" data-k-en="Implementation">Compara cada ancla con su lote (<code>anchor/reconcile-cli.js</code>, <code>assets/qwatt-reconcile.js</code>); desde la semana 2, leyendo firmantes y umbrales desde Stellar.</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span> <span class="q-chip" data-st="planificado" data-status-of="item:V3-9"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Este sitio</span><span data-l="en">This site</span></th><td data-k-es="Implementación" data-k-en="Implementation">Lee Horizon testnet en vivo, solo lectura; no firma ni envía nada.</td><td data-k-es="Estado" data-k-en="Status"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></td></tr>
+      </tbody>
     </table>
-    <p>Para activos de escala industrial, la telemetr&iacute;a no entra por un medidor &uacute;nico sino
-    por <b>m&oacute;dulos de exportaci&oacute;n previstos en la capa SCADA</b>: la planta firma lotes de
-    generaci&oacute;n (identidad, intervalo, MWh) que el or&aacute;culo de QWATT ingiere como eventos <span class="stx f">PLANIFICADO</span>.</p>
-  </section>
-
-  <section id="s5">
-    <h2><span class="n">5.</span>Verificaci&oacute;n energ&eacute;tica</h2>
-    <p>Todo dato de generaci&oacute;n atraviesa un ciclo de estados expl&iacute;cito. El protocolo nunca
-    trata una lectura como verdad hasta que complet&oacute; su validaci&oacute;n:</p>
-    <div class="formula">UNVERIFIED &#8594; RECEIVED &#8594; VALIDATING &#8594; VERIFIED &#8594; RECORDED &#8594; RETIRED</div>
-    <p><b>Qu&eacute; valida el prototipo hoy:</b> continuidad de la lectura del medidor, integraci&oacute;n
-    de potencia a energ&iacute;a (kWh), y atestaci&oacute;n del precio spot del MWh en el momento del evento.
-    <b>Qu&eacute; falta para producci&oacute;n:</b> firma criptogr&aacute;fica en el medidor, identidad
-    registrada de la planta y validaci&oacute;n cruzada con datos de red — parte del roadmap
-    <span class="stx f">PLANIFICADO</span>.</p>
-  </section>
-
-  <section id="s6">
-    <h2><span class="n">6.</span>Modelo de or&aacute;culo</h2>
-    <p>La energ&iacute;a f&iacute;sica no puede entrar sola a una blockchain: necesita un puente. QWATT
-    usa dos or&aacute;culos con roles distintos:</p>
-    <ul class="doc">
-      <li><b>Or&aacute;culo de precio</b> <span class="stx t">EN VIVO</span> — publica el precio spot real del MWh
-      (mercado EPEX day-ahead, v&iacute;a aWATTar) convertido a USD. Es el valor de referencia del protocolo
-      y queda sellado en el memo de cada transacci&oacute;n.</li>
-      <li><b>Or&aacute;culo de generaci&oacute;n</b> <span class="stx p">PROTOTIPO</span> — el puente de medici&oacute;n
-      lee el medidor Modbus, integra los kWh y emite el evento con un memo de prueba de generaci&oacute;n:
-      <code>PoG:1.250kWh@173.44/MWh</code>.</li>
-    </ul>
-    <div class="callout"><b>Frontera de confianza.</b> El or&aacute;culo es un componente <b>confiado</b> del
-    sistema: QWATT es <b>auditable y verificable</b>, no &laquo;trustless&raquo;. Reducir esa confianza —
-    firmas en el medidor, m&uacute;ltiples fuentes, validaci&oacute;n en contrato — es el eje del roadmap
-    t&eacute;cnico, no una promesa del presente.</div>
-  </section>
-
-  <section id="s7">
-    <h2><span class="n">7.</span>Capa blockchain</h2>
-    <p>&iquest;Por qu&eacute; una blockchain? Porque el problema de fondo es de <b>registro compartido</b>:
-    productores, consumidores, auditores y reguladores necesitan una misma fuente de verdad que ninguno
-    controle en exclusiva. Una cadena p&uacute;blica aporta exactamente tres cosas al protocolo:</p>
-    <ul class="doc">
-      <li><b>Inmutabilidad:</b> un evento registrado no puede reescribirse; la historia energ&eacute;tica queda fija.</li>
-      <li><b>Auditabilidad p&uacute;blica:</b> cualquiera verifica el activo, las reservas y cada transacci&oacute;n sin pedir permiso.</li>
-      <li><b>Liquidaci&oacute;n at&oacute;mica:</b> valor y registro se mueven en una sola operaci&oacute;n indivisible, sin intermediarios.</li>
-    </ul>
-    <p>Y una cosa que la cadena <b>no</b> aporta: la veracidad del mundo f&iacute;sico. Ese es el trabajo
-    del or&aacute;culo (&sect;6) — por eso el modelo de seguridad (&sect;11) trata la frontera
-    f&iacute;sico&#8594;digital como el punto cr&iacute;tico del sistema.</p>
-  </section>
-
-  <section id="s8">
-    <h2><span class="n">8.</span>Integraci&oacute;n con Stellar <span class="stx t">TESTNET</span></h2>
-    <p>QWATT usa Stellar por razones de ingenier&iacute;a: activos nativos sin contrato, comisiones de
-    ~$0.00001, liquidaci&oacute;n en ~5 segundos, trustlines expl&iacute;citas y memos onchain que funcionan
-    como campo de atestaci&oacute;n. El despliegue actual es real y verificable:</p>
-    <table>
-      <tr><th>Par&aacute;metro</th><th>Valor</th></tr>
-      <tr><td>Red</td><td>Stellar testnet</td></tr>
-      <tr><td>Activo</td><td class="mono"><a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">QWATT (alphanum12) &#8599;</a></td></tr>
-      <tr><td>Cuenta emisora</td><td class="mono">GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46</td></tr>
-      <tr><td>Cuenta distribuidora</td><td class="mono">GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW</td></tr>
-      <tr><td>Transacci&oacute;n g&eacute;nesis</td><td class="mono"><a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/tx/1859e7e54e847d187f7f628d81af8a879e7e42166c21354038b020670c40c56e">1859e7e5&hellip;40c56e &#8599;</a></td></tr>
-      <tr><td>Ledger de emisi&oacute;n</td><td class="num">4,277,175</td></tr>
-      <tr><td>Supply emitido</td><td class="num">42,700,000 QWATT</td></tr>
-      <tr><td>Memo de g&eacute;nesis</td><td class="mono">QWATT genesis 1QWATT=1MWh</td></tr>
-    </table>
-    <p>Las compras se ejecutan como <b>una transacci&oacute;n at&oacute;mica de tres operaciones</b> —
-    todo ocurre o nada ocurre, firmado por ambas partes:</p>
-    <div class="formula">changeTrust &#8594; payment (XLM) &#8594; payment (QWATT)</div>
-  </section>
-
-  <section id="s9">
-    <h2><span class="n">9.</span>Ciclo de vida QWATT</h2>
-    <div class="flow"><b>GENERAR</b>     la energ&iacute;a se produce            <span class="stx f">PLANIFICADO</span>
-<b>VERIFICAR</b>   la producci&oacute;n se valida           <span class="stx p">PROTOTIPO</span>
-<b>REGISTRAR</b>   nace el registro digital (PoG)    <span class="stx t">TESTNET</span>
-<b>TRANSFERIR</b>  la unidad se mueve entre cuentas  <span class="stx t">TESTNET</span>
-<b>RETIRAR</b>     el ciclo se cierra (burn)         <span class="stx f">PLANIFICADO</span>
-<b>PRUEBA</b>      la historia queda auditable       <span class="stx t">TESTNET</span></div>
-    <p>El minado por prueba de generaci&oacute;n paga <b>0.001 QWATT por kWh medido</b> desde la
-    tesorer&iacute;a — el supply no se infla con cada evento. El retiro (burn) al consumir la
-    energ&iacute;a representada es arquitectura futura.</p>
-  </section>
-
-  <section id="s10">
-    <h2><span class="n">10.</span>Modelo de datos</h2>
-    <p>La unidad conceptual del protocolo es el <b>evento energ&eacute;tico</b>:</p>
-    <table>
-      <tr><th>Campo</th><th>Descripci&oacute;n</th><th>Hoy vive en</th></tr>
-      <tr><td class="mono">timestamp</td><td>Momento del evento</td><td>Transacci&oacute;n Stellar <span class="stx t">TESTNET</span></td></tr>
-      <tr><td class="mono">energy_kwh</td><td>Energ&iacute;a medida</td><td>Memo PoG <span class="stx t">TESTNET</span></td></tr>
-      <tr><td class="mono">oracle_price</td><td>Precio spot del MWh</td><td>Memo PoG <span class="stx t">TESTNET</span></td></tr>
-      <tr><td class="mono">qwatt_units</td><td>0.001 QWATT por kWh</td><td>Monto del pago <span class="stx t">TESTNET</span></td></tr>
-      <tr><td class="mono">transaction_hash</td><td>Prueba onchain</td><td>Ledger p&uacute;blico <span class="stx t">TESTNET</span></td></tr>
-      <tr><td class="mono">plant_id</td><td>Identidad de la planta</td><td>&mdash; <span class="stx f">PLANIFICADO</span></td></tr>
-      <tr><td class="mono">meter_signature</td><td>Firma del medidor</td><td>&mdash; <span class="stx f">PLANIFICADO</span></td></tr>
-      <tr><td class="mono">verification_status</td><td>Estado del ciclo (&sect;5)</td><td>Parcial <span class="stx p">PROTOTIPO</span></td></tr>
-    </table>
-    <p>Un evento de ejemplo <span class="stx d">DEMOSTRACI&Oacute;N</span>:</p>
-    <div class="formula">planta solar &#8594; 1.000 MWh &#8594; verificado &#8594; evento QW-000001 &#8594; registro onchain &#8594; 1 QWATT</div>
-  </section>
-
-  <section id="s11">
-    <h2><span class="n">11.</span>Modelo de seguridad</h2>
-    <ul class="doc">
-      <li><b>Auto-custodia total.</b> Las claves se generan y usan en el navegador del usuario; las
-      transacciones se firman localmente con el SDK de Stellar. Ning&uacute;n servidor de QWATT ve,
-      almacena o puede recuperar claves secretas.</li>
-      <li><b>Sin secretos del lado del servidor.</b> El sitio es est&aacute;tico: no hay backend que
-      comprometer ni base de datos que filtrar.</li>
-      <li><b>Cadena de evidencia p&uacute;blica.</b> Activo, reservas y transacciones son verificables
-      por terceros en Horizon y stellar.expert, sin intermediarios.</li>
-      <li><b>Riesgos reconocidos:</b> el or&aacute;culo es un componente confiado (&sect;6); la
-      tesorer&iacute;a opera hoy con una sola clave (multi-firma y contrato Soroban en el roadmap);
-      la testnet se reinicia peri&oacute;dicamente por dise&ntilde;o.</li>
-    </ul>
-  </section>
-
-  <section id="s12">
-    <h2><span class="n">12.</span>Modelo de activo</h2>
-    <table>
-      <tr><th>Concepto</th><th>Valor</th><th>Estado</th></tr>
-      <tr><td>Suministro m&aacute;ximo</td><td class="num">100,000,000 QWATT</td><td><span class="stx t">TESTNET</span></td></tr>
-      <tr><td>Emitido</td><td class="num">42,700,000 QWATT</td><td><span class="stx t">TESTNET</span></td></tr>
-      <tr><td>Minado PoG</td><td class="num">0.001 QWATT / kWh</td><td><span class="stx p">PROTOTIPO</span></td></tr>
-      <tr><td>Asignaci&oacute;n (comunidad 40% &#183; reserva 25% &#183; equipo 15% &#183; ecosistema 12% &#183; tesorer&iacute;a 8%)</td><td>&mdash;</td><td><span class="stx f">PLANIFICADA</span></td></tr>
-    </table>
-    <div class="callout"><b>Precisi&oacute;n importante.</b> La paridad 1 QWATT = 1 MWh es una
-    <b>convenci&oacute;n del protocolo</b>, no una equivalencia certificada con generaci&oacute;n real.
-    El supply de testnet no representa energ&iacute;a producida. Convertir la convenci&oacute;n en
-    equivalencia auditable es, precisamente, el objetivo del piloto.</div>
-    <div class="callout"><b>Invariante econ&oacute;mico (anti-arbitraje temporal).</b> El protocolo
-    <b>nunca</b> ofrece canjear QWATT por energ&iacute;a o dinero al precio spot vigente. Toda
-    valorizaci&oacute;n de un QWATT referencia el <b>precio atestado en su evento de origen</b>
-    (su vintage, sellado en el memo PoG) o un promedio temporal (TWAP) — jam&aacute;s el spot
-    instant&aacute;neo. La raz&oacute;n: la energ&iacute;a solar se acu&ntilde;a barata al mediod&iacute;a;
-    un canje al precio de la noche drenar&iacute;a la tesorer&iacute;a de forma estructural. El
-    desplazamiento temporal del valor pertenece a la capa f&iacute;sica — bater&iacute;as que almacenan
-    de d&iacute;a y descargan de noche — no a las reglas del token.</div>
-  </section>
-
-  <section id="s13">
-    <h2><span class="n">13.</span>Piloto solar residencial <span class="stx p">EN DISE&Ntilde;O</span></h2>
-    <p>El primer circuito f&iacute;sico completo del protocolo: un kit h&iacute;brido con respaldo
-    (4,4 kWp + inversor h&iacute;brido 5 kW + 9,6 kWh LiFePO4) para una vivienda en la Regi&oacute;n Metropolitana,
-    cuyos medidores alimentan el nodo de verificaci&oacute;n (WattNode).</p>
-    <div class="flow">paneles FV <b>&#8594;</b> inversor h&iacute;brido + bater&iacute;a <b>&#8594;</b> medidores Modbus <b>&#8594;</b> WattNode (PoG) <b>&#8594;</b> pago QWATT en testnet</div>
-    <p>Lo que el piloto demuestra: que un kWh real, medido por hardware real, puede convertirse en un
-    registro onchain verificable <b>sin intervenci&oacute;n humana</b>. El puente de software ya existe y
-    opera con generaci&oacute;n simulada; el hardware est&aacute; especificado en el
-    <a href="piloto.html">documento de ingenier&iacute;a del piloto</a>.</p>
-  </section>
-
-  <section id="s14">
-    <h2><span class="n">14.</span>Roadmap</h2>
-    <table>
-      <tr><th>Fase</th><th>Alcance</th><th>Estado</th></tr>
-      <tr><td class="num">Q3 2026</td><td>Activo en testnet &#183; or&aacute;culo de precio real &#183; puente PoG &#183; sitio y apps</td><td><span class="stx t">HECHO</span></td></tr>
-      <tr><td class="num">Q4 2026</td><td>Hardware real del piloto &#183; firma de lecturas en el medidor</td><td><span class="stx f">PLANIFICADO</span></td></tr>
-      <tr><td class="num">Q1 2027</td><td>Contrato Soroban de verificaci&oacute;n &#183; multi-firma de tesorer&iacute;a &#183; auditor&iacute;a</td><td><span class="stx f">PLANIFICADO</span></td></tr>
-      <tr><td class="num">Q2 2027</td><td>Capa de atributo QWATT-Clean (&sect;16) &#183; aplicaciones de liquidaci&oacute;n &#183; evaluaci&oacute;n regulatoria pre-mainnet</td><td><span class="stx f">PLANIFICADO</span></td></tr>
-    </table>
-  </section>
-
-  <section id="s15">
-    <h2><span class="n">15.</span>Consideraciones regulatorias</h2>
-    <p>QWATT est&aacute; en desarrollo y opera exclusivamente en un entorno de testnet/demostraci&oacute;n.
-    Nada en este documento constituye una oferta de inversi&oacute;n ni asesor&iacute;a financiera, legal o
-    tributaria. Las representaciones energ&eacute;ticas descritas <b>no</b> constituyen un derecho legal
-    sobre electricidad, un certificado de energ&iacute;a renovable, un cr&eacute;dito de carbono, un
-    instrumento financiero ni un valor regulado.</p>
-    <p>Cualquier despliegue en red principal o comercializaci&oacute;n estar&aacute; precedido por
-    revisi&oacute;n legal formal del marco aplicable (regulaci&oacute;n el&eacute;ctrica local,
-    normativa de criptoactivos y reglas de certificaci&oacute;n renovable de cada jurisdicci&oacute;n).</p>
-  </section>
-
-  <section id="s16">
-    <h2><span class="n">16.</span>Aplicaciones futuras <span class="stx f">PLANIFICADO</span></h2>
-    <h3>QWATT-Clean: la capa de atributo verde</h3>
-    <p>Sobre el registro de cantidad (1 QWATT = 1 MWh) el protocolo puede derivar un segundo registro:
-    el <b>atributo limpio</b> de ese MWh. Cuando un evento verificado proviene de una fuente renovable,
-    se emitir&iacute;a un <b>QWATT-C</b> con metadatos del evento: fuente, planta, hora y el factor de
-    emisi&oacute;n de la red desplazada (kgCO&#8322;e evitados por MWh).</p>
-    <div class="formula">evento verificado &#8594; 1 QWATT (cantidad) + 1 QWATT-C (atributo limpio) &#8594; transferir &#8594; retirar (burn) &#8594; prueba p&uacute;blica</div>
-    <p>El retiro onchain elimina el <b>doble conteo</b> — el defecto estructural de los certificados
-    tradicionales: un atributo quemado no puede reclamarse dos veces, y cualquier auditor puede
-    comprobarlo. Empresas que buscan demostrar consumo limpio podr&iacute;an adquirir y retirar QWATT-C
-    como evidencia transparente de reducci&oacute;n de huella.</p>
-    <div class="callout"><b>Precisi&oacute;n regulatoria.</b> QWATT-C ser&iacute;a un instrumento
-    <b>voluntario de transparencia</b>, no un certificado de energ&iacute;a renovable (REC/GdO), un
-    cr&eacute;dito de carbono ni un t&iacute;tulo v&aacute;lido para subsidios, salvo que una
-    certificaci&oacute;n o marco legal lo respalde expl&iacute;citamente. La homologaci&oacute;n con
-    esquemas reconocidos (I-REC, GdO, esquemas nacionales) es parte del trabajo regulatorio previo a
-    cualquier comercializaci&oacute;n.</div>
-    <h3>Otras aplicaciones</h3>
-    <ul class="doc">
-      <li><b>Trazabilidad renovable granular:</b> evidencia por hora y por planta, en lugar de certificados anuales agregados.</li>
-      <li><b>PPAs liquidados onchain:</b> contratos de compraventa de energ&iacute;a cuya liquidaci&oacute;n sigue autom&aacute;ticamente a la evidencia de generaci&oacute;n.</li>
-      <li><b>Cobertura de precio:</b> ahorro y cobertura denominados en unidades de energ&iacute;a, ancladas al precio spot real.</li>
-      <li><b>Micro-redes P2P:</b> techos solares que venden excedentes a vecinos con verificaci&oacute;n y pago en la misma capa.</li>
-      <li><b>Reporte ESG auditable:</b> consumo limpio demostrable con enlaces a eventos onchain, no con declaraciones.</li>
-    </ul>
-    <p>Cada una de estas aplicaciones se apoya en la misma primitiva: <b>un evento energ&eacute;tico
-    verificado, registrado p&uacute;blicamente</b>. Ese es el producto de QWATT.</p>
-  </section>
-
-  <div class="disclaimer">
-    QWATT est&aacute; en desarrollo. Los activos y representaciones energ&eacute;ticas descritos operan en
-    un entorno de testnet/demostraci&oacute;n y no constituyen un derecho legal sobre electricidad, un
-    producto financiero, un certificado de energ&iacute;a renovable, un cr&eacute;dito de carbono ni un
-    valor regulado. Este documento debe ser revisado por asesor&iacute;a legal antes de cualquier uso
-    comercial. Ver <a href="terminos.html">t&eacute;rminos, riesgos y glosario</a>.
   </div>
+</section>
 
-  <footer>
-    QWATT Whitepaper v2.0 &#183; agosto 2026 &#183; <a href="index.html">qwatt.org</a> &#183;
-    <a href="respaldo.html">proof</a> &#183; <a href="piloto.html">piloto</a> &#183;
-    construido sobre Stellar
-  </footer>
-</div>
-
-<!-- pie QWATT unificado -->
-<footer id="qwfoot">
-<style>
-#qwfoot{background:#120c07;border-top:1px solid #3b2d1d;font-family:'IBM Plex Sans','Segoe UI',system-ui,sans-serif;color:#b3a48f;margin-top:48px;text-align:left;font-size:14px;line-height:1.5}
-#qwfoot .qf-in{max-width:1240px;margin:0 auto;padding:44px 22px 26px}
-#qwfoot .qf-cols{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:36px}
-@media(max-width:760px){#qwfoot .qf-cols{grid-template-columns:1fr;gap:26px}}
-#qwfoot a{color:#b3a48f;text-decoration:none;transition:color .15s}
-#qwfoot a:hover{color:#f0e8dc}
-#qwfoot .qf-brand{font-family:'IBM Plex Mono',ui-monospace,Consolas,monospace;font-size:19px;font-weight:600;letter-spacing:.26em;color:#f0e8dc;display:inline-block}
-#qwfoot .qf-brand .qf-bolt{color:#d08a57}
-#qwfoot .qf-lead{font-size:13px;line-height:1.6;max-width:34ch;margin:12px 0 14px}
-#qwfoot .qf-chip{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;color:#d08a57;border:1px solid rgba(208,138,87,.35);padding:4px 11px;border-radius:99px;display:inline-block}
-#qwfoot h3{font-family:'IBM Plex Mono',monospace;font-size:10.5px;font-weight:500;letter-spacing:.18em;color:#8b7a64;text-transform:uppercase;margin:0 0 12px}
-#qwfoot .qf-grp a{display:block;font-size:13.5px;padding:4px 0 4px 18px;position:relative}
-#qwfoot .qf-grp a::before{content:'\21B3';position:absolute;left:0;color:#6e5c49}
-#qwfoot .qf-bottom{margin-top:34px;padding-top:18px;border-top:1px solid #2b2115;font-size:11.5px;color:#8b7a64;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
-#qwfoot .qf-bottom a{color:#d08a57}
-</style>
-<div class="qf-in">
-  <div class="qf-cols">
+<section class="q-psec" id="s5" aria-labelledby="h-s5">
+  <div class="q-head"><h2 id="h-s5"><span class="q-psec-n" aria-hidden="true">5</span><span data-l="es">Qué se valida hoy y qué falta</span><span data-l="en">What is validated today and what is missing</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+  <div class="q-cols">
     <div>
-      <a class="qf-brand" href="index.html"><span class="qf-bolt"><svg class="qm" viewBox="0 0 64 64" width="1.25em" height="1.25em" aria-hidden="true" style="vertical-align:-0.28em;margin-right:4px"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink,#f0e8dc)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt,#d08a57)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg></span> QWATT</a>
-      <p class="qf-lead">The Clean Token: energ&iacute;a renovable verificada onchain. 1 QWATT representa 1 MWh bajo el protocolo.</p>
-      <span class="qf-chip">&#9679; STELLAR TESTNET</span>
+      <h3><span data-l="es">Se valida hoy, con entrada simulada</span><span data-l="en">Validated today, with simulated input</span></h3>
+      <ul class="q-plist">
+        <li>Esquema del intervalo y del lote; solo números enteros.</li>
+        <li>Intervalos de 5 minutos sobre su grilla, con hora canónica.</li>
+        <li>Sin intervalos repetidos, superpuestos ni de otra instalación, dentro de un lote y respecto del último lote aceptado (semana 1).</li>
+        <li>G0 plausibilidad; G1 techo de placa (1,15 × potencia nominal); G2 si hay generación, el sol debe estar sobre −2°; G3 los dos medidores de acuerdo dentro de ±5 %.</li>
+        <li>Raíz de los intervalos, huella del lote, cadena por <code>prev_hash</code> y total acumulado.</li>
+        <li>Un lote rechazado no suma energía (semana 1).</li>
+        <li>Antes de cofirmar, el verificador recorre la cadena hasta lo anclado y recalcula cada huella y cada total (semana 1).</li>
+      </ul>
     </div>
-    <div class="qf-grp">
-      <h3>Apps</h3>
-      <a href="console.html">Consola Onchain</a>
-      <a href="verificacion.html">Verificaci&oacute;n</a>
-      <a href="grid.html">QWATT Grid</a>
-      <a href="pay.html">QWATT Pay</a>
-      <a href="wallet.html">QWATT Wallet</a>
-      <a href="proof.html">QWATT Explorer</a>
-      <a href="respaldo.html">Reservas</a>
-      <a href="red.html">QWATT Pulse</a>
-      <a href="piloto.html">Piloto Solar</a>
-    </div>
-    <div class="qf-grp">
-      <h3>Recursos</h3>
-      <a href="index.html">Inicio</a>
-      <a href="index.html#clean">QWATT-Clean</a>
-      <a href="whitepaper.html">Whitepaper</a>
-      <a href="backup.html">Backup de claves</a>
-      <a href="terminos.html">T&eacute;rminos y seguridad</a>
-      <a target="_blank" rel="noopener" href="https://stellar.expert/explorer/testnet/asset/QWATT-GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46">stellar.expert &#8599;</a>
+    <div>
+      <h3><span data-l="es">Falta</span><span data-l="en">Missing</span></h3>
+      <ul class="q-plist">
+        <li>La cuenta definitiva 2 de 3 y las pruebas A–D en ella (semana 2).</li>
+        <li><code>samples_root</code>: una huella de todas las lecturas crudas de cada lote (semana 2).</li>
+        <li>El desvío de reloj registrado en todas las entradas, y sin energía estimada en un hueco de más de tres lecturas (semana 2).</li>
+        <li>Un rechazo del verificador como definitivo, y una recuperación reforzada (semana 3).</li>
+        <li>Medidores reales, firma en el propio medidor e identidad registrada de la instalación (después del sprint).</li>
+      </ul>
     </div>
   </div>
-  <div class="qf-bottom">
-    <span>&copy; 2026 QWATT &#183; proyecto demo en testnet &#183; no es asesor&iacute;a financiera</span>
-    <span><a href="terminos.html">T&eacute;rminos</a> &#183; <a href="index.html#security">Seguridad</a></span>
+  <div class="q-figs">
+    <p><span class="q-num" data-src="dato">154 → 194</span> <span>pruebas automáticas al cierre de la semana 1, 0 en rojo. La mayoría de las 40 nuevas son intentos de manipulación que deben ser rechazados.</span></p>
+    <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct · corrida #34 del CI</span><span data-l="en">Repository fact · 23 Oct · CI run #34</span></p>
+    <ul class="q-ev-list"><li><a class="q-ev" href="https://github.com/academiaseul/QWATT/actions/runs/39943161382" target="_blank" rel="noopener"><span data-l="es">Corrida #34</span><span data-l="en">Run #34</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li><li><a class="q-ev" href="https://github.com/academiaseul/QWATT/releases/tag/semana-1" target="_blank" rel="noopener"><span data-l="es">Release semana 1</span><span data-l="en">Week 1 release</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li></ul>
   </div>
+</section>
+
+<section class="q-psec" id="s6" aria-labelledby="h-s6">
+  <div class="q-head"><h2 id="h-s6"><span class="q-psec-n" aria-hidden="true">6</span><span data-l="es">Modelo de confianza</span><span data-l="en">Trust model</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+  <p class="q-pull">QWATT es auditable y verificable, pero el proponente y el verificador son componentes de confianza: no puede demostrar que un medidor sea exacto ni que la energía se haya producido de verdad.</p>
+  <div class="q-table-wrap">
+    <table class="q-table q-ptable q-stack">
+      <caption><span data-l="es">En qué se confía, y qué se puede comprobar</span><span data-l="en">What is trusted, and what can be checked</span></caption>
+      <thead><tr>
+        <th scope="col"><span data-l="es">Pieza</span><span data-l="en">Piece</span></th>
+        <th scope="col"><span data-l="es">En qué se confía</span><span data-l="en">What is trusted</span></th>
+        <th scope="col"><span data-l="es">Qué puede comprobar cualquiera</span><span data-l="en">What anyone can check</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><th scope="row"><span data-l="es">Medidores</span><span data-l="en">Meters</span></th><td data-k-es="En qué se confía" data-k-en="What is trusted">Que miden lo que dicen medir.</td><td data-k-es="Qué puede comprobar cualquiera" data-k-en="What anyone can check">Que dos medidores coinciden, que no hay generación de noche y que nada supera el techo de placa.</td></tr>
+        <tr><th scope="row"><span data-l="es">Proponente</span><span data-l="en">Proposer</span></th><td data-k-es="En qué se confía" data-k-en="What is trusted">Que publica todo, también lo rechazado.</td><td data-k-es="Qué puede comprobar cualquiera" data-k-en="What anyone can check">Que cada lote publicado se vuelve a derivar y que la cadena no tiene huecos.</td></tr>
+        <tr><th scope="row"><span data-l="es">Verificador independiente</span><span data-l="en">Independent verifier</span></th><td data-k-es="En qué se confía" data-k-en="What is trusted">Que corrió sus comprobaciones antes de cofirmar. Hoy lo opera nuestro propio equipo: es independiente en código y en datos, no en organización.</td><td data-k-es="Qué puede comprobar cualquiera" data-k-en="What anyone can check">Que su clave firmó, y que lo que firmó coincide con el lote publicado.</td></tr>
+        <tr><th scope="row"><span data-l="es">Stellar testnet</span><span data-l="en">Stellar testnet</span></th><td data-k-es="En qué se confía" data-k-en="What is trusted">El orden de los ledgers y que cada transacción se aplica completa o no se aplica.</td><td data-k-es="Qué puede comprobar cualquiera" data-k-en="What anyone can check">Firmantes, umbrales y cada anclaje, leídos en Horizon.</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<section class="q-psec" id="s7" aria-labelledby="h-s7">
+  <div class="q-head"><h2 id="h-s7"><span class="q-psec-n" aria-hidden="true">7</span><span data-l="es">Por qué una cadena pública, y lo que no prueba</span><span data-l="en">Why a public chain, and what it does not prove</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+  <p>El problema de fondo es de registro compartido: quien genera, quien usa el dato y quien lo audita necesitan una misma fuente que ninguno controle solo. Una cadena pública aporta tres cosas:</p>
+  <ul class="q-plist">
+    <li><b>Lo anclado no se reescribe.</b> Una vez en un ledger, la huella y el total de un lote quedan fijos.</li>
+    <li><b>Lectura pública.</b> Cualquiera compara cada constancia anclada con el lote público y ve qué claves la firmaron, sin pedir permiso.</li>
+    <li><b>Atomicidad.</b> Huella, total acumulado y pago marcador quedan juntos o no queda nada.</li>
+  </ul>
+  <p>Y una cosa que la cadena no aporta: la verdad del mundo físico. Una firma dice que un lote publicado se vuelve a derivar bajo reglas públicas, no que un medidor lo haya medido. Por eso la frontera entre lo físico y lo digital es el punto crítico del modelo (§6), y por eso cada número de este sitio dice si viene de entrada simulada.</p>
+</section>
+
+<section class="q-psec" id="s8" aria-labelledby="h-s8">
+  <div class="q-head"><h2 id="h-s8"><span class="q-psec-n" aria-hidden="true">8</span><span data-l="es">Por qué Stellar y las direcciones públicas</span><span data-l="en">Why Stellar, and the public addresses</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+  <p>QWATT usa Stellar por razones de ingeniería: un ledger cada ~5 s; datos en la propia cuenta (manageData) para la huella y el total de cada anclaje; un memo QW#n que numera cada anclaje; y firmas múltiples nativas, con umbrales por tipo de operación, que dan 2 de 3 sin escribir un contrato.</p>
+  <div class="q-table-wrap">
+    <table class="q-table q-ptable q-addr">
+      <caption><span data-l="es">Despliegue en Stellar testnet</span><span data-l="en">Deployment on Stellar testnet</span></caption>
+      <thead><tr>
+        <th scope="col"><span data-l="es">Parámetro</span><span data-l="en">Parameter</span></th>
+        <th scope="col"><span data-l="es">Valor</span><span data-l="en">Value</span></th>
+      </tr></thead>
+      <tbody>
+        <tr><th scope="row"><span data-l="es">Red</span><span data-l="en">Network</span></th><td>Stellar testnet</td></tr>
+        <tr><th scope="row"><span data-l="es">Activo</span><span data-l="en">Asset</span></th><td>QWATT de testnet, creado en el hackathon de agosto 2026 (trabajo previo); solo pago marcador del anclaje (§12)</td></tr>
+        <tr><th scope="row"><span data-l="es">Ledger de creación del activo</span><span data-l="en">Asset creation ledger</span></th><td><span class="q-num" data-src="dato">4.277.175</span> · 22 ago 2026<span class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 24 oct</span><span data-l="en">Repository fact · 24 Oct</span></span></td></tr>
+        <tr><th scope="row"><span data-l="es">Cuenta que creó el activo</span><span data-l="en">Account that created the asset</span></th><td><code translate="no">GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46</code></td></tr>
+        <tr><th scope="row"><span data-l="es">Destino del pago marcador</span><span data-l="en">Marker-payment destination</span></th><td><code translate="no">GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW</code> (configuración de ejemplo)</td></tr>
+        <tr><th scope="row"><span data-l="es">Cuenta de anclaje 2 de 3</span><span data-l="en">2-of-3 anchoring account</span></th><td>en preparación (semana 2)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="q-two q-mt">
+    <article class="q-card q-acct-prior" aria-labelledby="hW1">
+      <div class="q-head"><h3 id="hW1"><span data-l="es">Cuenta que creó el activo</span><span data-l="en">Account that created the asset</span></h3><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></div>
+      <div data-widget="account-card" data-account="AUGUST.assetAccount"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+    </article>
+    <article class="q-card q-acct-prior" aria-labelledby="hW2">
+      <div class="q-head"><h3 id="hW2"><span data-l="es">Destino del pago marcador</span><span data-l="en">Marker-payment destination</span></h3><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></div>
+      <div data-widget="account-card" data-account="AUGUST.markerDestination"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+    </article>
+  </div>
+  <p class="q-note">Las dos cuentas de agosto tienen umbrales 0/0/0 y una sola clave: una sola clave las controla, por eso la cuenta de anclaje será otra.</p>
+  <div data-widget="week-tx" data-week="1" data-compact class="q-weektx"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+
+  <div class="q-two q-mt">
+    <article class="q-card q-plan-card" aria-labelledby="hW3">
+      <div class="q-head"><h3 id="hW3"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3</span></h3><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+      <p>En preparación (semana 2). Tendrá tres firmantes: el proponente, el verificador independiente y un firmante externo al equipo (confirmado). Ninguna clave sola podrá enviar una transacción; anclar exigirá 2 de las 3 claves, y cambiar firmantes o umbrales, las 3.</p>
+      <div data-widget="anchor-slot"><div data-slot><p class="q-tile-v q-plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p><p class="q-src" data-src="plan"><span data-l="es">en preparación (semana 2)</span><span data-l="en">in preparation (week 2)</span></p></div></div>
+    </article>
+    <article class="q-card q-gold" aria-labelledby="hW4">
+      <div class="q-head"><h3 id="hW4"><span data-l="es">Ensayos del 8 oct en cuentas desechables</span><span data-l="en">8 Oct rehearsals on throwaway accounts</span></h3><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · 8 OCT</span><span data-l="en">PRIOR WORK · 8 OCT</span></span></span></div>
+      <p>Cuatro cuentas desechables con el diseño anterior: umbrales 1/2/3, tres firmantes de peso 1 y clave maestra en peso 0. Entrada simulada · Stellar testnet.</p>
+      <ul class="q-rehearsals">
+        <li><span>Pruebas A–D</span><a class="q-link" href="https://stellar.expert/explorer/testnet/account/GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET" target="_blank" rel="noopener"><span translate="no">GAYA…CYET</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a><span><span class="q-num" data-src="ensayo">198.000</span> mWh</span></li>
+        <li><span>Ensayo acelerado (48 h simuladas en 4 min 18 s)</span><a class="q-link" href="https://stellar.expert/explorer/testnet/account/GB2QTJRIMRGJDBAJ2PI7PQ74ZNVVXCRDOBKAZA6ZASRYCSTNNRXMX3HU" target="_blank" rel="noopener"><span translate="no">GB2Q…X3HU</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a><span><span class="q-num" data-src="ensayo">1.107.371</span> mWh</span></li>
+        <li><span>De extremo a extremo</span><a class="q-link" href="https://stellar.expert/explorer/testnet/account/GCTBRUGQRYNGH7OMRMMQU46NAQNB2AURIWG7D66ADTQDWJC6D2N5O6FO" target="_blank" rel="noopener"><span translate="no">GCTB…O6FO</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a><span><span class="q-num" data-src="ensayo">585.750</span> mWh</span></li>
+        <li><span>Con el activo de testnet</span><a class="q-link" href="https://stellar.expert/explorer/testnet/account/GCBKRNIPS4IVV2X7ZWR6DBMDNNTRQ53HXNRIQIIVNORCBMTSPK52L5AB" target="_blank" rel="noopener"><span translate="no">GCBK…L5AB</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a><span><span class="q-num" data-src="ensayo">297.000</span> mWh</span></li>
+      </ul>
+      <p class="q-src" data-src="ensayo"><span data-l="es">Entrada simulada · Stellar testnet · ensayo 8 oct · cuenta desechable · total anclado según la evidencia publicada</span><span data-l="en">Simulated input · Stellar testnet · 8 Oct rehearsal · throwaway account · anchored total per the published evidence</span></p>
+      <h4 class="q-mini-h"><span data-l="es">Comprobado ahora: el anclaje del ensayo coincide con la evidencia publicada</span><span data-l="en">Checked now: the rehearsal anchor matches the published evidence</span></h4>
+      <div data-widget="rehearsal-match"><div data-slot><p class="q-fallback"><span data-l="es">Este dato se lee en vivo desde Horizon testnet al abrir la página.</span><span data-l="en">This value is read live from Horizon testnet when the page opens.</span></p></div></div>
+    </article>
+  </div>
+</section>
+
+<section class="q-psec" id="s9" aria-labelledby="h-s9">
+  <div class="q-head"><h2 id="h-s9"><span class="q-psec-n" aria-hidden="true">9</span><span data-l="es">El ciclo de un lote</span><span data-l="en">The life of a batch</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET · ENSAYO 8 OCT</span><span data-l="en">TESTNET · 8 OCT REHEARSAL</span></span></span></div>
+  <ol class="q-states">
+    <li><b>Intervalo aceptado, o rechazado con motivo registrado</b><small>cada rechazo va a la bitácora pública de rechazos</small></li>
+    <li><b>Lote publicado</b><small>aceptado, o rechazado y sin energía</small></li>
+    <li><b>Firmado por el proponente</b><small>publica la transacción; nunca la envía</small></li>
+    <li><b>Re-derivado y cofirmado por el verificador</b><small>solo si su transacción es idéntica</small></li>
+    <li><b>Anclado, o pendiente</b><small>en el ledger que se cierra, o esperando su turno</small></li>
+  </ol>
+  <p>La transacción de anclaje es una sola y es atómica: op 1 escribe la huella del lote (<code>qwatt.anchor.sha256</code>), op 2 el total acumulado como número entero en milivatios-hora (<code>qwatt.cumulative_mwh</code>), op 3 es el pago marcador fijo: siempre el mismo y el mínimo que admite Stellar; no representa energía; memo <code>QW#n</code>. Los anclajes van en orden estricto, y el número de secuencia de la cuenta impide que una propuesta vieja llegue a un ledger.</p>
+  <p><a class="q-link" href="/pay.html"><span data-l="es">El ciclo completo de un anclaje real del ensayo, leído en vivo → Cómo se confirma una transacción</span><span data-l="en">The full life of a real rehearsal anchor, read live → How a transaction is confirmed</span></a></p>
+</section>
+
+<section class="q-psec" id="s10" aria-labelledby="h-s10">
+  <div class="q-head"><h2 id="h-s10"><span class="q-psec-n" aria-hidden="true">10</span><span data-l="es">Modelo de datos</span><span data-l="en">Data model</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">SAMPLES_ROOT: PLANIFICADO</span><span data-l="en">SAMPLES_ROOT: PLANNED</span></span></span></div>
+  <div class="q-cols">
+    <div>
+      <h3><span data-l="es">Intervalo</span><span data-l="en">Interval</span> · <a class="q-link" href="/protocol/interval.schema.json" translate="no">interval.schema.json</a> <span translate="no">v1.1.0</span></h3>
+      <p>Un registro de 5 minutos, con los dos medidores:</p>
+      <p class="q-fields" translate="no">site_id · node_id · seq · ts_start · ts_end · dt_s · meters.a/b.mwh · clock_skew_s · source.raw_sha256</p>
+    </div>
+    <div>
+      <h3><span data-l="es">Lote</span><span data-l="en">Batch</span> · <a class="q-link" href="/protocol/batch.schema.json" translate="no">batch.schema.json</a></h3>
+      <p>Doce intervalos juzgados, con su raíz, su energía y el eslabón con el lote anterior:</p>
+      <p class="q-fields" translate="no">prev_hash · intervals_root · energy_mwh · cumulative_mwh · sha256</p>
+      <p><code>samples_root</code>, la raíz de las lecturas crudas, pasa a ser obligatoria con el esquema de lote 1.1.0 (semana 2).</p>
+    </div>
+  </div>
+  <p>Todo es un número entero (las energías van en milivatios-hora), el JSON es canónico y la huella es SHA-256. Cada intervalo cuenta la energía del menor de los dos medidores. Las reglas están fijadas en la suite de conformidad del repositorio.</p>
+  <div class="q-figs">
+    <p><span>Ejemplo, la prueba a escala: un mes de datos públicos (NREL PVDAQ 4902, septiembre 2017):</span> <span class="q-num" data-src="publico">8.640</span> <span>intervalos,</span> <span class="q-num" data-src="publico">720</span> <span>lotes,</span> <span class="q-num" data-src="publico">0</span> <span>rechazados; huella final</span> <code translate="no">cb3d1050…</code><span>, idéntica en una segunda corrida. Sin Stellar.</span></p>
+    <p class="q-src" data-src="publico"><span data-l="es">Datos públicos NREL PVDAQ · no son mediciones nuestras</span><span data-l="en">Public NREL PVDAQ data · not our measurements</span></p>
+  </div>
+</section>
+
+<section class="q-psec" id="s11" aria-labelledby="h-s11">
+  <div class="q-head"><h2 id="h-s11"><span class="q-psec-n" aria-hidden="true">11</span><span data-l="es">Seguridad y claves</span><span data-l="en">Safety and keys</span></h2><span class="q-chips"><span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+  <ul class="q-plist">
+    <li>Ninguna página de qwatt.org genera, pide, guarda ni usa una clave para firmar. <span class="q-chip" data-st="vigente"><span data-l="es">VIGENTE</span><span data-l="en">IN FORCE</span></span></li>
+    <li>0 claves secretas de Stellar en el repositorio (<span class="q-num" data-src="dato">156</span> commits revisados el 23 oct, en todas las ramas y etiquetas públicas). <span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span></li>
+    <li>Cada clave se crea con stellar-cli en la máquina que la usa; la del firmante externo, en su propio equipo; ninguna entra a un navegador, a un chat ni al repositorio. <span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO · SEMANA 2</span><span data-l="en">PLANNED · WEEK 2</span></span></li>
+  </ul>
+  <p class="q-src" data-src="dato"><span data-l="es">Dato del repositorio · 23 oct</span><span data-l="en">Repository fact · 23 Oct</span></p>
+  <div class="q-cols">
+    <div>
+      <h3><span data-l="es">Lo que la red garantiza con 2/2/3</span><span data-l="en">What the network guarantees under 2/2/3</span></h3>
+      <ul class="q-plist">
+        <li>Ninguna clave sola puede enviar ninguna transacción de la cuenta de anclaje, ni siquiera una de las dos del equipo: la red la rechaza con <code>tx_bad_auth</code>.</li>
+        <li>Firmantes y umbrales cambian solo con las tres claves.</li>
+        <li>Cada anclaje es atómico.</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span data-l="es">Lo que no garantiza</span><span data-l="en">What it does not guarantee</span></h3>
+      <ul class="q-plist">
+        <li>Que el firmante externo participe en cada anclaje: dos claves bastan.</li>
+        <li>Qué pareja firmó: lo revisa la conciliación (proponente + verificador es lo normal; proponente + externo, el suplente; cualquier otra, una falla).</li>
+        <li>Que las comprobaciones hayan corrido, o que la entrada sea verdadera.</li>
+      </ul>
+    </div>
+  </div>
+  <p>Si se pierde una clave, el anclaje sigue, pero los firmantes ya no se pueden cambiar. Si se pierden dos, el anclaje se detiene y la recuperación es una cuenta nueva (acuerdo de arquitectura v3, §3). <a class="q-link" href="/backup.html"><span data-l="es">Custodia de claves →</span><span data-l="en">Key custody →</span></a></p>
+</section>
+
+<section class="q-psec" id="s12" aria-labelledby="h-s12">
+  <div class="q-head"><h2 id="h-s12"><span class="q-psec-n" aria-hidden="true">12</span><span data-l="es">El rol del activo QWATT en testnet</span><span data-l="en">The role of the QWATT asset on testnet</span></h2><span class="q-chips"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span class="q-chip" data-st="previo"><span data-l="es">TRABAJO PREVIO · AGO 2026</span><span data-l="en">PRIOR WORK · AUG 2026</span></span></span></div>
+  <p>El activo QWATT de testnet, creado en el hackathon de agosto, solo se usa en cada transacción de anclaje, junto a la huella de un lote, como el pago marcador fijo: siempre el mismo y el mínimo que admite Stellar; no representa energía. No es canjeable por nada, y el archivo <code>stellar.toml</code> del sitio lo declara con <code>is_asset_anchored = false</code>. Cualquier otro uso del activo queda fuera del acuerdo de arquitectura v3.</p>
+  <div class="q-disc" role="note">
+    <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+    <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+  </div>
+</section>
+
+<section class="q-psec" id="s13" aria-labelledby="h-s13">
+  <div class="q-head"><h2 id="h-s13"><span class="q-psec-n" aria-hidden="true">13</span><span data-l="es">Piloto (planificado)</span><span data-l="en">Pilot (planned)</span></h2><span class="q-chips"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span class="q-chip" data-st="fuera"><span data-l="es">FUERA DEL SPRINT</span><span data-l="en">OUTSIDE THE SPRINT</span></span></span></div>
+  <p>El plan de hardware es una vivienda (sin ubicación pública): dos medidores, un nodo de verificación que arma los lotes y una constancia anclada por lote. No hay hardware en el alcance del sprint; toda la entrada es simulada (A0). Un piloto con medidores reales sería el paso a A1 (medido).</p>
+  <p><a class="q-link" href="/piloto.html"><span data-l="es">El plan del piloto →</span><span data-l="en">The pilot plan →</span></a></p>
+</section>
+
+<section class="q-psec" id="s14" aria-labelledby="h-s14">
+  <div class="q-head"><h2 id="h-s14"><span class="q-psec-n" aria-hidden="true">14</span><span data-l="es">Calendario del sprint</span><span data-l="en">Sprint calendar</span></h2><span class="q-chips"><span class="q-chip" data-st="hecho"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></span></div>
+  <p>Semana 1 hecha (19–23 oct); semana 2 del 26 al 30 oct; semana 3 del 2 al 6 nov, con la congelación del código el viernes 6 nov; corrida contada del domingo 8 al domingo 15 nov, hora de Chile. Después del sprint, el hardware, la firma en el medidor y la verificación en un contrato: todo planificado.</p>
+<!-- q:route -->
+<ol class="q-route">
+<li class="q-route-step" data-week="0"><p class="q-route-when"><span data-l="es">22 ago – 18 oct</span><span data-l="en">22 Aug – 18 Oct</span></p><h3><span data-l="es">Trabajo previo</span><span data-l="en">Prior work</span></h3><span class="q-chip" data-st="previo" data-status-of="week:0"><span data-l="es">TRABAJO PREVIO</span><span data-l="en">PRIOR WORK</span></span><p><span data-l="es">Prototipo del hackathon de agosto 2026 y el trabajo anterior al Día 1: público, rotulado y no financiado por el programa.</span><span data-l="en">The August 2026 hackathon prototype and the work before Day 1: public, labeled and not funded by the programme.</span></p></li>
+<li class="q-route-step" data-week="1"><p class="q-route-when"><span data-l="es">19–23 oct</span><span data-l="en">19–23 Oct</span></p><h3><span data-l="es">Semana 1</span><span data-l="en">Week 1</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:1"><span data-l="es">HECHO · SEMANA 1</span><span data-l="en">DONE · WEEK 1</span></span><p><span data-l="es">Seis formas de engañar al verificador, cerradas; pruebas 154 → 194; umbrales 2/2/3 decididos; acuerdo de arquitectura v3.</span><span data-l="en">Six ways to fool the verifier, closed; tests 154 → 194; thresholds 2/2/3 decided; architecture freeze v3.</span></p></li>
+<li class="q-route-step" data-week="2"><p class="q-route-when"><span data-l="es">26–30 oct</span><span data-l="en">26–30 Oct</span></p><h3><span data-l="es">Semana 2</span><span data-l="en">Week 2</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><p><span data-l="es">Cuenta 2 de 3 real, pruebas A–D, samples_root, dos repositorios de evidencia.</span><span data-l="en">Real 2-of-3 account, tests A–D, samples_root, two evidence repositories.</span></p></li>
+<li class="q-route-step" data-week="3"><p class="q-route-when"><span data-l="es">2–6 nov</span><span data-l="en">2–6 Nov</span></p><h3><span data-l="es">Semana 3</span><span data-l="en">Week 3</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:3"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><p><span data-l="es">Un rechazo del verificador es definitivo; ventana de validez de 60 minutos como máximo; marca de error de reloj; recuperación reforzada; congelación del código el viernes 6 nov.</span><span data-l="en">A verifier refusal is final; validity window of at most 60 minutes; clock-error watermark; hardened recovery; code freeze on Friday 6 Nov.</span></p></li>
+<li class="q-route-step" data-week="4"><p class="q-route-when"><span data-l="es">8–15 nov</span><span data-l="en">8–15 Nov</span></p><h3><span data-l="es">Corrida contada</span><span data-l="en">Counted run</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:4"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><p><span data-l="es">7 días en testnet, del domingo 8 nov 00:00 al domingo 15 nov 00:00, hora de Chile, con entrada simulada.</span><span data-l="en">7 days on testnet, from Sunday 8 Nov 00:00 to Sunday 15 Nov 00:00, Chile time, with simulated input.</span></p></li>
+</ol>
+<!-- /q:route -->
+  <p><a class="q-link" href="/hoja-de-ruta.html"><span data-l="es">Cada punto del plan y su evidencia → Hoja de ruta</span><span data-l="en">Every plan item and its evidence → Roadmap</span></a></p>
+</section>
+
+<section class="q-psec" id="s15" aria-labelledby="h-s15">
+  <div class="q-head"><h2 id="h-s15"><span class="q-psec-n" aria-hidden="true">15</span><span data-l="es">Consideraciones regulatorias</span><span data-l="en">Regulatory considerations</span></h2><span class="q-chip" data-st="info"><span data-l="es">INFO</span><span data-l="en">INFO</span></span></div>
+  <p>QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+  <p>El sprint no incluye la red principal ni ningún uso del activo más allá del anclaje. Este documento describe software en desarrollo: no es una oferta ni una asesoría.</p>
+  <p><a class="q-link" href="/terminos.html"><span data-l="es">Términos, límites y privacidad →</span><span data-l="en">Terms, limits and privacy →</span></a></p>
+</section>
+
+<section class="q-psec" id="s16" aria-labelledby="h-s16">
+  <div class="q-head"><h2 id="h-s16"><span class="q-psec-n" aria-hidden="true">16</span><span data-l="es">Ideas futuras (planificadas)</span><span data-l="en">Future ideas (planned)</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+  <p>Ideas, no compromisos. Ninguna incluye pagos.</p>
+  <ul class="q-plist">
+    <li><b>Trazabilidad por hora:</b> cada constancia dice a qué hora se generó la energía que la respalda.</li>
+    <li><b>Reportes voluntarios auditables:</b> un reporte que cita constancias puede ser revisado por cualquiera.</li>
+    <li><b>Atributo de origen en cada constancia</b> (solar, hora, instalación): no crea otro activo y no es un REC.</li>
+    <li><b>Constancias como evidencia en contratos con generadores:</b> el dato de generación queda a la vista de las dos partes.</li>
+    <li><b>Constancias por techo que los vecinos pueden verificar.</b></li>
+    <li><b>Firma en el propio medidor y verificación en un contrato</b> (Soroban, fuera del acuerdo v3).</li>
+  </ul>
+</section>
+
+<section class="q-psec" id="s17" aria-labelledby="h-s17">
+  <div class="q-head"><h2 id="h-s17"><span class="q-psec-n" aria-hidden="true">17</span><span data-l="es">Lo que el sprint demostrará y lo que no</span><span data-l="en">What the sprint will and will not show</span></h2><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+  <div class="q-cols">
+    <div>
+      <h3><span data-l="es">Si la corrida se completa, mostrará</span><span data-l="en">If the run completes, it will show</span></h3>
+      <ul class="q-plist">
+        <li>que el software corre 7 días sin intervención, a ritmo real, en Stellar testnet;</li>
+        <li>que cada lote se ancla con dos firmas o se rechaza con un motivo publicado;</li>
+        <li>que el verificador re-deriva cada lote desde datos públicos antes de firmar;</li>
+        <li>que cada falla inyectada aparece en la bitácora pública con su motivo;</li>
+        <li>que cualquiera puede conciliar cada ancla con su lote.</li>
+      </ul>
+    </div>
+    <div>
+      <h3><span data-l="es">No mostrará</span><span data-l="en">It will not show</span></h3>
+      <ul class="q-plist">
+        <li>generación física;</li>
+        <li>la exactitud de un medidor;</li>
+        <li>que los umbrales de los filtros sirvan para un sitio real;</li>
+        <li>independencia organizacional del verificador;</li>
+        <li>nada sobre la red principal ni sobre la custodia de claves en producción.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="q-psec" id="s18" aria-labelledby="h-s18">
+  <div class="q-head"><h2 id="h-s18"><span class="q-psec-n" aria-hidden="true">18</span><span data-l="es">Cómo reproducir una verificación</span><span data-l="en">How to reproduce a verification</span></h2><span class="q-chips"><span class="q-chip" data-st="prototipo"><span data-l="es">PROTOTIPO</span><span data-l="en">PROTOTYPE</span></span><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span></span></div>
+  <p>Con git y Node 20, sin claves y sin cuenta, y sin escribir nada en ninguna red:</p>
+  <ul class="q-plist">
+    <li><code>npm test</code>: todas las suites del repositorio, las mismas que corre el CI.</li>
+    <li><code>node batch/scale.js</code>: la prueba a escala con datos públicos; la cadena se verifica y una segunda corrida da lo mismo.</li>
+    <li><code>node batch/verify-cli.js</code>: vuelve a derivar cada lote publicado de un feed.</li>
+    <li>una consulta <code>curl</code> a Horizon testnet: la huella y el total anclados, y los firmantes y umbrales de la cuenta.</li>
+  </ul>
+  <p><a class="q-link" href="/verificacion.html#terminal"><span data-l="es">Los comandos exactos, paso a paso → Compruébalo tú</span><span data-l="en">The exact commands, step by step → Check it yourself</span></a></p>
+  <h3><span data-l="es">Fuentes</span><span data-l="en">Sources</span></h3>
+  <ul class="q-ev-list q-refs">
+    <li><a class="q-ev" href="https://github.com/academiaseul/QWATT/blob/main/docs/ARCHITECTURE-FREEZE-v3.md" target="_blank" rel="noopener"><span data-l="es">Acuerdo de arquitectura v3</span><span data-l="en">Architecture freeze v3</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+    <li><a class="q-ev" href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+    <li><a class="q-ev" href="https://github.com/academiaseul/QWATT/releases/tag/semana-1" target="_blank" rel="noopener"><span data-l="es">Release semana 1</span><span data-l="en">Week 1 release</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+    <li><a class="q-ev" href="https://github.com/academiaseul/QWATT/blob/main/docs/DELIVERABLE-1-EVIDENCE.md" target="_blank" rel="noopener"><span data-l="es">Evidencia de la Entrega 1</span><span data-l="en">Deliverable 1 evidence</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+    <li><a class="q-ev" href="https://github.com/academiaseul/QWATT/blob/main/docs/PRIOR-WORK.md" target="_blank" rel="noopener"><span data-l="es">Trabajo previo</span><span data-l="en">Prior work</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+    <li><a class="q-ev" href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span data-l="es">Código en GitHub</span><span data-l="en">Code on GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a></li>
+  </ul>
+  <p class="q-note">Este documento reemplaza al documento técnico de agosto 2026 (v2.0), cuyas secciones de modelo económico, fuentes externas de datos y capa de pagos se descartaron. El de agosto sigue en el historial del repositorio.</p>
+</section>
+
 </div>
+
+</main>
+<!-- q:footer -->
+<footer class="q-foot">
+  <div class="q-wrap">
+    <div class="q-foot-top">
+      <div>
+        <a class="q-foot-home" href="/" aria-label="QWATT, inicio" data-aria-en="QWATT, home"><svg class="qm" viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="21" fill="none" stroke="var(--qlogo-ink)" stroke-width="7" stroke-dasharray="5.5 22 104.4"/><path d="M3 -17L-8 3L-2 3L-4 17L8 -3L2 -3Z" fill="var(--qlogo-bolt)" transform="translate(46 46) rotate(-45) scale(.92)"/></svg><span translate="no">QWATT</span></a>
+        <p class="q-foot-k"><span data-l="es">QWATT · VERIFICADOR · SOLO TESTNET</span><span data-l="en">QWATT · VERIFIER · TESTNET ONLY</span></p>
+      </div>
+      <p class="q-foot-lead"><span data-l="es">Verificador de código abierto · constancias verificables en Stellar testnet · sprint Instawards Chile desde el 19 oct 2026 · Jay Kim y Diego Ostertag · Chile</span><span data-l="en">Open-source verifier · independently verifiable records on Stellar testnet · Instawards Chile sprint since 19 Oct 2026 · Jay Kim and Diego Ostertag · Chile</span></p>
+      <nav class="q-foot-nav" aria-label="Pie de página" data-aria-en="Footer">
+        <a href="/"><span data-l="es">Inicio</span><span data-l="en">Home</span></a>
+        <a href="/verificacion.html"><span data-l="es">Verificación</span><span data-l="en">Verification</span></a>
+        <a href="/#ideas"><span data-l="es">Todas las páginas</span><span data-l="en">All pages</span></a>
+        <a href="/terminos.html"><span data-l="es">Términos, límites y privacidad</span><span data-l="en">Terms, limits and privacy</span></a>
+        <a href="https://github.com/academiaseul/QWATT" target="_blank" rel="noopener"><span translate="no">GitHub</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+        <a href="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.es.md" data-href-en="https://github.com/academiaseul/QWATT/blob/main/CHANGELOG.md" target="_blank" rel="noopener"><span data-l="es">Registro de cambios</span><span data-l="en">Changelog</span><span class="q-ext" aria-hidden="true">↗</span><span class="q-vh"><span data-l="es">(abre en una pestaña nueva)</span><span data-l="en">(opens in a new tab)</span></span></a>
+      </nav>
+    </div>
+    <div class="q-disclaimer" role="note" aria-label="Aviso" data-aria-en="Notice">
+      <p lang="es">QWATT es un proyecto en desarrollo que opera solo en Stellar testnet. QWATT no es electricidad, ni una inversión, ni un valor o instrumento financiero, ni un certificado de energía renovable (REC), ni un crédito de carbono. No tiene precio y no se vende.</p>
+      <p lang="en">QWATT is a project in development that runs only on Stellar testnet. QWATT is not electricity, not an investment, not a security or financial instrument, not a renewable energy certificate (REC), and not a carbon credit. It has no price and is not for sale.</p>
+    </div>
+    <p class="q-foot-legal"><span data-l="es">© 2026 QWATT · código abierto, licencia MIT · solo Stellar testnet · sin analítica ni cookies</span><span data-l="en">© 2026 QWATT · open source, MIT licence · Stellar testnet only · no analytics, no cookies</span></p>
+  </div>
 </footer>
+<!-- /q:footer -->
 </body>
 </html>

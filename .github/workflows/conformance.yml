@@ -13,6 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history and tags: the site test proves that every commit and release
+          # cited as evidence in assets/status.json exists (DESIGN FD-16).
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 20
@@ -40,3 +44,24 @@ jobs:
         run: node ops/publish-feed.test.js
       - name: Write-up generator — account rules stated from Horizon, never from a constant (fetch stubbed)
         run: node ops/writeup.test.js
+      - name: "Site: stamped blocks and shared header/footer match status.json and ops/site-fragments"
+        if: ${{ !cancelled() }}
+        run: node ops/site-sync.js --check
+      - name: "Site: hard rules on every deployed file, status, links, languages, accessibility, weight"
+        if: ${{ !cancelled() }}
+        run: node ops/site.test.js
+      - name: "Site: live testnet helper with Horizon stubbed (no amounts, no secrets, right network)"
+        if: ${{ !cancelled() }}
+        run: node ops/site-live.test.js
+      - name: "Protocol browser build is current (assets/qwatt-protocol.js = a fresh build of the sources)"
+        if: ${{ !cancelled() }}
+        run: node protocol/build-browser.js --check
+      - name: "Sample feeds are current and re-derive (evidence/feeds: the anchored 8 Oct batches and the sample day)"
+        if: ${{ !cancelled() }}
+        run: node ops/sample-feeds.js --check
+      - name: "Browser build equals Node on vectors, feeds and tampering (the verification page's checklist)"
+        if: ${{ !cancelled() }}
+        run: node ops/protocol-browser.test.js
+      - name: "Evidence formats: sample feeds and tests A-D (R-FEEDS, R-ABCD)"
+        if: ${{ !cancelled() }}
+        run: node ops/site-evidence.test.js

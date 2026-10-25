@@ -7,7 +7,7 @@ Every licence below was read from the component's own package metadata (the `lic
 declares nothing, the table says so. Versions are the ones pinned in `package-lock.json`. Checked on
 20 Oct 2026.
 
-## 1. Shipped with the site: `assets/vendor/`
+## 1. In the repository, not deployed on qwatt.org: `assets/vendor/`
 
 Both files are built by `npm run vendor:wallet` (esbuild 0.24.2, entry points in `vendor-src/`).
 Rebuilt from the lockfile on 20 Oct 2026, both came out byte-identical to the committed files. The

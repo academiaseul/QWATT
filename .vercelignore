@@ -25,20 +25,35 @@ ops
 ops-state
 # Until it reads signers and thresholds from Horizon, the page hard-codes "Anchored with 2 of 3 signatures"
 reconcile.html
-# August 2026 hackathon pages, no longer linked from the site. vercel.json redirects each path to /.
-console.html
-grid.html
-pay.html
-wallet.html
-proof.html
-respaldo.html
-red.html
-piloto.html
-whitepaper.html
-terminos.html
-backup.html
-# Files only those pages (or local tooling) use; index.html, verificacion.html and 404.html load none of them.
+# August wallet code and local tooling: no deployed page loads any of them (the August pages were
+# restored without key handling, signing or the vendored wallet kit).
 qwatt-wallet.js
 assets/vendor
 set-home-domain.js
 deployment.json
+# Not served (FD-4): the August social card shows the old equivalence. Every page uses og-sprint.png.
+og-image.png
+# Stale Netlify file; vercel.json sets the headers.
+_headers
+# Node-only gate binding (full spec text). Pages load assets/gates.browser.js, generated from the same spec.
+assets/gates.generated.js
+# Repository documents and raw evidence records: on GitHub, never fetched by a page.
+README.md
+THIRD_PARTY_NOTICES.md
+evidence/harness
+evidence/dress-rehearsal/WRITEUP-dress.md
+# The asset rehearsal record (prior work) stays on GitHub; pages read evidence/asset-rehearsal/anchors.json.
+evidence/asset-rehearsal/asset-*.json
+# Mirrors .gitignore for a vercel CLI upload from a local checkout (a Git deploy ships tracked files only).
+live-state
+/video
+*.mp4
+*.mov
+__pycache__
+.gitattributes
+# Protocol sources live on GitHub. Only the two schemas and the reason registry are served,
+# so their $id URLs resolve (DESIGN D-16).
+protocol/*
+!protocol/batch.schema.json
+!protocol/interval.schema.json
+!protocol/reasons.json

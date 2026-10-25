@@ -3,20 +3,11 @@
   "buildCommand": null,
   "installCommand": null,
   "outputDirectory": null,
-  "redirects": [
-    { "source": "/console.html", "destination": "/", "permanent": true },
-    { "source": "/grid.html", "destination": "/", "permanent": true },
-    { "source": "/pay.html", "destination": "/", "permanent": true },
-    { "source": "/wallet.html", "destination": "/", "permanent": true },
-    { "source": "/proof.html", "destination": "/", "permanent": true },
-    { "source": "/proof/:id", "destination": "/", "permanent": true },
-    { "source": "/respaldo.html", "destination": "/", "permanent": true },
-    { "source": "/red.html", "destination": "/", "permanent": true },
-    { "source": "/piloto.html", "destination": "/", "permanent": true },
-    { "source": "/whitepaper.html", "destination": "/", "permanent": true },
-    { "source": "/terminos.html", "destination": "/", "permanent": true },
-    { "source": "/backup.html", "destination": "/", "permanent": true }
+  "rewrites": [
+    { "source": "/proof", "destination": "/proof.html" },
+    { "source": "/proof/:id", "destination": "/proof.html" }
   ],
+  "redirects": [],
   "headers": [
     {
       "source": "/.well-known/stellar.toml",
@@ -32,7 +23,9 @@
         { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
         { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
         { "key": "Strict-Transport-Security", "value": "max-age=63072000; includeSubDomains" },
-        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" }
+        { "key": "Permissions-Policy", "value": "camera=(), microphone=(), geolocation=(), payment=()" },
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Content-Security-Policy", "value": "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'" }
       ]
     }
   ]
