@@ -92,6 +92,9 @@ async function main() {
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-asset-ver-'));
   const pipe = new Pipeline({ dir: feedDir, site_id: 'asset-rehearsal', node_id: 'ar' });
   for (let i = 0; i < 36; i++) pipe.push(iv(i));
+  /* the feed's faults.json: the fixed label and who signs (public keys), which the reconciliation requires */
+  fs.writeFileSync(path.join(feedDir, 'faults.json'), JSON.stringify({ description: 'asset rehearsal: three hand-made batches, no live run, no faults', label: R.INPUT_LABEL,
+    anchoring: { network: 'testnet', signers: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } }, faults: [] }, null, 2) + '\n');
   const host = await serveDir(feedDir);
   const cfg = { ...SA.configFor(o, account), network_passphrase: S.Networks.TESTNET };
   const proposer = new Proposer({ feedDir, cfg, keypair: K.proposer, server });
@@ -105,7 +108,7 @@ async function main() {
   }
   const tAfter = await balanceOf(pub.treasury, 'QWATT', pub.issuer);
   const delta = Math.round((Number(tAfter) - Number(tBefore)) * 1e7);
-  const rec = await R.reconcile(await R.fetchFeed(host.url), await R.fetchAnchors(HORIZON, account));
+  const rec = (await R.check({ feed: host.url, horizon: HORIZON, account, roles: { proposer: pub.proposer, verifier: pub.verifier, third: pub.third } })).report;
   await host.close();
 
   ev.anchoring = { batches: 3, anchored: anchored.length, txs: anchored, treasury_before: tBefore, treasury_after: tAfter, treasury_delta_stroops: delta };

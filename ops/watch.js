@@ -190,7 +190,9 @@ async function cli() {
   };
   if (!o.account || !o.feed) { console.error('usage: node ops/watch.js --account G… --feed <public feed URL> [--verifier-status URL]'); process.exit(2); }
   const R = require('../assets/qwatt-reconcile.js');
-  o.reconcile = async () => R.reconcile(await R.fetchFeed(o.feed), await R.fetchAnchors(o.horizon, o.account));
+  /* Horizon first, then the feed; signer roles from the run's faults.json. A Horizon or feed error
+     throws, and observe() reports it as an unreadable source (SOURCE_DOWN), never as BROKEN. */
+  o.reconcile = async () => (await R.check({ feed: o.feed, horizon: o.horizon, account: o.account })).report;
   if (!process.env.QWATT_ALERT_WEBHOOK) console.log('QWATT_ALERT_WEBHOOK not set: alerts go to this console only');
   const run = async () => { try { const r = await tick(o); if (!r.alerts.length) console.log(new Date().toISOString(), 'ok', JSON.stringify({ last_anchor_at: r.obs.last_anchor_at, feed: r.obs.feed_last_interval_at })); } catch (e) { console.error(new Date().toISOString(), 'watch tick failed:', e.message); } };
   await run();
