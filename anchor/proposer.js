@@ -2,7 +2,14 @@
 /**
  * QWATT — proposer service (Deliverable 3)
  * ---------------------------------------------------------------------------
- *   QWATT_PROPOSER_SECRET=S… node anchor/proposer.js --feed <dir> --config anchor/config.json [--interval 30] [--max-walk 168]
+ *   node anchor/proposer.js --feed <dir> --config anchor/config.json --sign-with-key qwatt-proposer \
+ *        [--stellar-bin stellar] [--interval 30] [--max-walk 168]
+ *
+ * The proposer key is the stellar-cli identity `qwatt-proposer` on this host
+ * (freeze v3, V3-8): stellar-cli signs, and Node never reads a secret. A secret
+ * in the environment is refused. At start the CLI checks that the identity's
+ * key is `signers.proposer` in the public config and signs one throwaway
+ * transaction offline, so a missing or wrong key stops it at once (exit 2).
  *
  * Runs next to the batch pipeline and writes into the evidence-feed directory
  * that is published as static files. Each tick:
@@ -34,6 +41,7 @@ const { Feed } = require('../batch/feed');
 const V = require('../batch/verify');
 const T = require('./tx');
 const C = require('./chain');
+const SG = require('./signer');
 
 /** Re-propose this long before expiry, so the verifier never races a dying window. */
 const EXPIRY_MARGIN_S = 600;
@@ -43,7 +51,8 @@ class Proposer {
    * @param {object} o
    * @param {string} o.feedDir
    * @param {object} o.cfg       anchor config (tx.js AnchorConfig) + horizon_url
-   * @param {import('@stellar/stellar-sdk').Keypair} o.keypair  proposer key (a signer on the anchoring account)
+   * @param {object} [o.signer]  signs as the proposer (anchor/signer.js cliSigner: stellar-cli on this host)
+   * @param {import('@stellar/stellar-sdk').Keypair} [o.keypair]  instead of a signer, for tests and throwaway rehearsals only
    * @param {object} [o.server]  Horizon server (injectable for tests)
    * @param {number} [o.maxWalk]  most batches walked back to the on-chain head (default chain.MAX_WALK_BATCHES; CLI --max-walk)
    */
@@ -51,7 +60,8 @@ class Proposer {
     T.checkConfig(o.cfg);
     this.feed = new Feed(o.feedDir);
     this.cfg = o.cfg;
-    this.keypair = o.keypair;
+    this.signer = o.signer || (o.keypair && SG.keypairSigner(o.keypair));
+    if (!this.signer) throw new Error('Proposer: a signer is required (stellar-cli through anchor/signer.js; a keypair only in tests and throwaway rehearsals)');
     this.server = o.server || new S.Horizon.Server(o.cfg.horizon_url);
     this.maxWalk = o.maxWalk == null ? C.MAX_WALK_BATCHES : C.checkMaxWalk(o.maxWalk);
     for (const sub of ['pending', 'anchored']) fs.mkdirSync(this.feed.p(sub), { recursive: true });
@@ -105,9 +115,9 @@ class Proposer {
     }
 
     const tx = T.buildAnchorTx(batch, this.cfg, T.proposalParams(head.sequence, nowS));
-    tx.sign(this.keypair);
-    this.feed._writeAtomic(pf, tx.toEnvelope().toXDR('base64') + '\n');
-    return { action: 'proposed', batch_id: next.batch_id, tx_hash: tx.hash().toString('hex'), sequence: tx.sequence };
+    const signed = await this.signer.sign(tx);   // stellar-cli returns a new, checked Transaction: use the returned one
+    this.feed._writeAtomic(pf, signed.toEnvelope().toXDR('base64') + '\n');
+    return { action: 'proposed', batch_id: next.batch_id, tx_hash: signed.hash().toString('hex'), sequence: signed.sequence };
   }
 }
 
@@ -122,9 +132,15 @@ async function cli() {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
   let maxWalk;
   try { maxWalk = C.maxWalkArg(args); } catch (e) { console.error(e.message); process.exit(2); }
-  const secret = process.env.QWATT_PROPOSER_SECRET;
-  if (!secret) { console.error('QWATT_PROPOSER_SECRET is not set; refusing to start'); process.exit(2); }
-  const p = new Proposer({ feedDir: path.resolve(opt('--feed', 'feed')), cfg: loadConfig(opt('--config', path.join(__dirname, 'config.json'))), keypair: S.Keypair.fromSecret(secret), maxWalk });
+  const usage = 'usage: node anchor/proposer.js --feed <dir> --config anchor.json --sign-with-key qwatt-proposer [--stellar-bin stellar] [--interval 30] [--max-walk 168]';
+  const env = SG.refuseEnvSecrets(['QWATT_PROPOSER_SECRET']);
+  if (env) { console.error(env); process.exit(2); }
+  if (!args.includes('--sign-with-key')) { console.error(`--sign-with-key <identity> is required (the stellar-cli identity that holds the proposer key)\n${usage}`); process.exit(2); }
+  const cfg = loadConfig(opt('--config', path.join(__dirname, 'config.json')));
+  const { signer, error } = await SG.signerForRole({ args, cfg, role: 'proposer', envNames: ['QWATT_PROPOSER_SECRET'] });
+  if (error) { console.error(`${error}\n${usage}`); process.exit(2); }
+  console.log(new Date().toISOString(), `proposer key ${signer.publicKey} (stellar-cli identity ${signer.identity})`);
+  const p = new Proposer({ feedDir: path.resolve(opt('--feed', 'feed')), cfg, signer, maxWalk });
   const every = Number(opt('--interval', 30)) * 1000;
   const run = async () => {
     try { console.log(new Date().toISOString(), JSON.stringify(await p.tick())); }

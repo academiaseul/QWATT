@@ -6,5 +6,10 @@
   "asset_issuer": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46",
   "payment_destination": "GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW",
   "payment_amount": "0.0000001",
-  "base_fee": 100
+  "base_fee": 100,
+  "signers": {
+    "proposer": "G…  the proposer key (stellar-cli identity qwatt-proposer on the proposer host)",
+    "verifier": "G…  the verifier key (stellar-cli identity qwatt-verifier on the verifier host)",
+    "third": "G…  the off-team third signer's key"
+  }
 }
