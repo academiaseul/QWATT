@@ -25,6 +25,21 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-20.
 |---|---|---|---|
 | 3 | **Read and sign `docs/ARCHITECTURE-FREEZE-v2.md`** (both founders), or change any adopted default | Jay + Diego | After sign-off the design is frozen until Day 30. |
 
+## By Tue 27 Oct (Day 9) — the two evidence repositories (freeze v3, V3-7)
+
+Needed before the first anchor on the real account (V3-4). Step by step: `docs/RUNBOOK.md`,
+one-time setup, step 5.
+
+| # | What | Who | How |
+|---|---|---|---|
+| 7a | **Two public repositories**, `academiaseul/qwatt-evidence` (written only by the proposer host) and `academiaseul/qwatt-verifier-log` (written only by the verifier host), each a public history | Jay (owner of `academiaseul`) | Create both (Public, a README, the licence per decision D2; proposal: MIT). Edit README.md and LICENSE before the first publisher run; after it, only each host's publisher commits. On each, two branch rulesets: "public history" (no deletion, no force-push, linear history, no bypass) and "only the host key writes" (deploy keys bypass, everyone else restricted). |
+
+## By Wed 28 Oct (Day 10) — their deploy keys
+
+| # | What | Who | How |
+|---|---|---|---|
+| 7b | **One deploy key per repository** | each host's operator; Jay adds it | Each host generates its own deploy key (ed25519) and sends only the `.pub`; Jay adds it with write access to that one repository. The private key file never leaves its host. Then the smoke test and `node ops/evidence-audit.js` on a fresh clone. |
+
 ## By Day 15 (Mon 2 Nov) — latest Day 19 (Fri 6 Nov)
 
 | # | What | Who | How |
@@ -49,7 +64,6 @@ Monday 19 October 2026**; shift them if Day 1 moves. Status as of 2026-10-20.
 
 | # | What | Who | How |
 |---|---|---|---|
-| 7 | **Evidence-feed host.** Recommended: GitHub Pages serving a `feed` branch of the repository | Repo admin | Settings → Pages → source: branch `feed`. Free and public, with no new account. The proposer host then needs push access to that one branch (a deploy key), stored only on that host. |
 | 8 | **Verifier host**: an always-on machine that does **not** run the proposer, operated by Jay | Jay | A small VPS or a spare machine. Needs Node 20, outbound HTTPS and an NTP-synced clock. Its key is generated **on that machine**; send only the public key. |
 | 9 | **Proposer host**: the machine that runs the pipeline, simulator and proposer for Days 20–30 | Diego | **Must be always-on.** A laptop or desktop that sleeps or shuts down will break the "seven consecutive days" evidence. Use a VPS or a machine that never sleeps. |
 | 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run | Founders | Someone who will act on it within hours, Days 20–30. |
@@ -86,4 +100,5 @@ The live run starts **Sat 7 Nov (Day 20)**. The counted seven-day window runs fr
 | Verifier key | verifier host, `QWATT_VERIFIER_SECRET` | on the proposer host |
 | Third-signer key | the third signer's own device | with the team |
 | Treasury key | Jay | used for one transfer only (item 6) |
-| Feed deploy key | proposer host | anywhere else |
+| `qwatt-evidence` deploy key | proposer host, `/home/qwatt/.ssh/qwatt-evidence` (a file, never an env value) | anywhere else, the verifier host included |
+| `qwatt-verifier-log` deploy key | verifier host, `/home/qwatt/.ssh/qwatt-verifier-log` (a file, never an env value) | anywhere else, the proposer host included |

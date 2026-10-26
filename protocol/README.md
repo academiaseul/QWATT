@@ -14,6 +14,7 @@ This directory makes that impossible.
 | `conformance/cases.json` | Fixtures: input interval, profile, expected verdict, the **exact** set of failing gates, reason codes, mint string, pinned numeric internals. |
 | `conformance.test.js` | Runs the suite against the shared engine, checks the schema, checks the bindings are current and identical, checks `validators.js` reads the spec, and that every reason code has a message in every language. |
 | `schema-lite.js` | Just enough JSON Schema to validate the record with no dependency. |
+| `FEED-FORMAT.md` | The public evidence feed and the verifier log as published (freeze v3, V3-7): every file under `<run>/`, its fields, and whether it is written once, grows only or is replaced; the rules each commit keeps and how to check them. |
 
 The engine itself lives at `assets/qwatt-gates.js` because the demo page loads it directly.
 It contains no numbers. If you are about to type `1.15` or `900` into it, stop — that belongs
