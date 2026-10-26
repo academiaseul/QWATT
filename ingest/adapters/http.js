@@ -20,7 +20,12 @@
  * Every accepted interval is delivered through onInterval(record).
  * For POST /samples, each sample's raw payload is the exact request body it arrived
  * in, so a body carrying n samples of one interval enters that interval's
- * raw_sha256 n times (ingest/README.md, "raw_sha256"). No dependencies.
+ * raw_sha256 n times (ingest/README.md, "raw_sha256").
+ *
+ * clock_skew_s (V3-6): intervals built from POST /samples are stamped by the
+ * IntervalBuilder's own clock when they close (the gateway's wall clock against
+ * the node's sample timestamps, so node clock error plus latency); records posted
+ * whole to POST /intervals are stamped here, from config.now. No dependencies.
  */
 
 'use strict';

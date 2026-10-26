@@ -5,7 +5,7 @@
  *   batch/verify.js                2a5afeb5853c54a7ec10d4fb875d7362135e66ff61b8223b4516183c8b9a1229
  *   protocol/batch.schema.json     3d1080f9bb1e07d0dcee63e049a79e9a7210ea4d8b3594cd04e906cd95fb4a35
  *   protocol/evidence.js           aac21d5ed59caa3ec558a2a2e5b4efa281e6be8a877afe250e5218da99e431fc
- *   protocol/interval.schema.json  1386c23d0f75ed09f4aa921913433ef6111bcd661b56af309bb09aa7fed01935
+ *   protocol/interval.schema.json  e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda
  *   protocol/reasons.json          d619be0adc270a94b5da65b35fcb2384a9991f197442ee1560194ba78bc4a146
  *   protocol/schema-lite.js        9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9
  *   protocol/browser-shim.js       0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec  (the shim)
@@ -694,7 +694,7 @@ module.exports = {
     "ts_start": { "type": "string", "format": "date-time", "description": "Interval start in canonical UTC, exactly as Date#toISOString writes it (YYYY-MM-DDTHH:mm:ss.sssZ), a multiple of dt_s from the epoch. One spelling per instant: the assembler refuses any other (ingest.off_grid); the HTTP gateway rewrites any other RFC 3339 spelling of the same instant to this form and keeps the request hash in source.raw_sha256." },
     "ts_end": { "type": "string", "format": "date-time", "description": "Interval end in the same canonical UTC form, exactly ts_start + dt_s." },
     "dt_s": { "type": "integer", "minimum": 1, "description": "Interval length in seconds. Must equal ts_end − ts_start within 1 s." },
-    "clock_skew_s": { "type": "integer", "description": "Gateway receive time − ts_end, whole seconds. Filled in by the gateway, absent at the node." },
+    "clock_skew_s": { "type": "integer", "description": "Receive time − ts_end, whole seconds, stamped by the gateway. Every sample path (Modbus, CSV, HTTP /samples, the simulator through CSV) gets it from the IntervalBuilder when it closes the interval: from a real clock, or in a replay from the replay clock (the latest sample timestamp pushed). Records posted whole to /intervals are stamped by the HTTP gateway. Negative when an interval is closed before its end (shutdown, end of file); G0 judges its magnitude. Absent at the node." },
     "meters": {
       "type": "object",
       "required": ["a"],
@@ -863,7 +863,7 @@ module.exports = {
     { path: "protocol/evidence.js", sha256: "aac21d5ed59caa3ec558a2a2e5b4efa281e6be8a877afe250e5218da99e431fc", bytes: 3937 },
     { path: "protocol/schema-lite.js", sha256: "9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9", bytes: 3019 },
     { path: "batch/verify.js", sha256: "2a5afeb5853c54a7ec10d4fb875d7362135e66ff61b8223b4516183c8b9a1229", bytes: 12232 },
-    { path: "protocol/interval.schema.json", sha256: "1386c23d0f75ed09f4aa921913433ef6111bcd661b56af309bb09aa7fed01935", bytes: 4230 },
+    { path: "protocol/interval.schema.json", sha256: "e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda", bytes: 4619 },
     { path: "protocol/batch.schema.json", sha256: "3d1080f9bb1e07d0dcee63e049a79e9a7210ea4d8b3594cd04e906cd95fb4a35", bytes: 3006 },
     { path: "protocol/reasons.json", sha256: "d619be0adc270a94b5da65b35fcb2384a9991f197442ee1560194ba78bc4a146", bytes: 5202 }
     ],
