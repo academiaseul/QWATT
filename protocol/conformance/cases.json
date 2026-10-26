@@ -105,6 +105,20 @@
       "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.skew" } }
     },
     {
+      "id": "bench-clock-skew-negative", "profile": "bench",
+      "description": "Guard: a report received 2 h 05 m 01 s before its own end timestamp. G0 judges the magnitude of clock_skew_s, so a clock running ahead is refused like one running behind",
+      "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300, "clock_skew_s": -7501,
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
+      "expect": { "verdict": "reject", "fail": ["plausibility"], "codes": { "plausibility": "plausibility.skew" } }
+    },
+    {
+      "id": "bench-clock-skew-early", "profile": "bench",
+      "description": "Guard: an interval closed five minutes before its end (a gateway flushing at shutdown or end of file) carries clock_skew_s −300, well inside the limit",
+      "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:05:00Z", "dt_s": 300, "clock_skew_s": -300,
+                 "meters": { "a": { "id": "pzem-017", "class": "dc", "mwh": 11800 }, "b": { "id": "epever", "class": "dc", "mwh": 11600 } } },
+      "expect": { "verdict": "accept", "fail": [], "codes": { "plausibility": "plausibility.ok" }, "mint": "0.0000116" }
+    },
+    {
       "id": "bench-dt-mismatch", "profile": "bench",
       "description": "Declared dt_s disagrees with the timestamps — a node lying about interval length",
       "input": { "ts_start": "2026-09-20T15:00:00Z", "ts_end": "2026-09-20T15:10:00Z", "dt_s": 300,

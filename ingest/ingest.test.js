@@ -23,7 +23,7 @@ function near(a, b, tol, w) { assert(Math.abs(a - b) <= tol, `${w}: expected ≈
 const H = 3600000;
 const T0 = Date.parse('2026-09-20T15:00:00Z');   // on the 300 s grid
 const meters2 = { a: { id: 'a', class: 'dc', energy: 'integrate' }, b: { id: 'b', class: 'dc', energy: 'integrate' } };
-const mk = (o = {}) => new IntervalBuilder(Object.assign({ site_id: 's', node_id: 'n', adapter: 'replay', dt_s: 300, meters: meters2 }, o));
+const mk = (o = {}) => new IntervalBuilder(Object.assign({ site_id: 's', node_id: 'n', adapter: 'replay', dt_s: 300, meters: meters2, clock: 'replay' }, o));   // replay clock (V3-6)
 const mk1 = (o = {}) => mk(Object.assign({ meters: { a: { id: 'a', class: 'dc', energy: 'integrate' } } }, o));   // single meter: closes on its own samples
 
 /* ───────────────────────── register maps ───────────────────────── */
@@ -227,6 +227,83 @@ test('CSV: an empty power cell is a missing reading, never 0 W', async () => {
   assert(second.meters.a.samples > 0, 'meter A unaffected');
 });
 
+/* ─────────────── receive time: clock_skew_s on every path (V3-6) ─────────────── */
+
+test('V3-6: the builder stamps clock_skew_s = receive time − ts_end, from its clock when the interval closes', () => {
+  let now = T0;
+  const b = mk1({ clock: () => now });
+  b.push('a', { ts: T0, power_w: 100 });
+  now = T0 + 300000 + 42400;                     // the closing sample is received 42.4 s after ts_end
+  const [r] = b.push('a', { ts: T0 + 300000, power_w: 100 });
+  eq(r.clock_skew_s, 42, 'whole seconds, read when the interval closes');
+  now = T0 + 600000 + 42600;                     // the next one 42.6 s after its ts_end
+  const [r2] = b.push('a', { ts: T0 + 600000, power_w: 100 });
+  eq(r2.clock_skew_s, 43, 'rounded to the nearest second (42.6 s → 43), not truncated');
+  now = T0 + 720000;                             // shut down at 15:12:00, three minutes before the open interval ends
+  const [p] = b.flush();
+  eq(p.clock_skew_s, -180, 'a partial interval flushed early has a negative skew');
+});
+
+test('V3-6: in a replay the receive time is the replay clock, the latest sample timestamp pushed', () => {
+  const b = mk(); const out = [];
+  for (let t = 0; t <= 600000; t += 10000) for (const k of ['a', 'b']) out.push(...b.push(k, { ts: T0 + t, power_w: 100 }));
+  eq(out.map((r) => r.clock_skew_s).join(','), '0,0', 'closed by the sample at each end');
+  eq(b.flush()[0].clock_skew_s, -300, 'flushed at 15:10:00, five minutes before its end');
+  const g = mk(); const lag = [];
+  for (let t = 0; t <= 600000; t += 10000) lag.push(...g.push('a', { ts: T0 + t, power_w: 100 }));   // B never reports
+  eq(lag.length, 1, 'one closed'); eq(lag[0].clock_skew_s, 300, 'closed by the one-interval grace at 15:10:00');
+  /* the replay clock only moves forward: a lagging meter's older samples do not take it back */
+  const f = mk(); const back = [];
+  for (let t = 0; t <= 590000; t += 10000) back.push(...f.push('a', { ts: T0 + t, power_w: 100 }));   // a runs ahead to 15:09:50
+  for (let t = 0; t <= 300000; t += 10000) back.push(...f.push('b', { ts: T0 + t, power_w: 100 }));   // b catches up to 15:05:00
+  eq(back.length, 1, 'b closes 15:00');
+  eq(back[0].clock_skew_s, 290, 'received at 15:09:50, the latest timestamp pushed, not 15:05:00, the last one pushed');
+});
+
+test('V3-6: G0 refuses a late interval on CSV input (real-time pace) and on Modbus input', async () => {
+  const fs = require('fs'), os = require('os');
+  const G = require('../assets/qwatt-gates.js'), SPEC = require('../assets/gates.generated.js');
+  const codes = (r) => G.evaluateInterval(r, SPEC.profiles.bench, SPEC).failures.map((f) => f.code);
+  const late = () => T0 + 300000 + 7501000;      // received 7501 s after ts_end; bench clock_max_skew_s is 7500
+  const file = path.join(os.tmpdir(), `qwatt-skew-${process.pid}.csv`);
+  fs.writeFileSync(file, ['ts,a_w,b_w', ...[299980, 299990, 300000].map((d) => `${new Date(T0 + d).toISOString()},100,99`)].join('\n') + '\n');
+  const fromCsv = []; const cb = mk({ adapter: 'csv', clock: late }); cb.onInterval = (r) => fromCsv.push(r);
+  await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' }, b: { power_w: 'b_w' } }, pace: 'realtime', flush: false }, cb);   // rows 10 ms apart: waits 20 ms
+  fs.unlinkSync(file);
+  eq(fromCsv.length, 1, 'CSV interval'); eq(fromCsv[0].clock_skew_s, 7501, 'CSV skew');
+  assert(codes(fromCsv[0]).includes('plausibility.skew'), `CSV: G0 fires [${codes(fromCsv[0])}]`);
+  const rtu = new modbus.ModbusRtu({ path: 'in-memory', timeoutMs: 1000 });
+  rtu.port = fakeSerial(() => PZEM_DOC_REPLY);
+  const mb = mk1({ adapter: 'modbus-rtu', register_map: 'pzem-017@1', clock: late, sample_s: 300 });   // polled every 5 min
+  await modbus.pollOnce(rtu, RM.load('pzem-017'), mb, 'a', T0);
+  const [rec] = await modbus.pollOnce(rtu, RM.load('pzem-017'), mb, 'a', T0 + 300000);
+  eq(rec.clock_skew_s, 7501, 'Modbus skew');
+  assert(codes(rec).includes('plausibility.skew'), `Modbus: G0 fires [${codes(rec)}]`);
+});
+
+test('V3-6: a builder needs a clock ("replay" or a function); a fast replay refuses a wall clock', async () => {
+  const fs = require('fs'), os = require('os');
+  const base = { site_id: 's', node_id: 'n', adapter: 'replay', meters: meters2 };
+  const refuses = (o, re, w) => {
+    let msg = '';
+    try { new IntervalBuilder(Object.assign({}, base, o)); } catch (e) { msg = e.message; }
+    assert(re.test(msg), `${w}: expected a refusal matching ${re}, got "${msg}"`);
+  };
+  refuses({}, /clock/, 'no clock');
+  refuses({ clock: 'wall' }, /clock/, 'unknown clock');
+  refuses({ clock: Date.now() }, /clock/, 'a timestamp is not a clock');
+  const file = path.join(os.tmpdir(), `qwatt-wall-${process.pid}.csv`);
+  fs.writeFileSync(file, `ts,a_w\n${new Date(T0).toISOString()},100\n`);
+  const open = fs.createReadStream; let opened = 0;
+  fs.createReadStream = (...a) => { opened++; return open.apply(fs, a); };   // csv.js reads through the same fs module
+  const tryReplay = async (pace) => { try { await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' } }, pace }, mk1({ clock: () => Date.now() })); return ''; } catch (e) { return e.message; } };
+  let fast, factor;
+  try { fast = await tryReplay('fast'); factor = await tryReplay(60); } finally { fs.createReadStream = open; fs.unlinkSync(file); }
+  assert(/replay/.test(fast) && /clock/.test(fast), `a fast replay on a wall clock is refused (got "${fast}")`);
+  assert(/replay/.test(factor) && /clock/.test(factor), `an accelerated (×60) replay on a wall clock is refused (got "${factor}")`);
+  eq(opened, 0, 'refused before the file is opened');
+});
+
 test('HTTP: /intervals accepts a valid record, stamps clock_skew_s, rejects an invalid one', async () => {
   const got = [];
   const srv = await httpAdapter.start({ port: 0, now: () => T0 + 300000 + 42000 }, mk(), (r) => got.push(r));
@@ -382,6 +459,78 @@ test('CSV: a pace factor waits the scaled gap between rows; fast pace does not w
   fs.unlinkSync(file);
   assert(paced >= 450, `540 s of data at ×1000 waits about 540 ms (${paced} ms)`);
   assert(fast < paced, `fast pace is faster (${fast} ms vs ${paced} ms)`);
+});
+
+/** Run ingest/cli.js as a host would and collect the interval lines it prints. `done(records, stderr)` ends a
+    long-running adapter (http, modbus) by killing it; csv exits on its own after its flush. */
+function runCli(args, { done, onStderr } = {}) {
+  const { spawn } = require('child_process');
+  return new Promise((resolve, reject) => {
+    const p = spawn(process.execPath, [path.join(__dirname, 'cli.js'), ...args], { stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = '', err = '';
+    const recs = () => out.split('\n').slice(0, -1).map((l) => JSON.parse(l));   // complete lines only
+    const timer = setTimeout(() => { p.kill(); reject(new Error(`ingest/cli.js ${args[0]} timed out; stderr: ${err.trim()}`)); }, 20000);
+    p.stdout.on('data', (d) => { out += d; if (done && done(recs())) p.kill(); });
+    p.stderr.on('data', (d) => { err += d; if (onStderr) onStderr(err); });
+    p.on('exit', (code) => { clearTimeout(timer); resolve({ code, recs: recs(), err }); });
+  });
+}
+
+test('V3-6: ingest/cli.js stamps clock_skew_s on every adapter it starts (csv fast and real time, http, modbus)', async () => {
+  const fs = require('fs'), os = require('os');
+  const file = path.join(os.tmpdir(), `qwatt-cli-${process.pid}.csv`);
+  const within = (r, lo, hi, w) => assert(Number.isInteger(r.clock_skew_s) && r.clock_skew_s >= Math.floor(lo / 1000) - 1 && r.clock_skew_s <= Math.ceil(hi / 1000) + 1,
+    `${w}: clock_skew_s ${r.clock_skew_s} outside [${Math.floor(lo / 1000) - 1}, ${Math.ceil(hi / 1000) + 1}]`);
+  /* csv, fast pace: the replay clock */
+  const rows = ['ts,a_w,b_w'];
+  for (let s = 0; s <= 600; s += 10) rows.push(`${new Date(T0 + s * 1000).toISOString()},100,99`);
+  fs.writeFileSync(file, rows.join('\n') + '\n');
+  const fast = await runCli(['csv', '--file', file, '--a', 'a_w', '--b', 'b_w', '--pace', 'fast']);
+  eq(fast.code, 0, `csv exit (${fast.err.trim()})`);
+  eq(fast.recs.map((r) => r.clock_skew_s).join(','), '0,0,-300', 'csv fast: closed at each end, then flushed five minutes early');
+  eq(fast.recs.map((r) => r.meters.a.mwh).join(','), '8333,8333,0', 'csv fast: 100 W integrated');
+  /* csv, real-time pace: the wall clock (rows 10 ms apart, received now, weeks after they were measured) */
+  fs.writeFileSync(file, ['ts,a_w,b_w', ...[299980, 299990, 300000].map((d) => `${new Date(T0 + d).toISOString()},100,99`)].join('\n') + '\n');
+  const t1 = Date.now();
+  const real = await runCli(['csv', '--file', file, '--a', 'a_w', '--b', 'b_w', '--pace', 'realtime']);
+  const t2 = Date.now();
+  /* csv, --pace 1: a factor of one is real time, so the wall clock too */
+  const t3 = Date.now();
+  const one = await runCli(['csv', '--file', file, '--a', 'a_w', '--b', 'b_w', '--pace', '1']);
+  const t4 = Date.now();
+  fs.unlinkSync(file);
+  eq(real.code, 0, `csv realtime exit (${real.err.trim()})`);
+  eq(real.recs.length, 2, 'csv realtime: one closed, one flushed');
+  within(real.recs[0], t1 - (T0 + 300000), t2 - (T0 + 300000), 'csv realtime');
+  eq(one.code, 0, `csv --pace 1 exit (${one.err.trim()})`);
+  eq(one.recs.length, 2, 'csv --pace 1: one closed, one flushed');
+  within(one.recs[0], t3 - (T0 + 300000), t4 - (T0 + 300000), 'csv --pace 1');
+  /* http /samples: the wall clock against the node's timestamps */
+  let posted = 0;
+  const http = await runCli(['http', '--port', '0'], {
+    onStderr: (err) => {
+      const m = /listening on (\d+)/.exec(err);
+      if (m && !posted) {
+        posted = Date.now();
+        httpAdapter.post(Number(m[1]), '/samples', ['a', 'b', 'a', 'b'].map((meter, i) => ({ meter, ts: T0 + (i >> 1) * 300000, power_w: 100 })))
+          .catch(() => {});   // the gateway may be stopped before it answers: the printed interval is what counts
+      }
+    },
+    done: (recs) => recs.length >= 1,
+  });
+  eq(http.recs.length, 1, 'http: one interval closed');
+  within(http.recs[0], posted - (T0 + 300000), Date.now() - (T0 + 300000), 'http /samples');
+  /* modbus: the gateway clock at poll time (one-second intervals, so the test is short) */
+  const pzem = RM.load('pzem-017');
+  const sim = await modbus.createSimulator({ provider: (uid, fc, addr, count) => {
+    const block = RM.encode(pzem, { voltage_v: 100, current_a: 1, power_w: 100, energy_wh: 0, alarm_high: 0, alarm_low: 0 }).find((blk) => addr >= blk.address && addr + count <= blk.address + blk.regs.length);
+    if (!block) throw Object.assign(new Error('address'), { code: 2 });
+    return block.regs.slice(addr - block.address, addr - block.address + count);
+  } });
+  let mb;
+  try { mb = await runCli(['modbus', '--a', `pzem-017@127.0.0.1:${sim.port}`, '--dt', '1', '--poll', '200'], { done: (recs) => recs.length >= 2 }); } finally { await sim.close(); }
+  assert(mb.recs.length >= 2, `modbus: intervals closed (${mb.err.trim()})`);
+  for (const r of mb.recs) assert(Number.isInteger(r.clock_skew_s) && Math.abs(r.clock_skew_s) <= 2, `modbus: closed by a poll just after its end (clock_skew_s ${r.clock_skew_s})`);
 });
 
 test('Deliverable 1 acceptance: csv, http and modbus paths are byte-identical', async () => {
