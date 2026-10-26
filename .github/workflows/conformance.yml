@@ -7,7 +7,7 @@ name: conformance
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'semana-2/**']
   pull_request:
 
 jobs:
