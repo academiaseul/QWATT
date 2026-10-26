@@ -117,7 +117,7 @@ async function runLive(o) {
 
   let intervals = 0;
   const builder = new IntervalBuilder({
-    site_id: def.site_id, node_id: def.node_id, adapter: 'csv', dt_s: DT_MS / 1000, clock: builderClock(speed),
+    site_id: def.site_id, node_id: def.node_id, adapter: 'csv', dt_s: DT_MS / 1000, clock: builderClock(speed), sample_s: sim.STEP_S,
     meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } },
     onInterval: (rec) => { pipe.push(rec); intervals++; },
   });

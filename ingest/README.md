@@ -12,7 +12,7 @@ CSV file     ──► adapters/csv.js    ──┘        integer mWh · grid-a
 | Path | Role |
 |---|---|
 | `lib/registermap.js` | Loads and validates `maps/*.json`; decodes u16/i16/u32/i32/f32 with word order and scale; computes read blocks; encodes for simulators. |
-| `lib/normalize.js` | `IntervalBuilder`: samples in, schema-valid interval records out. Trapezoidal integration split exactly at grid boundaries, or counter deltas. Integer units. Stamps `clock_skew_s` from its clock when an interval closes ([clock_skew_s](#clock_skew_s-v3-6)). Throws rather than emit an invalid record. |
+| `lib/normalize.js` | `IntervalBuilder`: samples in, schema-valid interval records out. Trapezoidal integration between consecutive samples no more than three sample periods apart ([dropouts](#dropouts-v3-10)), split exactly at grid boundaries, or counter deltas. Integer units. Stamps `clock_skew_s` from its clock when an interval closes ([clock_skew_s](#clock_skew_s-v3-6)). Throws rather than emit an invalid record. |
 | `adapters/modbus.js` | Modbus TCP client (no deps), Modbus RTU client (needs `serialport` on the gateway), `pollOnce`, continuous `start`, and a TCP **simulator** for tests. |
 | `adapters/http.js` | `POST /samples` (intervals stamped by the builder's clock), `POST /intervals` (validated; timestamps rewritten from any RFC 3339 spelling to canonical UTC, `YYYY-MM-DDTHH:mm:ss.sssZ`, with the request hash kept in `source.raw_sha256` when a spelling changed; 400 `ingest.off_grid` when off the `dt_s` grid; `clock_skew_s` stamped by the gateway), `POST /flush`, `GET /health`. |
 | `adapters/csv.js` | Replay at fast, factor or real-time pace; a replay faster than real time needs a builder on the replay clock; raw payload: see [raw_sha256](#raw_sha256) below. |
@@ -25,10 +25,15 @@ CSV file     ──► adapters/csv.js    ──┘        integer mWh · grid-a
 ```bash
 node ingest/ingest.test.js          # unit tests + the acceptance harness
 node ingest/harness.js              # the acceptance test alone
-node ingest/cli.js modbus --a pzem-017@192.168.1.50:502 --b epever-tracer@192.168.1.51:502
-node ingest/cli.js csv --file day.csv --a a_w --b b_w --pace fast
-node ingest/cli.js http --port 8080
+node ingest/cli.js modbus --a pzem-017@192.168.1.50:502 --b epever-tracer@192.168.1.51:502 --poll 5000
+node ingest/cli.js csv --file day.csv --a a_w --b b_w --pace fast --sample-s 10
+node ingest/cli.js http --port 8080 --sample-s 10
 ```
+
+The sample period: `modbus` takes it from `--poll` (ms); `csv` and `http` from `--sample-s`
+(seconds, default 10). Pass the input's real cadence (`--sample-s 60` for one-minute data), or every
+gap between its samples is a [dropout](#dropouts-v3-10) and no energy is integrated. `csv` and `http`
+print one warning on stderr at the first gap longer than three periods, naming its length.
 
 ## clock_skew_s (V3-6)
 
@@ -59,6 +64,38 @@ the magnitude: |`clock_skew_s`| ≤ `clock_max_skew_s` (7500 s on the bench prof
 
 `clock_skew_s` is the gateway's own observation. The verifier re-judges G0 on the published value;
 it cannot re-derive a real-time receive time.
+
+## Dropouts (V3-10)
+
+The `IntervalBuilder` takes the meters' sample period, `sample_s` (seconds, a positive number;
+fractions are allowed, e.g. 2.5 for a 2500 ms poll; required). For an `integrate` meter:
+
+- **The gap** is the time between two consecutive samples of the same meter.
+- **Longer than three sample periods** (strictly more than 3 × `sample_s`, no jitter tolerance):
+  integration restarts at the returning sample, and no energy is booked for the gap in any interval.
+  That includes the sliver from the last sample to the end of its interval and the sliver from the
+  start of the returning interval to the returning sample.
+- **Exactly three periods or less:** the trapezoid between the two samples, split exactly at every
+  grid boundary it spans, as before.
+- **Wherever it starts:** on or off the grid, inside an interval or across a boundary, one meter or
+  both. The order in which the meters are pushed does not matter.
+- **Empty intervals:** an interval entirely inside a gap still closes, with 0 samples and 0 mWh for
+  that meter, rather than being skipped. The gates judge it (a silent meter b fails G3 agreement).
+- **First sample:** integration starts there; nothing is booked before it.
+- **Real time and replay** give identical energy: the rule reads sample timestamps only, never the
+  clock.
+- **Counter meters** are unchanged: the delta of the instrument's own register is a measurement, not
+  an interpolation, so energy counted during a dropout is booked where the meter returns (G1 judges
+  it). No shipped register map uses counter mode; revisit this before one does.
+- A meter returning after intervals were already closed without it also restarts (the week-1 B-1
+  rule), whatever the gap's length.
+
+The live simulator samples every 10 s (`live/run.js` passes `sim.STEP_S`); the scale test's sources
+are one-minute data (`batch/scale.js --sample-s`, default 60); the CLI takes it from `--poll` or
+`--sample-s`. A `sample_s` that is too large lets real dropouts be interpolated; one that is too
+small cuts normal energy. Modbus polling waits `--poll` after each poll completes, so the real
+period is slightly longer than `--poll`: two missed polls in a row already exceed three periods and
+are cut. That loses energy rather than inventing it.
 
 ## Adding a meter
 

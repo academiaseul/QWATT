@@ -8,13 +8,16 @@
  *
  *   const b = new IntervalBuilder({ site_id, node_id, dt_s: 300, adapter: 'modbus-tcp',
  *                                   clock: () => Date.now(),     // or 'replay'
+ *                                   sample_s: 5,                 // the meters' sample period, s
  *                                   meters: { a: { id, class, energy: 'integrate' }, b: {...} } });
  *   b.push('a', { ts, power_w, energy_wh }, rawPayload)   // → closed interval records, if any
  *   b.flush()                                             // → every open interval, on shutdown
  *
  * Energy per interval (docs/ARCHITECTURE-FREEZE.md §3):
- *   integrate — trapezoidal integral of power between consecutive samples, split
- *               exactly at grid boundaries so no energy leaks across intervals
+ *   integrate — trapezoidal integral of power between consecutive samples of one
+ *               meter no more than three sample periods (sample_s) apart, split
+ *               exactly at grid boundaries so no energy leaks across intervals; a
+ *               longer gap contributes nothing (V3-10)
  *   counter   — delta of the instrument's own cumulative energy register between
  *               the last reading of the previous interval and the last of this one
  *
@@ -63,6 +66,13 @@ class IntervalBuilder {
     if (opts.clock !== 'replay' && typeof opts.clock !== 'function') throw new Error('IntervalBuilder: clock must be "replay" or a function returning ms since the epoch (V3-6)');
     this.clock = opts.clock;
     this.replayMs = -Infinity;
+    /* V3-10: the meters' sample period, in seconds (fractions allowed). No energy is interpolated
+       across a gap longer than three of them. */
+    if (!(typeof opts.sample_s === 'number' && Number.isFinite(opts.sample_s) && opts.sample_s > 0)) {
+      throw new Error('IntervalBuilder: sample_s, the sample period in seconds, must be a positive number (V3-10)');
+    }
+    this.sample_s = opts.sample_s;
+    this.maxGapMs = Math.round(3 * opts.sample_s * 1000);
     this.meters = {};
     for (const k of ['a', 'b']) {
       const m = opts.meters[k];
@@ -111,10 +121,17 @@ class IntervalBuilder {
     if (raw != null) b.raw.update(typeof raw === 'string' ? Buffer.from(raw, 'utf8') : raw);
     if (sample.ts > this.replayMs) this.replayMs = sample.ts;   // the replay clock: only forward, only accepted samples
 
-    /* A meter returning after a gap that outlived the intervals it spanned: those intervals were
-       already closed without it, so integration restarts at this sample. Energy is never
-       interpolated across closed intervals: a gap stays a gap (and trying would throw). */
-    if (m.energy === 'integrate' && m.last && this.gridIndex(m.last.ts) <= this.lastClosedK) m.last = null;
+    /* A dropout stays a dropout (V3-10). After a gap longer than three sample periods between two
+       samples of this meter, wherever it starts (on or off the grid, inside or across a boundary),
+       or one that outlived intervals already closed without this meter (B-1: integrating back into
+       them would throw), integration restarts at this sample: nothing is booked for the gap, in any
+       interval. The intervals the gap spans still get a bucket, so they close as records (0 samples,
+       0 mWh for this meter) instead of being skipped. */
+    if (m.energy === 'integrate' && m.last &&
+        (sample.ts - m.last.ts > this.maxGapMs || this.gridIndex(m.last.ts) <= this.lastClosedK)) {
+      for (let kk = Math.max(this.gridIndex(m.last.ts), this.lastClosedK + 1); kk < k; kk++) this._bucket(kk);
+      m.last = null;
+    }
 
     if (m.energy === 'integrate' && m.last) {
       let t0 = m.last.ts, p0 = m.last.power_w;
