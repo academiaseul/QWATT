@@ -394,6 +394,26 @@ test('the signed decision is on disk before the transaction is submitted: if it 
   await w.close();
 });
 
+test('a power cut in the middle of an append leaves half a line: the next append first drops it, so the log stays readable and a restarted verifier starts (review fix 2)', async () => {
+  const w = await world();
+  w.addBatches(2);
+  await w.settle(w.p, w.v);
+  const dec = path.join(w.stateDir, 'decisions.jsonl');
+  const whole = fs.readFileSync(dec, 'utf8');
+  fs.appendFileSync(dec, '{"at":"2026-10-29T03:1');                // the half line a power cut leaves (no line feed)
+  w.addBatches(1);
+  await w.settle(w.p, w.v);
+  const text = fs.readFileSync(dec, 'utf8');
+  assert(text.startsWith(whole), 'the lines before the cut are untouched');
+  const lines = text.split('\n').filter(Boolean);
+  eq(lines.filter((l) => { try { JSON.parse(l); return false; } catch (e) { return true; } }).length, 0, 'every line parses: the torn fragment, never published (the publisher takes complete lines only), is dropped before the next append');
+  let v2;
+  try { v2 = w.mkVerifier(); } catch (e) { throw new Error(`a restarted verifier cannot read its own log: ${e.message}`); }
+  eq(v2.status.signed, 3, 'and counts every signature after the cut');
+  w.invariant();
+  await w.close();
+});
+
 test('a refusal whose decision line was lost in a crash between the two appends is completed on the next tick; the refusal count comes from refusals.jsonl', async () => {
   const { w } = await decisionFlow();
   const dec = path.join(w.stateDir, 'decisions.jsonl'), ref = path.join(w.stateDir, 'refusals.jsonl');
