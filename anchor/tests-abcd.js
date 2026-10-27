@@ -19,8 +19,9 @@
  *   B  that same transaction body, re-signed by the verifier key alone → refused. Before it signs, B runs
  *      the verifier's own checks (the walk to the on-chain head, verifyBatch with the published raw lines,
  *      matchPending), so it signs nothing the verifier would refuse.
- *   C  the verifier service anchors that very proposal: the latest anchor, its signer keys by role
- *      (proposer + verifier) and its stellar.expert link.
+ *   C  the verifier service anchors that very proposal: the anchor of the body A and B tested (--hash,
+ *      else the body_hash in the evidence file; the latest anchor only when neither names one), its
+ *      signer keys by role (proposer + verifier) and its stellar.expert link.
  *   D  the published batch altered IN MEMORY after the proposer signed → the verifier refuses
  *      (verifier.hash_mismatch). Nothing is submitted and nothing is published.
  *   I  independence: the real verifier code reads the feed through a local proxy on the verifier host that
@@ -174,9 +175,12 @@ async function testB({ feedUrl, cfg, signer, keypair, server, maxWalk, now = now
 }
 
 /** C — the latest anchoring transaction: which keys signed it, by role, and its link. */
-async function testC({ cfg, server, roles }) {
-  const page = await server.transactions().forAccount(cfg.anchor_account).order('desc').limit(20).call();
-  const t = page.records.find((x) => x.successful && x.memo_type === 'text' && /^QW#\d+$/.test(x.memo));
+async function testC({ cfg, server, roles, bodyHash }) {
+  /* with bodyHash (the body A and B tested): that transaction, so an anchor that lands later cannot stand in for it */
+  const page = await server.transactions().forAccount(cfg.anchor_account).order('desc').limit(200).call();
+  const anchors = page.records.filter((x) => x.successful && x.memo_type === 'text' && /^QW#\d+$/.test(x.memo));
+  const t = bodyHash ? anchors.find((x) => x.hash === bodyHash) : anchors[0];
+  if (!t && bodyHash) throw new Error(`the body A and B tested (${bodyHash.slice(0, 12)}…) has not anchored among the account's last 200 transactions: start the verifier service, wait for its anchor, and run C again`);
   if (!t) throw new Error('no anchoring transaction found yet');
   const acct = await server.loadAccount(cfg.anchor_account);
   const keys = acct.signers.filter((s) => s.key !== cfg.anchor_account).map((s) => s.key);
@@ -198,6 +202,14 @@ async function testC({ cfg, server, roles }) {
     link: CAP.txLink(t.hash), envelope_xdr: t.envelope_xdr || null, transaction: t,
     expect: 'anchored with two signatures: proposer + verifier',
   };
+}
+
+/** The body A and B tested, from an evidence file (A's, else B's body_hash), or null. */
+function bodyHashOf(file) {
+  if (!file || !fs.existsSync(file)) return null;
+  const s = JSON.parse(fs.readFileSync(file, 'utf8')).steps || {};
+  const h = (s.A_proposer_alone && s.A_proposer_alone.body_hash) || (s.B_verifier_alone && s.B_verifier_alone.body_hash);
+  return /^[0-9a-f]{64}$/.test(h || '') ? h : null;
 }
 
 /** D — verifier host, in memory only: alter the published batch after the proposer signed. */
@@ -359,7 +371,7 @@ async function cli() {
   const usage = [
     'usage: node anchor/tests-abcd.js a --config anchor.json --feed URL | --feed-dir DIR [--out FILE]',
     '       node anchor/tests-abcd.js b --config anchor.json --feed URL --sign-with-key qwatt-verifier [--stellar-bin stellar] [--max-walk N] [--out FILE]',
-    '       node anchor/tests-abcd.js c --config anchor.json [--proposer G… --verifier G…] [--out FILE]',
+    '       node anchor/tests-abcd.js c --config anchor.json [--hash <A\'s body hash>] [--proposer G… --verifier G…] [--out FILE]',
     '       node anchor/tests-abcd.js d --config anchor.json --feed URL [--out FILE]',
     '       node anchor/tests-abcd.js i --config anchor.json --feed URL [--out FILE]',
     '       node anchor/tests-abcd.js combine --out FILE IN…',
@@ -398,7 +410,8 @@ async function cli() {
   const run = {
     a: () => testA({ feedUrl, feedDir, cfg, server }),
     b: () => testB({ feedUrl, cfg, signer, server, maxWalk }),
-    c: () => testC({ cfg, server, roles }),
+    /* C judges the body A and B tested: --hash, else the one recorded in the evidence file (--out) */
+    c: () => testC({ cfg, server, roles, bodyHash: opt('--hash') || bodyHashOf(path.resolve(opt('--out', path.join(__dirname, '..', 'evidence', 'abcd', 'abcd.json')))) }),
     d: () => testD({ feedUrl, cfg }),
     i: () => testI({ feedUrl, cfg, server }),
   }[which];
@@ -412,4 +425,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('test failed to run:', e.message); process.exitCode = 1; });
 
-module.exports = { testA, testB, testC, testD, testI, merge, combine, verdictOf, authRefused, accountThresholds, STEP, METHOD_I };
+module.exports = { testA, testB, testC, testD, testI, merge, combine, verdictOf, bodyHashOf, authRefused, accountThresholds, STEP, METHOD_I };
