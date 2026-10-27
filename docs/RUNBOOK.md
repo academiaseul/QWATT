@@ -39,18 +39,23 @@ this page where a form differs.
    to confirm with stellar-cli 28.1.0, founder step 0):
    - proposer host: `sudo -u qwatt -H stellar keys generate qwatt-proposer`;
      verifier host: `sudo -u qwatt -H stellar keys generate qwatt-verifier`;
-   - `sudo chmod 700 ~qwatt/.config/stellar`: the identity file is plain text, readable only by
-     `qwatt`. Host snapshots and the provider's backups contain it; that is accepted on testnet;
+   - `sudo chmod -R go-rwx ~qwatt/.config/stellar` (the directory 700, the identity files 600; to
+     confirm with stellar-cli 28.1.0): the identity file is plain text, readable only by `qwatt`.
+     Host snapshots and the provider's backups contain it; that is accepted on testnet;
    - `sudo -u qwatt -H stellar keys address qwatt-proposer` (or `qwatt-verifier`) prints the public
      key, `G…`. Send only that line to both founders;
    - paper backup, once: `sudo -u qwatt -H stellar keys secret qwatt-proposer --phrase` prints the
      24 recovery words. Write them on paper, keep the paper offline, then `clear` the terminal. Never
      photograph them, type them into a website or a wallet, paste them into a chat or send them;
+   - check the identity: `sudo -u qwatt -H node /opt/qwatt/anchor/keys.js check --sign-with-key qwatt-proposer --expect G_P`
+     on the proposer host, `sudo -u qwatt -H node /opt/qwatt/anchor/keys.js check --sign-with-key qwatt-verifier --expect G_V`
+     on the verifier host. Each must print `OK` (it signs one throwaway transaction offline and
+     never reads the identity file; it warns if the file is readable by others);
    - the third signer follows `docs/THIRD-SIGNER.md` on their own computer and sends only their
      public key. Both founders confirm its first and last four characters by voice.
 3. **Backup drill, before the account is created:** each holder proves that their paper backup
-   restores the same key by co-signing one throwaway testnet transaction. The tool and the ordered
-   steps come with `anchor/keys.js` (V3-8c).
+   restores the same key by co-signing one throwaway testnet transaction. See *Backup drill (once,
+   before the freeze)* below. Do not create the real account until the drill has landed.
 4. **Create the anchoring account**, only once all three public keys exist. If the third signer's
    public key has not arrived, do not create the account; tell both founders. The account is always
    created with all three keys (OD-2: the third signer is confirmed). On the computer of the founder
@@ -85,7 +90,9 @@ this page where a form differs.
    `node anchor/setup-account.js --verify $G_A --proposer G… --verifier G… --third G… --evidence evidence/account/$G_A`;
    every check must pass, `thresholds 2/2/3` included. Copy `anchor.json` (public values only, each
    signer by role) to `/etc/qwatt/anchor.json` on **both** hosts. Each service checks at start that
-   its stellar-cli identity is the key `anchor.json` names for its role.
+   its stellar-cli identity is the key `anchor.json` names for its role. On each host,
+   `sudo -u qwatt -H node /opt/qwatt/anchor/keys.js check --sign-with-key qwatt-proposer --account $G_A --config /etc/qwatt/anchor.json`
+   (verifier host: `qwatt-verifier`) must report a signer of weight 1.
 7. **The two evidence repositories** (freeze v3, V3-7; the repositories and their rulesets by
    Tue 27 Oct, the deploy keys by Wed 28 Oct, before the first anchor on the real account). Each is
    a public history written by one host only. What they hold, file by file: `protocol/FEED-FORMAT.md`.
@@ -147,6 +154,33 @@ this page where a form differs.
    started (`now` for the week-2 rehearsal on Thu 29 Oct; the live run's own start time for the
    live run) and give each run an empty feed directory. `/opt/qwatt` must be a git checkout of the
    commit being run: the run publishes it as `code_commit`.
+
+## Backup drill (once, before the freeze)
+
+With high threshold 3, one lost key freezes the signer set (freeze v3 §3). So each holder proves
+once, before the real account is created (Wed 28 Oct), that their paper backup restores their key.
+The drill uses a throwaway account `G_D` set up exactly like the anchoring account (2/2/3, the same
+three signer keys, master weight 0) and one throwaway transaction: `manageData qwatt.backup_drill`
+plus a `setOptions` on the high threshold, so it lands only with all three keys. Everything
+exchanged is public: envelopes, signatures and public keys. The evidence goes to
+`evidence/backup-drill/<G_D>/`. The stellar-cli forms are to confirm with stellar-cli 28.1.0
+(founder step 0). `G_P`, `G_V`, `G_T` are the three public keys.
+
+| Step | Who, where | Do |
+|---|---|---|
+| D1 | Jay, own computer | `stellar keys generate qwatt-drill-setup --network testnet --fund`; `G_D=$(stellar keys address qwatt-drill-setup)`. If Friendbot fails: `node anchor/setup-account.js friendbot --account $G_D`. |
+| D2 | Jay, own computer | `node anchor/setup-account.js build --account $G_D --proposer G_P --verifier G_V --third G_T --out drill-setup.xdr`, then `node anchor/setup-account.js submit drill-setup.xdr --sign-with-key qwatt-drill-setup --account $G_D --proposer G_P --verifier G_V --third G_T --evidence evidence/backup-drill/$G_D`, then `stellar keys rm qwatt-drill-setup`. No `--out`: the drill account gets no `anchor.json` and no funding (only the real account's setup, step 4, writes the config). This also rehearses the account setup. |
+| D3 | Jay | `node anchor/keys.js drill-xdr --account $G_D --out drill.xdr`; send `drill.xdr` (public) to Diego and the third signer. It is valid for 7 days. |
+| D4 | Diego, proposer host, his own login user over SSH | `stellar keys add qwatt-proposer-restored` and type the 24 words from paper at the interactive prompt, never on the command line; `stellar keys address qwatt-proposer-restored` must print `G_P`; `stellar tx sign drill.xdr --sign-with-key qwatt-proposer-restored --network testnet` and send the printed line to Jay as `drill.proposer.xdr`; then `stellar keys rm qwatt-proposer-restored`. |
+| D5 | Jay, verifier host | The same with the verifier backup (`qwatt-verifier-restored`, `G_V`) → `drill.verifier.xdr`. |
+| D6 | Third signer, own computer | The same with their backup (`docs/THIRD-SIGNER.md`, step 5) → `drill.third.xdr`, sent by email. |
+| D7 | Jay, own computer | `node anchor/keys.js drill-submit --account $G_D --proposer G_P --verifier G_V --third G_T --evidence evidence/backup-drill/$G_D drill.proposer.xdr drill.verifier.xdr drill.third.xdr` must print a stellar.expert link. |
+
+If D7 names a missing role, that holder repeats their step. If a signature comes from a key that is
+not a signer, that backup restores a different key: the holder generates a new key and the drill is
+repeated, BEFORE the real account is created (afterwards the signer set could not change without
+that lost key). Each `-restored` identity is removed right after signing, so the secret stays only
+where it already was.
 
 ## Starting the run (Day 21, latest Day 23)
 
