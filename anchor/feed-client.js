@@ -12,8 +12,11 @@
  * (assets/qwatt-pin.js) and every file is then read at that commit. One tick
  * therefore judges one version of the evidence, never a fresh batch ledger
  * next to a stale CDN copy of the rejected ledger. Files read at a commit are
- * kept in memory (up to 5,000, 404s included: the content at a commit never
- * changes), so an idle tick costs one info/refs request. Any other URL (a
+ * kept in memory (up to 5,000: the content at a commit never changes), so an
+ * idle tick costs one info/refs request. A 404 is never kept: just after a
+ * push, raw.githubusercontent.com can answer 404 for a file the commit holds,
+ * so a 404 at a commit is read once more (after notFoundRetryMs, 2 s) and, if
+ * it stays, returned as missing for this read only. Any other URL (a
  * local server, a test feed) is read as given, with no memory.
  *
  * Failing to resolve the head, or an HTTP error other than 404 (403, 429, 5xx),
@@ -31,14 +34,14 @@ const MEMO_MAX = 5000;
 
 /**
  * @param {string} baseUrl
- * @param {{timeoutMs?:number, pin?:object}} [o]   pin: assets/qwatt-pin.js options (rawOrigin, gitOrigin, …; via defaults to 'refs')
+ * @param {{timeoutMs?:number, notFoundRetryMs?:number, pin?:object}} [o]   pin: assets/qwatt-pin.js options (rawOrigin, gitOrigin, …; via defaults to 'refs')
  * @returns {{snapshot:() => Promise<{base:string, commit:string|null}>, get:(rel:string) => Promise<string|null>, base:string, commit:string|null}}
  */
-function makeReader(baseUrl, { timeoutMs = 15000, pin = {} } = {}) {
+function makeReader(baseUrl, { timeoutMs = 15000, notFoundRetryMs = 2000, pin = {} } = {}) {
   if (!/^https?:\/\//.test(baseUrl)) throw new Error('feed base URL must be http(s)://');
   const configured = baseUrl.replace(/\/+$/, '');
   let cur = null;                                                     // { base, commit } of the last snapshot
-  const memo = new Map();                                             // URL at a commit → text, or null for a 404
+  const memo = new Map();                                             // URL at a commit → text (never a 404)
 
   async function snapshot() {
     try { cur = await PIN.pinBase(configured, { timeoutMs, via: 'refs', ...pin }); }
@@ -50,22 +53,30 @@ function makeReader(baseUrl, { timeoutMs = 15000, pin = {} } = {}) {
     if (!cur) await snapshot();                                       // the first read takes a snapshot
     const url = `${cur.base}/${rel}`;
     if (cur.commit && memo.has(url)) return memo.get(url);
+    let text = await read(url, rel);
+    if (text == null && cur.commit) {
+      /* a 404 at a commit can be the CDN not holding a fresh push yet: read once more, never remember it */
+      if (notFoundRetryMs > 0) await new Promise((res) => setTimeout(res, notFoundRetryMs));
+      text = await read(url, rel);
+    }
+    if (text != null && cur.commit) {
+      if (memo.size >= MEMO_MAX) memo.delete(memo.keys().next().value);
+      memo.set(url, text);
+    }
+    return text;
+  }
+
+  /** The file's text, or null for a 404; any other failure is FeedUnavailable (a wait). */
+  async function read(url, rel) {
     let r;
     try {
       r = await fetch(url, { signal: AbortSignal.timeout(timeoutMs), cache: 'no-store' });
     } catch (e) {
       throw new FeedUnavailable(`${rel}: ${e.message}`);
     }
-    let text = null;
-    if (r.status !== 404) {
-      if (!r.ok) throw new FeedUnavailable(`${rel}: HTTP ${r.status}`);
-      text = await r.text();
-    }
-    if (cur.commit) {
-      if (memo.size >= MEMO_MAX) memo.delete(memo.keys().next().value);
-      memo.set(url, text);
-    }
-    return text;
+    if (r.status === 404) return null;
+    if (!r.ok) throw new FeedUnavailable(`${rel}: HTTP ${r.status}`);
+    return r.text();
   }
 
   return {
