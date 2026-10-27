@@ -190,6 +190,29 @@ test('A, B and C share one transaction body: A submits the published pending env
   await w.host.close();
 });
 
+test('C judges the transaction A and B tested, not the latest anchor: a later anchor before C runs does not make A, B and C look like two bodies (review fix 3)', async () => {
+  const w = await world(await configuredAccount());
+  eq((await w.proposer.tick(clock.now() - 60)).action, 'proposed', 'abcd-000000 proposed');
+  const a = await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake });
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-c-')), 'abcd.json');
+  X.merge(file, w.cfg.anchor_account, 'a', a);
+  eq((await w.verifier.tick()).action, 'anchored', 'the verifier anchors that proposal');
+  eq((await w.proposer.tick()).action, 'proposed', 'the pipeline goes on: abcd-000001 proposed');
+  eq((await w.verifier.tick()).action, 'anchored', 'and anchored before anyone runs C');
+  assert(typeof X.bodyHashOf === 'function', 'tests-abcd.js exports bodyHashOf (the body A and B tested, from the evidence file)');
+  eq(X.bodyHashOf(file), a.body_hash, 'the evidence file names the body A tested');
+  const c = await X.testC({ cfg: w.cfg, server: w.fake, bodyHash: X.bodyHashOf(file) });
+  eq(c.hash, a.body_hash, 'C is the anchor of the body A tested');
+  eq(c.memo, 'QW#0', 'the first batch, not the latest anchor');
+  assert(c.ok, `C: ${JSON.stringify(c)}`);
+  const ev = X.merge(file, w.cfg.anchor_account, 'c', c);
+  assert(!ev.verdict_detail.some((d) => /one transaction body/.test(d)), `one body: ${ev.verdict_detail.join(' | ')}`);
+  let m = null;
+  try { await X.testC({ cfg: w.cfg, server: w.fake, bodyHash: 'e'.repeat(64) }); } catch (e) { m = e.message; }
+  assert(m && /has not anchored/.test(m), `a body that never anchored is an error, not another transaction: ${m}`);
+  await w.host.close();
+});
+
 test('A and B record the signed envelope and Horizon\'s full response', async () => {
   const w = await world(await configuredAccount());
   await w.proposer.tick();
