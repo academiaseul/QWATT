@@ -70,6 +70,25 @@ function readJsonl(file) {
   return out;
 }
 
+/** Cut a trailing partial line (no line feed after it) off a .jsonl file; a missing file is left alone. */
+function dropTornTail(file) {
+  let fd;
+  try { fd = fs.openSync(file, 'r+'); } catch (e) { if (e.code === 'ENOENT') return; throw e; }
+  try {
+    const size = fs.fstatSync(fd).size;
+    const buf = Buffer.alloc(65536);
+    let end = size, keep = 0;
+    while (end > 0) {
+      const n = Math.min(buf.length, end);
+      fs.readSync(fd, buf, 0, n, end - n);
+      const i = buf.subarray(0, n).lastIndexOf(0x0a);
+      if (i >= 0) { keep = end - n + i + 1; break; }
+      end -= n;
+    }
+    if (keep !== size) { fs.ftruncateSync(fd, keep); fs.fsyncSync(fd); }
+  } finally { fs.closeSync(fd); }
+}
+
 class Verifier {
   /**
    * @param {object} o
@@ -101,8 +120,14 @@ class Verifier {
     };
   }
 
-  /** Append one line and fsync it before going on (as batch/feed.js does). */
+  /**
+   * Append one line and fsync it before going on (as batch/feed.js does). A file that does not end in a
+   * line feed holds half a line from a power cut during an earlier append: it was never complete, so never
+   * published (the publisher takes complete lines only), and is cut off first. Appending after it would glue
+   * this line to it, and readJsonl would refuse the log from then on.
+   */
   _append(file, obj) {
+    dropTornTail(file);
     const fd = fs.openSync(file, 'a');
     try { fs.writeSync(fd, JSON.stringify(obj) + '\n'); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
   }
