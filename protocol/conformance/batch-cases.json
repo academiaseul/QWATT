@@ -1,33 +1,180 @@
 {
-  "description": "Pinned batch hashes for a deterministic three-batch bench chain (one divergent interval per batch). Any implementation of protocol/evidence.js in any language must reproduce these exactly. Regenerate with: node batch/batch.test.js --write",
+  "description": "Pinned batch hashes for a deterministic three-batch bench chain (one divergent interval per batch; each interval i carries the one raw payload \"raw-<i>\"), with each batch's samples_root, and samples_root vectors (raw lines in, root out; rules R1–R4 in protocol/batch.schema.json). Any implementation of protocol/evidence.js in any language must reproduce these exactly. Regenerate with: node batch/batch.test.js --write",
   "spec_version": "1.0.0",
   "interval_schema_version": "1.1.0",
-  "batch_schema_version": "1.0.0",
+  "batch_schema_version": "1.1.0",
   "empty_root": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
   "batches": [
     {
       "batch_id": "bench-santiago-000000",
       "intervals_root": "ca995ea4e99117704616e297af77b104559a44e9b61fa246e00bdef3d3338e3d",
+      "samples_root": "fddf13828ca36c6bb3ccb06767d3675fcb4c4b16f0f20bc56e032eb5dd9f291c",
       "energy_mwh": 90750,
       "cumulative_mwh": 90750,
       "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
-      "sha256": "98acba495bed7f995823fa000bbc1993e32b57d784bf39e08c513167d560d258"
+      "sha256": "3ce4827280cdf605509249f6260c99cedd3757d18c4978874a1ecf0ac0d8cb2c"
     },
     {
       "batch_id": "bench-santiago-000001",
       "intervals_root": "608a8fa64849d26db93fbe68cbf9cc65b6178c6d957efb08c5684dc5bf1c6bd8",
+      "samples_root": "792c3acd82b57e91d0740ba91911ba3e0c08d4d3fc9782d90ac87e418065eb93",
       "energy_mwh": 90750,
       "cumulative_mwh": 181500,
-      "prev_hash": "98acba495bed7f995823fa000bbc1993e32b57d784bf39e08c513167d560d258",
-      "sha256": "1ab5de8cb2197ef23e902a7fd3ddabe396805d01eaad15a9372a5102a1ac8d70"
+      "prev_hash": "3ce4827280cdf605509249f6260c99cedd3757d18c4978874a1ecf0ac0d8cb2c",
+      "sha256": "91de2a8efe2d59e85d14047028be9dfafdabe2b1b1ee35539d726f7869e968e0"
     },
     {
       "batch_id": "bench-santiago-000002",
       "intervals_root": "c61fbf1f1afad6a2c221fd98bee9bd1301766198d9d9816d3010762b04ab5270",
+      "samples_root": "e3f61081cbfd1035d86cb8c2199426bb370db6b9edefbbd69c062e1d57b937c7",
       "energy_mwh": 90750,
       "cumulative_mwh": 272250,
-      "prev_hash": "1ab5de8cb2197ef23e902a7fd3ddabe396805d01eaad15a9372a5102a1ac8d70",
-      "sha256": "4610378a2abb64029e28cce5c2920ccbd132fbbb738ef9b8a0fa809f4badc26c"
+      "prev_hash": "91de2a8efe2d59e85d14047028be9dfafdabe2b1b1ee35539d726f7869e968e0",
+      "sha256": "e3928aa5f104818b6d828e44d84c548d8c9065ea3ffb92715d4acd07af506b1a"
+    }
+  ],
+  "samples_root_vectors": [
+    {
+      "description": "Two raw lines: a CSV row with its line feed that fed two meters (n 2), a binary payload published as hex, then a JSON body. Three leaves; the odd one is paired with itself.",
+      "raw_lines": [
+        {
+          "payloads": [
+            {
+              "n": 2,
+              "utf8": "2026-09-20T15:00:00.000Z,100.0,99.00\n"
+            },
+            {
+              "n": 1,
+              "hex": "0a0b"
+            }
+          ],
+          "seq": 0,
+          "ts_start": "2026-09-20T15:00:00.000Z",
+          "verdict": "accept"
+        },
+        {
+          "payloads": [
+            {
+              "n": 1,
+              "utf8": "{\"meter\":\"a\"}"
+            }
+          ],
+          "seq": 1,
+          "ts_start": "2026-09-20T15:05:00.000Z",
+          "verdict": "reject"
+        }
+      ],
+      "samples_root": "699d154eb442dfb66844cd892f1dcd4dd593289ac77f28b164e737d8cf5fcd66"
+    },
+    {
+      "description": "One leaf: the bytes 0a 0b written as utf8 with n 7. Neither n nor the encoding enters a leaf, so the root is the leaf of hex 0a0b.",
+      "raw_lines": [
+        {
+          "payloads": [
+            {
+              "n": 7,
+              "utf8": "\n\u000b"
+            }
+          ],
+          "seq": 0,
+          "ts_start": "2026-09-20T15:00:00.000Z",
+          "verdict": "accept"
+        }
+      ],
+      "samples_root": "bea0b72e71bfe7f15a88c25305bf96a9681e34d3aabe0c9a1b7093cb32d8ff05"
+    },
+    {
+      "description": "A Modbus poll (hex); then a line refused at the door at the same start, which came without payloads and adds no leaf (R3: after the accepted line); then a non-ASCII CSV row.",
+      "raw_lines": [
+        {
+          "payloads": [
+            {
+              "n": 1,
+              "hex": "00010410271000640000"
+            }
+          ],
+          "seq": 5,
+          "ts_start": "2026-09-20T15:00:00.000Z",
+          "verdict": "accept"
+        },
+        {
+          "payloads": [],
+          "seq": null,
+          "ts_start": "2026-09-20T15:00:00Z",
+          "verdict": "reject"
+        },
+        {
+          "payloads": [
+            {
+              "n": 1,
+              "utf8": "2026-09-20T15:05:00.000Z,99.5,ñ\n"
+            },
+            {
+              "n": 2,
+              "utf8": "2026-09-20T15:05:10.000Z,99.6,98.70\n"
+            }
+          ],
+          "seq": 6,
+          "ts_start": "2026-09-20T15:05:00.000Z",
+          "verdict": "accept"
+        }
+      ],
+      "samples_root": "2a7717e01e17f20f53fc09ef07039693c019c07157ff19f304ea21f9ef81b3ea"
+    },
+    {
+      "description": "R3 order, which the leaves follow: lines by start time; at the same start an accepted line before a refused one, whatever order they were judged in; a line whose ts_start cannot be read (here null) last.",
+      "raw_lines": [
+        {
+          "payloads": [
+            {
+              "n": 2,
+              "utf8": "2026-09-20T15:00:00.000Z,100.0,99.00\n"
+            }
+          ],
+          "seq": 0,
+          "ts_start": "2026-09-20T15:00:00.000Z",
+          "verdict": "accept"
+        },
+        {
+          "payloads": [
+            {
+              "n": 2,
+              "utf8": "2026-09-20T15:00:00.000Z,100.1,99.10\n"
+            }
+          ],
+          "seq": 0,
+          "ts_start": "2026-09-20T15:00:00.000Z",
+          "verdict": "reject"
+        },
+        {
+          "payloads": [
+            {
+              "n": 2,
+              "utf8": "2026-09-20T15:05:00.000Z,100.2,99.20\n"
+            }
+          ],
+          "seq": 1,
+          "ts_start": "2026-09-20T15:05:00.000Z",
+          "verdict": "accept"
+        },
+        {
+          "payloads": [
+            {
+              "n": 1,
+              "utf8": "{\"seq\":1,\"ts_start\":\"yesterday\"}"
+            }
+          ],
+          "seq": 1,
+          "ts_start": null,
+          "verdict": "reject"
+        }
+      ],
+      "samples_root": "0b69a442735183812df8f8ab9c7f1446d58206ea604dcc5254356f8ec121590c"
+    },
+    {
+      "description": "No raw lines: the empty root.",
+      "raw_lines": [],
+      "samples_root": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
     }
   ]
 }

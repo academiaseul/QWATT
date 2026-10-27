@@ -509,6 +509,114 @@ test('raw_sha256 is recomputable from the input alone: a CSV line once per meter
   }
 });
 
+test('every closed interval carries the raw payloads it was built from, out of band: they hash to raw_sha256 and never reach its JSON (CSV, HTTP /samples, Modbus)', async () => {
+  const fs = require('fs'), os = require('os'), crypto = require('crypto');
+  const RAW = Symbol.for('qwatt.raw_payloads');
+  const stream = (ps) => { const h = crypto.createHash('sha256'); for (const p of ps) for (let i = 0; i < p.n; i++) h.update(p.hex != null ? Buffer.from(p.hex, 'hex') : Buffer.from(p.utf8, 'utf8')); return h.digest('hex'); };
+  const check = (r, what) => {
+    const ps = r[RAW];
+    assert(Array.isArray(ps) && ps.length > 0, `${what}: raw payloads attached`);
+    eq(stream(ps), r.source.raw_sha256, `${what}: payloads hash to raw_sha256`);
+    assert(!Object.keys(r).includes('payloads') && !/"utf8"|"hex"/.test(JSON.stringify(r)), `${what}: never in the record's JSON`);
+    return ps;
+  };
+  /* CSV: one entry per row, n = the meters it fed (2, or 1 where meter b's cell is empty) */
+  const file = path.join(os.tmpdir(), `qwatt-rawp-${process.pid}.csv`);
+  const lines = ['ts,a_w,b_w'];
+  for (let s = 0; s < 600; s += 10) lines.push(`${new Date(T0 + s * 1000).toISOString()},100,${s >= 400 && s < 450 ? '' : '99'}`);
+  fs.writeFileSync(file, lines.join('\n') + '\n');
+  const cb = mk(); const fromCsv = []; cb.onInterval = (r) => fromCsv.push(r);
+  await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' }, b: { power_w: 'b_w' } }, pace: 'fast' }, cb);
+  fs.unlinkSync(file);
+  const second = check(fromCsv[1], 'CSV');
+  eq(second.length, 30, 'one entry per CSV row');
+  eq(second.map((p) => p.n).join(''), '2'.repeat(10) + '1'.repeat(5) + '2'.repeat(15), 'n = meters fed by the row');
+  eq(second[0].utf8, lines[31] + '\n', 'the row as read, with its line feed');
+  check(fromCsv[0], 'CSV first');
+  /* HTTP /samples: the request body as text, n = samples of this interval it carried */
+  const fromHttp = [];
+  const srv = await httpAdapter.start({ port: 0 }, mk(), (r) => fromHttp.push(r));
+  for (let s = 0; s < 630; s += 90) {
+    const list = [];
+    for (let t = s; t < s + 90; t += 10) list.push({ meter: 'a', ts: T0 + t * 1000, power_w: 100 }, { meter: 'b', ts: T0 + t * 1000, power_w: 99 });
+    await httpAdapter.post(srv.port, '/samples', list);
+  }
+  await httpAdapter.post(srv.port, '/flush', {});
+  await srv.close();
+  for (const r of fromHttp) check(r, `HTTP ${r.ts_start}`);
+  eq(JSON.parse(fromHttp[0][RAW][0].utf8)[0].meter, 'a', 'a JSON body, as text');
+  /* Modbus: the reply frames of one poll, as hex, one entry per poll: two polls with different readings in one interval */
+  const pzem = RM.load('pzem-017');
+  let watts = 90;
+  const sim = await modbus.createSimulator({ provider: (uid, fc, addr, count) => RM.encode(pzem, { voltage_v: 18, current_a: 5, power_w: watts, energy_wh: 1, alarm_high: 0, alarm_low: 0 }).find((blk) => addr === blk.address).regs.slice(0, count) });
+  const c = new modbus.ModbusTcp({ host: '127.0.0.1', port: sim.port });
+  await c.connect();
+  const b = mk1({ adapter: 'modbus-tcp', register_map: 'pzem-017@1', sample_s: 150 });   // polled every 2.5 min
+  await modbus.pollOnce(c, pzem, b, 'a', T0);
+  watts = 95;
+  await modbus.pollOnce(c, pzem, b, 'a', T0 + 150000);
+  watts = 100;
+  const [rec] = await modbus.pollOnce(c, pzem, b, 'a', T0 + 300000);
+  c.close(); await sim.close();
+  const frames = check(rec, 'Modbus');
+  eq(frames.length, 2, 'two polls in the interval: two entries');
+  assert(frames.every((p) => p.n === 1 && /^[0-9a-f]+$/.test(p.hex || '')) && frames[0].hex !== frames[1].hex, `each its own frame, as hex, n 1 (${JSON.stringify(frames)})`);
+  eq(rec.meters.a.mw_mean, 92500, 'the readings of those two polls, 90 W and 95 W');
+});
+
+test('an interval in which neither meter sent anything has no raw payloads: the door records it as ingest.raw_missing and counts nothing', () => {
+  const crypto = require('crypto');
+  const { BatchAssembler } = require('../batch/assemble');
+  const b = mk(); const out = [];
+  for (const [from, to] of [[0, 300], [900, 1200]]) {
+    for (let s = from; s <= to; s += 10) for (const k of ['a', 'b']) out.push(...b.push(k, { ts: T0 + s * 1000, power_w: 100 }, `${new Date(T0 + s * 1000).toISOString()},100,100\n`));
+  }
+  const empty = out.find((r) => r.ts_start === new Date(T0 + 600000).toISOString());   // 15:10–15:15: both meters silent
+  assert(empty, 'the silent interval still closes as a record');
+  eq(empty.meters.a.samples + empty.meters.b.samples, 0, 'no samples');
+  eq(empty.source.raw_sha256, crypto.createHash('sha256').digest('hex'), 'raw_sha256 of no bytes');
+  const line = new BatchAssembler({ site_id: 's', node_id: 'n' }).judge(empty);
+  eq(line.reasons.join(','), 'ingest.raw_missing', 'refused at the door: no raw payload, nothing counted');
+});
+
+/** POST exact bytes (httpAdapter.post always sends JSON.stringify of a value). */
+function postBytes(port, urlPath, buf) {
+  return new Promise((resolve, reject) => {
+    const req = require('http').request({ host: '127.0.0.1', port, path: urlPath, method: 'POST', headers: { 'content-type': 'application/json', 'content-length': buf.length } }, (res) => {
+      const ch = []; res.on('data', (c) => ch.push(c)); res.on('end', () => resolve({ status: res.statusCode, body: JSON.parse(Buffer.concat(ch).toString('utf8') || 'null') }));
+    });
+    req.on('error', reject); req.end(buf);
+  });
+}
+
+test('HTTP /samples: a request body that is not valid UTF-8 travels as hex, the same bytes, and still hashes to raw_sha256', async () => {
+  const crypto = require('crypto');
+  const RAW = Symbol.for('qwatt.raw_payloads');
+  const got = [];
+  const srv = await httpAdapter.start({ port: 0 }, mk1({ sample_s: 300 }), (r) => got.push(r));
+  const body = Buffer.concat([Buffer.from(`[{"meter":"a","ts":${T0},"power_w":100,"note":"`), Buffer.from([0xff, 0xfe]), Buffer.from(`"},{"meter":"a","ts":${T0 + 300000},"power_w":100}]`)]);
+  eq((await postBytes(srv.port, '/samples', body)).status, 200, 'the JSON still parses');
+  await srv.close();
+  eq(got.length, 1, 'interval closed');
+  eq(JSON.stringify(got[0][RAW]), JSON.stringify([{ n: 1, hex: body.toString('hex') }]), 'one entry: the body as hex (its bytes do not round-trip as UTF-8)');
+  eq(got[0].source.raw_sha256, crypto.createHash('sha256').update(body).digest('hex'), 'raw_sha256 is the hash of those bytes');
+});
+
+test('POST /intervals hands the request body on as the record\'s one raw payload, and a record that kept its node\'s raw_sha256 is accepted at the door on it', async () => {
+  const RAW = Symbol.for('qwatt.raw_payloads');
+  const { BatchAssembler } = require('../batch/assemble');
+  const got = [];
+  const srv = await httpAdapter.start({ port: 0, now: () => T0 + 400000 }, mk(), (r) => got.push(r));
+  const rec = (seq, src) => ({ spec_version: '1.0.0', schema_version: '1.1.0', site_id: 's', node_id: 'n', seq, ts_start: new Date(T0 + (seq - 7) * 300000).toISOString(), ts_end: new Date(T0 + (seq - 6) * 300000).toISOString(), dt_s: 300,
+    meters: { a: { id: 'a', class: 'dc', mwh: 8333, mw_mean: 100000 }, b: { id: 'b', class: 'dc', mwh: 8250, mw_mean: 99000 } }, source: src });
+  const sent = [rec(7, { adapter: 'http-json' }), rec(8, { adapter: 'http-json', raw_sha256: sha256('frames the node read, never seen here') })];
+  for (const r of sent) eq((await httpAdapter.post(srv.port, '/intervals', r)).status, 202, `accepted ${r.seq}`);
+  await srv.close();
+  sent.forEach((r, i) => eq(JSON.stringify(got[i][RAW]), JSON.stringify([{ n: 1, utf8: JSON.stringify(r) }]), `the body as sent (${r.seq})`));
+  const a = new BatchAssembler({ site_id: 's', node_id: 'n' });
+  got.forEach((r) => { const l = a.judge(r); eq(l.verdict, 'accept', `door: seq ${r.seq} [${l.reasons}]`); });
+});
+
 test('HTTP: GET /health answers ok with the next sequence number', async () => {
   const b = mk1();
   const srv = await httpAdapter.start({ port: 0 }, b);

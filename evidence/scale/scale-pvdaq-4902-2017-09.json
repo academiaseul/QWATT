@@ -1,14 +1,15 @@
 {
   "source": "NREL PVDAQ system 4902 (NIST_Ground_1), 2017-09 · CC BY 4.0 — NREL, Photovoltaic Data Acquisition (PVDAQ) Public Datasets, DOI 10.25984/1846021",
   "rows": 43178,
+  "sample_s": 60,
   "intervals": 8640,
   "batches": 720,
   "accepted_batches": 720,
   "rejected_batches": 0,
   "cumulative_mwh": 28188051204,
-  "head_sha256": "cb3d10504e41170a7b71d7514464ba4dbf8c02b02582d0054593ee67323ba062",
+  "head_sha256": "99e229992a2d9b4588d7abb807e159e37b01d9edda3908f58eb8d3d43e1790c3",
   "chain_verified": true,
   "deterministic": true,
-  "wall_ms_per_run": 25886,
+  "wall_ms_per_run": 18128,
   "problems": []
 }

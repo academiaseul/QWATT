@@ -11,7 +11,10 @@
  *   timestamps, every interval on its dt_s grid, no interval repeated or
  *   overlapping, within the batch or with the floor) · every contained
  *   interval re-judged by the gates (must accept) · every gate-based rejection
- *   re-judged (must reject) · every reason code registered
+ *   re-judged (must reject) · every reason code registered · when the raw
+ *   lines are given (raw/<batch_id>.jsonl): samples_root recomputed from them,
+ *   one line per judged interval in time order, each accepted and gate-refused
+ *   interval's payloads hashing to its source.raw_sha256 (V3-5)
  *
  * The floor is the last batch published as accepted. A batch published as
  * rejected is never anchored, so its window, node and intervals never become
@@ -77,6 +80,63 @@ function rehashes(b) {
   try { return E.batchSha256(b) === b.sha256; } catch (e) { return false; }
 }
 
+const RAW_HASH = /^[0-9a-f]{64}$/;
+
+/**
+ * Do these raw payloads account for this interval (batch.schema.json R2)? True when the interval
+ * names no source.raw_sha256, or when the payload stream (each payload's bytes n times) hashes to
+ * it. One exemption: a record posted whole to POST /intervals (source.adapter 'http-json') that
+ * kept the node's own raw_sha256, whose frames the gateway never saw. Its one payload (n 1, utf8)
+ * must then be that record as posted: the same canonical JSON apart from the clock_skew_s the
+ * gateway stamps. Any other interval cannot pass off its own JSON as its raw payload.
+ */
+function rawBound(payloads, rec) {
+  const want = rec && rec.source && rec.source.raw_sha256;
+  if (!RAW_HASH.test(want || '')) return true;
+  if (E.rawStreamSha256(payloads) === want) return true;
+  if (rec.source.adapter === 'http-json' && payloads.length === 1 && payloads[0].n === 1 && typeof payloads[0].utf8 === 'string') {
+    try {
+      const b = JSON.parse(payloads[0].utf8);
+      if (b == null || typeof b !== 'object' || Array.isArray(b)) return false;
+      return E.canonical(Object.assign({}, b, { clock_skew_s: rec.clock_skew_s })) === E.canonical(rec);
+    } catch (e) { return false; }
+  }
+  return false;
+}
+
+/** Why an interval's raw payloads cannot be counted, or null. The door and verifyBatch apply the same rule. */
+function rawProblem(payloads, rec) {
+  if (!Array.isArray(payloads) || payloads.length === 0) return { missing: true, why: 'no raw payload' };
+  try { if (!rawBound(payloads, rec)) return { missing: false, why: 'the raw payloads do not hash to source.raw_sha256' }; }
+  catch (e) { return { missing: false, why: e.message }; }
+  return null;
+}
+
+/** The raw line a judged ledger line publishes in raw/<batch_id>.jsonl. */
+function rawLine(l) {
+  const r = l.interval != null && typeof l.interval === 'object' ? l.interval : {};
+  return {
+    payloads: Array.isArray(l.raw) ? l.raw : [],
+    seq: Number.isSafeInteger(r.seq) ? r.seq : null,
+    ts_start: typeof r.ts_start === 'string' ? r.ts_start : null,
+    verdict: l.verdict === 'accept' ? 'accept' : 'reject',
+  };
+}
+const rawKey = (seq, ts) => `${Number.isSafeInteger(seq) ? seq : null}|${typeof ts === 'string' ? ts : null}`;
+
+/**
+ * The order of raw lines in raw/<batch_id>.jsonl (R3), on their published fields only: by
+ * Date.parse(ts_start), an unreadable or missing one last, then an accepted line before a refused
+ * one at the same start. Ties keep judgment order (the sort is stable), which a verifier cannot
+ * see, so it checks only that consecutive lines never go backwards under this comparator.
+ */
+function rawOrder(x, y) {
+  const t = (l) => { const v = typeof l.ts_start === 'string' ? Date.parse(l.ts_start) : NaN; return Number.isFinite(v) ? v : Infinity; };
+  const tx = t(x), ty = t(y);
+  if (tx !== ty) return tx < ty ? -1 : 1;
+  return (x.verdict === 'accept' ? 0 : 1) - (y.verdict === 'accept' ? 0 : 1);
+}
+
 /** Schema + integer-only check of one interval. @returns {string[]} errors */
 function intervalErrors(rec) {
   const errs = validate(rec, INTERVAL_SCHEMA);
@@ -93,6 +153,8 @@ function intervalErrors(rec) {
  * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
  *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
+ * @param {object[]|null} [ctx.raw] the batch's raw lines (raw/<batch_id>.jsonl, parsed); null: the file is
+ *                                 not published (batch.raw_missing); undefined: not checked
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
  * @param {object} [ctx.spec]      generated spec binding
  * @returns {{ok:boolean, failures:Array<{code:string, detail:object}>}}
@@ -161,6 +223,11 @@ function verifyBatch(batch, ctx = {}) {
     });
   }
 
+  /* raw payloads: samples_root recomputed from the published lines, one line per judged interval,
+     accepted lines in the order of the batch's intervals, each accounting for its interval */
+  if (ctx.raw === null) fail('batch.raw_missing', { batch_id: batch.batch_id });
+  else if (ctx.raw !== undefined) checkRaw(batch, ctx.raw, ctx.rejected == null ? null : mine, fail);
+
   /* installation: every interval from the batch's site and node, the batch from the floor's */
   const foreign = batch.intervals.find((r) => r.site_id !== batch.site_id || r.node_id !== batch.node_id);
   if (foreign) fail('batch.site_mismatch', { interval_seq: foreign.seq, site_id: foreign.site_id, node_id: foreign.node_id });
@@ -213,8 +280,50 @@ function verifyBatch(batch, ctx = {}) {
   return { ok: failures.length === 0, failures };
 }
 
+function checkRaw(batch, raw, mine, fail) {
+  const bad = (why, detail = {}) => fail('batch.raw_mismatch', Object.assign({ why }, detail));
+  if (!Array.isArray(raw) || raw.some((l) => l == null || typeof l !== 'object' || !Array.isArray(l.payloads))) return bad('raw lines are not objects with a payloads array');
+  let root;
+  try { root = E.samplesRoot(raw); } catch (e) { return bad(e.message); }
+  if (root !== batch.samples_root) fail('batch.samples_root_mismatch', { claimed: batch.samples_root, recomputed: root });
+  if (raw.length !== batch.interval_count) bad('one raw line per judged interval', { lines: raw.length, interval_count: batch.interval_count });
+  for (let i = 1; i < raw.length; i++) {
+    if (rawOrder(raw[i - 1], raw[i]) > 0) { bad('raw lines not in time order (R3)', { line: i, ts_start: raw[i].ts_start }); break; }
+  }
+  const acc = raw.filter((l) => l.verdict === 'accept'), rej = raw.filter((l) => l.verdict !== 'accept');
+  if (acc.length !== batch.intervals.length) bad('one accepted raw line per interval in the batch', { lines: acc.length, intervals: batch.intervals.length });
+  else {
+    for (let j = 0; j < acc.length; j++) {
+      const r = batch.intervals[j];
+      if (acc[j].seq !== r.seq || acc[j].ts_start !== r.ts_start) { bad('accepted raw lines out of step with the intervals', { interval_seq: r.seq, line_seq: acc[j].seq }); break; }
+      const p = rawProblem(acc[j].payloads, r);
+      if (p) { bad(p.why, { interval_seq: r.seq }); break; }
+    }
+  }
+  if (rej.length !== batch.rejected_count) bad('one raw line per rejected interval', { lines: rej.length, rejected_count: batch.rejected_count });
+  else if (mine) {
+    /* each rejected-ledger line has its raw line (same seq and ts_start, taken in turn). A line the
+       gates refused passed the door's raw check first, so its payloads must account for it; a line
+       refused at the door (ingest.*) publishes whatever came with it, unchecked */
+    const left = rej.slice();
+    for (const line of mine) {
+      const r = line.interval || {};
+      const k = left.findIndex((l) => rawKey(l.seq, l.ts_start) === rawKey(r.seq, r.ts_start));
+      if (k < 0) { bad('a rejected interval has no raw line', { interval_seq: r.seq }); break; }
+      const [l] = left.splice(k, 1);
+      const atDoor = (line.reasons || []).some((c) => c.startsWith('ingest.'));
+      const p = atDoor ? null : rawProblem(l.payloads, r);
+      if (p) { bad(`a gate-refused interval: ${p.why}`, { interval_seq: r.seq }); break; }
+    }
+  }
+}
+
 module.exports = {
   verifyBatch,
+  rawBound,
+  rawProblem,
+  rawLine,
+  rawOrder,
   intervalErrors,
   isRegistered,
   isGateCode,

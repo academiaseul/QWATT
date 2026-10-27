@@ -7,6 +7,7 @@ The only thing that differs between meters is a register map, which is a JSON fi
 Modbus meter ──► adapters/modbus.js ──┐
 HTTP push    ──► adapters/http.js   ──┼──► lib/normalize.js (IntervalBuilder) ──► interval.schema.json record
 CSV file     ──► adapters/csv.js    ──┘        integer mWh · grid-aligned · raw_sha256 · validated
+                                                raw payloads handed on with the record, out of band (V3-5)
 ```
 
 | Path | Role |
@@ -129,10 +130,64 @@ the interval (`ts_start` ≤ ts < `ts_end`), concatenated in the order the sampl
 | Modbus (TCP or RTU) | The reply frames of that poll, concatenated in read-block order: the whole MBAP frame over TCP, the whole frame including its CRC over RTU. Requests are not hashed. |
 
 Records posted whole to `POST /intervals` are not built by the `IntervalBuilder`; the
-`adapters/http.js` row above says what the gateway does with them. The adapters do not store raw
-payloads, so recomputing the hash needs the original input (the CSV file, the request bodies or
-the frames). `ingest.test.js` recomputes it from the input alone for CSV and HTTP, and for an RTU
-poll from its reply frame.
+`adapters/http.js` row above says what the gateway does with them. `ingest.test.js` recomputes the
+hash from the input alone for CSV and HTTP, and for an RTU poll from its reply frame.
+
+Since week 2 (V3-5) the payloads are no longer discarded after hashing. The `IntervalBuilder`
+keeps them with each interval and hands them on with the closed record, out of band: under the
+registered symbol `Symbol.for('qwatt.raw_payloads')`, a non-enumerable property, so the record's
+JSON, its canonical bytes, its schema check, `intervals_root` and the acceptance harness are
+unchanged. A record posted whole to `POST /intervals` carries its request body the same way. The
+batch layer stores them in the judged ledger line, publishes them at `raw/<batch_id>.jsonl` and
+commits to them with `samples_root` (next section). Any JSON round trip, spread or structured
+clone of a record before the batch pipeline loses the symbol; the door then refuses the interval
+with `ingest.raw_missing` and its energy is not counted, so such a path is never silent.
+
+## samples_root (V3-5)
+
+`samples_root` is required in every batch since batch schema 1.1.0. It is a fingerprint of every
+raw reading behind the batch's window. The normative rules are in the `samples_root` description of
+`protocol/batch.schema.json`:
+
+- **R1, payload entry.** `{n, utf8}` or `{n, hex}`. Its bytes are the UTF-8 of `utf8`, or `hex`
+  decoded (lowercase, whole bytes). `n` ≥ 1 counts the consecutive samples of the interval that
+  arrived with exactly these bytes.
+
+  | Adapter | Entry |
+  |---|---|
+  | CSV | The row as read plus `\n`, one entry per row; `n` = the meters with a reading (2, or 1 when a power cell is empty). |
+  | HTTP `POST /samples` | The request body: `utf8` when its bytes round-trip as UTF-8, otherwise `hex`. One entry per interval the body feeds; `n` = its samples in that interval. |
+  | Modbus (TCP or RTU) | The reply frames of one poll, concatenated, as `hex`; `n` 1. |
+  | HTTP `POST /intervals` | The request body; `n` 1. |
+
+- **R2, binding.** The SHA-256 of the stream (each entry's bytes `n` times, in order) equals the
+  interval's `source.raw_sha256`: the rule in the section above, unchanged. Exempt: an interval
+  with no `source.raw_sha256`; and a record posted whole (`source.adapter` `http-json`) that kept
+  its node's own `raw_sha256`, whose frames the gateway never saw. Its one payload (`n` 1, `utf8`)
+  must then be that record as posted: the same canonical JSON apart from the `clock_skew_s` the
+  gateway stamps. No other interval can pass off its own JSON as its raw payload. An accepted or
+  gate-refused interval needs a non-empty, bound payload list. An interval in which no meter sent
+  anything has no payload, so the door records it as `ingest.raw_missing` and counts nothing.
+- **R3, raw line.** One line per interval judged in the window, accepted or refused: canonical JSON
+  of `{"payloads":[…],"seq":…,"ts_start":…,"verdict":"accept"|"reject"}` plus `\n` (`seq` only if
+  a safe integer and `ts_start` only if a string, otherwise `null`). Lines are in time order:
+  `Date.parse(ts_start)` ascending (unreadable last), an accepted line before a refused one at the
+  same start, otherwise in judgment order. A restart therefore republishes identical bytes.
+- **R4, root.** The `intervals_root` pairing (parent = SHA-256 of the two hex strings
+  concatenated, an odd node paired with itself, no leaves = SHA-256 of no bytes) over SHA-256 of the
+  bytes of every payload entry of every raw line, in file order. Neither `n` nor the encoding enters
+  a leaf: a payload is proven by the root, its count only through `raw_sha256`.
+
+`protocol/conformance/batch-cases.json` pins `samples_root` for three batches and five vectors
+(raw lines in, in R3 order, root out: an `n` and a hex case, and one for the R3 order itself) for
+other implementations. The verifier recomputes the root from the published file and ties each
+line to its interval (`batch/README.md`).
+
+These rules differ from the wording of the agreed freeze v3 V3-5 row (which says a root over each
+raw payload line "in sample order"): leaves are the payload bytes (hex is only how binary payloads
+are published), one leaf per run of identical consecutive payloads with its count `n` outside the
+leaf, and lines in interval time order. They are recorded as deviation **DV-6**, for both founders
+to sign.
 
 ## Register-map sources
 

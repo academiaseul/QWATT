@@ -6,9 +6,11 @@
  *
  * Walks ledger/batches.jsonl in order, loads each batch file, and re-derives
  * it with verifyBatch against the previous batch, the last batch published as
- * accepted (the floor: time, node and counted intervals) and the rejected
- * ledger. It also checks that the index head matches the last batch and that
- * every interval-ledger line names a published batch.
+ * accepted (the floor: time, node and counted intervals), the rejected
+ * ledger and the batch's raw lines (raw/<batch_id>.jsonl: samples_root
+ * recomputed, every line tied to its interval; a missing file is
+ * batch.raw_missing). It also checks that the index head matches the last batch
+ * and that every interval-ledger line names a published batch.
  *
  * Exit 0: every batch published as "accepted" verifies, and every batch
  * published as "rejected" really fails and carries the previous total
@@ -40,7 +42,7 @@ function verifyFeed(dir, { profile } = {}) {
     if (entry.seq !== i) problems.push(`batches.jsonl line ${i + 1}: seq ${entry.seq}, expected ${i}`);
     if (!feed.hasBatch(entry.batch_id)) { problems.push(`${entry.batch_id}: listed but no batch file`); return; }
     const batch = feed.readBatch(entry.batch_id);
-    const res = V.verifyBatch(batch, { prev, floor, rejected, profile: prof, spec, status: entry.status });
+    const res = V.verifyBatch(batch, { prev, floor, rejected, raw: feed.readRaw(entry.batch_id), profile: prof, spec, status: entry.status });
     const codes = res.failures.map((f) => f.code);
     if (batch.sha256 !== entry.sha256) problems.push(`${entry.batch_id}: ledger says ${entry.sha256.slice(0, 12)}…, file hashes to ${batch.sha256.slice(0, 12)}…`);
     if (entry.status === 'accepted' && !res.ok) problems.push(`${entry.batch_id}: published as accepted but fails ${codes.join(', ')}`);

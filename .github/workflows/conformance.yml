@@ -37,9 +37,9 @@ jobs:
       - name: Batch conformance (Deliverable 2) — hash chain, tamper suite, restart safety
         if: ${{ !cancelled() }}
         run: node batch/batch.test.js
-      - name: Scale test (Deliverable 2) — NREL PVDAQ NIST Ground, Sept 2017 (CC BY 4.0), chain verified, deterministic
+      - name: Scale test (Deliverable 2) — NREL PVDAQ NIST Ground, Sept 2017 (CC BY 4.0), chain verified, deterministic, reproduces the committed evidence
         if: ${{ !cancelled() }}
-        run: node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json
+        run: node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json --expect evidence/scale/scale-pvdaq-4902-2017-09.json
       - name: Anchoring dependencies (Deliverable 3) — the only suites with a dependency
         if: ${{ !cancelled() }}
         run: npm ci --prefix anchor --no-audit --no-fund

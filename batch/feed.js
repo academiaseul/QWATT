@@ -5,6 +5,8 @@
  *
  *   <feed>/index.json                 head of the chain: latest batch, cumulative, versions
  *   <feed>/batches/<batch_id>.json    each batch, canonical JSON — accepted or rejected
+ *   <feed>/raw/<batch_id>.jsonl       one line per interval judged in the batch's window: its raw payloads
+ *                                     (samples_root is their Merkle root); written before the batch file
  *   <feed>/ledger/batches.jsonl       one line per published batch: sha256, status, reasons
  *   <feed>/ledger/accepted.jsonl      one line per accepted interval, with batch id
  *   <feed>/ledger/rejected.jsonl      one line per rejected interval, with reason codes
@@ -24,7 +26,7 @@ const E = require('../protocol/evidence');
 class Feed {
   constructor(dir) {
     this.dir = dir;
-    for (const sub of ['batches', 'ledger']) fs.mkdirSync(path.join(dir, sub), { recursive: true });
+    for (const sub of ['batches', 'ledger', 'raw']) fs.mkdirSync(path.join(dir, sub), { recursive: true });
   }
 
   p(...parts) { return path.join(this.dir, ...parts); }
@@ -63,9 +65,17 @@ class Feed {
 
   readBatch(batchId) { return JSON.parse(fs.readFileSync(this.batchPath(batchId), 'utf8')); }
 
-  /** Publish a closed batch: file, then batch-ledger line, then index (the commit point). */
+  rawPath(batchId) { return this.p('raw', `${batchId}.jsonl`); }
+
+  hasRaw(batchId) { return fs.existsSync(this.rawPath(batchId)); }
+
+  /** The batch's raw lines, or null when its raw file is not there. */
+  readRaw(batchId) { return this.hasRaw(batchId) ? this._readJsonl(this.rawPath(batchId)) : null; }
+
+  /** Publish a closed batch: raw file, batch file, then batch-ledger line, then index (the commit point). */
   publish(closed, meta = {}) {
     const { batch, status, reasons } = closed;
+    if (closed.raw && !this.hasRaw(batch.batch_id)) this._writeAtomic(this.rawPath(batch.batch_id), closed.raw.map((l) => E.canonical(l) + '\n').join(''));
     if (!this.hasBatch(batch.batch_id)) this._writeAtomic(this.batchPath(batch.batch_id), E.canonical(batch) + '\n');
     if (!this.readLedger('batches').some((l) => l.batch_id === batch.batch_id)) {
       this._append(this.p('ledger', 'batches.jsonl'), {

@@ -10,6 +10,7 @@
  *   node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json   a public dataset (batch/datasets/pvdaq.js)
  *   node batch/scale.js --csv month.csv --a a_w --b b_w [--ts ts] [--sample-s 60]
  *   node batch/scale.js --out out/scale --json
+ *   node batch/scale.js --dataset … --expect evidence/scale/<file>.json   exit 1 unless this run reproduces the recorded evidence
  *
  * --sample-s is the input's sample period in seconds (default 60, the cadence of
  * both shipped sources). The interval builder interpolates no energy across a gap
@@ -135,7 +136,17 @@ async function main() {
     console.log(`  chain ${summary.chain_verified ? 'VERIFIED' : 'BROKEN'} · second run ${summary.deterministic ? 'IDENTICAL' : 'DIFFERENT'}`);
     for (const p of summary.problems) console.log('  ✗ ' + p);
   }
-  process.exit(summary.chain_verified && summary.deterministic ? 0 : 1);
+  /* the committed evidence is a pinned vector: the same rows, batches, total and head, or CI fails */
+  let reproduced = true;
+  const expect = opt('--expect', null);
+  if (expect) {
+    const want = JSON.parse(fs.readFileSync(expect, 'utf8'));
+    for (const k of ['rows', 'sample_s', 'intervals', 'batches', 'accepted_batches', 'rejected_batches', 'cumulative_mwh', 'head_sha256']) {
+      if (want[k] !== summary[k]) { reproduced = false; console.error(`  ✗ ${k}: ${expect} says ${want[k]}, this run ${summary[k]}`); }
+    }
+    if (reproduced && !args.includes('--json')) console.log(`  evidence ${path.basename(expect)} REPRODUCED`);
+  }
+  process.exit(summary.chain_verified && summary.deterministic && reproduced ? 0 : 1);
 }
 
 if (require.main === module) main().catch((e) => { console.error(e); process.exit(1); });
