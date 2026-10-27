@@ -17,15 +17,16 @@
  *                                               commit as 40 hex characters (JSON otherwise)
  *
  * fakeGithub({ repos: { 'acme/qwatt-evidence': bareDir, … }, onRequest? }) →
- *   { url, rawOrigin, gitOrigin, apiOrigin, requests, expire(rel?), failRefs(status|null), failRaw(status|null, rel?), close() }
+ *   { url, rawOrigin, gitOrigin, apiOrigin, requests, expire(rel?), failRefs(status|null), failRaw(status|null, rel?, times?), close() }
  *   requests   every request as { path, accept }, in arrival order
  *   expire()   drops the whole CDN cache; expire('run/ledger/batches.jsonl') drops that path in every
  *              repository and branch
  *   failRefs() answers every branch-head request (info/refs and the API) with that HTTP status
  *              (e.g. 429, a rate limit) until failRefs(null)
  *   failRaw()  answers every raw file request (a commit path or a branch path) with that HTTP status
- *              (403, 429, 5xx) until failRaw(null); with rel ('run/raw/x.jsonl'), only the paths that
- *              end with it. The failure is never cached: the next request after failRaw(null) is served.
+ *              (403, 429, 5xx, or 404 for a CDN that does not hold a fresh commit yet) until failRaw(null); with
+ *              rel ('run/raw/x.jsonl'), only the paths that end with it; with times, only that many
+ *              requests. The failure is never cached: the next request after it is served.
  */
 
 'use strict';
@@ -63,7 +64,10 @@ function fakeGithub({ repos, onRequest } = {}) {
     /* raw.githubusercontent.com: CORS *, a commit path is fresh, a branch path is cached per URL */
     if ((m = /^\/raw\/([^/]+)\/([^/]+)\/([^/]+)\/(.+)$/.exec(u.pathname))) {
       const [, o, r, ref, p] = m;
-      if (rawFail && (!rawFail.rel || u.pathname.endsWith('/' + rawFail.rel))) return send(rawFail.status, `${rawFail.status}: refused by the test`, { 'Access-Control-Allow-Origin': '*' });
+      if (rawFail && (!rawFail.rel || u.pathname.endsWith('/' + rawFail.rel))) {
+        if (rawFail.times != null && --rawFail.times <= 0) { const st = rawFail.status; rawFail = null; return send(st, `${st}: refused by the test`, { 'Access-Control-Allow-Origin': '*' }); }
+        return send(rawFail.status, `${rawFail.status}: refused by the test`, { 'Access-Control-Allow-Origin': '*' });
+      }
       const bare = repoOf(o, r);
       const read = () => {
         if (!bare) return { status: 404, body: Buffer.from('404: Not Found') };
@@ -101,7 +105,7 @@ function fakeGithub({ repos, onRequest } = {}) {
         for (const k of [...cdn.keys()]) if (k.endsWith('/' + rel.replace(/^\/+/, ''))) cdn.delete(k);
       },
       failRefs(status) { refsStatus = status || null; },
-      failRaw(status, rel) { rawFail = status ? { status, rel: rel ? rel.replace(/^\/+/, '') : null } : null; },
+      failRaw(status, rel, times) { rawFail = status ? { status, rel: rel ? rel.replace(/^\/+/, '') : null, times: times == null ? null : times } : null; },
       close: () => new Promise((r) => { srv.closeAllConnections(); srv.close(() => r()); }),
     });
   }));

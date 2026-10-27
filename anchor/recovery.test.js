@@ -755,7 +755,7 @@ async function githubWorld() {
     publishLog: () => PF.publishOnce({ kind: 'verifier-log', feed: w.stateDir, run: 'run', remote: logBare, branch: 'main', work: path.join(root, 'log-work') }),
     headOf: (b) => gitOut(['--git-dir', b, 'rev-parse', 'main']),
   });
-  w.mkVerifier = (o = {}) => new Verifier({ feedUrl: w.feedUrl, feedOptions: { pin }, cfg: w.cfg, keypair: w.keys.verifier, stateDir: w.stateDir, server: w.fake, ...o });
+  w.mkVerifier = (o = {}) => new Verifier({ feedUrl: w.feedUrl, feedOptions: { pin, notFoundRetryMs: 0 }, cfg: w.cfg, keypair: w.keys.verifier, stateDir: w.stateDir, server: w.fake, ...o });
   w.v = w.mkVerifier();
   const closeHost = w.close;
   w.close = async () => { await gh.close(); await closeHost(); };
@@ -863,6 +863,41 @@ test('a 403, 429 or 5xx on an evidence file read at the pinned commit (the head 
     const d = jsonl(path.join(w.stateDir, 'decisions.jsonl'));
     eq(d.length, 1, 'one decision: the signature');
     eq(d[0].feed_commit, head, 'at the commit the failed ticks read');
+    w.invariant();
+  } finally { await w.close(); }
+});
+
+test('a 404 at the pinned commit is read once more before it counts: one CDN miss on the batch file or its raw file, just after a push, refuses nothing (review fix 1, ahead of OD-7)', async () => {
+  for (const rel of ['batches/rec-000000.json', 'raw/rec-000000.jsonl']) {
+    const w = await githubWorld();
+    try {
+      w.addBatches(1);
+      w.publish();
+      eq((await w.p.tick(w.clock.now())).action, 'proposed', `${rel}: proposed`);
+      w.publish();
+      w.gh.failRaw(404, `run/${rel}`, 1);                             // raw.githubusercontent.com does not hold the new commit yet: one 404
+      const r = await w.v.tick(w.clock.now());
+      eq(r.action, 'anchored', `${rel}: one passing 404 at the commit is read again and anchors (got ${JSON.stringify(r)})`);
+      eq(jsonl(path.join(w.stateDir, 'refusals.jsonl')).length, 0, `${rel}: no refusal logged`);
+      w.invariant();
+    } finally { await w.close(); }
+  }
+});
+
+test('a 404 at the pinned commit is never remembered: once the file can be read, the next tick at the same commit anchors (review fix 1)', async () => {
+  const w = await githubWorld();
+  try {
+    w.addBatches(1);
+    w.publish();
+    eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
+    w.publish();
+    const head = w.headOf(w.bare);
+    w.gh.failRaw(404, 'run/raw/rec-000000.jsonl');                    // a 404 that outlasts the re-read: judged as today (OD-7 decides)
+    eq((await w.v.tick(w.clock.now())).action, 'refused', 'refused while the raw file cannot be read');
+    w.gh.failRaw(null);
+    eq(w.headOf(w.bare), head, 'the branch has not moved: the next tick reads the same commit');
+    const r = await w.v.tick(w.clock.now());
+    eq(r.action, 'anchored', `the 404 was not kept for that commit (got ${JSON.stringify(r)})`);
     w.invariant();
   } finally { await w.close(); }
 });
