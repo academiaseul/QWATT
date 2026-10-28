@@ -407,7 +407,12 @@ test('a verifier whose stellar-cli cannot sign ends the tick as an error with re
   eq(r.reason, 'signer', 'reason');
   eq(w.fake.submissions, 0, 'nothing submitted');
   assert(!fs.existsSync(w.verifier.refusalsFile), 'nothing written to the refusal log');
+  /* V3-7b's public decision log, joined to V3-8a's signer at integration: a decision is written only once stellar-cli signed */
+  const decisions = () => (fs.existsSync(w.verifier.decisionsFile) ? fs.readFileSync(w.verifier.decisionsFile, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
+  eq(decisions().length, 0, 'nothing written to decisions.jsonl when stellar-cli could not sign');
   eq((await w.verifier.tick()).action, 'anchored', 'the next tick signs once stellar-cli works again');
+  eq(JSON.stringify(decisions().map((d) => [d.decision, d.batch_id, d.pending_tx_hash])), JSON.stringify([['signed', 'abcd-000000', w.fake.txs[0].hash]]),
+    'then exactly one signed decision, naming the hash of the transaction that landed (the one stellar-cli returned)');
   await w.host.close();
 });
 
