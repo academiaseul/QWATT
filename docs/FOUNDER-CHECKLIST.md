@@ -73,7 +73,7 @@ The live run starts **Sat 7 Nov (Day 20)**. The counted seven-day window runs fr
 
 | # | What | Who |
 |---|---|---|
-| 12 | **15-minute daily check**: open the reconciliation page (the page is redeployed in week 2; until then run `node anchor/reconcile-cli.js`), confirm the verdict is RECONCILED or PENDING, glance at the alert inbox | One founder per day |
+| 12 | **15-minute daily check**: open `https://qwatt.org/reconcile.html?feed=…&account=…` (or the page alone, once `assets/status.json` names the run feed and the account). The verdict must be RECONCILED or PENDING (in Spanish CONCILIADO or PENDIENTE), the account panel ("Anchoring account, as read from Horizon") must be all ✓, and "Signed by" must read proposer + verifier. A stand-in (proposer + third signer) should appear only during a verifier outage; note it for the write-up. Glance at the alert inbox. Without a current browser, `node anchor/reconcile-cli.js` gives the same result | One founder per day |
 | 13 | Do not touch either host's configuration. Fault injections run on their own schedule (`live/schedule.js`, published per run as `faults.json`) | Both |
 
 ## By Day 30 (Tue 17 Nov)

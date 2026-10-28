@@ -24,8 +24,6 @@ const PIN = require('../assets/qwatt-pin.js');
 const TH = require('../anchor/thresholds');
 
 const EXPLORER = 'https://stellar.expert/explorer/testnet';
-/* Fixed label next to every energy figure: this sprint's readings are simulated, and the network is testnet. */
-const INPUT_LABEL = 'Simulated input · Stellar testnet';
 const txl = (h) => `[\`${h.slice(0, 10)}…${h.slice(-6)}\`](${EXPLORER}/tx/${h})`;
 const kwh = (mwh) => (mwh / 1e6).toLocaleString('en-US', { maximumFractionDigits: 3 });
 const wh = (mwh) => (mwh / 1000).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
@@ -94,7 +92,7 @@ function accountSection(account, acct) {
   const values = `thresholds ${t.low_threshold}/${t.med_threshold}/${t.high_threshold} (low/medium/high), master weight ${masterWeight}, ` +
     `${others.length} signer(s): ${others.map((s) => `\`${s.key}\` weight ${s.weight}${ed25519(s) ? '' : ` (a ${s.type || 'untyped'} signer)`}`).join(', ') || 'none'}`;
   const ok = TH.matches(t) && masterWeight === 0 && others.length === 3 && others.every((s) => s.weight === 1 && ed25519(s));
-  if (ok) return [`${head} — as loaded from Horizon at generation time: ${values}. No single key can send any transaction for it, anchoring needs 2 of the 3 keys, changing signers needs all 3.`];
+  if (ok) return [`${head} — as loaded from Horizon at generation time: ${values}. No single key can send any transaction for it, anchoring needs ${t.med_threshold} of the ${others.length} keys, changing signers needs all ${t.high_threshold}.`];
   return [
     `${head} — as loaded from Horizon at generation time: ${values}.`,
     `- ✗ These values do not match ${TH.LABEL} (thresholds low ${TH.THRESHOLDS.low} / medium ${TH.THRESHOLDS.med} / high ${TH.THRESHOLDS.high}, master weight 0, exactly three ed25519 signers of weight 1).`,
@@ -116,17 +114,35 @@ async function build(o) {
   const anchoredRows = rep.rows.filter((r) => r.anchor);
   const readAt = feed.commit ? `\`${PIN.describe(o.feed, feed.commit, o.feedOptions)}\` (commit \`${feed.commit}\`)` : `\`${feed.base}\` (not a repository, so not pinned to a commit)`;
 
+  /* who signed each anchor, from its signatures checked against the signer keys (V3-9) */
+  const signedBy = (a) => (a.mode === 'normal' ? 'proposer + verifier' : a.mode === 'stand-in' ? 'proposer + third signer (stand-in)' : `✗ ${a.signed_by || 'unchecked'}`);
+  const sig = s.signatures;
+  /* two-of-three signing is claimed only for an account read from Horizon that matches 2/2/3, and only
+     for signatures that were checked against declared signer roles */
+  const counted = `- **${s.published_batches}** batches published (${s.accepted_batches} accepted, ${s.rejected_batches} rejected) · **${s.anchored_batches}** anchored in ${s.anchor_transactions} transactions`;
+  const unchecked = `${sig.unchecked} unchecked (no signer roles; see problems)`;
+  const anchoredLine = s.account.thresholds == null
+    ? `${counted}. The account could not be read from Horizon (below), so no multisig claim is made.`
+    : !s.account.ok
+      ? `${counted}. The account does not match ${TH.LABEL} as loaded from Horizon (below), so no multisig claim is made.`
+      : s.anchor_transactions && sig.unchecked === s.anchor_transactions
+        ? `${counted}, ${unchecked}, so no multisig claim is made.`
+        : `${counted}, each with two of the account's three signer keys as read from Horizon: ${sig.normal} proposer + verifier, ${sig.stand_in} proposer + third signer (stand-in)${sig.broken ? `, ${sig.broken} with another pair (see problems)` : ''}${sig.unchecked ? `, ${unchecked}` : ''}.`;
+
   const lines = [
     `# ${o.title}`,
+    '',
+    `_${R.INPUT_LABEL}_`,
     '',
     `Generated ${now} from public data only: Horizon (\`${o.horizon}\`) and the evidence feed (\`${o.feed}\`), evidence read at ${readAt}. Reproduce: \`node ops/writeup.js --feed ${o.feed} --account ${o.account}\`.`,
     '',
     '## Result',
     '',
     `- Reconciliation verdict: **${rep.verdict}** — [run it yourself in the browser](${recLink}) or \`node anchor/reconcile-cli.js --feed ${o.feed} --account ${o.account}\`.`,
-    `- **${s.published_batches}** batches published (${s.accepted_batches} accepted, ${s.rejected_batches} rejected) · **${s.anchored_batches}** anchored through 2-of-3 multisig in ${s.anchor_transactions} transactions.`,
+    anchoredLine,
+    ...(s.stand_in_batches.length ? [`- Stand-in anchors (third signer in place of the verifier): ${s.stand_in_batches.map((b) => `\`${b}\``).join(', ')}.`] : []),
     `- First anchor ${s.first_anchor_at || '—'} · last anchor ${s.last_anchor_at || '—'}.`,
-    `- Energy anchored (cumulative): **${kwh(s.anchored_cumulative_mwh)} kWh** · published: ${kwh(s.published_cumulative_mwh)} kWh · _${INPUT_LABEL}_.`,
+    `- Energy anchored (cumulative): **${kwh(s.anchored_cumulative_mwh)} kWh** · published: ${kwh(s.published_cumulative_mwh)} kWh · _${R.INPUT_LABEL}_.`,
     `- Intervals refused by the gates: **${s.rejected_intervals}** — ${Object.entries(s.rejected_by_reason).map(([k, v]) => `\`${k}\` ×${v}`).join(', ') || 'none'}.`,
     ...accountSection(o.account, acct),
     ...(rep.problems.length ? ['', '**Reconciliation problems:**', ...rep.problems.map((p) => `- ${p}`)] : []),
@@ -139,13 +155,13 @@ async function build(o) {
     auditSection(o.feedDir),
     '## Every anchoring transaction',
     '',
-    `Each row: the batch, the hash recomputed from the published file (equal to the value the transaction carries in \`qwatt.anchor.sha256\`), and the transaction that anchored it. Energy: _${INPUT_LABEL}_.`,
+    `Each row: the batch, the hash recomputed from the published file (equal to the value the transaction carries in \`qwatt.anchor.sha256\`), and the transaction that anchored it. Energy: _${R.INPUT_LABEL}_.`,
     '',
-    '| Seq | Batch | Window (UTC) | Energy (Wh) | Refused intervals | Batch SHA-256 | Ledger | Transaction |',
-    '|---:|---|---|---:|---:|---|---:|---|',
+    '| Seq | Batch | Window (UTC) | Energy (Wh) | Refused intervals | Batch SHA-256 | Ledger | Transaction | Signed by |',
+    '|---:|---|---|---:|---:|---|---:|---|---|',
     ...anchoredRows.map((r) => {
       const b = feed.batches[r.batch_id];
-      return `| ${r.seq} | \`${r.batch_id}\` | ${b.ts_start.slice(0, 16).replace('T', ' ')} → ${b.ts_end.slice(11, 16)} | ${wh(r.energy_mwh)} | ${r.rejected_count} | \`${r.recomputed_sha256.slice(0, 16)}…\` | ${r.anchor.ledger} | ${txl(r.anchor.tx_hash)} |`;
+      return `| ${r.seq} | \`${r.batch_id}\` | ${b.ts_start.slice(0, 16).replace('T', ' ')} → ${b.ts_end.slice(11, 16)} | ${wh(r.energy_mwh)} | ${r.rejected_count} | \`${r.recomputed_sha256.slice(0, 16)}…\` | ${r.anchor.ledger} | ${txl(r.anchor.tx_hash)} | ${signedBy(r.anchor)} |`;
     }),
     ...(s.awaiting_anchor.length ? ['', `Awaiting anchor at generation time: ${s.awaiting_anchor.map((b) => `\`${b}\``).join(', ')}.`] : []),
     '',
@@ -153,7 +169,7 @@ async function build(o) {
     '',
     `1. Download \`${o.feed}/batches/<batch_id>.json\`.`,
     '2. Remove its `sha256` field, serialize with sorted keys and no whitespace (integers only), SHA-256 the UTF-8 bytes.',
-    '3. Open the row\'s transaction: its `qwatt.anchor.sha256` data entry equals your hash, and it carries two signatures.',
+    '3. Open the row\'s transaction: its `qwatt.anchor.sha256` data entry equals your hash, and its two signatures verify against the signer keys in the run\'s `faults.json` (`anchoring.signers`): proposer + verifier, or proposer + third signer when the third signer stood in.',
     '4. Re-run the gates on every interval in the batch with `assets/qwatt-gates.js` and spec 1.0.0: each one is accepted. Each rejected interval in `ledger/rejected.jsonl` is refused for the reason it states.',
     '',
   ];
