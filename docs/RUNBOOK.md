@@ -237,8 +237,9 @@ Reconciliation page:
 
 1. Reconciliation page: the verdict is **RECONCILED**, or **PENDING** with only the last one or two
    batches waiting.
-2. `node live/audit.js /var/lib/qwatt/feed` on the proposer host: coverage has no gaps, and every
-   fault that is due shows *refused as expected*.
+2. `node live/audit.js /var/lib/qwatt/feed` on the proposer host: coverage has no gaps, every
+   fault that is due shows *refused as expected*, and the `raw:` line counts the raw payloads, each
+   tied to a row of a published samples file (any that is not is listed as a problem).
 3. Glance at the alert channel. No message is expected on a good day; the watchdog sends one only
    when something starts, repeats every 6 h, or clears.
 4. History audit, from any machine with this repository, on a fresh clone of each public

@@ -230,6 +230,49 @@ test('V3-9: a run\'s feed reconciles with what its faults.json publishes: label 
   eq(rep.summary.signatures.normal, anchors.length, 'every anchor is proposer + verifier');
 });
 
+test('the audit ties every published raw payload to a row of a published samples file, on accepted and refused lines alike', async () => {
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 20261103, speed: 'fast', log: quiet });   // two days: the first fault, F01, is on day 2
+  const a = auditLive(dir);
+  assert(a.ok, a.problems.join('; '));
+  assert(a.raw, 'the audit reports the raw payloads it checked');
+  const rawDir = path.join(dir, 'raw');
+  const files = fs.readdirSync(rawDir).filter((n) => n.endsWith('.jsonl')).sort();
+  const read = (f) => fs.readFileSync(path.join(rawDir, f), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const entries = files.reduce((s, f) => s + read(f).reduce((t, l) => t + l.payloads.length, 0), 0);   // counted here, independently
+  assert(files.length > 0 && entries > 0, 'the run published raw payloads');
+  eq(a.raw.files, files.length, 'every raw file audited');
+  eq(a.raw.payloads, entries, 'every payload entry audited, not only the first of each file');
+  const forge = (line) => {   // one payload in the middle of the line becomes a reading that is in no published samples row
+    const p = line.payloads[Math.floor(line.payloads.length / 2)];
+    const was = p.utf8;
+    p.utf8 = was.replace(/^([^,]*),[^,]*,/, '$1,149.9,');
+    assert(p.utf8 !== was, 'the payload was edited');
+  };
+  /* a line in the middle of the LAST raw file */
+  const last = files[files.length - 1];
+  const lastText = fs.readFileSync(path.join(rawDir, last), 'utf8');
+  const lines = read(last);
+  const line = lines[Math.floor(lines.length / 2)];
+  forge(line);
+  fs.writeFileSync(path.join(rawDir, last), lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
+  const b = auditLive(dir);
+  assert(!b.ok, 'must fail');
+  assert(b.problems.some((x) => /1 raw payload\(s\) not a row of a published samples file/.test(x) && x.includes(`raw/${last} ${line.ts_start}`)),
+    `the forged payload is reported with its file and interval: ${b.problems.join('; ')}`);
+  fs.writeFileSync(path.join(rawDir, last), lastText);
+  assert(auditLive(dir).ok, 'restored');
+  /* the same on a line the gates refused: its payloads are in samples_root too, and nothing else checks them against the samples */
+  const refused = files.map((f) => ({ f, ls: read(f) })).map(({ f, ls }) => ({ f, ls, l: ls.find((l) => l.verdict === 'reject' && l.payloads.length > 0) })).find((x) => x.l);
+  assert(refused, 'the run published a refused line with its payloads');
+  forge(refused.l);
+  fs.writeFileSync(path.join(rawDir, refused.f), refused.ls.map((l) => JSON.stringify(l)).join('\n') + '\n');
+  const c = auditLive(dir);
+  assert(!c.ok, 'must fail on a refused line');
+  assert(c.problems.some((x) => /1 raw payload\(s\) not a row of a published samples file/.test(x) && x.includes(`raw/${refused.f} ${refused.l.ts_start}`)),
+    `the forged payload of the refused line is reported with its file and interval: ${c.problems.join('; ')}`);
+});
+
 (async () => {
   console.log('\nlive run');
   for (const t of tests) {
