@@ -12,7 +12,8 @@
  *   feed        index.json and the batch ledger reachable, readable cross-origin (CORS), and fresh
  *   verifier    its public log: status.json ticked within the watchdog's VERIFIER_SILENT threshold (15 minutes),
  *               refusals.jsonl counted (when given)
- *   reconcile   the reconciliation verdict is not BROKEN
+ *   reconcile   the reconciliation verdict is not BROKEN, with the evidence read at one commit
+ *               (Horizon first; the line names <owner>/<repo>@<sha7>)
  * Exit 0 only when every check that ran is green.
  */
 
@@ -108,11 +109,14 @@ async function preflight(o) {
   if (o.feed && cfg) {
     try {
       const R = require(path.join(__dirname, '..', 'assets', 'qwatt-reconcile.js'));
-      /* Horizon first (account, anchors and their signatures), then the feed; roles from the flags, else from faults.json */
+      const PIN = require(path.join(__dirname, '..', 'assets', 'qwatt-pin.js'));
+      /* Horizon first (account, anchors and their signatures), then the feed at one commit (V3-7c); roles from the flags, else from faults.json */
       const roles = o.proposer && o.verifier && o.third ? { proposer: o.proposer, verifier: o.verifier, third: o.third } : null;
-      const rep = (await R.check({ feed: o.feed, horizon, account: cfg.anchor_account, roles })).report;
-      if (rep.summary.published_batches === 0) add('reconcile', 'nothing published yet to reconcile', null);
-      else add('reconcile', `verdict ${rep.verdict} (${rep.summary.anchored_batches}/${rep.summary.accepted_batches} anchored)`, rep.verdict !== 'BROKEN', rep.problems.slice(0, 2).join(' | '));
+      const res = await R.check({ feed: o.feed, horizon, account: cfg.anchor_account, roles });
+      const rep = res.report;
+      const at = PIN.describe(o.feed, res.feed.commit) || res.feed.base;
+      if (rep.summary.published_batches === 0) add('reconcile', `nothing published yet to reconcile (evidence read at ${at})`, null);
+      else add('reconcile', `verdict ${rep.verdict} (${rep.summary.anchored_batches}/${rep.summary.accepted_batches} anchored) · evidence read at ${at}`, rep.verdict !== 'BROKEN', rep.problems.slice(0, 2).join(' | '));
     } catch (e) { add('reconcile', 'reconciliation ran', false, e.message); }
   }
 

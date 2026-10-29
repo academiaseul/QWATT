@@ -8,13 +8,16 @@
  * Runs exactly the logic reconcile.html runs in a reviewer's browser
  * (assets/qwatt-reconcile.js) — this is the Deliverable 4 acceptance check.
  * It reads Horizon first (the anchoring account's signers and thresholds, then
- * every anchoring transaction with its signatures), then the feed.
+ * every anchoring transaction with its signatures), then the feed at one commit:
+ * a feed in a GitHub repository (the raw.githubusercontent.com branch URL, or its
+ * github.io address) is resolved to the branch's head commit and read there
+ * (assets/qwatt-pin.js), and the output names it: `evidence read at <owner>/<repo>@<sha7>`.
  *
  * Who is who (the three signer public keys) comes from the run's faults.json
  * (`anchoring.signers`). --proposer, --verifier and --third (all three or none)
  * are only for a feed that does not declare them; if both exist they must agree.
  *
- * No dependencies. Exit 0: RECONCILED or PENDING. Exit 1: BROKEN, or the check
+ * No dependencies outside assets/. Exit 0: RECONCILED or PENDING. Exit 1: BROKEN, or the check
  * could not run (Horizon or the feed unreadable, no Ed25519 in this Node).
  * Exit 2: usage.
  */
@@ -23,6 +26,7 @@
 
 const path = require('path');
 const R = require(path.join(__dirname, '..', 'assets', 'qwatt-reconcile.js'));
+const PIN = require(path.join(__dirname, '..', 'assets', 'qwatt-pin.js'));
 
 const USAGE = 'usage: node anchor/reconcile-cli.js --feed <base URL> --account G… [--horizon URL] [--proposer G… --verifier G… --third G…] [--json]';
 
@@ -36,15 +40,16 @@ async function main() {
   if (given.length && given.length !== 3) { console.error('pass --proposer, --verifier and --third together (public keys)'); process.exitCode = 2; return; }
   const roles = given.length ? { proposer: opt('--proposer'), verifier: opt('--verifier'), third: opt('--third') } : null;
 
-  const { report: rep } = await R.check({ feed: feedUrl, horizon, account, roles });
+  const { report: rep, feed } = await R.check({ feed: feedUrl, horizon, account, roles });
   /* process.exitCode, never process.exit(): fetch keep-alive sockets must close first (libuv assert on Windows) */
   process.exitCode = rep.verdict === 'BROKEN' ? 1 : 0;
-  if (args.includes('--json')) { console.log(JSON.stringify(rep, null, 2)); return; }
+  if (args.includes('--json')) { console.log(JSON.stringify({ ...rep, evidence: { base: feed.base, commit: feed.commit } }, null, 2)); return; }
 
   const s = rep.summary, a = s.account, sig = s.signatures;
   const src = s.roles_source === 'given' ? ' · roles given on the command line' : s.roles_source === 'faults.json' ? " · roles from the run's faults.json" : '';
   console.log(`${rep.verdict}`);
   console.log(`  ${R.INPUT_LABEL}`);
+  console.log(`  evidence read at ${PIN.describe(feedUrl, feed.commit) || feed.base}`);
   console.log(`  account ${a.id} · thresholds ${a.thresholds || '?'} · master weight ${a.master_weight == null ? '?' : a.master_weight} · ${a.signers ? a.signers.length : '?'} signer(s) ${a.ok ? '✓ as freeze v3 §3 requires' : '✗'}`);
   console.log(`  signatures: ${sig.normal} proposer+verifier · ${sig.stand_in} stand-in (proposer+third) · ${sig.broken} other${sig.unchecked ? ` · ${sig.unchecked} unchecked (no signer roles)` : ''}${src}`);
   console.log(`  published ${s.published_batches} batches (${s.accepted_batches} accepted, ${s.rejected_batches} rejected) · anchored ${s.anchored_batches} in ${s.anchor_transactions} transactions`);

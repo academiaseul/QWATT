@@ -133,6 +133,33 @@ test('V3-9: roles given to the write-up (--proposer/--verifier/--third) reach th
   assert(JSON.stringify(report.summary.roles) === JSON.stringify(roles), `the roles as given: ${JSON.stringify(report.summary.roles)}`);
 });
 
+test('V3-7c: a feed in a GitHub repository is read at one commit resolved after Horizon, every file at that commit, and the write-up names it', async () => {
+  const SHA = 'c0ffee'.repeat(6) + 'beef';                       // the head commit the stubbed info/refs advertises
+  const GH_FEED = 'https://raw.githubusercontent.com/acme/qwatt-evidence/main/run';
+  const seen = [];
+  const reply = (status, body) => ({ status, ok: status >= 200 && status < 300, text: async () => (typeof body === 'string' ? body : JSON.stringify(body)), json: async () => body });
+  globalThis.fetch = async (url) => {
+    const u = String(url);
+    seen.push(u);
+    if (u === 'https://github.com/acme/qwatt-evidence.git/info/refs?service=git-upload-pack') {
+      return reply(200, `001e# service=git-upload-pack\n0000015b${SHA} HEAD\0multi_ack symref=HEAD:refs/heads/main\n003f${SHA} refs/heads/main\n0000`);
+    }
+    if (u.startsWith('https://raw.githubusercontent.com/')) return reply(404, '404: Not Found');
+    if (u.startsWith(`${HORIZON}/accounts/${ACCOUNT}/operations`)) return reply(200, { _embedded: { records: [] }, _links: {} });
+    if (u.split('?')[0] === `${HORIZON}/accounts/${ACCOUNT}`) return reply(200, accountResponse({ low: 2, med: 2, high: 3 }));
+    return reply(404, 'not found');
+  };
+  const { markdown } = await build(opts({ feed: GH_FEED }));
+  const refs = seen.findIndex((u) => u.includes('/info/refs'));
+  const lastHorizon = seen.map((u) => u.startsWith(HORIZON)).lastIndexOf(true);
+  assert(refs > lastHorizon && lastHorizon >= 0, `Horizon first, then the head commit: ${JSON.stringify(seen)}`);
+  const raw = seen.filter((u) => u.startsWith('https://raw.githubusercontent.com/'));
+  assert(raw.length > 0 && raw.every((u) => u.startsWith(`https://raw.githubusercontent.com/acme/qwatt-evidence/${SHA}/run/`)), `every file at the commit: ${JSON.stringify(raw)}`);
+  assert(markdown.includes(`evidence read at \`acme/qwatt-evidence@${SHA.slice(0, 7)}\` (commit \`${SHA}\`)`), `the write-up names the commit: ${markdown.split('\n')[2]}`);
+  stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  assert((await build(opts())).markdown.includes(`evidence read at \`${FEED}\` (not a repository`), 'a feed that is not a repository is named as read');
+});
+
 test('tests table has the independence row and points to tests-abcd.js, not rehearse.js', async () => {
   stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
   const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-writeup-')), 'abcd.json');
