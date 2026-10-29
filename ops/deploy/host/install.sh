@@ -176,6 +176,8 @@ KEY="$QHOME/.ssh/$DEPLOY_KEY"
 if [ ! -e "$KEY" ]; then
   sudo -u qwatt ssh-keygen -t ed25519 -N "" -q -C "$DEPLOY_KEY deploy key, $ROLE host" -f "$KEY"
 fi
+# the private file readable by qwatt only (a clean Ubuntu VM left it 644, and ssh then refuses the key)
+chown qwatt:qwatt "$KEY" "$KEY.pub"; chmod 600 "$KEY"; chmod 644 "$KEY.pub"
 ssh-keyscan -t ed25519 github.com 2>/dev/null > "$TMP/github.keys"
 [ -s "$TMP/github.keys" ] || die "ssh-keyscan github.com answered nothing (network?)"
 FP=$(ssh-keygen -lf "$TMP/github.keys" | awk '{print $2}')
