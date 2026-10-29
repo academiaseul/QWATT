@@ -73,6 +73,9 @@ jobs:
       - name: Key policy (V3-8) — no secret in env files, the repository or a browser
         if: ${{ !cancelled() }}
         run: node ops/keys-policy.test.js
+      - name: Host package (W2-5) — Node at /usr/bin/node, stellar-cli 28.1.0, each role's units and deploy key, WSL kept running with nobody signed in
+        if: ${{ !cancelled() }}
+        run: node ops/host-package.test.js
       - name: "Site: stamped blocks and shared header/footer match status.json and ops/site-fragments"
         if: ${{ !cancelled() }}
         run: node ops/site-sync.js --check
