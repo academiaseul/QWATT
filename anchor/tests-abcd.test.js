@@ -15,6 +15,7 @@ const { spawnSync } = require('child_process');
 const S = require('@stellar/stellar-sdk');
 const E = require('../protocol/evidence');
 const V = require('../batch/verify');
+const T = require('./tx');
 const { Pipeline } = require('../batch/pipeline');
 const { Proposer } = require('./proposer');
 const { Verifier } = require('./verifier');
@@ -112,7 +113,8 @@ async function world(acct, thresholds, o = {}) {
   const K = acct ? acct.K : (o.K || newKeys());
   const account = acct ? acct.account : K.account.publicKey();
   const fake = acct ? acct.fake : new FakeHorizon({ account, signers: [K.proposer.publicKey(), K.verifier.publicKey(), K.third.publicKey()], thresholds, clock });
-  const cfg = { network_passphrase: S.Networks.TESTNET, horizon_url: 'http://fake', anchor_account: account, asset_code: 'native', payment_destination: K.dest.publicKey(), payment_amount: '0.0000001', base_fee: 100 };
+  const cfg = { network_passphrase: S.Networks.TESTNET, horizon_url: 'http://fake', anchor_account: account, asset_code: 'native', payment_destination: K.dest.publicKey(), payment_amount: '0.0000001', base_fee: 100,
+    signers: { proposer: K.proposer.publicKey(), verifier: K.verifier.publicKey(), third: K.third.publicKey() } };
   const feedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-'));
   const pipe = new Pipeline({ dir: feedDir, site_id: 'abcd', node_id: 'abcd' });
   for (let i = 0; i < 36; i++) pipe.push(iv(i));
@@ -130,10 +132,20 @@ const tree = (dir) => {
   return h.digest('hex');
 };
 
-test('A: the proposer-signed transaction alone is refused by the network, and consumes nothing', async () => {
+/** The published proposal for the next batch, as the feed serves it (text, trimmed). */
+const pendingText = (w, id = 'abcd-000000') => fs.readFileSync(path.join(w.feedDir, 'pending', `${id}.xdr`), 'utf8').trim();
+/** A signer that records whether it was ever asked to sign. */
+function spySigner(kp) {
+  return { kind: 'spy', publicKey: kp.publicKey(), calls: 0, async init() { return this; }, async version() { return null; }, async sign(tx) { this.calls++; tx.sign(kp); return tx; } };
+}
+
+/* Rewritten in V3-4a: A submits the PUBLISHED proposal unchanged and needs no key, and B re-signs that same
+   body, so each test now lets the proposer publish its proposal first. */
+test('A: the published proposal, with the proposer\'s signature only, is refused by the network, and consumes nothing', async () => {
   const w = await world();
+  eq((await w.proposer.tick()).action, 'proposed', 'the proposer published its proposal');
   const seq0 = w.fake.sequence;
-  const r = await X.testA({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.proposer, server: w.fake });
+  const r = await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake });
   assert(r.refused, `refused: ${JSON.stringify(r.codes)}`);
   eq(r.signatures, 1, 'one signature');
   eq(String(w.fake.sequence), String(seq0), 'sequence untouched');
@@ -141,21 +153,204 @@ test('A: the proposer-signed transaction alone is refused by the network, and co
   await w.host.close();
 });
 
-test('B: the verifier-signed transaction alone is refused by the network', async () => {
+test('B: the published body, signed by the verifier alone, is refused by the network', async () => {
   const w = await world();
+  await w.proposer.tick();
   const r = await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake });
   assert(r.refused, `refused: ${JSON.stringify(r.codes)}`);
+  eq(r.signatures, 1, 'one signature, the verifier\'s');
   eq(w.fake.txs.length, 0, 'nothing landed');
   await w.host.close();
 });
 
-test('A and B do not disturb the running pipeline: it anchors normally right after', async () => {
+test('A and B do not disturb the running pipeline: it anchors the same proposal right after', async () => {
   const w = await world();
-  await X.testA({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.proposer, server: w.fake });
-  await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake });
   await w.proposer.tick();
+  await X.testA({ feedDir: w.feedDir, cfg: w.cfg, server: w.fake });
+  await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake });
   eq((await w.verifier.tick()).action, 'anchored', 'pipeline still anchors');
   await w.host.close();
+});
+
+test('A, B and C share one transaction body: A submits the published pending envelope as it is, B re-signs that body with the verifier key alone, and the verifier then anchors that very transaction', async () => {
+  const w = await world(await configuredAccount());
+  eq((await w.proposer.tick(clock.now() - 60)).action, 'proposed', 'proposed');
+  const pending = pendingText(w);
+  const a = await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake });
+  const spy = spySigner(w.K.verifier);
+  const b = await X.testB({ feedUrl: w.host.url, cfg: w.cfg, signer: spy, server: w.fake });
+  eq(spy.calls, 1, 'B signed once, with the verifier key');
+  eq((await w.verifier.tick()).action, 'anchored', 'the verifier anchors the published proposal');
+  const c = await X.testC({ cfg: w.cfg, server: w.fake });
+  eq(a.envelope_xdr, pending, 'A submitted the published pending/<id>.xdr unchanged');
+  eq(a.body_hash, b.body_hash, 'A and B: one body');
+  eq(a.body_hash, c.hash, 'A, B and C: one hash');
+  assert(c.ok, `C: ${JSON.stringify(c)}`);
+  eq(a.signer_public_key, w.cfg.signers.proposer, 'A\'s one signature is the proposer key\'s');
+  await w.host.close();
+});
+
+test('C judges the transaction A and B tested, not the latest anchor: a later anchor before C runs does not make A, B and C look like two bodies (review fix 3)', async () => {
+  const w = await world(await configuredAccount());
+  eq((await w.proposer.tick(clock.now() - 60)).action, 'proposed', 'abcd-000000 proposed');
+  const a = await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake });
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-c-')), 'abcd.json');
+  X.merge(file, w.cfg.anchor_account, 'a', a);
+  eq((await w.verifier.tick()).action, 'anchored', 'the verifier anchors that proposal');
+  eq((await w.proposer.tick()).action, 'proposed', 'the pipeline goes on: abcd-000001 proposed');
+  eq((await w.verifier.tick()).action, 'anchored', 'and anchored before anyone runs C');
+  assert(typeof X.bodyHashOf === 'function', 'tests-abcd.js exports bodyHashOf (the body A and B tested, from the evidence file)');
+  eq(X.bodyHashOf(file), a.body_hash, 'the evidence file names the body A tested');
+  const c = await X.testC({ cfg: w.cfg, server: w.fake, bodyHash: X.bodyHashOf(file) });
+  eq(c.hash, a.body_hash, 'C is the anchor of the body A tested');
+  eq(c.memo, 'QW#0', 'the first batch, not the latest anchor');
+  assert(c.ok, `C: ${JSON.stringify(c)}`);
+  const ev = X.merge(file, w.cfg.anchor_account, 'c', c);
+  assert(!ev.verdict_detail.some((d) => /one transaction body/.test(d)), `one body: ${ev.verdict_detail.join(' | ')}`);
+  let m = null;
+  try { await X.testC({ cfg: w.cfg, server: w.fake, bodyHash: 'e'.repeat(64) }); } catch (e) { m = e.message; }
+  assert(m && /has not anchored/.test(m), `a body that never anchored is an error, not another transaction: ${m}`);
+  await w.host.close();
+});
+
+test('A and B record the signed envelope and Horizon\'s full response', async () => {
+  const w = await world(await configuredAccount());
+  await w.proposer.tick();
+  for (const r of [await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }), await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake })]) {
+    const h = r.horizon_response || {};
+    eq(h.status, 400, 'HTTP status');
+    assert(/transaction_failed$/.test(h.type || ''), `problem type: ${h.type}`);
+    eq((h.extras || {}).result_codes && h.extras.result_codes.transaction, 'tx_bad_auth', 'result code');
+    eq(h.extras.envelope_xdr, r.envelope_xdr, 'the envelope Horizon answered for is the one recorded');
+    eq(S.xdr.TransactionResult.fromXDR(h.extras.result_xdr, 'base64').result().switch().name, 'txBadAuth', 'result_xdr');
+    eq(r.horizon_url, w.cfg.horizon_url, 'horizon_url');
+    assert(r.submitted_at && !Number.isNaN(Date.parse(r.submitted_at)), 'submitted_at');
+  }
+  await w.host.close();
+});
+
+test('the fake network answers a refused transaction the way Horizon does', async () => {
+  const K = newKeys(), account = K.account.publicKey();
+  const fake = new FakeHorizon({ account, signers: [K.proposer.publicKey(), K.verifier.publicKey(), K.third.publicKey()], clock });
+  const tx = await txFor(fake, account, [S.Operation.manageData({ name: 'qwatt.anchor.sha256', value: 'd'.repeat(64) })], K.third);
+  let e = null;
+  try { await fake.submitTransaction(tx); } catch (x) { e = x; }
+  assert(e && e.response, 'refused');
+  eq(e.response.status, 400, 'status');
+  const d = e.response.data;
+  eq(d.status, 400, 'problem status');
+  assert(/transaction_failed$/.test(d.type), `type ${d.type}`);
+  eq(JSON.stringify(d.extras.result_codes), JSON.stringify({ transaction: 'tx_bad_auth' }), 'result_codes unchanged');
+  eq(d.extras.envelope_xdr, tx.toEnvelope().toXDR('base64'), 'envelope_xdr is the submitted envelope');
+  eq(S.xdr.TransactionResult.fromXDR(d.extras.result_xdr, 'base64').result().switch().name, 'txBadAuth', 'result_xdr decodes');
+  const ok = await fake.submitTransaction(await txFor(fake, account, [S.Operation.manageData({ name: 'qwatt.anchor.sha256', value: 'e'.repeat(64) })], K.proposer, K.verifier));
+  eq(ok.successful, true, 'a success says so');
+  assert(ok.envelope_xdr && fake.txs[0].envelope_xdr === ok.envelope_xdr, 'a success carries its envelope, and so does the stored record');
+});
+
+test('B refuses to sign a pending envelope that does not match the published batch', async () => {
+  const w = await world();
+  await w.proposer.tick();
+  const batch = JSON.parse(fs.readFileSync(path.join(w.feedDir, 'batches', 'abcd-000000.json'), 'utf8'));
+  const head = await w.fake.loadAccount(w.cfg.anchor_account);
+  const other = T.buildAnchorTx({ ...batch, sha256: 'f'.repeat(64) }, w.cfg, T.proposalParams(head.sequence));
+  other.sign(w.K.proposer);
+  fs.writeFileSync(path.join(w.feedDir, 'pending', 'abcd-000000.xdr'), other.toEnvelope().toXDR('base64') + '\n');
+  const spy = spySigner(w.K.verifier), n0 = w.fake.submissions;
+  let m = '';
+  try { await X.testB({ feedUrl: w.host.url, cfg: w.cfg, signer: spy, server: w.fake }); } catch (e) { m = e.message; }
+  assert(/published proposal/.test(m), `refused: ${m}`);
+  eq(spy.calls, 0, 'nothing signed');
+  eq(w.fake.submissions, n0, 'nothing submitted');
+  await w.host.close();
+});
+
+test('A submits only the genuine published proposal: one signed by a key that is not signers.proposer, or a proposal for another batch, is refused with nothing submitted', async () => {
+  const w = await world();
+  await w.proposer.tick();
+  const pendingFile = path.join(w.feedDir, 'pending', 'abcd-000000.xdr');
+  const n0 = w.fake.submissions;
+  /* the genuine body, signed by the third key instead of the proposer's */
+  const byThird = new S.Transaction(pendingText(w), w.cfg.network_passphrase);
+  byThird.signatures.length = 0;
+  byThird.sign(w.K.third);
+  fs.writeFileSync(pendingFile, byThird.toEnvelope().toXDR('base64') + '\n');
+  let m = '';
+  try { await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }); } catch (e) { m = e.message; }
+  assert(/signers\.proposer/.test(m), `a proposal not signed by the proposer key is refused: ${m}`);
+  /* a proposal for another batch hash, signed by the proposer key */
+  const batch = JSON.parse(fs.readFileSync(path.join(w.feedDir, 'batches', 'abcd-000000.json'), 'utf8'));
+  const head = await w.fake.loadAccount(w.cfg.anchor_account);
+  const other = T.buildAnchorTx({ ...batch, sha256: 'f'.repeat(64) }, w.cfg, T.proposalParams(head.sequence));
+  other.sign(w.K.proposer);
+  fs.writeFileSync(pendingFile, other.toEnvelope().toXDR('base64') + '\n');
+  m = '';
+  try { await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }); } catch (e) { m = e.message; }
+  assert(/genuine proposal/.test(m), `a proposal for another batch is refused: ${m}`);
+  eq(w.fake.submissions, n0, 'nothing submitted');
+  await w.host.close();
+});
+
+test('B signs only with the config\'s signers.verifier key: another key is refused before anything is signed', async () => {
+  const w = await world();
+  await w.proposer.tick();
+  const spy = spySigner(w.K.third), n0 = w.fake.submissions;
+  let m = '';
+  try { await X.testB({ feedUrl: w.host.url, cfg: w.cfg, signer: spy, server: w.fake }); } catch (e) { m = e.message; }
+  assert(/signers\.verifier/.test(m), `the third key is refused for B: ${m}`);
+  eq(spy.calls, 0, 'nothing signed');
+  eq(w.fake.submissions, n0, 'nothing submitted');
+  await w.host.close();
+});
+
+test('B runs the verifier\'s own checks before it signs: a chain that does not lead to the on-chain head, or a batch whose counts do not add up, is refused with nothing signed', async () => {
+  /* the on-chain data says a total exists with no anchor: the walk refuses (verifier.head_mismatch) */
+  const w = await world();
+  await w.proposer.tick();
+  w.fake.data['qwatt.cumulative_mwh'] = Buffer.from('5', 'ascii').toString('base64');
+  const spy = spySigner(w.K.verifier), n0 = w.fake.submissions;
+  let m = '';
+  try { await X.testB({ feedUrl: w.host.url, cfg: w.cfg, signer: spy, server: w.fake }); } catch (e) { m = e.message; }
+  assert(/verifier\.head_mismatch/.test(m), `walk: ${m}`);
+  /* a re-hashed batch whose accepted_count is wrong: verifyBatch refuses (batch.count_mismatch) */
+  const v = await world();
+  await v.proposer.tick();
+  const f = path.join(v.feedDir, 'batches', 'abcd-000000.json');
+  const forged = JSON.parse(fs.readFileSync(f, 'utf8'));
+  forged.accepted_count += 1;
+  forged.sha256 = E.batchSha256(forged);
+  fs.writeFileSync(f, JSON.stringify(forged));
+  const ledger = path.join(v.feedDir, 'ledger', 'batches.jsonl');
+  fs.writeFileSync(ledger, fs.readFileSync(ledger, 'utf8').split('\n').map((l) => (l.includes('"abcd-000000"') ? JSON.stringify({ ...JSON.parse(l), sha256: forged.sha256 }) : l)).join('\n'));
+  const spy2 = spySigner(v.K.verifier), n1 = v.fake.submissions;
+  m = '';
+  try { await X.testB({ feedUrl: v.host.url, cfg: v.cfg, signer: spy2, server: v.fake }); } catch (e) { m = e.message; }
+  assert(/batch\.count_mismatch/.test(m), `verifyBatch: ${m}`);
+  eq(spy.calls + spy2.calls, 0, 'nothing signed');
+  eq(w.fake.submissions + v.fake.submissions, n0 + n1, 'nothing submitted');
+  await w.host.close(); await v.host.close();
+});
+
+test('B runs the verifier\'s raw-payload check too (V3-5): a batch whose raw file is not published, or whose raw lines were edited, is refused by B with nothing signed, as the verifier service refuses it', async () => {
+  for (const [what, damage, codeRe] of [
+    ['raw file not published', (raw) => fs.rmSync(raw), /batch\.raw_missing/],
+    ['a raw payload edited', (raw) => fs.writeFileSync(raw, fs.readFileSync(raw, 'utf8').replace(/"utf8":"/, '"utf8":"X')), /batch\.(samples_root_mismatch|raw_mismatch)/],
+  ]) {
+    const w = await world();
+    eq((await w.proposer.tick()).action, 'proposed', `${what}: proposed while the raw file was intact`);
+    const raw = path.join(w.feedDir, 'raw', 'abcd-000000.jsonl');
+    assert(fs.existsSync(raw), `${what}: the pipeline published the raw file`);
+    damage(raw);
+    const spy = spySigner(w.K.verifier), n0 = w.fake.submissions;
+    let m = '';
+    try { await X.testB({ feedUrl: w.host.url, cfg: w.cfg, signer: spy, server: w.fake }); } catch (e) { m = e.message; }
+    assert(codeRe.test(m), `${what}: B refuses with the verifier's reason: ${m || 'B signed and submitted'}`);
+    eq(spy.calls, 0, `${what}: nothing signed`);
+    eq(w.fake.submissions, n0, `${what}: nothing submitted`);
+    const v = await w.verifier.tick();
+    assert(v.action === 'refused' && v.reasons.some((r) => codeRe.test(r)), `${what}: the verifier service refuses the same batch: ${JSON.stringify(v)}`);
+    await w.host.close();
+  }
 });
 
 test('C: finds the latest anchoring transaction and confirms two signatures', async () => {
@@ -168,6 +363,24 @@ test('C: finds the latest anchoring transaction and confirms two signatures', as
   await w.host.close();
 });
 
+test('C names the two keys that signed by role and links the transaction on stellar.expert; an anchor signed by the third signer and the verifier is not test C', async () => {
+  const w = await world(await configuredAccount());
+  await w.proposer.tick();
+  eq((await w.verifier.tick()).action, 'anchored', 'proposer + verifier');
+  const c = await X.testC({ cfg: w.cfg, server: w.fake });
+  eq(c.pair, 'proposer+verifier', 'pair');
+  eq(JSON.stringify([...c.signer_keys].sort()), JSON.stringify([w.cfg.signers.proposer, w.cfg.signers.verifier].sort()), 'the two keys');
+  eq(c.link, 'https://stellar.expert/explorer/testnet/tx/' + c.hash, 'stellar.expert link');
+  assert(c.ok, 'C ok');
+  const viaThird = new Proposer({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.third, server: w.fake });
+  eq((await viaThird.tick()).action, 'proposed', 'the third signer proposes the next batch');
+  eq((await w.verifier.tick()).action, 'anchored', 'third signer + verifier');
+  const c2 = await X.testC({ cfg: w.cfg, server: w.fake });
+  eq(c2.pair, 'verifier+third', 'pair');
+  eq(c2.ok, false, 'not test C');
+  await w.host.close();
+});
+
 test('D: an in-memory forgery is refused, and the published feed is not touched', async () => {
   const w = await world();
   await w.proposer.tick();                                             // a pending proposal exists in the feed
@@ -175,37 +388,189 @@ test('D: an in-memory forgery is refused, and the published feed is not touched'
   const r = await X.testD({ feedUrl: w.host.url, cfg: w.cfg });
   assert(r.refused, JSON.stringify(r));
   eq(r.reasons[0], 'verifier.hash_mismatch', 'reason');
+  eq(r.pending_envelope_xdr, pendingText(w), 'the pending envelope it judged is in the evidence');
+  eq(r.submitted, false, 'submitted: false');
   eq(tree(w.feedDir), before, 'feed byte-identical after the test');
   eq(w.fake.submissions, 0, 'nothing submitted');
   await w.host.close();
 });
 
-test('evidence merges per host into one file the write-up reads, with an overall verdict', async () => {
+test('I: a pending proposal whose batch the verifier cannot download is refused with verifier.not_published by the real Verifier code; nothing is signed or submitted and the public feed is untouched', async () => {
   const w = await world();
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-ev-')), 'abcd.json');
-  X.merge(file, w.cfg.anchor_account, 'a', await X.testA({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.proposer, server: w.fake }));
-  eq(JSON.parse(fs.readFileSync(file, 'utf8')).verdict, 'INCOMPLETE', 'partial');
-  X.merge(file, w.cfg.anchor_account, 'b', await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake }));
+  const none = await X.testI({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake });
+  eq(none.ok, false, 'without a live proposal, I does not run');
+  assert(/live proposal/.test(none.detail || ''), `it says so: ${none.detail}`);
   await w.proposer.tick();
-  X.merge(file, w.cfg.anchor_account, 'd', await X.testD({ feedUrl: w.host.url, cfg: w.cfg }));
-  await w.verifier.tick();
-  const ev = X.merge(file, w.cfg.anchor_account, 'c', await X.testC({ cfg: w.cfg, server: w.fake }));
-  eq(ev.verdict, 'PASS', 'all four');
-  for (const k of ['A_proposer_alone', 'B_verifier_alone', 'C_proposer_plus_verifier', 'D_altered_after_proposer_signed']) assert(ev.steps[k], k);
+  const before = tree(w.feedDir);
+  const r = await X.testI({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake });
+  assert(r.ok, JSON.stringify(r));
+  eq(r.refused, true, 'refused');
+  eq(JSON.stringify(r.reasons), JSON.stringify(['verifier.not_published']), 'reasons');
+  eq(r.submitted, false, 'submitted: false');
+  eq(r.pending_envelope_xdr, pendingText(w), 'the live proposal is in the evidence');
+  assert(/withheld/.test(r.method) && !/unpublished/i.test(r.method), `the method says what was done: ${r.method}`);
+  const lines = fs.readFileSync(r.refusal_log, 'utf8').split('\n').filter(Boolean);
+  eq(lines.length, 1, 'one refusal logged');
+  eq(JSON.parse(lines[0]).batch_id, 'abcd-000000', 'naming the batch');
+  eq(w.fake.submissions, 0, 'nothing submitted');
+  eq(tree(w.feedDir), before, 'the public feed is untouched');
+  eq((await w.verifier.tick()).action, 'anchored', 'the real verifier still anchors the same proposal afterwards');
   await w.host.close();
 });
 
-/** Run A, B, D and C against the world and merge them into one evidence file, as the four hosts would. */
-async function fullEvidence(w) {
-  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-ev-')), 'abcd.json');
-  X.merge(file, w.cfg.anchor_account, 'a', await X.testA({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.proposer, server: w.fake }));
-  X.merge(file, w.cfg.anchor_account, 'b', await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake }));
+/** Run A, B, D and I while one proposal is live, then C, merging them as the hosts would. */
+async function fullEvidence(w, file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-ev-')), 'abcd.json')) {
   await w.proposer.tick();
+  X.merge(file, w.cfg.anchor_account, 'a', await X.testA({ feedDir: w.feedDir, cfg: w.cfg, server: w.fake }));
+  X.merge(file, w.cfg.anchor_account, 'b', await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake }));
   X.merge(file, w.cfg.anchor_account, 'd', await X.testD({ feedUrl: w.host.url, cfg: w.cfg }));
+  X.merge(file, w.cfg.anchor_account, 'i', await X.testI({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }));
   await w.verifier.tick();
   return X.merge(file, w.cfg.anchor_account, 'c', await X.testC({ cfg: w.cfg, server: w.fake }));
 }
 
+/* Rewritten in V3-4a: the evidence now needs I, and A/B run after the proposal is published. */
+test('evidence merges per host into one file the write-up reads, with an overall verdict, and the raw envelopes and answers beside it', async () => {
+  const w = await world();
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-ev-'));
+  const file = path.join(dir, 'abcd.json');
+  await w.proposer.tick();
+  X.merge(file, w.cfg.anchor_account, 'a', await X.testA({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }));
+  eq(JSON.parse(fs.readFileSync(file, 'utf8')).verdict, 'INCOMPLETE', 'partial');
+  X.merge(file, w.cfg.anchor_account, 'b', await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake }));
+  X.merge(file, w.cfg.anchor_account, 'd', await X.testD({ feedUrl: w.host.url, cfg: w.cfg }));
+  await w.verifier.tick();
+  let ev = X.merge(file, w.cfg.anchor_account, 'c', await X.testC({ cfg: w.cfg, server: w.fake }));
+  eq(ev.verdict, 'INCOMPLETE', 'A, B, C and D without I');
+  assert(ev.steps.C_proposer_plus_verifier && ev.steps.D_altered_after_proposer_signed, 'C and D merged');
+  const index = JSON.parse(fs.readFileSync(path.join(dir, 'index.json'), 'utf8'));
+  for (const f of ['abcd.json', 'A.envelope.xdr', 'A.horizon.json', 'B.envelope.xdr', 'B.horizon.json', 'C.transaction.json', 'D.pending.xdr']) {
+    eq(index.files[f], sha256(fs.readFileSync(path.join(dir, f))), `${f}: written beside abcd.json, SHA-256 in index.json`);
+  }
+  eq(fs.readFileSync(path.join(dir, 'A.envelope.xdr'), 'utf8').trim(), ev.steps.A_proposer_alone.envelope_xdr, 'A.envelope.xdr');
+});
+
+test('the A–D verdict requires I and one shared body', async () => {
+  const w = await world();
+  const ev = await fullEvidence(w);
+  eq(ev.verdict, 'PASS', `A, B, C, D and I: ${JSON.stringify(ev.verdict_detail)}`);
+  const withoutI = { ...ev.steps };
+  delete withoutI.I_withheld_refused;
+  eq(X.verdictOf(withoutI).verdict, 'INCOMPLETE', 'without I');
+  const split = JSON.parse(JSON.stringify(ev.steps));
+  split.A_proposer_alone.body_hash = 'a'.repeat(64);
+  const v = X.verdictOf(split);
+  eq(v.verdict, 'FAIL', 'A and C are not one body');
+  assert(v.detail.some((d) => /one transaction body/.test(d)), `the detail says why: ${JSON.stringify(v.detail)}`);
+  const notWithheld = JSON.parse(JSON.stringify(ev.steps));
+  notWithheld.I_withheld_refused = { refused: false, reasons: [] };
+  eq(X.verdictOf(notWithheld).verdict, 'FAIL', 'I not refused');
+  await w.host.close();
+});
+
+test('evidence from the two hosts combines into one abcd.json; a step recorded twice with different content is refused', async () => {
+  const w = await world();
+  const mk = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-host-')), 'abcd.json');
+  const proposerHost = mk(), verifierHost = mk(), anywhere = mk();
+  await w.proposer.tick();
+  X.merge(proposerHost, w.cfg.anchor_account, 'a', await X.testA({ feedDir: w.feedDir, cfg: w.cfg, server: w.fake }));
+  X.merge(verifierHost, w.cfg.anchor_account, 'b', await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake }));
+  X.merge(verifierHost, w.cfg.anchor_account, 'd', await X.testD({ feedUrl: w.host.url, cfg: w.cfg }));
+  X.merge(verifierHost, w.cfg.anchor_account, 'i', await X.testI({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }));
+  await w.verifier.tick();
+  X.merge(anywhere, w.cfg.anchor_account, 'c', await X.testC({ cfg: w.cfg, server: w.fake }));
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-all-'));
+  const ev = X.combine(path.join(outDir, 'abcd.json'), [proposerHost, verifierHost, anywhere]);
+  eq(Object.keys(ev.steps).sort().join(','), ['A_proposer_alone', 'B_verifier_alone', 'C_proposer_plus_verifier', 'D_altered_after_proposer_signed', 'I_withheld_refused'].join(','), 'all five steps');
+  eq(ev.verdict, 'PASS', `combined verdict: ${JSON.stringify(ev.verdict_detail)}`);
+  const index = JSON.parse(fs.readFileSync(path.join(outDir, 'index.json'), 'utf8'));
+  for (const f of ['abcd.json', 'A.envelope.xdr', 'A.horizon.json', 'B.envelope.xdr', 'B.horizon.json', 'C.transaction.json', 'D.pending.xdr', 'I.pending.xdr', 'I.refusals.jsonl']) {
+    eq(index.files[f], sha256(fs.readFileSync(path.join(outDir, f))), `${f}: copied beside the combined abcd.json with its SHA-256`);
+  }
+  const otherA = mk();
+  X.merge(otherA, w.cfg.anchor_account, 'a', { ...JSON.parse(fs.readFileSync(proposerHost, 'utf8')).steps.A_proposer_alone, codes: { transaction: 'tx_bad_seq' } });
+  let m = '';
+  try { X.combine(path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-all-')), 'abcd.json'), [proposerHost, otherA]); } catch (e) { m = e.message; }
+  assert(/A_proposer_alone/.test(m), `two different A entries are refused: ${m}`);
+  const otherAccount = mk();
+  X.merge(otherAccount, S.Keypair.random().publicKey(), 'c', JSON.parse(fs.readFileSync(anywhere, 'utf8')).steps.C_proposer_plus_verifier);
+  m = '';
+  try { X.combine(path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-all-')), 'abcd.json'), [proposerHost, otherAccount]); } catch (e) { m = e.message; }
+  assert(/account/.test(m), `evidence for another account is refused: ${m}`);
+  await w.host.close();
+});
+
+test('every condition of the A–D verdict counts: one change to a PASS makes it FAIL, and the detail names the step', async () => {
+  const w = await world();
+  const ev = await fullEvidence(w);
+  eq(ev.verdict, 'PASS', `the starting point passes: ${JSON.stringify(ev.verdict_detail)}`);
+  const cases = [
+    ['A not refused', (s) => { s.A_proposer_alone.refused = false; }, /^A /],
+    ['A on an account not at 2/2/3', (s) => { s.A_proposer_alone.thresholds_match = false; }, /^A /],
+    ['B not refused', (s) => { s.B_verifier_alone.refused = false; }, /^B /],
+    ['B on another body', (s) => { s.B_verifier_alone.body_hash = 'b'.repeat(64); }, /one transaction body/],
+    ['C signed by the verifier and the third signer', (s) => { s.C_proposer_plus_verifier.ok = false; s.C_proposer_plus_verifier.pair = 'verifier+third'; }, /^C .*verifier\+third/],
+    ['C another transaction', (s) => { s.C_proposer_plus_verifier.hash = 'c'.repeat(64); }, /one transaction body/],
+    ['D not refused', (s) => { s.D_altered_after_proposer_signed.refused = false; }, /^D /],
+    ['D refused for another reason', (s) => { s.D_altered_after_proposer_signed.reasons = ['verifier.tx_mismatch']; }, /^D /],
+    ['I refused for another reason', (s) => { s.I_withheld_refused.reasons = ['verifier.feed_unavailable']; }, /^I /],
+  ];
+  for (const [what, change, names] of cases) {
+    const steps = JSON.parse(JSON.stringify(ev.steps));
+    change(steps);
+    const v = X.verdictOf(steps);
+    eq(v.verdict, 'FAIL', what);
+    assert(v.detail.some((d) => names.test(d)), `${what}: the detail names the step: ${JSON.stringify(v.detail)}`);
+  }
+  await w.host.close();
+});
+
+test('combine refuses a raw file that does not match the SHA-256 in its index.json', async () => {
+  const w = await world();
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-host-')), 'abcd.json');
+  await w.proposer.tick();
+  X.merge(file, w.cfg.anchor_account, 'a', await X.testA({ feedDir: w.feedDir, cfg: w.cfg, server: w.fake }));
+  const raw = path.join(path.dirname(file), 'A.envelope.xdr');
+  const text = fs.readFileSync(raw, 'utf8');
+  fs.writeFileSync(raw, (text[0] === 'A' ? 'B' : 'A') + text.slice(1));        // edited after merge
+  let m = '';
+  try { X.combine(path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-all-')), 'abcd.json'), [file]); } catch (e) { m = e.message; }
+  assert(/does not match the SHA-256/.test(m), `an edited raw file is refused: ${m}`);
+  await w.host.close();
+});
+
+test('tests-abcd.js CLI: an unknown step, A without a feed, I without a feed and combine without inputs exit 2; combine of the hosts\' files (T10) exits 0 with PASS', async () => {
+  const c = cliConfig();
+  const cases = {
+    'an unknown step': ['z', '--config', c.file],
+    'A without --feed or --feed-dir': ['a', '--config', c.file, '--out', path.join(c.dir, 'abcd.json')],
+    'I without --feed': ['i', '--config', c.file, '--out', path.join(c.dir, 'abcd.json')],
+    'combine without inputs': ['combine', '--out', path.join(c.dir, 'all.json')],
+  };
+  for (const [what, args] of Object.entries(cases)) {
+    const r = runCli('tests-abcd.js', args, cliEnv());
+    eq(r.status, 2, `${what}: exit status (${r.stderr.trim().split('\n')[0]})`);
+    assert(/usage/.test(r.stderr), `${what}: prints the usage`);
+  }
+  const w = await world();
+  const mk = () => path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-host-')), 'abcd.json');
+  const [proposerHost, verifierHost, anywhere] = [mk(), mk(), mk()];
+  await w.proposer.tick();
+  X.merge(proposerHost, w.cfg.anchor_account, 'a', await X.testA({ feedDir: w.feedDir, cfg: w.cfg, server: w.fake }));
+  X.merge(verifierHost, w.cfg.anchor_account, 'b', await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake }));
+  X.merge(verifierHost, w.cfg.anchor_account, 'd', await X.testD({ feedUrl: w.host.url, cfg: w.cfg }));
+  X.merge(verifierHost, w.cfg.anchor_account, 'i', await X.testI({ feedUrl: w.host.url, cfg: w.cfg, server: w.fake }));
+  await w.verifier.tick();
+  X.merge(anywhere, w.cfg.anchor_account, 'c', await X.testC({ cfg: w.cfg, server: w.fake }));
+  const out = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-abcd-all-')), 'abcd.json');
+  const r = runCli('tests-abcd.js', ['combine', '--out', out, proposerHost, verifierHost, anywhere], cliEnv());
+  eq(r.status, 0, `combine: exit status (${r.stderr.trim()})`);
+  assert(/verdict: PASS/.test(r.stdout), `combine prints the verdict: ${r.stdout}`);
+  eq(JSON.parse(fs.readFileSync(out, 'utf8')).verdict, 'PASS', 'the combined abcd.json');
+  await w.host.close();
+});
+
+/* Rewritten in V3-4a: the full evidence now includes I. */
 test('A–D on an account at 1/2/3: the evidence records thresholds that do not match 2/2/3, A and B are not counted as refused, and the verdict is FAIL', async () => {
   const w = await world(null, { low: 1, med: 2, high: 3 });
   const ev = await fullEvidence(w);
@@ -217,10 +582,12 @@ test('A–D on an account at 1/2/3: the evidence records thresholds that do not 
     eq(s.thresholds_match, false, `${k}: thresholds do not match 2/2/3`);
     eq(s.refused, false, `${k}: not counted as refused`);
   }
+  assert(ev.steps.I_withheld_refused && ev.steps.I_withheld_refused.refused, 'I ran');
   eq(ev.verdict, 'FAIL', 'A–D verdict for a 1/2/3 account');
   await w.host.close();
 });
 
+/* Rewritten in V3-4a: the full evidence now includes I. */
 test('A–D on an account at 2/2/3: A and B are refused as tx_bad_auth with the thresholds recorded as matching, and the verdict is PASS', async () => {
   const w = await world(null, { low: 2, med: 2, high: 3 });
   const ev = await fullEvidence(w);
@@ -231,8 +598,23 @@ test('A–D on an account at 2/2/3: A and B are refused as tx_bad_auth with the 
     eq(s.thresholds_match, true, `${k}: thresholds match 2/2/3`);
     eq(s.refused, true, `${k}: refused`);
   }
+  eq(JSON.stringify(ev.steps.I_withheld_refused.reasons), JSON.stringify(['verifier.not_published']), 'I: verifier.not_published');
   eq(ev.verdict, 'PASS', 'A–D verdict for a 2/2/3 account');
   await w.host.close();
+});
+
+test('the runbook runs A, B, D and I on one live proposal with the verifier service stopped, then C, and combines the evidence from the hosts; T1 starts a run now from an empty feed and verifier state', async () => {
+  const rb = fs.readFileSync(path.join(__dirname, '..', 'docs', 'RUNBOOK.md'), 'utf8');
+  const at = rb.search(/^## Tests A–D and independence on the real account/m);
+  assert(at >= 0, 'section "Tests A–D and independence on the real account"');
+  const sec = rb.slice(at, rb.indexOf('\n## ', at + 1) > 0 ? rb.indexOf('\n## ', at + 1) : undefined);
+  for (const s of ['tests-abcd.js a ', 'tests-abcd.js b ', '--sign-with-key qwatt-verifier', 'tests-abcd.js d ', 'tests-abcd.js i ', 'tests-abcd.js c ', 'tests-abcd.js combine', 'systemctl stop qwatt-verifier']) assert(sec.includes(s), `the section has ${s}`);
+  assert(sec.indexOf('tests-abcd.js i ') < sec.indexOf('systemctl enable --now qwatt-verifier'), 'I runs before the verifier service is started again');
+  const t1 = sec.split(/\r?\n/).find((l) => /^\| T1 \|/.test(l)) || '';
+  assert(/QWATT_RUN_START=now/.test(t1), `T1 starts the run now (env.example's QWATT_RUN_START is a November date: the first batch would never close on Thu 29): ${t1}`);
+  assert(t1.includes('/var/lib/qwatt/feed') && t1.includes('/var/lib/qwatt/verifier'), `T1 starts from an empty feed and an empty verifier state: ${t1}`);
+  assert(/--tests evidence\/account\/<G_A>\/abcd\.json/.test(rb), 'the write-up reads the real account\'s evidence');
+  assert(!/node anchor\/rehearse\.js` produces tests A–D/.test(rb), 'the setup no longer sends the operator to rehearse.js for the real account');
 });
 
 /* ── the anchoring account's thresholds (low 2 / medium 2 / high 3) ──────────
@@ -290,10 +672,12 @@ test('one key alone cannot send any transaction for the anchoring account: a Bum
   }
 });
 
+/* Rewritten in V3-4a: the proposer publishes its proposal first, and A submits it unchanged with no key. */
 test('tests A and B are rejected with tx_bad_auth under 2/2/3', async () => {
   const w = await world(await configuredAccount());
+  await w.proposer.tick();
   const seq0 = String(w.fake.sequence);
-  const a = await X.testA({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.proposer, server: w.fake });
+  const a = await X.testA({ feedDir: w.feedDir, cfg: w.cfg, server: w.fake });
   eq(JSON.stringify(a.codes), JSON.stringify({ transaction: 'tx_bad_auth' }), 'A: proposer alone');
   assert(a.refused, 'A recorded as refused');
   const b = await X.testB({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.K.verifier, server: w.fake });

@@ -30,7 +30,7 @@ const kwh = (mwh) => (mwh / 1e6).toLocaleString('en-US', { maximumFractionDigits
 const wh = (mwh) => (mwh / 1000).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
 
 function testsSection(file) {
-  if (!file || !fs.existsSync(file)) return '_Tests A–D: evidence file not supplied (run `node anchor/rehearse.js` on the real account and pass `--tests`)._\n';
+  if (!file || !fs.existsSync(file)) return '_Tests A–D: evidence file not supplied (run `node anchor/tests-abcd.js` on the real account and pass `--tests`)._\n';
   const ev = JSON.parse(fs.readFileSync(file, 'utf8'));
   const s = ev.steps || {};
   /* under 2/2/3 a single signature is refused as tx_bad_auth with no operation codes: print " / ops" only when there are some */
@@ -40,10 +40,11 @@ function testsSection(file) {
     return `\`${x.codes.transaction}\`` + (ops.length ? ` / ops \`${ops.join(', ')}\`` : '');
   };
   const rows = [
-    ['A', 'proposer signs alone', 'refused by the network', s.A_proposer_alone ? codes(s.A_proposer_alone) : '—', 'envelope in the evidence file (never landed in a ledger)'],
-    ['B', 'verifier signs alone', 'refused by the network', s.B_verifier_alone ? codes(s.B_verifier_alone) : '—', 'envelope in the evidence file (never landed in a ledger)'],
+    ['A', 'proposer signs alone', 'refused by the network', s.A_proposer_alone ? codes(s.A_proposer_alone) : '—', 'envelope and Horizon response in the evidence folder (never in a ledger)'],
+    ['B', 'verifier signs alone', 'refused by the network', s.B_verifier_alone ? codes(s.B_verifier_alone) : '—', 'envelope and Horizon response in the evidence folder (never in a ledger)'],
     ['C', 'proposer + verifier', 'anchored', s.C_proposer_plus_verifier && s.C_proposer_plus_verifier.ok ? 'success' : '—', s.C_proposer_plus_verifier && s.C_proposer_plus_verifier.hash ? txl(s.C_proposer_plus_verifier.hash) : '—'],
     ['D', 'batch altered after the proposer signed', 'verifier refuses, nothing anchors', s.D_altered_after_proposer_signed ? `\`${(s.D_altered_after_proposer_signed.reasons || []).join(', ')}\`` : '—', 'no transaction (by design)'],
+    ['I', 'independence: batch withheld from the verifier\'s only input path', 'verifier refuses, nothing anchors', s.I_withheld_refused ? `\`${(s.I_withheld_refused.reasons || []).join(', ')}\`` : '—', 'no transaction (by design)'],
     ['L', 'third signer + verifier (liveness)', 'anchored', s.L_third_plus_verifier && s.L_third_plus_verifier.ok ? 'success' : '—', s.L_third_plus_verifier && s.L_third_plus_verifier.hash ? txl(s.L_third_plus_verifier.hash) : '—'],
   ];
   return [
