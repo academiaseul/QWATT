@@ -3,14 +3,15 @@
  * QWATT — go-live preflight: everything that must be true before the live run starts
  * ---------------------------------------------------------------------------
  *   node ops/preflight.js --config /etc/qwatt/anchor.json --feed <public feed URL> \
- *        [--verifier-status http://<verifier>:8090/status.json] [--proposer G… --verifier G… --third G…] [--json]
+ *        [--verifier-log https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>] [--proposer G… --verifier G… --third G…] [--json]
  *
  * One red/green list, from public sources only (run it anywhere, including a laptop):
  *   runtime     Node ≥ 20, the Stellar SDK installed for anchor/
  *   clock       this machine within 120 s of the network (both services refuse to sign otherwise)
  *   account     every anchoring-account requirement (anchor/setup-account.js --verify)
  *   feed        index.json and the batch ledger reachable, readable cross-origin (CORS), and fresh
- *   verifier    its public status page answers and ticked in the last 10 minutes (when given)
+ *   verifier    its public log: status.json ticked within the watchdog's VERIFIER_SILENT threshold (15 minutes),
+ *               refusals.jsonl counted (when given)
  *   reconcile   the reconciliation verdict is not BROKEN
  * Exit 0 only when every check that ran is green.
  */
@@ -19,6 +20,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { POLICY } = require('./watch');                              // the same threshold as VERIFIER_SILENT
 
 async function getRaw(url) {
   const r = await fetch(url, { signal: AbortSignal.timeout(20000), cache: 'no-store', headers: { Origin: 'https://qwatt.org' } });
@@ -90,13 +92,16 @@ async function preflight(o) {
   }
 
   /* verifier */
-  if (o.verifierStatus) {
+  if (o.verifierLog) {
+    const log = o.verifierLog.replace(/\/+$/, '');
     try {
-      const st = JSON.parse((await getRaw(o.verifierStatus)).text);
+      const st = JSON.parse((await getRaw(`${log}/status.json`)).text);
       const age = st.last_tick ? Math.round((Date.now() - Date.parse(st.last_tick)) / 1000) : null;
-      add('verifier', `status page answers; last tick ${age == null ? 'never' : age + ' s ago'} (under 600 s)`, age != null && age <= 600);
-      add('verifier', `refusals so far: ${st.refused || 0}`, true);
-    } catch (e) { add('verifier', 'status page reachable', false, e.message); }
+      add('verifier', `public log status.json: last tick ${age == null ? 'never' : age + ' s ago'} (under ${POLICY.verifier_silent_s} s)`, age != null && age <= POLICY.verifier_silent_s);
+      const ref = await getRaw(`${log}/refusals.jsonl`);
+      if (ref.status === 200 || ref.status === 404) add('verifier', `refusals so far (refusals.jsonl): ${ref.text.split('\n').filter((l) => l.trim()).length}`, true);
+      else add('verifier', 'public log refusals.jsonl reachable', false, `HTTP ${ref.status}`);
+    } catch (e) { add('verifier', 'public verifier log reachable', false, e.message); }
   }
 
   /* reconcile */
@@ -118,7 +123,8 @@ async function preflight(o) {
 async function cli() {
   const args = process.argv.slice(2);
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
-  const o = { config: path.resolve(opt('--config', path.join(__dirname, '..', 'anchor', 'config.json'))), feed: opt('--feed'), verifierStatus: opt('--verifier-status'), proposer: opt('--proposer'), verifier: opt('--verifier'), third: opt('--third') };
+  if (args.includes('--verifier-status')) { console.error('--verifier-status was replaced by --verifier-log <public verifier log URL>/<run>'); process.exitCode = 2; return; }
+  const o = { config: path.resolve(opt('--config', path.join(__dirname, '..', 'anchor', 'config.json'))), feed: opt('--feed'), verifierLog: opt('--verifier-log'), proposer: opt('--proposer'), verifier: opt('--verifier'), third: opt('--third') };
   const r = await preflight(o);
   if (args.includes('--json')) { console.log(JSON.stringify(r, null, 2)); process.exitCode = r.ok ? 0 : 1; return; }
   let group = '';

@@ -4,7 +4,7 @@
  * ---------------------------------------------------------------------------
  *   node ops/publish-feed.js --kind evidence|verifier-log --feed <dir> --run <name>
  *        (--remote <git URL> [--branch main] [--work <dir>] [--ssh-key <path>] | --dir <dir>)
- *        [--interval 120] [--once]
+ *        [--interval 120] [--status-every <s>] [--once]
  *
  * Two repositories, written from two hosts that share no credential and no file:
  *
@@ -13,7 +13,11 @@
  *                         samples/<name>.csv · samples/manifest.jsonl ·
  *                         ledger/{batches,accepted,rejected}.jsonl · pending/<id>.xdr · anchored/<id>.json
  *   --kind verifier-log   verifier host → academiaseul/qwatt-verifier-log, main, <run>/
- *                         decisions.jsonl · refusals.jsonl · status.json
+ *                         decisions.jsonl · refusals.jsonl · status.json (anchor/verifier.js writes them)
+ *                         A change to status.json alone is committed at most every --status-every
+ *                         seconds; a new decision or refusal is committed at once, with the current
+ *                         status. A status.json whose feed is not …/<run> is refused: that state
+ *                         directory judged another run.
  *
  * Each repository is a public history: anyone can clone it and check, with
  * ops/evidence-audit.js, that no commit rewrote or removed what an earlier one
@@ -264,6 +268,12 @@ function check(files, target, kind) {
     const published = target.published(rel);
     if (published && published.equals(buf)) continue;
     if (SECRET_RE.test(buf.toString('latin1'))) { problems.push(`${at}: looks like a secret key; never published`); continue; }
+    if (kind === 'verifier-log' && rel === 'status.json') {
+      /* a state directory judges one run: its status names that run's feed (…/<run>) */
+      let feed = '';
+      try { feed = String(JSON.parse(buf.toString('utf8')).feed || '').replace(/\/+$/, ''); } catch (e) { /* snapshot only takes parseable status */ }
+      if (!feed.endsWith(`/${target.run}`)) { problems.push(`${at}: this state directory judged ${feed || 'no named feed'}, not the run ${target.run}`); continue; }
+    }
     if (!published) writes.push({ rel, buf, action: 'add' });
     else if (matches(K.mutable, rel)) writes.push({ rel, buf, action: 'replace' });
     else if (matches(K.growOnly, rel)) {
@@ -301,6 +311,7 @@ function checkRemoteKind(kind, remote) {
 class GitTarget {
   constructor({ remote, branch = 'main', work, run, sshKey, kind = 'evidence' }) {
     Object.assign(this, { remote, branch, work: path.resolve(work), run, sshKey, kind, K: kindOf(kind) });
+    this.key = `git:${this.work}`;
     this.env = { ...process.env, GIT_TERMINAL_PROMPT: '0' };
     if (sshKey) this.env.GIT_SSH_COMMAND = `ssh -i "${sshKey}" -o IdentitiesOnly=yes -o BatchMode=yes`;   // the path only; never opened here
   }
@@ -418,7 +429,7 @@ class GitTarget {
 
 /** The same API over <dir>/<run>/, for tests and local runs: atomic writes, no history. */
 class DirTarget {
-  constructor({ dir, run }) { this.dir = path.resolve(dir); this.run = run; this.dirty = 0; }
+  constructor({ dir, run }) { this.dir = path.resolve(dir); this.run = run; this.dirty = 0; this.key = `dir:${this.dir}`; }
   open() { fs.mkdirSync(path.join(this.dir, this.run), { recursive: true }); }
   published(rel) {
     try { return fs.readFileSync(path.join(this.dir, this.run, rel)); } catch (e) { if (e.code === 'ENOENT') return null; throw e; }
@@ -436,10 +447,14 @@ class DirTarget {
   push() { return false; }
 }
 
+/** When this process last committed a verifier status.json, per target and run (--status-every). */
+const statusCommittedAt = new Map();
+
 /**
  * One publication tick.
- * @param {object} o  {kind='evidence', feed, run, remote|dir|target, branch='main', work, sshKey, now=Date.now}
- * @returns {{phase1: string[], phase2: string[], skipped: string[], pushed: boolean, waited?: string}}
+ * @param {object} o  {kind='evidence', feed, run, remote|dir|target, branch='main', work, sshKey, now=Date.now,
+ *                     statusEvery (verifier-log only: seconds between commits that change only status.json)}
+ * @returns {{phase1: string[], phase2: string[], skipped: string[], pushed: boolean, deferred?: string[], waited?: string}}
  */
 function publishOnce(o) {
   const kind = o.kind || 'evidence';
@@ -447,11 +462,13 @@ function publishOnce(o) {
   if (typeof o.run !== 'string' || !RUN_RE.test(o.run)) throw new UsageError(`run must match ${RUN_RE} (got ${JSON.stringify(o.run)})`);
   if (['remote', 'dir', 'target'].filter((k) => o[k] != null).length !== 1) throw new UsageError('give exactly one of remote, dir or target');
   if (!o.feed) throw new UsageError('feed directory is required');
+  if (o.statusEvery != null && kind !== 'verifier-log') throw new UsageError('statusEvery applies to the verifier log only');
   if (o.remote != null) checkRemoteKind(kind, o.remote);
   const target = o.target || (o.dir != null
     ? new DirTarget({ dir: o.dir, run: o.run })
     : new GitTarget({ remote: o.remote, branch: o.branch || 'main', work: o.work || path.join('ops-state', `${kind}-repo`), run: o.run, sshKey: o.sshKey, kind }));
-  const at = new Date((o.now || Date.now)()).toISOString();
+  const nowMs = (o.now || Date.now)();
+  const at = new Date(nowMs).toISOString();
 
   target.open();
   let pushed = target.push();                                          // a push that failed on an earlier tick
@@ -465,13 +482,25 @@ function publishOnce(o) {
   const p1 = check(snap.files, target, kind), p2 = check(snap.pending, target, kind);
   if (p1.problems.length || p2.problems.length) throw new IntegrityError([...p1.problems, ...p2.problems]);
 
+  /* the verifier log: a status.json change alone waits --status-every seconds; any .jsonl change
+     commits at once, together with the current status (DV-8: status.json is replaced) */
+  let writes1 = p1.writes, deferred = [];
+  const statusKey = `${kind}|${o.run}|${target.key || ''}`;
+  if (kind === 'verifier-log' && o.statusEvery > 0 && writes1.length && writes1.every((w) => w.rel === 'status.json')) {
+    const last = statusCommittedAt.get(statusKey);
+    if (last != null && nowMs - last < o.statusEvery * 1000) { deferred = ['status.json']; writes1 = []; }
+  }
+
   /* phase 1: everything except proposals */
-  for (const w of p1.writes) target.write(w.rel, w.buf);
-  const phase1 = p1.writes.map((w) => w.rel);
+  for (const w of writes1) target.write(w.rel, w.buf);
+  const phase1 = writes1.map((w) => w.rel);
   const msg1 = kind === 'evidence'
     ? (n) => `feed ${at} · head ${snap.head || '—'} · ${n} file(s)`
     : () => `log ${at} · ${phase1.join(', ') || 'root files'}`;
-  if (target.commit(msg1)) pushed = target.push() || pushed;
+  if (target.commit(msg1)) {
+    if (phase1.includes('status.json')) statusCommittedAt.set(statusKey, nowMs);
+    pushed = target.push() || pushed;
+  }
 
   /* phase 2: a proposal only once its batch (and its raw lines) are on the remote */
   let phase2 = [];
@@ -488,14 +517,14 @@ function publishOnce(o) {
     phase2 = writes.map((w) => w.rel);
     if (target.commit(() => `proposal ${at} · ${phase2.map((r) => path.basename(r, '.xdr')).join(', ')}`)) pushed = target.push() || pushed;
   }
-  return { phase1, phase2, skipped: snap.skipped, pushed };
+  return { phase1, phase2, skipped: snap.skipped, pushed, deferred };
 }
 
-const USAGE = 'usage: node ops/publish-feed.js --kind evidence|verifier-log --feed <dir> --run <name> (--remote <git URL> [--branch main] [--work <dir>] [--ssh-key <path>] | --dir <dir>) [--interval 120] [--once]';
+const USAGE = 'usage: node ops/publish-feed.js --kind evidence|verifier-log --feed <dir> --run <name> (--remote <git URL> [--branch main] [--work <dir>] [--ssh-key <path>] | --dir <dir>) [--interval 120] [--status-every <s> (verifier-log)] [--once]';
 
 /** Parse and validate the command line; throws UsageError (exit 2) before any git command. */
 function parseArgs(argv) {
-  const VALUES = ['--kind', '--feed', '--run', '--remote', '--branch', '--work', '--ssh-key', '--dir', '--interval'];
+  const VALUES = ['--kind', '--feed', '--run', '--remote', '--branch', '--work', '--ssh-key', '--dir', '--interval', '--status-every'];
   const a = {};
   let once = false;
   for (let i = 0; i < argv.length; i++) {
@@ -515,12 +544,18 @@ function parseArgs(argv) {
   if (a['--dir'] != null && ['--branch', '--work', '--ssh-key'].some((k) => a[k] != null)) throw new UsageError('--branch, --work and --ssh-key go with --remote');
   const interval = Number(a['--interval'] ?? 120);
   if (!(interval > 0)) throw new UsageError('--interval must be a positive number of seconds');
+  let statusEvery;
+  if (a['--status-every'] != null) {
+    if (kind !== 'verifier-log') throw new UsageError('--status-every goes with --kind verifier-log');
+    statusEvery = Number(a['--status-every']);
+    if (!(statusEvery >= 0)) throw new UsageError('--status-every must be a number of seconds');
+  }
   if (a['--remote'] != null) checkRemoteKind(kind, a['--remote']);
   return {
     kind, feed: path.resolve(a['--feed']), run: a['--run'],
     remote: a['--remote'], branch: a['--branch'] || 'main', work: path.resolve(a['--work'] || path.join('ops-state', `${kind}-repo`)), sshKey: a['--ssh-key'],
     dir: a['--dir'] != null ? path.resolve(a['--dir']) : undefined,
-    interval, once,
+    interval, once, statusEvery,
   };
 }
 

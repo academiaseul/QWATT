@@ -41,9 +41,13 @@ whose raw file is not published does not verify (`batch.raw_missing`).
 
 | Path | Written by | Content | Once published |
 |---|---|---|---|
-| `decisions.jsonl` | verifier (`anchor/verifier.js`) | one line per decision, signed or refused (written by the verifier from V3-7b on) | grows only |
-| `refusals.jsonl` | verifier | one line per refusal: `at`, `batch_id`, `pending_tx_hash`, `reasons`, `detail` | grows only |
-| `status.json` | verifier | the verifier's last tick: `started_at`, `last_tick`, `last_result`, `signed`, `refused` | replaced (deviation DV-8, for the founders to sign) |
+| `decisions.jsonl` | verifier (`anchor/verifier.js`) | one line per decision, once per decision, batch and proposal: `at`, `batch_id`, `seq`, `batch_sha256` (the batch-ledger hash judged), `decision` (`signed` or `refused`), `pending_tx_hash` (the proposal's transaction hash; for `signed`, the anchoring transaction's hash on Horizon, logged before the submission), `reasons` (empty when signed), `detail` | grows only |
+| `refusals.jsonl` | verifier | one line per refusal of a proposal: `at`, `batch_id`, `pending_tx_hash`, `reasons`, `detail`; each is also a `refused` line in `decisions.jsonl` | grows only |
+| `status.json` | verifier | the verifier's last tick: `started_at`, `last_tick`, `last_result`, `feed` (the evidence feed it judges, ending in `/<run>`), `signed` and `refused` (counted from the two logs, so a restart never resets them) | replaced at most every 5 minutes when nothing else changed; a new decision is published at once, with the current status (deviation DV-8, for the founders to sign) |
+
+A `status.json` whose `feed` does not end in `/<run>` is never published: that state directory
+judged another run. The watchdog (`ops/watch.js --verifier-log`) takes its heartbeat from
+`status.json` and counts refusals from the lines of `refusals.jsonl`.
 
 ## The rules every commit keeps
 

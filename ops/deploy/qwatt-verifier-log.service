@@ -1,5 +1,6 @@
 # Verifier host ONLY — publishes the verifier's state directory to github.com/academiaseul/qwatt-verifier-log, main, <run>/
-# (decisions.jsonl and refusals.jsonl only grow; status.json is replaced). It shares no key and no file with the proposer host.
+# (decisions.jsonl and refusals.jsonl only grow; status.json is replaced, at most every 5 minutes when nothing else changed).
+# It shares no key and no file with the proposer host.
 [Unit]
 Description=QWATT verifier log publisher (qwatt-verifier-log)
 After=network-online.target
@@ -9,7 +10,7 @@ Wants=network-online.target
 User=qwatt
 WorkingDirectory=/opt/qwatt
 # The deploy key is a file on this host only (qwatt-verifier-log, write access, nothing else); its path is passed to ssh, never read here.
-ExecStart=/usr/bin/node ops/publish-feed.js --kind verifier-log --feed /var/lib/qwatt/verifier --run ${QWATT_RUN} --remote git@github.com:academiaseul/qwatt-verifier-log.git --branch main --work /var/lib/qwatt/verifier-log-repo --ssh-key /home/qwatt/.ssh/qwatt-verifier-log --interval 60
+ExecStart=/usr/bin/node ops/publish-feed.js --kind verifier-log --feed /var/lib/qwatt/verifier --run ${QWATT_RUN} --remote git@github.com:academiaseul/qwatt-verifier-log.git --branch main --work /var/lib/qwatt/verifier-log-repo --ssh-key /home/qwatt/.ssh/qwatt-verifier-log --interval 60 --status-every 300
 # QWATT_RUN: the same run name the proposer host publishes under
 EnvironmentFile=/etc/qwatt/verifier-log.env
 Restart=always
