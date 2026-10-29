@@ -86,7 +86,9 @@ for e in $ENVS; do
 done
 
 check AT-19 "GitHub's host key pinned for qwatt (published ED25519 fingerprint)" sh -c "ssh-keygen -lf $QHOME/.ssh/known_hosts | grep -q 'SHA256:+DiY3wvvV6TuJJhbpZisF/zLDA0zPMSvHdkr4UvCOqU'"
-check AT-20 "deploy key $DEPLOY_KEY exists, private file 600 owned by qwatt" sh -c "[ \"\$(stat -c %a:%U $QHOME/.ssh/$DEPLOY_KEY)\" = 600:qwatt ] && [ -s $QHOME/.ssh/$DEPLOY_KEY.pub ]"
+dk=$(stat -c %a:%U "$QHOME/.ssh/$DEPLOY_KEY" 2>/dev/null || echo missing)
+if [ "$dk" = 600:qwatt ] && [ -s "$QHOME/.ssh/$DEPLOY_KEY.pub" ]; then pass AT-20 "deploy key $DEPLOY_KEY exists, private file 600 owned by qwatt"
+else fail AT-20 "deploy key $DEPLOY_KEY: private file is $dk (must be 600:qwatt), .pub $( [ -s "$QHOME/.ssh/$DEPLOY_KEY.pub" ] && echo present || echo missing)"; fi
 check AT-21 "the other host's deploy key ($OTHER_KEY) is NOT here" sh -c "[ ! -e $QHOME/.ssh/$OTHER_KEY ]"
 greet=$(sudo -u qwatt ssh -i "$QHOME/.ssh/$DEPLOY_KEY" -o IdentitiesOnly=yes -o BatchMode=yes -o ConnectTimeout=15 -T git@github.com 2>&1 || true)
 if echo "$greet" | grep -q "Hi academiaseul/$DEPLOY_KEY!"; then pass AT-22 "GitHub greets the deploy key as academiaseul/$DEPLOY_KEY"
