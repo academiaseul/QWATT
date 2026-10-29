@@ -230,6 +230,25 @@ test('V3-9: a run\'s feed reconciles with what its faults.json publishes: label 
   eq(rep.summary.signatures.normal, anchors.length, 'every anchor is proposer + verifier');
 });
 
+/* ───────────── week 2 (V3-9.3, FD-14): batch ids on screen need a site_id that names no place ───────────── */
+
+test('FD-14: the live run\'s site_id is the neutral qwatt-chispa-01, so faults.json, index.json and every batch id carry it and no place name', async () => {
+  eq(run.SITE_ID, 'qwatt-chispa-01', 'live/run.js SITE_ID');
+  const { Feed } = require('../batch/feed');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 3, speed: 'fast', log: quiet, stopAtMs: START + 3 * 3600e3, signers: SIGNERS });
+  eq(readDef(dir).site_id, 'qwatt-chispa-01', 'faults.json site_id');
+  assert(!/santiago/i.test(readDef(dir).description || ''), `the published run description names no city: ${readDef(dir).description}`);
+  const f = new Feed(dir);
+  eq(f.readIndex().site_id, 'qwatt-chispa-01', 'index.json site_id');
+  const listed = f.readLedger('batches');
+  assert(listed.length >= 2, `a few batches (${listed.length})`);
+  listed.forEach((e) => eq(e.batch_id, 'qwatt-chispa-01-' + String(e.seq).padStart(6, '0'), `batch ${e.seq} id`));
+  const names = fs.readdirSync(path.join(dir, 'batches')).concat(fs.existsSync(path.join(dir, 'raw')) ? fs.readdirSync(path.join(dir, 'raw')) : []);
+  assert(names.length > 0 && names.every((n) => n.startsWith('qwatt-chispa-01-')), `every batch and raw file is named after the neutral site: ${names.join(' ')}`);
+  assert(!/santiago/i.test(names.join(' ')), 'no public file name names the bench city');
+});
+
 test('the audit ties every published raw payload to a row of a published samples file, on accepted and refused lines alike', async () => {
   const dir = tmp();
   await runLive({ feedDir: dir, days: 2, startMs: START, seed: 20261103, speed: 'fast', log: quiet });   // two days: the first fault, F01, is on day 2

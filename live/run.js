@@ -46,7 +46,9 @@ const csv = require('../ingest/adapters/csv');
 const { Pipeline } = require('../batch/pipeline');
 const R = require('../assets/qwatt-reconcile.js');
 
-const SITE_ID = 'bench-santiago';
+/* FD-14 (name chosen 27 Oct): a neutral site name. It is in faults.json, index.json and every batch id
+   (qwatt-chispa-01-000000, …), which the reconciliation page shows, so it names no place. */
+const SITE_ID = 'qwatt-chispa-01';
 const NODE_ID = 'live-sim';
 const DT_MS = 300 * 1000;
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
@@ -59,7 +61,7 @@ function writeAtomic(file, text) {
 
 /** How faults.json describes the run: the speed actually used, never "real-time" for an accelerated run. */
 function describeRun(days, speed) {
-  const rig = 'simulated Phase 1 bench rig (150 Wp, two DC meters, Santiago)';
+  const rig = 'simulated Phase 1 bench rig (150 Wp, two DC meters)';
   const then = 'Each fault window below must appear in ledger/rejected.jsonl with one of its expected reasons.';
   if (speed === 'realtime') return `QWATT ${days === 7 ? 'seven-day' : `${days}-day`} live run: ${rig} replayed through the CSV adapter at real-time pace. ${then}`;
   const pace = speed === 'fast' ? 'as fast as possible (fast mode)' : `at ${speed}× real-time speed`;
