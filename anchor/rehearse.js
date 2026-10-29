@@ -77,13 +77,15 @@ function makeBatches() {
   const iv = (i) => {
     const t = T0 + i * DT * 1000;
     const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
-    return {
+    const rec = {
       spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION,
       site_id: 'rehearsal', node_id: 'rehearsal', seq: i,
       ts_start: new Date(t).toISOString(), ts_end: new Date(t + DT * 1000).toISOString(), dt_s: DT,
       meters: { a: m('pzem-017:1', 100), b: m('epever-tracer:2', 99) },
       source: { adapter: 'simulator', raw_sha256: E.sha256('rehearsal-' + i) },
     };
+    /* the raw payload its raw_sha256 hashes, out of band as the IntervalBuilder attaches it (V3-5) */
+    return Object.defineProperty(rec, E.RAW, { value: [{ n: 1, utf8: 'rehearsal-' + i }], enumerable: false });
   };
   const a = new BatchAssembler({ site_id: 'rehearsal', node_id: 'rehearsal' });
   const out = [];

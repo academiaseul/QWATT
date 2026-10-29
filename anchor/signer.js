@@ -12,8 +12,8 @@
  * byte-identical, and exactly one signature was added, by the identity's key
  * (resolved once with `stellar keys address <identity>`). `--sign-with-key`
  * also accepts a raw secret or a seed phrase, so the identity is checked to be
- * a name before anything runs; a secret never enters argv. Browser and device
- * signing (`--sign-with-lab`, `--sign-with-ledger`) are never used.
+ * a name before anything runs; a secret never enters argv. stellar-cli's browser
+ * and hardware-device signing modes are never used.
  *
  * The three command forms used here (`keys address <id>`, `tx sign` with the XDR
  * on stdin and no RPC URL, `version --only-version`) are taken from stellar-cli's
@@ -99,6 +99,7 @@ function cliSigner({ identity, passphrase, command = 'stellar', commandArgs = []
   return {
     kind: 'stellar-cli',
     identity,
+    passphrase,
     publicKey: null,
     async init() {
       const out = (await cli(['keys', 'address', identity])).trim();

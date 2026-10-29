@@ -141,6 +141,74 @@ test('no tracked text file holds a valid Stellar secret seed (checksum-verified;
   eq(found.length, 0, `tracked files holding a secret seed: ${JSON.stringify(found)}`);
 });
 
+/* ── operator docs (V3-8b, DOC-OD2) ─────────────────────────────────────────── */
+
+/** The pinned stellar-cli release (decision D-2): every holder and host uses it. */
+const STELLAR_CLI_PIN = 'stellar-cli 28.1.0';
+const OPERATOR_DOCS = ['docs/RUNBOOK.md', 'docs/FOUNDER-CHECKLIST.md', ...(exists('docs/THIRD-SIGNER.md') ? ['docs/THIRD-SIGNER.md'] : [])];
+const BROWSER_RE = /laboratory\.stellar\.org|lab\.stellar\.org|sign-with-lab|Stellar Laboratory|Freighter/i;
+
+test('no tool or operator doc sends a key holder to a browser', () => {
+  const opsCode = [];
+  const walk = (dir) => { for (const n of fs.readdirSync(path.join(ROOT, dir))) { const r = `${dir}/${n}`; if (fs.statSync(path.join(ROOT, r)).isDirectory()) walk(r); else if (isCode(n)) opsCode.push(r); } };
+  walk('ops');
+  const files = [...filesIn('anchor', isCode), 'anchor/README.md', ...opsCode, ...filesIn('ops/deploy', () => true), ...OPERATOR_DOCS];
+  const found = hits(files, BROWSER_RE);
+  eq(found.length, 0, `a browser or wallet signing path: ${JSON.stringify(found, null, 1)}`);
+});
+
+test('operator docs name the pinned stellar-cli version and keep secrets out of env files', () => {
+  assert(read('docs/RUNBOOK.md').includes(STELLAR_CLI_PIN), `the runbook names ${STELLAR_CLI_PIN}`);
+  const env = hits(['docs/RUNBOOK.md', 'docs/FOUNDER-CHECKLIST.md'], /QWATT_(PROPOSER|VERIFIER)_SECRET/);
+  eq(env.length, 0, `a secret in an environment variable: ${JSON.stringify(env, null, 1)}`);
+  const docs = [...filesIn('docs', (n) => n.endsWith('.md')), 'anchor/README.md', 'README.md'];
+  const inline = hits(docs, /--sign-with-key\s+["']?S[A-Z2-7]{10,}/);
+  eq(inline.length, 0, `a secret passed to --sign-with-key: ${JSON.stringify(inline)}`);
+});
+
+test('the treasury holder funds the account only through setup-account.js fund-submit, which checks the envelope before stellar-cli signs', () => {
+  for (const f of ['docs/RUNBOOK.md', 'docs/FOUNDER-CHECKLIST.md']) {
+    assert(/setup-account\.js fund-submit funding\.xdr --account [^`]*--sign-with-key qwatt-treasury/.test(read(f)), `${f} sends the treasury holder to fund-submit`);
+    const unchecked = hits([f], /capture\.js submit funding|stellar tx sign[^|]*qwatt-treasury/);
+    eq(unchecked.length, 0, `${f}: a path that signs the funding envelope without checking it: ${JSON.stringify(unchecked)}`);
+  }
+});
+
+test('the runbook and founder checklist no longer describe a 2/2/2 two-signer fallback', () => {
+  /* the freeze documents are excluded: they are the signed record (the founders add a dated note there) */
+  const found = hits(['docs/RUNBOOK.md', 'docs/FOUNDER-CHECKLIST.md'], /2\/2\/2/);
+  eq(found.length, 0, `2/2/2 fallback text: ${JSON.stringify(found, null, 1)}`);
+});
+
+test('the runbook and founder checklist follow the week-2 plan: hosts, keys and the third signer\'s public key by Wed 28 Oct, not Days 15–19', () => {
+  const runbook = read('docs/RUNBOOK.md'), checklist = read('docs/FOUNDER-CHECKLIST.md');
+  assert(!/Days 15[–-]19/.test(runbook), 'the runbook\'s one-time setup is no longer dated Days 15–19');
+  assert(!/^## By Day 1[58]\b/m.test(checklist), 'the checklist no longer puts the hosts and the third signer at Days 15–18');
+  assert(/^##.*\b(Tue 27|Wed 28) Oct\b/m.test(checklist), 'the checklist has a week-2 deadline');
+  const row4 = checklist.split(/\r?\n/).find((l) => /^\| 4 \|/.test(l)) || '';
+  assert(/THIRD-SIGNER\.md/.test(row4) && /stellar-cli/.test(row4), `row 4 points the third signer to docs/THIRD-SIGNER.md: ${row4}`);
+});
+
+test('the third signer\'s brief exists, names no one, uses stellar-cli and sends only the public key', () => {
+  assert(exists('docs/THIRD-SIGNER.md'), 'docs/THIRD-SIGNER.md exists (checklist row 4 points to it)');
+  const t = read('docs/THIRD-SIGNER.md');
+  for (const s of [STELLAR_CLI_PIN, 'stellar keys generate qwatt-third', 'stellar keys address qwatt-third', 'proposer + third']) assert(t.includes(s), `the brief says ${s}`);
+  assert(/only (the|that|your) (public key|G… line)/i.test(t), 'only the public key is sent');
+  assert(!/\b(Jay|Diego|Kim|Ostertag)\b/.test(t), 'no name in it: it is sent to the off-team signer, who stays unnamed');
+  eq(seedsIn(t).length, 0, 'no secret seed');
+});
+
+test('the runbook has the backup drill (V3-8c): restored identities sign a throwaway transaction with keys.js before the real account exists, and each host runs keys.js check, with the identity store closed to others', () => {
+  const runbook = read('docs/RUNBOOK.md');
+  const at = runbook.search(/^## Backup drill \(once, before the freeze\)/m);
+  assert(at >= 0, 'section "Backup drill (once, before the freeze)"');
+  const drill = runbook.slice(at, runbook.indexOf('\n## ', at + 1) < 0 ? undefined : runbook.indexOf('\n## ', at + 1));
+  for (const s of ['keys.js drill-xdr', 'keys.js drill-submit', '-restored', 'stellar keys rm', 'stellar.expert']) assert(drill.includes(s), `the drill section says ${s}`);
+  assert(/keys\.js check --sign-with-key qwatt-proposer/.test(runbook) && /keys\.js check --sign-with-key qwatt-verifier/.test(runbook), 'each host checks its identity with keys.js check');
+  assert(exists('anchor/keys.js'), 'anchor/keys.js exists');
+  assert(/chmod -R go-rwx ~qwatt\/\.config\/stellar/.test(runbook), 'the identity store is closed to group and others, its files included (directory 700, files 600, as keys.js check expects)');
+});
+
 (async () => {
   console.log('\nkey policy (V3-8)');
   for (const t of tests) {

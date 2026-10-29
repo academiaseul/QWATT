@@ -27,8 +27,8 @@ function test(name, fn) { tests.push({ name, fn }); }
 function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
 function eq(a, b, w) { assert(a === b, `${w}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
-/* V3-5 carries each interval's raw payloads out of band under this registered symbol. It is
-   non-enumerable, so today's pipeline ignores it; once V3-5 lands, these intervals pass its door. */
+/* V3-5 carries each interval's raw payloads out of band under this registered symbol (non-enumerable,
+   so it never enters the record's canonical JSON). The pipeline's door requires them. */
 const RAW = Symbol.for('qwatt.raw_payloads');
 const DT = 300, T0 = Date.parse('2026-09-20T15:00:00Z');
 const iv = (i) => {
@@ -350,6 +350,54 @@ test('the verifier log publishes only decisions.jsonl, refusals.jsonl and status
   eq(count(remote), n, 'nothing pushed');
 });
 
+test('verifier log: a change to status.json alone is committed at most every --status-every seconds (exactly at the boundary), a new decision is committed at once, and a state directory from another run is refused', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-vlog-'));
+  roots.push(root);
+  const remote = bare(path.join(root, 'qwatt-verifier-log.git'));
+  const state = path.join(root, 'state');
+  fs.mkdirSync(state);
+  const T = Date.parse('2026-10-28T10:00:00Z');
+  const clock = { t: T };
+  const status = (s, feed = 'https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/run') => JSON.stringify({ started_at: new Date(T).toISOString(), last_tick: new Date(T + s * 1000).toISOString(), last_result: { action: 'idle' }, feed, signed: 1, refused: 0 }, null, 2) + '\n';
+  const at = (s, write = true) => { clock.t = T + s * 1000; if (write) fs.writeFileSync(path.join(state, 'status.json'), status(s)); };
+  fs.writeFileSync(path.join(state, 'decisions.jsonl'), '{"batch_id":"b-000000","decision":"signed"}\n');
+  const o = { kind: 'verifier-log', feed: state, run: 'run', remote, branch: 'main', work: path.join(root, 'work'), statusEvery: 300, now: () => clock.t };
+  at(0); PF.publishOnce(o);
+  eq(count(remote), 1, 't=0: first publication');
+  at(60);
+  const r60 = PF.publishOnce(o);
+  eq(count(remote), 1, 't=60: a status change alone waits');
+  assert(!r60.phase1.includes('status.json'), 'not written');
+  eq(show(remote, 'run/status.json').toString(), status(0), 'the remote keeps the last committed status');
+  at(120);
+  fs.appendFileSync(path.join(state, 'decisions.jsonl'), '{"batch_id":"b-000001","decision":"signed"}\n');
+  PF.publishOnce(o);
+  eq(count(remote), 2, 't=120: a new decision commits at once');
+  eq(git(['--git-dir', remote, 'diff-tree', '--no-commit-id', '--name-only', '-r', 'main']).trim().split('\n').join(','), 'run/decisions.jsonl,run/status.json', 'together with the current status');
+  eq(show(remote, 'run/status.json').toString(), status(120), 'current status published');
+  at(400); PF.publishOnce(o);
+  eq(count(remote), 2, 't=400: 280 s after the last status commit, it waits');
+  at(419); PF.publishOnce(o);
+  eq(count(remote), 2, 't=419: 299 s after, it still waits');
+  at(420); PF.publishOnce(o);
+  eq(count(remote), 3, 't=420: exactly 300 s after, it commits');
+  eq(show(remote, 'run/status.json').toString(), status(420), 'the status at t=420');
+  /* a state directory that judged another run is refused, even one whose name ends like this run's */
+  clock.t = T + 900e3;
+  for (const other of ['rehearsal-2026-10-27', 'rerun']) {
+    fs.writeFileSync(path.join(state, 'status.json'), status(900, `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/${other}`));
+    const e = throwsIntegrity(() => PF.publishOnce(o));
+    assert(e.problems.some((p) => p.includes('run/status.json') && p.includes(`/main/${other}`)), `${other}: ${JSON.stringify(e.problems)}`);
+    eq(count(remote), 3, `${other}: nothing pushed`);
+  }
+  /* the CLI takes --status-every for the verifier log only */
+  fs.writeFileSync(path.join(state, 'status.json'), status(900));
+  const cli = (...args) => spawnSync(process.execPath, [path.join(__dirname, 'publish-feed.js'), ...args], { encoding: 'utf8', timeout: 120e3 });
+  const out = path.join(root, 'site');
+  eq(cli('--kind', 'verifier-log', '--feed', state, '--run', 'run', '--dir', out, '--status-every', '300', '--once').status, 0, '--status-every with the verifier log');
+  eq(cli('--kind', 'evidence', '--feed', state, '--run', 'run', '--dir', out, '--status-every', '300', '--once').status, 2, '--status-every with evidence is a usage error');
+});
+
 test('a local-directory target applies the same rules (tests and local runs)', () => {
   const w = setup();
   w.add(12);
@@ -403,6 +451,33 @@ test('forward-compatible with V3-5: a listed batch that carries samples_root is 
   target.isPushed = (rel) => !rel.startsWith('raw/') && inner.isPushed(rel);   // the batch is out, its raw file not yet
   const r3 = PF.publishOnce({ kind: 'evidence', feed: w2.feed, run: 'run', target });
   eq(JSON.stringify(r3.phase2), '[]', 'the proposal waits for the raw file on the remote');
+});
+
+/* V3-5's publisher test, carried onto this publisher at integration: the pipeline itself writes the
+   raw file and the batch's samples_root (nothing hand-made), and the published copy re-derives. */
+test('a pending proposal is published only once its batch and its raw file are both in the published tree (the pipeline\'s own raw file and samples_root)', () => {
+  const w = setup();
+  w.add(12);
+  const raw = w.f('raw', 'pub-000000.jsonl');
+  assert(fs.existsSync(raw), 'the pipeline wrote the raw file');
+  const keep = fs.readFileSync(raw);
+  const batch = JSON.parse(fs.readFileSync(w.f('batches', 'pub-000000.json'), 'utf8'));
+  eq(batch.samples_root, E.samplesRoot(keep.toString('utf8').trim().split('\n').map((l) => JSON.parse(l))), 'the batch\'s samples_root is the root of its raw file');
+  fs.unlinkSync(raw);                                                   // as if the tick listed raw/ before the file landed
+  fs.mkdirSync(w.f('pending'), { recursive: true });
+  fs.writeFileSync(w.f('pending', 'pub-000000.xdr'), 'XDR\n');
+  const r = PF.publishOnce(w.o);
+  eq(r.phase2.length, 0, 'held back without its raw file');
+  assert(!tree(w.remote).some((p) => p === 'run/batches/pub-000000.json' || p === 'run/pending/pub-000000.xdr'), `neither the batch nor its proposal on the remote: ${tree(w.remote).join(', ')}`);
+  fs.writeFileSync(raw, keep);
+  const r2 = PF.publishOnce(w.o);
+  assert(r2.phase1.includes('raw/pub-000000.jsonl') && r2.phase1.includes('batches/pub-000000.json'), `the raw file with its batch in phase 1: ${r2.phase1}`);
+  eq(JSON.stringify(r2.phase2), JSON.stringify(['pending/pub-000000.xdr']), 'then the proposal');
+  assert(show(w.remote, 'run/raw/pub-000000.jsonl').equals(keep), 'the raw file published byte for byte');
+  const clone = path.join(w.root, 'clone');
+  git(['clone', '--quiet', '--branch', 'main', w.remote, clone]);
+  const out = verifyFeed(path.join(clone, 'run'));
+  assert(out.ok, `the published run re-derives, samples_root included: ${out.problems.join(' | ')}`);
 });
 
 test('the history audit passes the publisher\'s history and names every rewrite, deletion, shrink, merge and early proposal; --since catches a force-push', () => {
@@ -698,6 +773,27 @@ test('the CLI requires --kind, --run and exactly one of --remote/--dir; a bad ru
   const r = cli('--kind', 'evidence', '--feed', w.feed, '--run', 'run', '--dir', out, '--once');
   eq(r.status, 1, 'a refusal under --once exits 1');
   assert(/PUBLISH REFUSED \(nothing pushed\)/.test(r.stderr) && r.stderr.includes('run/batches/pub-000000.json'), `refusal reported on stderr: ${r.stderr}`);
+});
+
+test('the deploy template makes the operator choose the run name: QWATT_RUN is a rehearsal placeholder the publisher refuses until it is replaced, never the live run\'s `run`, and every URL carries the same name', () => {
+  const tpl = fs.readFileSync(path.join(__dirname, 'deploy', 'env.example'), 'utf8').replace(/\r\n/g, '\n');
+  const values = (k) => tpl.split('\n').filter((l) => l.startsWith(`${k}=`)).map((l) => l.slice(k.length + 1));
+  const runs = values('QWATT_RUN');
+  eq(runs.length, 2, 'QWATT_RUN in publish.env and in verifier-log.env');
+  for (const v of runs) {
+    assert(v !== 'run', 'the template never defaults to the live run\'s name: a rehearsal published as `run` takes that directory for good (the public history is never rewritten)');
+    eq(v, 'rehearsal-YYYY-MM-DD', 'the placeholder names the rehearsal pattern (V3-7 D1)');
+    assert(!PF.RUN_RE.test(v), `the placeholder is not a valid run name, so a template copied unchanged cannot publish: ${v}`);
+  }
+  const w = setup();
+  const cli = spawnSync(process.execPath, [path.join(__dirname, 'publish-feed.js'), '--kind', 'evidence', '--feed', w.feed, '--run', runs[0], '--dir', path.join(w.root, 'site'), '--once'], { encoding: 'utf8', timeout: 60e3 });
+  eq(cli.status, 2, `qwatt-publish with the placeholder exits 2 at start (${cli.stderr.trim()})`);
+  const urls = [...values('QWATT_FEED_URL'), ...values('QWATT_VERIFIER_LOG_URL')];
+  eq(urls.length, 3, 'the feed URL in verifier.env and watch.env, the log URL in watch.env');
+  for (const u of urls) assert(u.endsWith(`/main/${runs[0]}`), `the URL names the same run: ${u}`);
+  assert(/public history is never rewritten/.test(tpl) && /`run` is only for the seven-day live run/.test(tpl) && /rehearsal-2026-10-29/.test(tpl), 'the comment says why: run vs rehearsal, and a published name can never be reused');
+  const rb = fs.readFileSync(path.join(__dirname, '..', 'docs', 'RUNBOOK.md'), 'utf8');
+  assert(/env\.example` carries the placeholder `rehearsal-YYYY-MM-DD`/.test(rb), 'the RUNBOOK says what the template carries');
 });
 
 (async () => {

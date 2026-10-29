@@ -30,16 +30,26 @@ function assert(c, m) { if (!c) throw new Error(m || 'assertion failed'); }
 function eq(a, b, w) { assert(a === b, `${w}: expected ${JSON.stringify(b)}, got ${JSON.stringify(a)}`); }
 
 const DT = 300, T0 = Date.parse('2026-09-20T15:00:00Z');
+/** samples_root by hand (freeze v3 V3-5), independent of protocol/evidence.js: SHA-256 of each payload's bytes, then the intervals_root pairing. */
+const RAW = Symbol.for('qwatt.raw_payloads');
+function refSamplesRoot(lines) {
+  const crypto = require('crypto');
+  let level = lines.flatMap((l) => l.payloads.map((p) => crypto.createHash('sha256').update(p.hex != null ? Buffer.from(p.hex, 'hex') : Buffer.from(p.utf8, 'utf8')).digest('hex')));
+  if (!level.length) return E.EMPTY_ROOT;
+  while (level.length > 1) { const next = []; for (let i = 0; i < level.length; i += 2) next.push(E.sha256(level[i] + (level[i + 1] ?? level[i]))); level = next; }
+  return level[0];
+}
 function iv(i, o = {}) {
   const t = T0 + i * DT * 1000;
   const m = (id, w) => ({ id, class: 'dc', mwh: Math.round(w * 1000 * DT / 3600), mw_mean: w * 1000, samples: 30 });
-  return {
+  const rec = {
     spec_version: V.SPEC.spec_version, schema_version: V.INTERVAL_SCHEMA_VERSION,
     site_id: 'rec', node_id: o.node_id ?? 'rec', seq: i,
     ts_start: new Date(t).toISOString(), ts_end: new Date(t + DT * 1000).toISOString(), dt_s: DT,
     meters: { a: m('a', 100), b: m('b', 99) },
     source: { adapter: 'simulator', raw_sha256: E.sha256('rec-' + i) },
   };
+  return Object.defineProperty(rec, RAW, { value: [{ n: 1, utf8: 'rec-' + i }], enumerable: false, configurable: true });
 }
 
 /** A complete world: fake chain, feed on disk served on localhost, both services. */
@@ -102,6 +112,7 @@ function nextBatch(prev, intervals, o = {}) {
     spec_version: prev.spec_version, schema_version: prev.schema_version,
     interval_count: intervals.length, accepted_count: intervals.length, rejected_count: 0,
     intervals, intervals_root: E.merkleRoot(intervals), energy_mwh: energy, cumulative_mwh: o.cumulative_mwh ?? prev.cumulative_mwh + energy, prev_hash: prev.sha256,
+    samples_root: refSamplesRoot(intervals.map((r) => ({ payloads: r[RAW] || [], seq: r.seq, ts_start: r.ts_start, verdict: 'accept' }))),
   };
   b.sha256 = E.batchSha256(b);
   return b;
@@ -274,6 +285,130 @@ test('a batch the verifier refused is never retried with the same proposal, and 
   fs.writeFileSync(f, orig);
   await w.settle(w.p, w.v);
   w.invariant();
+  /* the same proposal, refused while the feed was wrong and signed once it was restored: both decisions are logged */
+  const h = w.fake.txs[0].hash;
+  const d = jsonl(path.join(w.stateDir, 'decisions.jsonl')).map((l) => [l.decision, l.batch_id, l.pending_tx_hash]);
+  eq(JSON.stringify(d), JSON.stringify([['refused', 'rec-000000', h], ['signed', 'rec-000000', h]]), 'decisions.jsonl: refused, then signed, the same proposal');
+  await w.close();
+});
+
+/* ── the verifier's public log (freeze v3, V3-7): decisions.jsonl, refusals.jsonl, status.json ── */
+
+const jsonl = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)) : []);
+
+/** rec-000000 co-signed and anchored; rec-000001 altered after the proposer signed, judged twice. */
+async function decisionFlow() {
+  const w = await world();
+  w.addBatches(1);
+  await w.p.tick(w.clock.now());
+  const atSubmit = [];
+  const submit = w.fake.submitTransaction.bind(w.fake);
+  w.fake.submitTransaction = async (tx) => { atSubmit.push(jsonl(path.join(w.stateDir, 'decisions.jsonl'))); return submit(tx); };
+  eq((await w.v.tick(w.clock.now())).action, 'anchored', 'rec-000000 anchored');
+  w.fake.submitTransaction = submit;
+  w.addBatches(1);
+  await w.p.tick(w.clock.now());
+  forge(w, 'rec-000001', (b) => { b.energy_mwh += 1; });
+  eq((await w.v.tick(w.clock.now())).action, 'refused', 'rec-000001 refused');
+  eq((await w.v.tick(w.clock.now())).action, 'refused', 'and refused again on the next tick');
+  return { w, atSubmit };
+}
+
+test('the verifier logs every decision in decisions.jsonl, once: signed with the hash of the transaction it signed, refused with its reasons; refusals.jsonl keeps its format', async () => {
+  const { w, atSubmit } = await decisionFlow();
+  const listed = w.pipe.feed.readLedger('batches');
+  const d = jsonl(path.join(w.stateDir, 'decisions.jsonl'));
+  eq(d.length, 2, 'one line per decision, the repeated refusal logged once');
+  const [s, r] = d;
+  eq(s.decision, 'signed', 'first decision');
+  eq(s.batch_id, 'rec-000000', 'signed batch');
+  eq(s.seq, 0, 'signed seq');
+  eq(s.batch_sha256, listed[0].sha256, 'the batch-ledger sha of what it signed');
+  eq(s.pending_tx_hash, w.fake.txs[0].hash, 'the hash of the anchoring transaction, as Horizon reports it');
+  eq(JSON.stringify(s.reasons), '[]', 'no reasons');
+  eq(s.detail, null, 'no detail');
+  assert(typeof s.at === 'string' && !Number.isNaN(Date.parse(s.at)), 'time of the decision');
+  eq(atSubmit.length, 1, 'one submission');
+  assert(atSubmit[0].some((l) => l.decision === 'signed' && l.pending_tx_hash === w.fake.txs[0].hash), 'the signed decision was on disk before the transaction was submitted');
+  eq(r.decision, 'refused', 'second decision');
+  eq(r.batch_id, 'rec-000001', 'refused batch');
+  eq(r.seq, 1, 'refused seq');
+  eq(r.batch_sha256, listed[1].sha256, 'the batch-ledger sha of what it refused');
+  assert(Array.isArray(r.reasons) && r.reasons.includes('verifier.hash_mismatch'), `reasons: ${JSON.stringify(r.reasons)}`);
+  const ref = jsonl(path.join(w.stateDir, 'refusals.jsonl'));
+  eq(ref.length, 1, 'one refusal line');
+  eq(Object.keys(ref[0]).sort().join(','), 'at,batch_id,detail,pending_tx_hash,reasons', 'refusals.jsonl keeps its format');
+  eq(ref[0].pending_tx_hash, r.pending_tx_hash, 'the refusal and the decision name the same proposal');
+  await w.close();
+});
+
+test('a restarted verifier counts what its logs already hold, and status.json is replaced whole', async () => {
+  const { w } = await decisionFlow();
+  const v2 = w.mkVerifier();
+  eq(v2.status.refused, 1, 'refusals counted from refusals.jsonl before any tick');
+  eq(v2.status.signed, 1, 'signatures counted from decisions.jsonl before any tick');
+  const statusFile = path.resolve(w.stateDir, 'status.json');
+  const same = (p) => typeof p === 'string' && path.resolve(p) === statusFile;
+  const orig = { writeFileSync: fs.writeFileSync, appendFileSync: fs.appendFileSync, openSync: fs.openSync, copyFileSync: fs.copyFileSync, renameSync: fs.renameSync };
+  const direct = [], renamed = [];
+  fs.writeFileSync = function (p, ...a) { if (same(p)) direct.push('writeFileSync'); return orig.writeFileSync.call(fs, p, ...a); };
+  fs.appendFileSync = function (p, ...a) { if (same(p)) direct.push('appendFileSync'); return orig.appendFileSync.call(fs, p, ...a); };
+  fs.openSync = function (p, ...a) { if (same(p)) direct.push('openSync'); return orig.openSync.call(fs, p, ...a); };
+  fs.copyFileSync = function (s, p, ...a) { if (same(p)) direct.push('copyFileSync'); return orig.copyFileSync.call(fs, s, p, ...a); };
+  fs.renameSync = function (s, p) { if (same(p)) renamed.push(s); return orig.renameSync.call(fs, s, p); };
+  try { await v2.tick(w.clock.now()); } finally { Object.assign(fs, orig); }
+  eq(direct.join(','), '', 'status.json is never written in place');
+  eq(renamed.length, 1, 'status.json is produced by one rename');
+  assert(path.dirname(path.resolve(renamed[0])) === path.resolve(w.stateDir) && /^status\.json\.tmp-/.test(path.basename(renamed[0])), `from a temporary name the publisher never publishes: ${renamed[0]}`);
+  const st = JSON.parse(fs.readFileSync(statusFile, 'utf8'));
+  eq(st.refused, 1, 'status.json refused');
+  eq(st.signed, 1, 'status.json signed');
+  eq(st.feed, w.host.url, 'status.json names the feed it judges');
+  assert(!fs.readdirSync(w.stateDir).some((n) => n.startsWith('status.json.tmp-')), 'no temporary file left');
+  /* --port is for the operator on the verifier host: localhost only, and it serves the decisions too */
+  const srv = v2.serve(0);
+  await new Promise((r) => (srv.listening ? r() : srv.once('listening', r)));
+  try {
+    eq(srv.address().address, '127.0.0.1', '--port listens on 127.0.0.1 only');
+    const body = await (await fetch(`http://127.0.0.1:${srv.address().port}/decisions.jsonl`)).text();
+    eq(body.split('\n').filter(Boolean).length, 2, '/decisions.jsonl served');
+  } finally { await new Promise((r) => srv.close(r)); }
+  await w.close();
+});
+
+test('the signed decision is on disk before the transaction is submitted: if it cannot be written, nothing is submitted', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.p.tick(w.clock.now());
+  const dec = path.join(w.stateDir, 'decisions.jsonl');
+  fs.mkdirSync(dec);                                                   // the log cannot be appended (a full or broken disk)
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'error', 'the tick fails');
+  eq(r.reason, 'internal', 'as an internal error, not a refusal');
+  eq(w.fake.submissions, 0, 'nothing submitted');
+  eq(w.fake.txs.length, 0, 'nothing anchored');
+  fs.rmdirSync(dec);
+  await w.settle(w.p, w.v);
+  w.invariant();
+  eq(jsonl(dec).filter((l) => l.decision === 'signed').length, 1, 'logged once it can be');
+  await w.close();
+});
+
+test('a refusal whose decision line was lost in a crash between the two appends is completed on the next tick; the refusal count comes from refusals.jsonl', async () => {
+  const { w } = await decisionFlow();
+  const dec = path.join(w.stateDir, 'decisions.jsonl'), ref = path.join(w.stateDir, 'refusals.jsonl');
+  const refBefore = fs.readFileSync(ref);
+  /* the crash: refusals.jsonl got its line, decisions.jsonl did not */
+  fs.writeFileSync(dec, jsonl(dec).filter((l) => l.decision !== 'refused').map((l) => JSON.stringify(l) + '\n').join(''));
+  const v2 = w.mkVerifier();
+  eq(v2.status.refused, 1, 'refused counted from refusals.jsonl (decisions.jsonl holds none) before any tick');
+  eq((await v2.tick(w.clock.now())).action, 'refused', 'the same proposal is refused again');
+  const refused = jsonl(dec).filter((l) => l.decision === 'refused');
+  eq(refused.length, 1, 'exactly one refused decision appended');
+  eq(refused[0].pending_tx_hash, jsonl(ref)[0].pending_tx_hash, 'for the refusal already logged');
+  assert(fs.readFileSync(ref).equals(refBefore), 'refusals.jsonl unchanged: the refusal is not logged twice');
+  eq(v2.status.refused, jsonl(ref).length, 'status.refused equals the lines of refusals.jsonl');
+  eq(JSON.parse(fs.readFileSync(path.join(w.stateDir, 'status.json'), 'utf8')).refused, 1, 'and status.json says so');
   await w.close();
 });
 
@@ -540,6 +675,34 @@ test('a lagging Horizon head: whatever the verifier co-signs on a stale head car
   w.invariant();
   eq(onchainTotal(w), String(b0.energy_mwh + b1.energy_mwh), 'on-chain total = energy of the anchored batches, nothing counted twice');
   await w.close();
+});
+
+test('the verifier recomputes samples_root from the public raw file before co-signing: an edited or missing raw file is refused and the proposer blocks with the same code; restored, it anchors (batch.samples_root_mismatch, batch.raw_missing)', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    const f = path.join(w.feedDir, 'raw', 'rec-000000.jsonl');
+    assert(fs.existsSync(f), 'the raw file is published with the batch');
+    const good = fs.readFileSync(f, 'utf8');
+    const lines = good.trim().split('\n').map((l) => JSON.parse(l));
+    lines[0].payloads[0].utf8 = 'rec-forged';
+    fs.writeFileSync(f, lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
+    const p = await w.p.tick(w.clock.now());
+    eq(p.action, 'blocked', 'the proposer recomputes the root over its own feed');
+    assert((p.reasons || []).includes('batch.samples_root_mismatch'), `proposer reasons ${p.reasons}`);
+    await propose(w, w.pipe.feed.readBatch('rec-000000'));             // a proposer that signs anyway
+    const v = await w.v.tick(w.clock.now());
+    eq(v.action, 'refused', 'the verifier refuses');
+    assert(v.reasons.includes('batch.samples_root_mismatch'), `verifier reasons ${v.reasons}`);
+    fs.unlinkSync(f);
+    const gone = await w.v.tick(w.clock.now());
+    eq(gone.action, 'refused', 'no raw file, no signature');
+    assert(gone.reasons.includes('batch.raw_missing'), `verifier reasons ${gone.reasons}`);
+    eq(w.fake.txs.length, 0, 'nothing anchored');
+    fs.writeFileSync(f, good);
+    await w.settle(w.p, w.v);
+    w.invariant();
+  } finally { await w.close(); }
 });
 
 (async () => {

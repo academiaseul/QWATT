@@ -1,5 +1,5 @@
 {
-  "registry_version": "1.0.0",
+  "registry_version": "1.1.0",
   "description": "Every reason code that can appear in a published ledger, other than the gate codes (plausibility.*, nameplate.*, elevation.*, agreement.*), which are registered with their messages in gates.spec.json. A code that is emitted but not listed here fails the test suite, so the proposer, the verifier and the reconciliation page can never disagree on what a rejection means.",
   "codes": {
     "ingest.duplicate_interval": "An interval for this window was already judged; the repeat is recorded and never counted twice.",
@@ -10,11 +10,16 @@
     "ingest.spec_mismatch": "The node judged this interval under a different gate-spec version than the engine running here.",
     "ingest.schema_invalid": "The record does not validate against interval.schema.json.",
     "ingest.not_integer": "A numeric field is not a safe integer; evidence is integers only.",
+    "ingest.raw_missing": "The interval reached the door without the raw payloads it was built from; it is recorded, never counted, and the batch it falls in is unaffected.",
+    "ingest.raw_mismatch": "The raw payloads that came with the interval are malformed or do not hash to its source.raw_sha256; it is recorded, never counted, and the batch it falls in is unaffected.",
 
     "batch.schema_invalid": "The batch does not validate against batch.schema.json.",
     "batch.id_mismatch": "batch_id is not <site_id>-<seq padded to 6>.",
     "batch.hash_mismatch": "sha256 does not equal the hash of the canonical batch.",
     "batch.root_mismatch": "intervals_root does not equal the Merkle root of the contained intervals.",
+    "batch.samples_root_mismatch": "samples_root does not equal the Merkle root recomputed from the published raw/<batch_id>.jsonl.",
+    "batch.raw_mismatch": "The published raw/<batch_id>.jsonl does not match the batch: malformed, not one line per judged interval in time order, or an accepted or gate-refused interval whose payloads are missing or do not hash to its source.raw_sha256.",
+    "batch.raw_missing": "The raw payload file raw/<batch_id>.jsonl is not published next to the batch.",
     "batch.chain_break": "prev_hash or seq does not continue the previous published batch, or the previous batch or the last accepted one does not rehash to its own sha256.",
     "batch.genesis_invalid": "The first batch must have seq 0 and prev_hash of 64 zeros.",
     "batch.energy_mismatch": "energy_mwh is not the sum of the intervals' basis energy.",

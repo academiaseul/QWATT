@@ -24,7 +24,9 @@ batch pipeline ─► feed dir ──(published as static files)──► verifi
 | File | Role |
 |---|---|
 | `thresholds.js` | The anchoring account's thresholds (2/2/3), read by every tool that sets, checks or describes them. |
-| `setup-account.js` | Creates and configures the real anchoring account in one master-signed transaction; `--verify` re-checks it, thresholds included. |
+| `setup-account.js` | Sets up the real anchoring account from public keys only, never creating or reading a secret: `build` (the UNSIGNED setup transaction for a fresh, Friendbot-funded account: trustline, three signers, 2/2/3, master weight 0), `submit` (re-derived from the public keys, signed by the holder's stellar-cli identity, submitted once and captured as evidence; it writes the public config only with `--out`, so the backup drill's account never replaces it), `fund-xdr` (the unsigned 1-QWATT funding payment), `fund-submit` (the treasury holder's step: the payment is rebuilt from public values and any other envelope is refused before stellar-cli signs), `friendbot`, `config` (the public config, each signer by role); `--verify` re-checks it, thresholds included. A setup envelope that never expires or lasts more than an hour is refused. |
+| `capture.js` | Submits an envelope once (never retried), printing what it is before stellar-cli signs, and keeps Horizon's answer verbatim, the stellar.expert link and the account as Horizon reports it, each file listed with its SHA-256 in `index.json`. Reads envelopes written by bash or by Windows PowerShell 5.1 (UTF-16LE). It signs whatever it is given: the funding payment goes through `setup-account.js fund-submit`. |
+| `keys.js` | `check`: a stellar-cli identity on this machine signs one throwaway transaction offline, matches `--expect` and is a weight-1 signer of `--account` (the identity file is only stat-ed, never read). `drill-xdr` / `drill-submit`: the backup drill, a throwaway transaction with a high-threshold operation that lands only when the three keys restored from their paper backups sign it (`../docs/RUNBOOK.md`, *Backup drill*; the third signer's part is in `../docs/THIRD-SIGNER.md`). |
 | `signer.js` | Signing through stellar-cli (V3-8): `cliSigner` hands stellar-cli the transaction on stdin with `--sign-with-key <identity>` and accepts only the same transaction with one more signature, from that identity's key; `signerForRole` is the CLIs' start-up check (no secret in the environment, the identity is the config's signer for its role, one offline test signature). `keypairSigner` is for tests and throwaway rehearsals only. |
 | `tx.js` | The deterministic anchoring transaction (anchor hash · cumulative total · nominal payment · memo `QW#<seq>`) and `matchPending`, the verifier's rebuild-and-compare. |
 | `chain.js` | Chain head from Horizon → anchored prefix → next batch. Both services rebuild their view from this every tick. `walkToHead` checks what a batch inherits against the on-chain head. |
@@ -59,7 +61,11 @@ registered in `../protocol/reasons.json`, and nothing is signed:
 3. The batch re-derives with the shared `verifyBatch` against the copies the walk rehashed: hash,
    Merkle root, link to the previous batch, energy and cumulative arithmetic, counts, window and
    every gate (`batch.*`). Time, node and counted intervals are judged against the anchored head
-   (the last accepted batch), never against a batch published as rejected.
+   (the last accepted batch), never against a batch published as rejected. It also recomputes
+   `samples_root` from the published `raw/<batch_id>.jsonl` and ties every raw line to its
+   interval (`batch.samples_root_mismatch`, `batch.raw_mismatch`); with no raw file published the
+   refusal is `batch.raw_missing` (V3-5). The proposer runs the same check over its own feed and
+   reports `blocked` with the same code.
 4. The anchoring transaction rebuilt from the batch is byte-identical to the pending one
    (`verifier.tx_mismatch`, `verifier.hash_mismatch`).
 
@@ -135,7 +141,9 @@ with exit 2 instead of failing later on the network. The anchor config's `TESTNE
 full passphrase before stellar-cli sees it. `config.json` (copy `config.example.json`) holds public
 values only, `signers` included, and stays out of git because it is host-specific. The stellar-cli
 command forms (`stellar keys address <id>`, `stellar tx sign` with the XDR on stdin and no RPC URL,
-`stellar version --only-version`) are to confirm with stellar-cli 28.1.0 (founder step 0).
+`stellar version --only-version`) are to confirm with stellar-cli 28.1.0 (founder step 0). The real
+account is set up from public keys with `setup-account.js build` and `submit` (`../docs/RUNBOOK.md`,
+one-time setup), and the off-team third signer follows `../docs/THIRD-SIGNER.md`.
 
 **Evidence notes for the write-up:**
 - under 2/2/3 a single signature is refused as `tx_bad_auth`: it does not meet the low threshold,

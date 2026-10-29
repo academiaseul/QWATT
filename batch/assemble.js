@@ -8,9 +8,15 @@
  *                      another site or node, off-grid, duplicate, out-of-order
  *                      and overlapping intervals are rejected here with ingest.*
  *                      codes, so the same time is never counted twice and one
- *                      bad line never sinks a batch.
- *   close()          → the batch for the open window, self-verified with the
- *                      same verifyBatch the independent verifier runs.
+ *                      bad line never sinks a batch. So is an interval that came
+ *                      without the raw payloads it was built from, or whose
+ *                      payloads do not hash to its source.raw_sha256
+ *                      (ingest.raw_missing, ingest.raw_mismatch; V3-5). The line
+ *                      keeps the payloads (`raw`), so a restart has them.
+ *   close()          → the batch for the open window, with samples_root over one
+ *                      raw line per judged line (returned as `raw`, published at
+ *                      raw/<batch_id>.jsonl), self-verified with the same
+ *                      verifyBatch the independent verifier runs.
  *
  * A window closes every `closeEvery` judged intervals (12 = one hour at 5 min,
  * docs/ARCHITECTURE-FREEZE.md §2) or when the caller closes it (shutdown,
@@ -37,6 +43,15 @@ const V = require('./verify');
 const iso = (ms) => new Date(ms).toISOString();
 const EPOCH = iso(0);   // the floor before anything is accepted: canonical, and on every grid
 const refusedAtDoor = (l) => (l.reasons || []).some((c) => c.startsWith('ingest.'));
+
+/**
+ * The order of a window's lines in raw/<batch_id>.jsonl (R3): by interval start (an unreadable one
+ * last), an accepted line before a refused one at the same start, otherwise as judged (the sort is
+ * stable). It reads only what each raw line publishes (V.rawLine), so the verifier can check it
+ * (V.rawOrder). A restart restores the window in this order, so a batch closed after a crash
+ * publishes the same file.
+ */
+const windowOrder = (x, y) => V.rawOrder(V.rawLine(x), V.rawLine(y));
 
 class BatchAssembler {
   /**
@@ -82,10 +97,19 @@ class BatchAssembler {
     return !refusedAtDoor(line) && line.interval.dt_s <= this.profile.interval_max_dt_s;
   }
 
-  /** Judge one interval record. @returns ledger line */
-  judge(rec) {
-    const line = { batch_id: this.openBatchId, verdict: 'reject', reasons: [], interval: rec };
+  /**
+   * Judge one interval record with the raw payloads it was built from (default: the ones the
+   * IntervalBuilder attached to it, E.RAW). The ledger line keeps them, so a restart has them.
+   * @returns ledger line
+   */
+  judge(rec, raw = E.rawPayloads(rec)) {
+    /* the payloads are published in raw/<batch_id>.jsonl whatever the verdict, so only well-formed
+       entries are kept: a malformed list is refused below and published as no payloads */
+    let payloads = Array.isArray(raw) ? raw : [], malformed = null;
+    try { payloads.forEach((p) => E.payloadBytes(p)); } catch (e) { malformed = e.message; payloads = []; }
+    const line = { batch_id: this.openBatchId, verdict: 'reject', reasons: [], interval: rec, raw: payloads };
     const errs = V.intervalErrors(rec);
+    let rawWhy = null;
     if (errs.length) {
       line.reasons = [errs.some((e) => /safe integer/.test(e)) ? 'ingest.not_integer' : 'ingest.schema_invalid'];
       line.detail = { errors: errs.slice(0, 5) };
@@ -103,6 +127,11 @@ class BatchAssembler {
     } else if (this.last_ts_end != null && Date.parse(rec.ts_start) < Date.parse(this.last_ts_end)) {
       line.reasons = ['ingest.overlap'];
       line.detail = { after: this.last_ts_end };
+    } else if ((rawWhy = malformed ? { missing: false, why: malformed } : V.rawProblem(line.raw, rec))) {
+      /* V3-5: the raw payloads must come with the interval and hash to its raw_sha256. Refused on its
+         own line, like the other door refusals: it moves no watermark, so a re-send can still land. */
+      line.reasons = [rawWhy.missing ? 'ingest.raw_missing' : 'ingest.raw_mismatch'];
+      line.detail = { why: rawWhy.why };
     } else {
       const v = V.GATES.evaluateInterval(rec, this.profile, this.spec);
       this.last_ts_start = rec.ts_start;
@@ -165,6 +194,7 @@ class BatchAssembler {
     const tsEnd = held.length ? iso(Math.max(...held.map((r) => Date.parse(r.ts_end)))) : floorEnd;
     const intervals = accepted.map((l) => l.interval).sort((x, y) => Date.parse(x.ts_start) - Date.parse(y.ts_start));
     const energy = intervals.reduce((s, r) => s + E.basisMwh(r), 0);
+    const raw = this.window.slice().sort(windowOrder).map(V.rawLine);
 
     const batch = {
       batch_id: this.openBatchId,
@@ -180,13 +210,14 @@ class BatchAssembler {
       rejected_count: rejected.length,
       intervals,
       intervals_root: E.merkleRoot(intervals),
+      samples_root: E.samplesRoot(raw),
       energy_mwh: energy,
       cumulative_mwh: this.cumulative_mwh + energy,
       prev_hash: this.prev_hash,
     };
     batch.sha256 = E.batchSha256(batch);
 
-    const check = V.verifyBatch(batch, { prev: this.prev, floor: this.floor, rejected, profile: this.profile, spec: this.spec });
+    const check = V.verifyBatch(batch, { prev: this.prev, floor: this.floor, rejected, raw, profile: this.profile, spec: this.spec });
 
     /* The chain advances through a batch-level rejection so the defect stays
        visible in sequence; it is published, never anchored, and carries the
@@ -202,8 +233,9 @@ class BatchAssembler {
       status: check.ok ? 'accepted' : 'rejected',
       reasons: [...new Set(check.failures.map((f) => f.code))],
       failures: check.failures,
+      raw,
     };
   }
 }
 
-module.exports = { BatchAssembler };
+module.exports = { BatchAssembler, windowOrder };

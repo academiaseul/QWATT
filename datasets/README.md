@@ -11,7 +11,7 @@
 | Meter a (DC) | `dc_power_inv_14538` — inverter-reported DC power |
 | Meter b (AC) | `ac_power_meter_1864_5` — separate AC revenue meter |
 | Reproduce | `node batch/datasets/pvdaq.js` → identical CSV; SHA-256 of every source file and of the output in `provenance.json` |
-| Scale test | `node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json` → `evidence/scale/scale-pvdaq-4902-2017-09.json` |
+| Scale test | `node batch/scale.js --dataset datasets/pvdaq-4902-2017-09/dataset.json` → `evidence/scale/scale-pvdaq-4902-2017-09.json`; add `--expect evidence/scale/scale-pvdaq-4902-2017-09.json` (as `npm run scale` and CI do) to require the same rows, intervals, batches, total and head as that file |
 
 **Why this system.** It is one of the few PVDAQ systems with two genuinely independent power
 instruments at minute resolution: the inverter's own DC measurement and a separate AC revenue meter.

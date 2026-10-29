@@ -33,7 +33,12 @@
  * the gateway's clock on a live path) or 'replay' (the latest sample timestamp
  * pushed so far, for a replay faster than real time). An interval flushed before
  * its end (shutdown, end of file) gets a negative value; G0 judges the magnitude.
- * No dependencies.
+ *
+ * Raw payloads (V3-5): every closed record carries the raw payloads it was built
+ * from, out of band, under Symbol.for('qwatt.raw_payloads'): entries {n, utf8} or
+ * {n, hex}, in arrival order, consecutive identical payloads counted in n. They
+ * hash (each n times) to source.raw_sha256; the batch layer publishes them in
+ * raw/<batch_id>.jsonl and commits to them with samples_root. No dependencies.
  */
 
 'use strict';
@@ -45,6 +50,9 @@ const SCHEMA = require(path.join(__dirname, '..', '..', 'protocol', 'interval.sc
 const SPEC = require(path.join(__dirname, '..', '..', 'assets', 'gates.generated.js'));
 
 const SCHEMA_VERSION = SCHEMA['x-schema-version'];
+/* A closed record's raw payloads travel with it under this registered symbol (the same as
+   protocol/evidence.js RAW, V3-5): never enumerable, so never in its JSON, its schema check or its hash. */
+const RAW = Symbol.for('qwatt.raw_payloads');
 
 class IntervalBuilder {
   constructor(opts) {
@@ -92,7 +100,7 @@ class IntervalBuilder {
     if (!b) {
       const acc = {};
       for (const m of Object.keys(this.meters)) acc[m] = { mwh: 0, wsum: 0, n: 0, counterEnd: null };
-      b = { k, acc, raw: crypto.createHash('sha256') };
+      b = { k, acc, raw: crypto.createHash('sha256'), payloads: [] };
       this.buckets.set(k, b);
     }
     return b;
@@ -118,7 +126,15 @@ class IntervalBuilder {
 
     const k = this.gridIndex(sample.ts);
     const b = this._bucket(k);
-    if (raw != null) b.raw.update(typeof raw === 'string' ? Buffer.from(raw, 'utf8') : raw);
+    if (raw != null) {
+      b.raw.update(typeof raw === 'string' ? Buffer.from(raw, 'utf8') : raw);
+      /* V3-5: the same bytes, kept: a string as utf8, a Buffer as hex. The same payload again in a row
+         (a CSV row for meter b, an HTTP body for its next sample) counts n; it is not repeated. */
+      const e = typeof raw === 'string' ? { utf8: raw } : { hex: Buffer.from(raw).toString('hex') };
+      const last = b.payloads[b.payloads.length - 1];
+      if (last && last.utf8 === e.utf8 && last.hex === e.hex) last.n++;
+      else b.payloads.push(Object.assign({ n: 1 }, e));
+    }
     if (sample.ts > this.replayMs) this.replayMs = sample.ts;   // the replay clock: only forward, only accepted samples
 
     /* A dropout stays a dropout (V3-10). After a gap longer than three sample periods between two
@@ -206,6 +222,7 @@ class IntervalBuilder {
     if (this.register_map) record.source.register_map = this.register_map;
     const errs = validate(record, SCHEMA);
     if (errs.length) throw new Error('normalization produced an invalid record: ' + errs.join('; '));
+    Object.defineProperty(record, RAW, { value: c.payloads, enumerable: false });   // V3-5: out of band
     if (this.onInterval) this.onInterval(record);
     return record;
   }
@@ -228,4 +245,4 @@ function canonical(value) {
 
 const sha256 = (s) => crypto.createHash('sha256').update(s, 'utf8').digest('hex');
 
-module.exports = { IntervalBuilder, canonical, sha256, SCHEMA_VERSION };
+module.exports = { IntervalBuilder, canonical, sha256, SCHEMA_VERSION, RAW };
