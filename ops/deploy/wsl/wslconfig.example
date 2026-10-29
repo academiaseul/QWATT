@@ -1,0 +1,13 @@
+# QWATT verifier host on Windows (plan W2-5): copied to %UserProfile%\.wslconfig by instalar-wsl.ps1
+# when that file does not exist yet. After any change: wsl --shutdown, then the task starts WSL again.
+
+[wsl2]
+# Q14: a cap, so the PC (memory commit near 88%) keeps room for Windows. The verifier, its log
+# publisher and the watchdog need well under 1 GB together.
+memory=3GB
+# never stop the WSL virtual machine because no window is open
+vmIdleTimeout=-1
+
+[general]
+# never stop the distribution because no window is open (WSL 2.5 and later; older versions ignore it)
+instanceIdleTimeout=-1
