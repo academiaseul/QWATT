@@ -70,7 +70,7 @@
     </p>
     <div class="q-pstate" id="pState">
       <p class="q-pstate-k"><span data-l="es">Estado de las pruebas en la cuenta definitiva</span><span data-l="en">Status of the tests on the real account</span></p>
-      <p class="q-pstate-v" data-slot="state"><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span> <span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
+      <p class="q-pstate-v" data-slot="state"><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span> <span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
       <div class="q-anchorline" data-widget="anchor-slot" data-compact>
         <p class="q-fallback"><span data-l="es">Cuenta de anclaje 2 de 3 · umbrales 2/2/3: en preparación (semana 2).</span><span data-l="en">2-of-3 anchoring account · thresholds 2/2/3: in preparation (week 2).</span></p>
       </div>
@@ -85,35 +85,35 @@
 
 <section class="q-sec" id="plan" aria-labelledby="h2plan">
   <div class="q-wrap">
-    <div class="q-head"><h2 id="h2plan"><span data-l="es">1 · El plan, prueba por prueba</span><span data-l="en">1 · The plan, test by test</span></h2><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+    <div class="q-head"><h2 id="h2plan"><span data-l="es">1 · El plan, prueba por prueba</span><span data-l="en">1 · The plan, test by test</span></h2><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span></div>
     <p class="q-sub"><span data-l="es">En la cuenta definitiva 2 de 3, con umbrales 2/2/3: tres firmantes de peso 1 (el proponente, el verificador independiente y un firmante externo al equipo) y la clave con que se crea la cuenta en peso 0.</span><span data-l="en">On the real 2-of-3 account, with thresholds 2/2/3: three signers of weight 1 (the proposer, the independent verifier and a signer from outside the team) and the key that creates the account at weight 0.</span></p>
     <div class="q-tcards">
       <article class="q-tcard" data-step="A">
-        <div class="q-tcard-h"><b translate="no">A</b><h3><span data-l="es">El proponente solo</span><span data-l="en">The proposer alone</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <div class="q-tcard-h"><b translate="no">A</b><h3><span data-l="es">El proponente solo</span><span data-l="en">The proposer alone</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span></div>
         <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADA POR LA RED</span><span data-l="en">REFUSED BY THE NETWORK</span></span></p>
         <p><span data-l="es">Envía la transacción publicada con su única firma. Esperado: la red la rechaza con tx_bad_auth, porque una firma de peso 1 no alcanza el umbral bajo 2. Nunca entra a un ledger: la evidencia es la transacción firmada y la respuesta de la red.</span><span data-l="en">It submits the published transaction with its single signature. Expected: the network refuses it with tx_bad_auth, because one signature of weight 1 does not reach the low threshold 2. It never enters a ledger: the evidence is the signed transaction and the network's answer.</span></p>
         <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
       </article>
       <article class="q-tcard" data-step="B">
-        <div class="q-tcard-h"><b translate="no">B</b><h3><span data-l="es">El verificador solo</span><span data-l="en">The verifier alone</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <div class="q-tcard-h"><b translate="no">B</b><h3><span data-l="es">El verificador solo</span><span data-l="en">The verifier alone</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span></div>
         <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADA POR LA RED</span><span data-l="en">REFUSED BY THE NETWORK</span></span></p>
         <p><span data-l="es">Firma el mismo cuerpo de transacción sin la firma del proponente, después de correr sus propias comprobaciones. Esperado: tx_bad_auth.</span><span data-l="en">It signs the same transaction body without the proposer's signature, after running its own checks. Expected: tx_bad_auth.</span></p>
         <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
       </article>
       <article class="q-tcard is-yes" data-step="C">
-        <div class="q-tcard-h"><b translate="no">C</b><h3><span data-l="es">Los dos</span><span data-l="en">Both</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <div class="q-tcard-h"><b translate="no">C</b><h3><span data-l="es">Los dos</span><span data-l="en">Both</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span></div>
         <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="testnet"><span data-l="es">ANCLADA</span><span data-l="en">ANCHORED</span></span></p>
         <p><span data-l="es">El verificador cofirma la propuesta y la envía. Esperado: anclada, con enlace a stellar.expert, firmada por el proponente y el verificador.</span><span data-l="en">The verifier co-signs the proposal and submits it. Expected: anchored, with a stellar.expert link, signed by the proposer and the verifier.</span></p>
         <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
       </article>
       <article class="q-tcard" data-step="D">
-        <div class="q-tcard-h"><b translate="no">D</b><h3><span data-l="es">Lote alterado después de la firma del proponente</span><span data-l="en">Batch altered after the proposer signed</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <div class="q-tcard-h"><b translate="no">D</b><h3><span data-l="es">Lote alterado después de la firma del proponente</span><span data-l="en">Batch altered after the proposer signed</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span></div>
         <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADO POR EL VERIFICADOR</span><span data-l="en">REFUSED BY THE VERIFIER</span></span></p>
         <p><span data-l="es">Se cambia en memoria el lote publicado. Esperado: el verificador lo rechaza (verifier.hash_mismatch); no se envía ni se publica nada.</span><span data-l="en">The published batch is changed in memory. Expected: the verifier refuses it (verifier.hash_mismatch); nothing is submitted or published.</span></p>
         <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>
       </article>
       <article class="q-tcard" data-step="I">
-        <div class="q-tcard-h"><b translate="no">I</b><h3><span data-l="es">Independencia</span><span data-l="en">Independence</span></h3><span class="q-chip" data-st="planificado" data-status-of="week:2"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span></div>
+        <div class="q-tcard-h"><b translate="no">I</b><h3><span data-l="es">Independencia</span><span data-l="en">Independence</span></h3><span class="q-chip" data-st="hecho" data-status-of="week:2"><span data-l="es">HECHO · SEMANA 2</span><span data-l="en">DONE · WEEK 2</span></span></div>
         <p class="q-expect"><span data-l="es">Esperado:</span><span data-l="en">Expected:</span> <span class="q-chip" data-st="rechazo"><span data-l="es">RECHAZADO POR EL VERIFICADOR</span><span data-l="en">REFUSED BY THE VERIFIER</span></span></p>
         <p><span data-l="es">Al verificador se le oculta el archivo del lote en su única vía de entrada. Esperado: lo rechaza (verifier.not_published), porque solo puede usar datos públicos.</span><span data-l="en">The batch file is withheld from the verifier's only input path. Expected: it refuses (verifier.not_published), because it may use only public data.</span></p>
         <p class="q-tline" data-slot="line"><span data-l="es">En preparación (semana 2)</span><span data-l="en">In preparation (week 2)</span></p>

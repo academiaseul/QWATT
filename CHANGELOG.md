@@ -4,6 +4,112 @@ What we did each week of the Instawards Chile sprint, which started on 19 Oct 20
 
 *Versión en español: [CHANGELOG.es.md](CHANGELOG.es.md).*
 
+## Week 2 — 26 to 30 October 2026
+
+### Summary
+This week we built what the real 2-of-3 anchoring account needs, so that creating it is a set of commands and not new code. Every key is now created on the machine that uses it and signs through stellar-cli. Every batch carries a fingerprint of its raw readings, and the verifier reads the public evidence pinned to one git commit and publishes its own log. The reconciliation page is back on qwatt.org. Tests went from 194 to 449, all passing. The account itself, tests A–D and the first anchor did not happen this week, because two of the three public keys are still missing (see Blockers). All input is simulated.
+
+### Added
+- **Signing through stellar-cli, never with a secret in a file** (V3-8):
+  - the proposer and the verifier ask stellar-cli 28.1.0 to sign, and refuse to start if a secret key is in their environment ([PR #18](https://github.com/academiaseul/QWATT/pull/18));
+  - the account is set up from the four public keys only. The setup and funding transactions are rebuilt from public values and checked before anything signs, and [docs/THIRD-SIGNER.md](docs/THIRD-SIGNER.md) tells the signer from outside the team what to do ([PR #22](https://github.com/academiaseul/QWATT/pull/22));
+  - `keys.js check` confirms a key on its own machine without reading it, and a backup drill proves that each paper backup restores the same key before the account is created ([PR #23](https://github.com/academiaseul/QWATT/pull/23)).
+- **A fingerprint of every raw reading in each batch** (V3-5, `samples_root`, batch format 1.1.0, deviation DV-6). The raw readings are published next to each batch in `raw/<batch_id>.jsonl`, and every reader recomputes the fingerprint ([PR #24](https://github.com/academiaseul/QWATT/pull/24)). The live-run audit ties every raw reading to a row of a published samples file ([PR #28](https://github.com/academiaseul/QWATT/pull/28)).
+- **Two public evidence repositories, each written by one host only** (V3-7):
+  - the publisher, with integrity rules, consistent snapshots and an audit of the public history ([PR #19](https://github.com/academiaseul/QWATT/pull/19));
+  - the verifier's public log (its decisions, its refusals and its status), published only from the verifier's host (deviation DV-8; [PR #25](https://github.com/academiaseul/QWATT/pull/25), [PR #26](https://github.com/academiaseul/QWATT/pull/26));
+  - every reader takes one commit of the evidence, after reading Stellar, and reads every file at that commit, so it never mixes two versions ([PR #29](https://github.com/academiaseul/QWATT/pull/29));
+  - Jay Kim created [academiaseul/qwatt-evidence](https://github.com/academiaseul/qwatt-evidence) and [academiaseul/qwatt-verifier-log](https://github.com/academiaseul/qwatt-verifier-log): public, MIT-licensed, each with two rules on GitHub, one that forbids deleting or rewriting the history and one that lets only its host's deploy key push. Nothing is published in them yet.
+- **Tests A–D and the independence test, ready for the real account** (V3-4a, deviation DV-7), run as one sequence. In the independence step the real verifier code must refuse a batch withheld from its only input ([PR #27](https://github.com/academiaseul/QWATT/pull/27)). They were tested against a simulated network; they have not run on the real account, which does not exist yet.
+- **Clock offset on every input path** (V3-6, `clock_skew_s`): each interval records how far the node's clock was from the gateway's ([PR #14](https://github.com/academiaseul/QWATT/pull/14), [PR #15](https://github.com/academiaseul/QWATT/pull/15)).
+- **Host package** ([PR #32](https://github.com/academiaseul/QWATT/pull/32)). One script installs either host from a given commit:
+  - Node 24.14.1 and stellar-cli 28.1.0, each checked against its official SHA-256;
+  - the services of that host's role only, and its deploy key;
+  - on Windows, a task that keeps WSL running with no window open and starts it after a reboot with nobody signed in;
+  - 26 acceptance tests, 23 of them automated.
+
+  A new CI job installs it on a clean Ubuntu machine for each role. That job found a defect before the merge: the deploy key's private file was left readable by others (644), and ssh refuses such a key. Jay installed the verifier's host on his PC with this package, with no failed check. His verifier key was created on that machine, in his own terminal, and backed up on paper; its public key is `GAJCK4PA3CFEZNQD3TLVWWSMHIXGIBV33SIYWZM6CUTMLH7LQKKSYI3U`.
+- **CI runs every test step even after an earlier one fails,** so a red commit records every failing suite ([PR #13](https://github.com/academiaseul/QWATT/pull/13)).
+
+### Changed
+- **The reconciliation reads the account from Stellar:** its signers, its thresholds and the signatures of every anchor (V3-9.1, [PR #16](https://github.com/academiaseul/QWATT/pull/16), [PR #17](https://github.com/academiaseul/QWATT/pull/17)). Each run's `faults.json` now carries the fixed label "Simulated input · assurance A0 · Stellar testnet", the three signer public keys and the commit of the code it started from (V3-9.2, [PR #21](https://github.com/academiaseul/QWATT/pull/21)).
+- **The reconciliation page is back** at [qwatt.org/reconcile.html](https://qwatt.org/reconcile.html), on the site template, in Spanish and English. It says that there is no public feed yet (V3-9.3, [PR #31](https://github.com/academiaseul/QWATT/pull/31)).
+- **A neutral site name, `qwatt-chispa-01`.** Batch ids read `qwatt-chispa-01-000000` and name no place (FD-14, [PR #30](https://github.com/academiaseul/QWATT/pull/30)).
+- **The August ideas are back on qwatt.org,** each labeled TESTNET, PROTOTIPO or PLANIFICADO, with a verification page that re-derives a published batch in the browser ([PR #12](https://github.com/academiaseul/QWATT/pull/12)).
+
+### Fixed
+- **No energy is estimated across a meter dropout** longer than three sample periods (V3-10, [PR #20](https://github.com/academiaseul/QWATT/pull/20)).
+- **Three defects found by Diego Ostertag's review of PRs 8 to 14 (27 Oct),** each fixed with a failing test first:
+  1. a "file not found" at a pinned commit was remembered for that commit, so one delay of GitHub's file server right after a push could become a public refusal that no later check corrected. Now the file is read once more and a miss is never remembered ([PR #29](https://github.com/academiaseul/QWATT/pull/29));
+  2. a power cut in the middle of a write could leave the verifier unable to start again. Now a half-written last line is removed before the next line is written ([PR #26](https://github.com/academiaseul/QWATT/pull/26));
+  3. test C took the latest anchor instead of the transaction that tests A and B used. Now it looks that transaction up ([PR #27](https://github.com/academiaseul/QWATT/pull/27)).
+- **An empty file named `=1000`,** which reached main by mistake, was removed ([PR #27](https://github.com/academiaseul/QWATT/pull/27)).
+
+### Progress vs. last week
+Last week's "Next week" goals:
+
+- Goal: create the real 2-of-3 account → Result: not done. It moves to Sat 31 Oct – Sun 1 Nov, the plan's margin. It still needs the proposer's public key, which waits for the proposer's server, and the public key of the signer from outside the team.
+- Goal: tests A–D and the independence test on that account → Result: built and tested against a simulated network ([PR #27](https://github.com/academiaseul/QWATT/pull/27)); not run, because the account does not exist.
+- Goal: a fingerprint of all raw readings in every batch → Result: done ([PR #24](https://github.com/academiaseul/QWATT/pull/24), [PR #28](https://github.com/academiaseul/QWATT/pull/28)). The first anchor and its evidence in the new repositories → not done.
+- Also due in week 2 under freeze v3:
+  - every input path records its clock offset → done;
+  - each key is created on its own machine → done in code, and the verifier's key now exists;
+  - the reconciliation reads signers and thresholds from Stellar → done;
+  - no energy estimated across a dropout → done.
+- Mid-week post with test A → not done: test A needs the account.
+
+**In numbers**
+- Tests: 194 passing at `semana-1` → 449 passing on main at `03169a8`, 0 failing (342 in `npm test`, 107 anchoring tests). CI on main: [run #117](https://github.com/academiaseul/QWATT/actions/runs/40983782958).
+- Pull requests merged: 21 ([#12](https://github.com/academiaseul/QWATT/pull/12) to [#32](https://github.com/academiaseul/QWATT/pull/32)). Commits on main from `semana-1` to `03169a8`: 72, not counting merge commits.
+- Deviations from freeze v3 approved by both founders: DV-6, DV-7 and DV-8.
+
+### Blockers and lessons
+- **Two public keys are missing.** The account is created only with all three keys:
+  - the proposer's key waits for the proposer's server, an always-on machine at a cloud provider, which was not set up this week;
+  - the signer from outside the team has been chosen and has the instructions; their public key has not arrived.
+
+  If it has not arrived by the evening of Sun 1 Nov, both founders will write a numbered deviation together, never a quiet change.
+- **[PR #25](https://github.com/academiaseul/QWATT/pull/25) was merged with only its failing test,** so main was red until [PR #26](https://github.com/academiaseul/QWATT/pull/26) brought the change. It is the same lesson as week 1: merge a test together with its fix.
+- **Installing on a clean machine finds what tests in place do not.** The deploy key left readable by others showed up only when the package ran on a fresh Ubuntu machine in CI. On Jay's PC, the Windows script registered its task before asking for the password, and Windows refused it (0x8007052E). Jay ran a corrected copy that worked; the fix to the repository is open as [PR #33](https://github.com/academiaseul/QWATT/pull/33).
+- **Node 24.14.1 for CI and both hosts** (decision 1). The hosts already run it; the CI change is open as [PR #34](https://github.com/academiaseul/QWATT/pull/34).
+
+### Next week (2 to 6 November)
+Planned, not done yet.
+
+Before Monday (Sat 31 Oct – Sun 1 Nov):
+1. The proposer's server, with its key and its deploy key.
+2. The public key of the signer from outside the team, confirmed by voice by both founders.
+3. The backup drill.
+4. The real 2-of-3 account.
+5. Tests A–D and the independence test on it, and the first anchor.
+
+Week 3:
+- **Decisions on Mon 2 Nov:** which verifier refusals are final, the fixed fee, where the check from outside both hosts runs, and the stand-in pair (proposer + the signer from outside the team).
+- **Code:**
+  - a verifier refusal is final, with a validity window of at most 60 minutes and a fixed fee;
+  - one future-dated reading no longer blocks the ones after it;
+  - the run lasts 8 days, so that the counted 7 days are complete;
+  - the services restart only after a failure;
+  - no sample is published before its time;
+  - monitoring from outside both hosts;
+  - the stand-in role.
+- **Rehearsal and freeze:** a rehearsal of the candidate commit on a throwaway 2/2/3 account, with failure tests. Code freeze on Fri 6 Nov. The run starts on Sat 7 Nov at 00:00 Chile time, and the 7 counted days run from Sun 8 Nov 00:00 to Sun 15 Nov 00:00.
+
+### Links
+- **What's new this week, commit by commit:** https://github.com/academiaseul/QWATT/compare/semana-1...semana-2
+- **Pull requests:** [#12](https://github.com/academiaseul/QWATT/pull/12) site · [#13](https://github.com/academiaseul/QWATT/pull/13) CI · [#14](https://github.com/academiaseul/QWATT/pull/14), [#15](https://github.com/academiaseul/QWATT/pull/15) clock offset · [#16](https://github.com/academiaseul/QWATT/pull/16), [#17](https://github.com/academiaseul/QWATT/pull/17), [#21](https://github.com/academiaseul/QWATT/pull/21), [#31](https://github.com/academiaseul/QWATT/pull/31) reconciliation · [#18](https://github.com/academiaseul/QWATT/pull/18), [#22](https://github.com/academiaseul/QWATT/pull/22), [#23](https://github.com/academiaseul/QWATT/pull/23) keys · [#19](https://github.com/academiaseul/QWATT/pull/19), [#25](https://github.com/academiaseul/QWATT/pull/25), [#26](https://github.com/academiaseul/QWATT/pull/26), [#29](https://github.com/academiaseul/QWATT/pull/29) evidence repositories · [#20](https://github.com/academiaseul/QWATT/pull/20) dropouts · [#24](https://github.com/academiaseul/QWATT/pull/24), [#28](https://github.com/academiaseul/QWATT/pull/28) raw readings · [#27](https://github.com/academiaseul/QWATT/pull/27) tests A–D · [#30](https://github.com/academiaseul/QWATT/pull/30) site name · [#32](https://github.com/academiaseul/QWATT/pull/32) host package
+- **CI on main after the week's last merge:** [run #117](https://github.com/academiaseul/QWATT/actions/runs/40983782958), on `03169a8`.
+- **Repository:** https://github.com/academiaseul/QWATT. With Node.js 20 or later and git, run `npm test`; for the anchoring tests, `npm ci --prefix anchor` and then `npm run test:anchor`. No test connects to Stellar testnet.
+- **Docs:** [runbook](docs/RUNBOOK.md) · [signer from outside the team](docs/THIRD-SIGNER.md) · [feed format](protocol/FEED-FORMAT.md) · [host package](ops/deploy/host/README.md)
+
+### New terms this week
+- **stellar-cli:** Stellar's official command-line tool. It keeps each key on the machine that uses it and signs there.
+- **Raw readings fingerprint (`samples_root`):** one code computed from every raw reading behind a batch, so a changed reading changes it.
+- **Evidence repository:** a public git repository where one host publishes, and whose history nobody can rewrite.
+- **Deploy key:** a key that lets one machine push to one repository, and nothing else.
+- **Pinned commit:** one fixed version of a repository, read whole, so that no file comes from an older copy.
+- **WSL:** Windows Subsystem for Linux, which runs Ubuntu inside Windows; the verifier's host uses it.
+
 ## Week 1 — 19 to 23 October 2026
 
 ### Summary
