@@ -4,6 +4,112 @@ Lo que hicimos cada semana del sprint Instawards Chile, que empezó el 19 oct 20
 
 *Traducción al español. El texto oficial es [CHANGELOG.md](CHANGELOG.md), en inglés.*
 
+## Semana 2 — 26 al 30 de octubre de 2026
+
+### Resumen
+Esta semana construimos lo que necesita la cuenta de anclaje 2 de 3 definitiva, para que crearla sea una serie de comandos y no código nuevo. Cada clave ahora se crea en la máquina que la usa y firma con stellar-cli. Cada lote lleva una huella de sus lecturas crudas, y el verificador lee la evidencia pública fijada en un solo commit de git y publica su propia bitácora. La página de conciliación volvió a qwatt.org. Las pruebas pasaron de 194 a 449, todas en verde. La cuenta misma, las pruebas A–D y el primer anclaje no ocurrieron esta semana, porque todavía faltan dos de las tres claves públicas (ver Bloqueos). Toda la entrada es simulada.
+
+### Agregado
+- **Firma con stellar-cli, nunca con una clave secreta en un archivo** (V3-8):
+  - el proponente y el verificador le piden a stellar-cli 28.1.0 que firme, y no arrancan si hay una clave secreta en su entorno ([PR #18](https://github.com/academiaseul/QWATT/pull/18));
+  - la cuenta se configura solo con las cuatro claves públicas. Las transacciones de configuración y de fondeo se reconstruyen desde valores públicos y se revisan antes de que nada firme, y [docs/THIRD-SIGNER.md](docs/THIRD-SIGNER.md) le explica al firmante externo al equipo qué hacer ([PR #22](https://github.com/academiaseul/QWATT/pull/22));
+  - `keys.js check` confirma una clave en su propia máquina sin leerla, y un simulacro de respaldo prueba que cada respaldo en papel recupera la misma clave antes de crear la cuenta ([PR #23](https://github.com/academiaseul/QWATT/pull/23)).
+- **Una huella de cada lectura cruda en cada lote** (V3-5, `samples_root`, formato de lote 1.1.0, desviación DV-6). Las lecturas crudas se publican junto a cada lote en `raw/<batch_id>.jsonl`, y cada lector recalcula la huella ([PR #24](https://github.com/academiaseul/QWATT/pull/24)). La auditoría de la corrida liga cada lectura cruda a una fila de un archivo de muestras publicado ([PR #28](https://github.com/academiaseul/QWATT/pull/28)).
+- **Dos repositorios públicos de evidencia, cada uno escrito por un solo host** (V3-7):
+  - el publicador, con reglas de integridad, instantáneas consistentes y una auditoría de la historia pública ([PR #19](https://github.com/academiaseul/QWATT/pull/19));
+  - la bitácora pública del verificador (sus decisiones, sus rechazos y su estado), publicada solo desde el host del verificador (desviación DV-8; [PR #25](https://github.com/academiaseul/QWATT/pull/25), [PR #26](https://github.com/academiaseul/QWATT/pull/26));
+  - cada lector toma un commit de la evidencia, después de leer Stellar, y lee todos los archivos en ese commit, así que nunca mezcla dos versiones ([PR #29](https://github.com/academiaseul/QWATT/pull/29));
+  - Jay Kim creó [academiaseul/qwatt-evidence](https://github.com/academiaseul/qwatt-evidence) y [academiaseul/qwatt-verifier-log](https://github.com/academiaseul/qwatt-verifier-log): públicos, con licencia MIT, cada uno con dos reglas en GitHub, una que impide borrar o reescribir la historia y otra que deja escribir solo a la deploy key de su host. Todavía no se ha publicado nada en ellos.
+- **Las pruebas A–D y la prueba de independencia, listas para la cuenta definitiva** (V3-4a, desviación DV-7), corridas como una sola secuencia. En el paso de independencia, el código real del verificador debe rechazar un lote retenido de su única entrada ([PR #27](https://github.com/academiaseul/QWATT/pull/27)). Se probaron contra una red simulada; no se han corrido en la cuenta definitiva, que todavía no existe.
+- **El desfase del reloj en cada vía de entrada** (V3-6, `clock_skew_s`): cada intervalo registra cuánto se alejaba el reloj del nodo del de la pasarela ([PR #14](https://github.com/academiaseul/QWATT/pull/14), [PR #15](https://github.com/academiaseul/QWATT/pull/15)).
+- **Paquete de hosts** ([PR #32](https://github.com/academiaseul/QWATT/pull/32)). Un script instala cualquiera de los dos hosts desde un commit dado:
+  - Node 24.14.1 y stellar-cli 28.1.0, cada uno comprobado contra su SHA-256 oficial;
+  - solo los servicios del rol de ese host, y su deploy key;
+  - en Windows, una tarea que mantiene WSL corriendo sin ventanas abiertas y lo arranca después de reiniciar sin que nadie inicie sesión;
+  - 26 pruebas de aceptación, 23 de ellas automáticas.
+
+  Un nuevo job del CI lo instala en una máquina Ubuntu limpia para cada rol. Ese job encontró un defecto antes del merge: el archivo privado de la deploy key quedaba legible por otros (644), y ssh rechaza una clave así. Jay instaló el host del verificador en su PC con este paquete, sin ninguna comprobación fallida. Su clave del verificador se creó en esa máquina, en su propia terminal, y quedó respaldada en papel; su clave pública es `GAJCK4PA3CFEZNQD3TLVWWSMHIXGIBV33SIYWZM6CUTMLH7LQKKSYI3U`.
+- **El CI corre cada paso de prueba aunque falle uno anterior,** así un commit en rojo registra cada suite que falla ([PR #13](https://github.com/academiaseul/QWATT/pull/13)).
+
+### Cambiado
+- **La conciliación lee la cuenta desde Stellar:** sus firmantes, sus umbrales y las firmas de cada ancla (V3-9.1, [PR #16](https://github.com/academiaseul/QWATT/pull/16), [PR #17](https://github.com/academiaseul/QWATT/pull/17)). El `faults.json` de cada corrida ahora lleva la etiqueta fija "Simulated input · assurance A0 · Stellar testnet", las tres claves públicas de los firmantes y el commit del código con que partió (V3-9.2, [PR #21](https://github.com/academiaseul/QWATT/pull/21)).
+- **La página de conciliación volvió** a [qwatt.org/reconcile.html](https://qwatt.org/reconcile.html), con la plantilla del sitio, en español e inglés. Dice que todavía no hay un feed público (V3-9.3, [PR #31](https://github.com/academiaseul/QWATT/pull/31)).
+- **Un nombre neutral para el sitio, `qwatt-chispa-01`.** Los ids de los lotes son `qwatt-chispa-01-000000` y no nombran ningún lugar (FD-14, [PR #30](https://github.com/academiaseul/QWATT/pull/30)).
+- **Las ideas de agosto volvieron a qwatt.org,** cada una rotulada TESTNET, PROTOTIPO o PLANIFICADO, con una página de verificación que recalcula un lote publicado en el navegador ([PR #12](https://github.com/academiaseul/QWATT/pull/12)).
+
+### Corregido
+- **No se estima energía a través de un corte del medidor** de más de tres períodos de muestreo (V3-10, [PR #20](https://github.com/academiaseul/QWATT/pull/20)).
+- **Tres defectos encontrados en la revisión de Diego Ostertag de los PR 8 a 14 (27 oct),** cada uno corregido con una prueba en rojo primero:
+  1. un "archivo no encontrado" en un commit fijado quedaba guardado para ese commit, así que un solo retraso del servidor de archivos de GitHub justo después de un push podía volverse un rechazo público que ninguna comprobación posterior corregía. Ahora el archivo se vuelve a leer una vez y una falta nunca se guarda ([PR #29](https://github.com/academiaseul/QWATT/pull/29));
+  2. un corte de luz en medio de una escritura podía dejar al verificador sin poder volver a arrancar. Ahora se quita la última línea a medio escribir antes de escribir la siguiente ([PR #26](https://github.com/academiaseul/QWATT/pull/26));
+  3. el test C tomaba el último anclaje en vez de la transacción que usaron los tests A y B. Ahora busca esa transacción ([PR #27](https://github.com/academiaseul/QWATT/pull/27)).
+- **Un archivo vacío llamado `=1000`,** que llegó a main por error, se eliminó ([PR #27](https://github.com/academiaseul/QWATT/pull/27)).
+
+### Progreso vs. semana anterior
+Las metas de "Próxima semana" de la semana pasada:
+
+- Meta: crear la cuenta 2 de 3 definitiva → Resultado: no hecho. Pasa al sábado 31 de octubre y domingo 1 de noviembre, el margen del plan. Todavía necesita la clave pública del proponente, que espera el servidor del proponente, y la clave pública del firmante externo al equipo.
+- Meta: las pruebas A–D y la prueba de independencia en esa cuenta → Resultado: construidas y probadas contra una red simulada ([PR #27](https://github.com/academiaseul/QWATT/pull/27)); no corridas, porque la cuenta no existe.
+- Meta: una huella de todas las lecturas crudas en cada lote → Resultado: hecho ([PR #24](https://github.com/academiaseul/QWATT/pull/24), [PR #28](https://github.com/academiaseul/QWATT/pull/28)). El primer anclaje y su evidencia en los nuevos repositorios → no hecho.
+- También para la semana 2 según el acuerdo v3:
+  - cada vía de entrada registra su desfase de reloj → hecho;
+  - cada clave se crea en su propia máquina → hecho en el código, y la clave del verificador ya existe;
+  - la conciliación lee firmantes y umbrales desde Stellar → hecho;
+  - no se estima energía a través de un corte → hecho.
+- Post de mitad de semana con el test A → no hecho: el test A necesita la cuenta.
+
+**En números**
+- Pruebas: 194 en verde en `semana-1` → 449 en verde en main en `03169a8`, 0 en rojo (342 en `npm test`, 107 pruebas de anclaje). CI en main: [corrida #117](https://github.com/academiaseul/QWATT/actions/runs/40983782958).
+- Pull requests mergeados: 21 ([#12](https://github.com/academiaseul/QWATT/pull/12) al [#32](https://github.com/academiaseul/QWATT/pull/32)). Commits en main desde `semana-1` hasta `03169a8`: 72, sin contar los commits de merge.
+- Desviaciones del acuerdo v3 aprobadas por los dos fundadores: DV-6, DV-7 y DV-8.
+
+### Bloqueos y aprendizajes
+- **Faltan dos claves públicas.** La cuenta se crea solo con las tres claves:
+  - la clave del proponente espera el servidor del proponente, una máquina siempre encendida en un proveedor de nube, que no se armó esta semana;
+  - el firmante externo al equipo ya está elegido y tiene las instrucciones; su clave pública no ha llegado.
+
+  Si no llega antes de la noche del domingo 1 de noviembre, los dos fundadores escribirán juntos una desviación numerada, nunca un cambio en silencio.
+- **El [PR #25](https://github.com/academiaseul/QWATT/pull/25) se mergeó solo con su prueba en rojo,** así que main quedó en rojo hasta que el [PR #26](https://github.com/academiaseul/QWATT/pull/26) trajo el cambio. Es el mismo aprendizaje de la semana 1: mergear la prueba junto con su arreglo.
+- **Instalar en una máquina limpia encuentra lo que las pruebas en el lugar no encuentran.** La deploy key legible por otros apareció solo cuando el paquete corrió en un Ubuntu nuevo en el CI. En el PC de Jay, el script de Windows registraba su tarea antes de pedir la contraseña, y Windows la rechazó (0x8007052E). Jay corrió una copia corregida que funcionó; el arreglo al repositorio está abierto como [PR #33](https://github.com/academiaseul/QWATT/pull/33).
+- **Node 24.14.1 para el CI y los dos hosts** (decisión 1). Los hosts ya lo usan; el cambio del CI está abierto como [PR #34](https://github.com/academiaseul/QWATT/pull/34).
+
+### Próxima semana (2 al 6 de noviembre)
+Planificado, todavía no hecho.
+
+Antes del lunes (sábado 31 de octubre y domingo 1 de noviembre):
+1. El servidor del proponente, con su clave y su deploy key.
+2. La clave pública del firmante externo al equipo, confirmada por voz por los dos fundadores.
+3. El simulacro de respaldo.
+4. La cuenta 2 de 3 definitiva.
+5. Las pruebas A–D y la prueba de independencia en ella, y el primer anclaje.
+
+Semana 3:
+- **Decisiones el lunes 2 de noviembre:** qué rechazos del verificador son finales, el fee fijo, dónde corre el chequeo de fuera de los dos hosts, y la pareja suplente (el proponente y el firmante externo al equipo).
+- **Código:**
+  - un rechazo del verificador es final, con una ventana de validez de máximo 60 minutos y un fee fijo;
+  - una lectura con fecha futura ya no bloquea las siguientes;
+  - la corrida dura 8 días, para que los 7 días contados queden completos;
+  - los servicios se reinician solo después de una falla;
+  - ninguna muestra se publica antes de su hora;
+  - monitoreo desde fuera de los dos hosts;
+  - el rol de suplente.
+- **Ensayo y freeze:** un ensayo del commit candidato en una cuenta 2/2/3 desechable, con pruebas de caída. Freeze del código el viernes 6 de noviembre. La corrida parte el sábado 7 de noviembre a las 00:00 hora de Chile, y los 7 días contados van del domingo 8 de noviembre 00:00 al domingo 15 de noviembre 00:00.
+
+### Enlaces
+- **Lo nuevo de esta semana, commit por commit:** https://github.com/academiaseul/QWATT/compare/semana-1...semana-2
+- **Pull requests:** [#12](https://github.com/academiaseul/QWATT/pull/12) sitio · [#13](https://github.com/academiaseul/QWATT/pull/13) CI · [#14](https://github.com/academiaseul/QWATT/pull/14), [#15](https://github.com/academiaseul/QWATT/pull/15) desfase del reloj · [#16](https://github.com/academiaseul/QWATT/pull/16), [#17](https://github.com/academiaseul/QWATT/pull/17), [#21](https://github.com/academiaseul/QWATT/pull/21), [#31](https://github.com/academiaseul/QWATT/pull/31) conciliación · [#18](https://github.com/academiaseul/QWATT/pull/18), [#22](https://github.com/academiaseul/QWATT/pull/22), [#23](https://github.com/academiaseul/QWATT/pull/23) claves · [#19](https://github.com/academiaseul/QWATT/pull/19), [#25](https://github.com/academiaseul/QWATT/pull/25), [#26](https://github.com/academiaseul/QWATT/pull/26), [#29](https://github.com/academiaseul/QWATT/pull/29) repositorios de evidencia · [#20](https://github.com/academiaseul/QWATT/pull/20) cortes · [#24](https://github.com/academiaseul/QWATT/pull/24), [#28](https://github.com/academiaseul/QWATT/pull/28) lecturas crudas · [#27](https://github.com/academiaseul/QWATT/pull/27) pruebas A–D · [#30](https://github.com/academiaseul/QWATT/pull/30) nombre del sitio · [#32](https://github.com/academiaseul/QWATT/pull/32) paquete de hosts
+- **CI en main después del último merge de la semana:** [corrida #117](https://github.com/academiaseul/QWATT/actions/runs/40983782958), en `03169a8`.
+- **Repositorio:** https://github.com/academiaseul/QWATT. Con Node.js 20 o superior y git, corre `npm test`; para las pruebas de anclaje, `npm ci --prefix anchor` y después `npm run test:anchor`. Ninguna prueba se conecta a Stellar testnet.
+- **Documentos:** [runbook](docs/RUNBOOK.md) · [firmante externo al equipo](docs/THIRD-SIGNER.md) · [formato del feed](protocol/FEED-FORMAT.md) · [paquete de hosts](ops/deploy/host/README.md)
+
+### Términos nuevos de esta semana
+- **stellar-cli:** la herramienta oficial de línea de comandos de Stellar. Guarda cada clave en la máquina que la usa y firma ahí.
+- **Huella de las lecturas crudas (`samples_root`):** un código calculado a partir de todas las lecturas crudas de un lote, así que una lectura cambiada lo cambia.
+- **Repositorio de evidencia:** un repositorio git público donde publica un solo host, y cuya historia nadie puede reescribir.
+- **Deploy key:** una clave que le permite a una máquina escribir en un repositorio, y nada más.
+- **Commit fijado:** una versión fija de un repositorio, leída completa, para que ningún archivo venga de una copia más antigua.
+- **WSL:** el Subsistema de Windows para Linux, que corre Ubuntu dentro de Windows; el host del verificador lo usa.
+
 ## Semana 1 — 19 al 23 de octubre de 2026
 
 ### Resumen
