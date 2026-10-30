@@ -578,9 +578,11 @@ test('V3-7c: fetchFeed reads a GitHub feed at one commit after Horizon, so an an
 test('V3-7c: in a browser (both scripts loaded as classic <script>s, as reconcile.html loads them, pin first) a GitHub feed is pinned through the commits API and read at that commit', async () => {
   const vm = require('vm');
   const html = fs.readFileSync(path.join(__dirname, '..', 'reconcile.html'), 'utf8');
-  const pinAt = html.indexOf('<script src="assets/qwatt-pin.js"></script>'), recAt = html.indexOf('<script src="assets/qwatt-reconcile.js"></script>');
-  assert(pinAt >= 0 && recAt > pinAt, 'reconcile.html loads assets/qwatt-pin.js before assets/qwatt-reconcile.js');
-  assert(/evidence read at/.test(html), 'the page says which commit it read');
+  const srcs = [...html.matchAll(/<script\b[^>]*\bsrc="\/?([^"]+)"/g)].map((m) => m[1]);
+  const pinAt = srcs.indexOf('assets/qwatt-pin.js'), recAt = srcs.indexOf('assets/qwatt-reconcile.js');
+  assert(pinAt >= 0 && recAt > pinAt, `reconcile.html loads assets/qwatt-pin.js before assets/qwatt-reconcile.js: ${srcs.join(' ')}`);
+  const own = srcs.filter((s) => s.startsWith('assets/pages/')).map((s) => fs.readFileSync(path.join(__dirname, '..', s), 'utf8')).join('\n');
+  assert(/evidence read at/.test(html + own), 'the page (or its own script) says which commit it read');
   const SHA = 'feed'.repeat(10);
   const seen = [];
   const reply = (status, body) => ({ status, ok: status >= 200 && status < 300, text: async () => body });
@@ -642,6 +644,586 @@ test('V3-7c: pinBase: a raw branch URL resolves to its head commit, a commit URL
     try { await PIN.pinBase(`${g.gh.rawOrigin}/acme/qwatt-evidence/no-such-branch/run`, g.pin); } catch (e) { missing = e; }
     assert(missing && /no-such-branch/.test(missing.message), `a branch that does not exist rejects: ${missing && missing.message}`);
   } finally { await g.gh.close(); }
+});
+
+/* ───────────── week 2 (V3-9.3): the reconciliation page on the site ───────────── */
+
+const ROOT = path.join(__dirname, '..');
+const PAGE = path.join(ROOT, 'reconcile.html');
+const PAGE_JS = path.join(ROOT, 'assets', 'pages', 'reconcile.js');
+/** The fixed label as the Spanish pages carry it (assets/status.json, hoja-de-ruta.html). */
+const LABEL_ES = 'Entrada simulada · assurance A0 · Stellar testnet';
+const stripComments = (s) => s.replace(/<!--[\s\S]*?-->/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+const readIf = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '');
+/** The page's script files, in page order, as repository paths (a leading "/" is the site root). */
+const pageScripts = (html) => [...html.matchAll(/<script\b[^>]*\bsrc="([^"]+)"[^>]*><\/script>/g)].map((m) => m[1].replace(/^\//, ''));
+
+/**
+ * A minimal DOM for reconcile.html. The page's markup (HTML comments, scripts and styles left out) is parsed
+ * into a tree of elements and text, so textContent reads static and script-made text alike, in document
+ * order; children holds the elements only, as in a browser. Every element with an id is reachable through
+ * getElementById, with its static value, hidden and open attributes; any other id is null, so a script that
+ * uses an id the page lacks throws. innerHTML throws. textIn('es'|'en') is what a reader of that language
+ * sees: the other language's data-l elements are left out, as the site's ES/EN toggle hides them.
+ */
+function pageDom(html, query) {
+  class El {
+    constructor(tag) { Object.assign(this, { tagName: String(tag).toUpperCase(), id: '', nodes: [], className: '', attrs: {}, listeners: {}, hidden: false, value: '', disabled: false, title: '', open: false }); }
+    get children() { return this.nodes.filter((n) => typeof n !== 'string'); }
+    get textContent() { return this.nodes.map((n) => (typeof n === 'string' ? n : n.textContent)).join(''); }
+    set textContent(t) { this.nodes = [String(t)]; }
+    textIn(lg) { return this.nodes.map((n) => (typeof n === 'string' ? n : n.attrs['data-l'] && n.attrs['data-l'] !== lg ? '' : n.textIn(lg))).join(''); }
+    get innerHTML() { throw new Error('reconcile.html reads innerHTML'); }
+    set innerHTML(v) { throw new Error('reconcile.html writes innerHTML: ' + String(v).slice(0, 60)); }
+    appendChild(c) { this.nodes.push(c); c.parentNode = this; return c; }
+    setAttribute(k, v) { this.attrs[k] = String(v); }
+    getAttribute(k) { return k in this.attrs ? this.attrs[k] : null; }
+    hasAttribute(k) { return k in this.attrs; }
+    removeAttribute(k) { delete this.attrs[k]; }
+    addEventListener(t, f) { (this.listeners[t] = this.listeners[t] || []).push(f); }
+    /** As a browser does: a disabled button ignores the click; the listeners' promises are kept to be awaited. */
+    click() { if (this.disabled) return; const ev = { preventDefault() {}, target: this }; this.clicked = Promise.all((this.listeners.click || []).map((f) => f.call(this, ev))); }
+    /** every descendant element, depth first */
+    all() { return this.children.flatMap((c) => [c, ...c.all()]); }
+  }
+  const decode = (t) => t.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, '&');
+  const VOID = new Set(['input', 'br', 'meta', 'link', 'img', 'hr', 'source', 'wbr']);
+  const root = new El('#document');
+  const stack = [root];
+  const byId = {};
+  const token = /<!--[\s\S]*?-->|<(script|style)\b[^>]*>[\s\S]*?<\/\1\s*>|<\/([a-z0-9]+)\s*>|<!doctype[^>]*>|<([a-z0-9]+)\b((?:[^>"']|"[^"]*"|'[^']*')*)>|([^<]+)/gi;
+  for (const m of html.matchAll(token)) {
+    if (m[2]) {
+      const tag = m[2].toLowerCase();
+      for (let i = stack.length - 1; i > 0; i--) if (stack[i].tagName.toLowerCase() === tag) { stack.length = i; break; }
+    } else if (m[3]) {
+      const e = new El(m[3]);
+      for (const a of (m[4] || '').matchAll(/([a-zA-Z_:][-a-zA-Z0-9_:.]*)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s"'>]+)))?/g)) {
+        const k = a[1].toLowerCase(), v = decode(a[2] ?? a[3] ?? a[4] ?? '');
+        e.attrs[k] = v;
+        if (k === 'id') { e.id = v; byId[v] = e; }
+        if (k === 'class') e.className = v;
+        if (k === 'value') e.value = v;
+        if (k === 'hidden') e.hidden = true;
+        if (k === 'open') e.open = true;
+        if (k === 'disabled') e.disabled = true;
+      }
+      stack[stack.length - 1].appendChild(e);
+      if (!VOID.has(m[3].toLowerCase()) && !/\/\s*$/.test(m[4] || '')) stack.push(e);
+    } else if (m[5]) stack[stack.length - 1].nodes.push(decode(m[5]));
+  }
+  const replaced = [];
+  const htmlEl = root.all().find((e) => e.tagName === 'HTML') || new El('html');
+  const doc = {
+    documentElement: htmlEl, readyState: 'loading',
+    getElementById: (id) => byId[id] || null,
+    createElement: (tag) => new El(tag),
+    querySelector: () => null, querySelectorAll: () => [],
+    addEventListener() {},
+  };
+  return { byId, replaced, doc, location: { search: query ? '?' + query : '', pathname: '/reconcile.html' }, history: { replaceState: (s, t, url) => replaced.push(url) } };
+}
+
+/** The element with that id in the page DOM; a missing one fails with its name. */
+function need(dom, id) { const e = dom.byId[id]; if (!e) throw new Error(`reconcile.html has no #${id}`); return e; }
+/** What an English or a Spanish reader sees in an element. */
+const en = (node) => node.textIn('en');
+const es = (node) => node.textIn('es');
+
+/**
+ * Run reconcile.html's scripts (every <script src>, in page order: the shared chrome, the pin module, the
+ * reconciliation, the page's own script) in a fresh context with that DOM; resolves once the page has
+ * decided whether to run and, when it ran by itself, once that check has finished (QWATT_RECONCILE_PAGE.ready:
+ * 'ran', 'waiting' or 'idle'). When it did not run, click (the default) presses Reconcile as a reader would.
+ * fetch replaces the page's fetch for every host (to route the public hosts to local fakes: the tests never
+ * touch the network); same-origin paths are served from the repository, and /assets/status.json from
+ * `status` when a test gives one. dom.local and dom.remote list what the page asked for.
+ */
+async function runPage(query, { crypto = globalThis.crypto, click = true, fetch: pageFetch = (...a) => fetch(...a), status } = {}) {
+  const vm = require('vm');
+  const html = fs.readFileSync(PAGE, 'utf8');
+  const dom = pageDom(html, query);
+  dom.local = []; dom.remote = [];
+  const site = async (u) => {
+    dom.local.push(u);
+    const p = u.split(/[?#]/)[0];
+    if (p === '/assets/status.json' && status !== undefined) return new Response(JSON.stringify(status), { status: 200 });
+    const f = path.join(ROOT, p);
+    return fs.existsSync(f) && fs.statSync(f).isFile() ? new Response(fs.readFileSync(f), { status: 200 }) : new Response('not found', { status: 404 });
+  };
+  const win = {
+    document: dom.doc, location: dom.location, history: dom.history,
+    localStorage: { getItem: () => null, setItem() {} }, addEventListener() {},
+    URL, URLSearchParams, TextEncoder, AbortSignal, atob, crypto, console, Response,
+    fetch: (url, init) => { const u = String(url); if (u.startsWith('/')) return site(u); dom.remote.push(u); return pageFetch(u, init); },
+  };
+  win.window = win; win.self = win;
+  const ctx = vm.createContext(win);
+  for (const src of pageScripts(html)) vm.runInContext(fs.readFileSync(path.join(ROOT, src), 'utf8'), ctx, { filename: src });
+  const page = win.QWATT_RECONCILE_PAGE;
+  if (!page || !page.ready) throw new Error('reconcile.html did not start its own script (window.QWATT_RECONCILE_PAGE.ready from assets/pages/reconcile.js)');
+  dom.state = await page.ready;
+  dom.autoRan = dom.state === 'ran';
+  const btn = dom.byId.runBtn;
+  if (!dom.autoRan && click && btn) { btn.click(); await btn.clicked; }
+  return dom;
+}
+
+/** Press Reconcile on a page already loaded: returns the progress text (English) while the check runs, then waits for it. */
+async function clickReconcile(dom) {
+  const btn = need(dom, 'runBtn');
+  btn.click();
+  const during = en(need(dom, 'progress'));
+  await btn.clicked;
+  return during;
+}
+
+/** A fetch for the page that sends the public testnet Horizon to a local fake, answers api.github.com itself when api is given, and passes everything else on. */
+const routed = (hzUrl, api) => async (url, init) => {
+  const u = String(url);
+  if (api && u.startsWith('https://api.github.com/')) return api(u);
+  return fetch(u.startsWith(DEFAULT_HORIZON) ? hzUrl + u.slice(DEFAULT_HORIZON.length) : u, init);
+};
+const DEFAULT_HORIZON = 'https://horizon-testnet.stellar.org';
+/** The ✓/✗ mark of a row of #acctRules (label, value, mark), by its English label. */
+function ruleMark(dom, label) {
+  const cells = need(dom, 'acctRules').children;
+  const i = cells.findIndex((c) => en(c) === label);
+  if (i < 0) throw new Error(`#acctRules has no row "${label}": ${en(need(dom, 'acctRules'))}`);
+  return cells[i + 2];
+}
+/** The row of #acctSigners for a signer key (its first cell carries the full key in title). */
+function signerRow(dom, key) {
+  const row = need(dom, 'acctSigners').children.find((tr) => tr.children[0] && tr.children[0].title === key);
+  if (!row) throw new Error(`no signer row for ${key.slice(0, 6)}…: ${en(need(dom, 'acctSigners'))}`);
+  return row;
+}
+const lastCell = (tr) => tr.children[tr.children.length - 1];
+/** The repository's assets/status.json with the public run feed and the anchoring account set as given. */
+function statusWith(base, account) {
+  const S = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'status.json'), 'utf8'));
+  return { ...S, feeds: (S.feeds || []).map((f) => (f.id === 'corrida' ? { ...f, base } : f)), anchor: { ...(S.anchor || {}), account } };
+}
+
+/**
+ * A feed of three batches on 127.0.0.1 and a Horizon whose anchors are signed proposer + verifier, except batch 2
+ * (proposer + third, a stand-in). edit(anchors) may change the anchors (e.g. re-sign one with another pair).
+ * The Horizon is not the public one, so the page waits for a click (runPage clicks by default).
+ */
+async function pageWorld({ record = () => honestRecord(), run = runFile(), edit = null } = {}) {
+  const { dir, feed } = makeFeed(3);
+  fs.writeFileSync(path.join(dir, 'faults.json'), JSON.stringify(run) + '\n');
+  const anchors = anchorsFor(feed, 3);
+  anchors[2] = resign(anchors[2], ['proposer', 'third']);
+  if (edit) edit(anchors);
+  const host = await serveDir(dir);
+  const hz = await FH.serveHorizon({ account: ACCOUNT, record, anchors: () => anchors });
+  const q = (extra = '') => `feed=${encodeURIComponent(host.url)}&account=${ACCOUNT}&horizon=${encodeURIComponent(hz.url)}${extra}`;
+  return { feed, host, hz, q, close: async () => { await hz.close(); await host.close(); } };
+}
+
+test('V3-9.3: reconcile.html follows the site template: the fixed A0 label in both languages under the title, no "2 of 3", no inline script, no form, labelled fields, and its own script runs check() with the roles from the address', async () => {
+  const html = fs.readFileSync(PAGE, 'utf8');
+  const page = stripComments(html);
+  assert(fs.existsSync(PAGE_JS), 'the page script is assets/pages/reconcile.js');
+  const js = readIf(PAGE_JS), code = stripComments(js);
+  assert(pageScripts(html).includes('assets/pages/reconcile.js'), 'reconcile.html loads assets/pages/reconcile.js');
+  assert(!/<script(?![^>]*\bsrc=)[^>]*>/i.test(page), 'no inline script (CSP script-src \'self\')');
+  assert(!/<form\b/i.test(page), 'no <form> (the site has none; CSP form-action \'none\')');
+  assert(!/\son[a-z]+\s*=\s*["']/i.test(page), 'no inline event handler');
+  assert(html.includes(LABEL) && html.includes(LABEL_ES), 'the fixed label, in English and in the Spanish form of the site');
+  for (const old of ['Simulated input · Stellar testnet', 'Entrada simulada · Stellar testnet']) assert(!html.includes(old) && !js.includes(old), `the week-1 label is gone: ${old}`);
+  assert(!/2 of 3|2-of-3|2 de 3/.test(html + js), 'no hard-coded "2 of 3": the page states what Horizon returned');
+  assert(/R\.check\(/.test(code), 'the page runs R.check (feed, account, signatures), outside any comment');
+  assert(/params\.get\('proposer'\)/.test(code), 'the page reads ?proposer= (and the other roles) from its address');
+  assert(!/innerHTML|outerHTML|insertAdjacentHTML/.test(code), 'the page never writes markup');
+  const label = /<p\b[^>]*\bid="inputLabel"[^>]*>\s*<span data-l="es">([^<]*)<\/span><span data-l="en">([^<]*)<\/span>\s*<\/p>/.exec(page);
+  assert(label, '#inputLabel, a static element outside any comment, holds the label as a Spanish/English pair');
+  eq(label[1], LABEL_ES, '#inputLabel, Spanish');
+  eq(label[2], LABEL, '#inputLabel, English');
+  const hero = /<section\b[^>]*\bid="top"[^>]*>[\s\S]*?<\/section>/.exec(page);
+  assert(hero && hero[0].indexOf('id="inputLabel"') > hero[0].indexOf('<h1'), '#inputLabel sits at the top, in the hero, right under the title');
+  for (const [l, what] of [[LABEL, 'English'], [LABEL_ES, 'Spanish']]) assert(page.split(l).length - 1 >= 3, `${what}: the label at the top, next to the energy figure and in the batches note`);
+  assert(/<th[^>]*>\s*<span data-l="es">Firmado por<\/span><span data-l="en">Signed by<\/span>\s*<\/th>/.test(page), 'the batches table has a "Signed by" column, in both languages');
+  assert(/id="acctPanel"/.test(page), 'the account panel exists');
+  eq((page.match(/<h1\b/g) || []).length, 1, 'one h1');
+  assert(/<main id="main">/.test(page), 'the main landmark of the template');
+  for (const id of ['feedIn', 'acctIn', 'horizonIn', 'proposerIn', 'verifierIn', 'thirdIn']) assert(new RegExp(`<label for="${id}">`).test(page), `#${id} has its <label>`);
+  assert(/<button type="button"[^>]*\bid="runBtn"/.test(page), 'Reconcile is a button, not a form submit');
+});
+
+test('V3-9: the site serves the reconciliation page again: .vercelignore lists neither reconcile.html nor its scripts and stylesheet', async () => {
+  const lines = fs.readFileSync(path.join(ROOT, '.vercelignore'), 'utf8').split('\n').map((l) => l.trim()).filter((l) => l && !l.startsWith('#'));
+  for (const p of ['reconcile.html', 'assets', 'assets/qwatt-reconcile.js', 'assets/qwatt-pin.js', '/reconcile.html', 'assets/*', '*.html', 'assets/pages']) assert(!lines.includes(p), `.vercelignore still excludes ${p} from the site`);
+  assert(lines.includes('assets/vendor'), 'assets/vendor stays excluded');
+  const html = fs.readFileSync(PAGE, 'utf8');
+  const scripts = pageScripts(html);
+  assert(scripts.indexOf('assets/qwatt-pin.js') >= 0 && scripts.indexOf('assets/qwatt-pin.js') < scripts.indexOf('assets/qwatt-reconcile.js'), `the pin module loads before the reconciliation: ${scripts.join(' ')}`);
+  const sheets = [...html.matchAll(/<link rel="stylesheet" href="\/(assets\/[^"]+)"/g)].map((m) => m[1]);
+  for (const f of scripts.concat(sheets)) assert(fs.existsSync(path.join(ROOT, f)) && !lines.some((l) => f === l || f.startsWith(l.replace(/\/?$/, '/'))), `the page's ${f} is served`);
+});
+
+test('V3-9: the page, run against Horizon and a feed: account panel all ✓ with the sentence built from the values, roles from faults.json, every batch id on screen, "Signed by" per anchor (proposer + verifier, or a stand-in), tiles and progress from the report, in both languages', async () => {
+  const w = await pageWorld();
+  try {
+    const dom = await runPage(w.q());
+    const $ = (id) => need(dom, id);
+    eq($('result').hidden, false, `the result is shown (progress: ${en($('progress'))})`);
+    eq($('noResult').hidden, true, 'the empty state is hidden');
+    assert(/^RECONCILED/.test(en($('verdict'))), `verdict: ${en($('verdict'))}`);
+    assert(/^CONCILIADO/.test(es($('verdict'))), `veredicto: ${es($('verdict'))}`);
+    eq(en($('tAnc')), '3 / 3', 'anchored / accepted');
+    assert(en($('tAncS')).includes('2 proposer + verifier · 1 stand-in'), `tile sub-line: ${en($('tAncS'))}`);
+    assert(es($('tAncS')).includes('2 proponente + verificador · 1 suplente'), `tile sub-line, Spanish: ${es($('tAncS'))}`);
+    const acct = en($('acctPanel'));
+    for (const s of ['Anchoring account, as read from Horizon', 'Thresholds (low/medium/high)', '2/2/3', 'Master weight', "Roles from: the run's faults.json",
+      'No single key can send any transaction for this account; anchoring needs 2 of the 3 keys; changing signers or thresholds needs all 3.']) assert(acct.includes(s), `account panel has "${s}": ${acct}`);
+    const cuenta = es($('acctPanel'));
+    for (const s of ['Cuenta de anclaje, tal como la devuelve Horizon', 'Umbrales (bajo/medio/alto)', 'Roles según: el faults.json de la corrida',
+      'Ninguna clave sola puede enviar una transacción de esta cuenta; anclar exige 2 de las 3 claves; cambiar firmantes o umbrales exige las 3.']) assert(cuenta.includes(s), `panel de la cuenta tiene "${s}": ${cuenta}`);
+    assert(!acct.includes('Umbrales') && !cuenta.includes('Thresholds'), 'each reader sees one language');
+    assert(!acct.includes('✗'), `nothing fails §3: ${acct}`);
+    for (const r of ['proposer', 'verifier', 'third']) assert(acct.includes(ROLES[r].slice(0, 6)) && acct.includes(r), `the ${r} row: ${acct}`);
+    const rows = $('rows').children;
+    eq(rows.length, 3, 'three batch rows');
+    rows.forEach((tr, i) => eq(en(tr.children[1]), w.feed.listed[i].batch_id, `batch ${i}: its id is on screen (FD-14)`));
+    const signed = (i) => rows[i].children[rows[i].children.length - 1];
+    eq(en(signed(0)), 'proposer + verifier', 'batch 0 signed by');
+    eq(es(signed(0)), 'proponente + verificador', 'lote 0 firmado por');
+    eq(signed(0).className, 'ok', 'normal is ok');
+    const chip = signed(2).all().find((e) => /\bchip\b/.test(e.className));
+    assert(chip && /\bc-wait\b/.test(chip.className) && en(chip) === 'stand-in' && es(chip) === 'suplente', `batch 2: a stand-in chip: ${en(signed(2))}`);
+    assert(en(signed(2)).includes('proposer + third signer'), `batch 2 names the pair: ${en(signed(2))}`);
+    const prog = en($('progress'));
+    assert(/^Checked 3 batches, the account's signers and thresholds, and the signatures on 3 anchoring transactions at \d\d:\d\d:\d\d UTC/.test(prog), `progress: ${prog}`);
+    assert(/^Se comprobaron 3 lotes/.test(es($('progress'))), `progreso: ${es($('progress'))}`);
+    assert(prog.includes(`evidence read at ${w.host.url}`), `the progress line names what was read (V3-7c): ${prog}`);
+    const hzHost = new URL(w.hz.url).host;
+    assert(prog.includes(`Horizon ${hzHost}`), `the progress line names the Horizon server read: ${prog}`);
+    assert(en($('acctId')).includes(`as ${hzHost} returned it`), `the account line names the server: ${en($('acctId'))}`);
+    eq($('horizonNote').hidden, false, 'a Horizon other than the public testnet one is named on the result');
+    assert(en($('horizonNote')).includes(`Reading a non-default Horizon: ${hzHost}`), `the notice: ${en($('horizonNote'))}`);
+    assert(es($('horizonNote')).includes(`Leyendo un Horizon distinto del predeterminado: ${hzHost}`), `el aviso: ${es($('horizonNote'))}`);
+    for (const r of ['proposer', 'verifier', 'third']) eq(lastCell(signerRow(dom, ROLES[r])).textContent, '✓', `the ${r} row passes §3`);
+    eq(ruleMark(dom, 'Thresholds (low/medium/high)').textContent, '✓', 'thresholds ✓');
+    eq(ruleMark(dom, 'Master weight').textContent, '✓', 'master weight ✓');
+    eq(dom.replaced.length, 1, 'the address is rewritten once');
+    assert(!/proposer=|verifier=|third=/.test(dom.replaced[0]), `no role parameters when none were given: ${dom.replaced[0]}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9: the page against an account at 1/2/3 shows the value read with ✗, says it does not match the frozen setup, makes no "no single key" claim, and the verdict is BROKEN', async () => {
+  const w = await pageWorld({ record: () => honestRecord({ thresholds: { low: 1, med: 2, high: 3 } }) });
+  try {
+    const dom = await runPage(w.q());
+    const acct = en(need(dom, 'acctPanel'));
+    assert(/^BROKEN/.test(en(need(dom, 'verdict'))), en(need(dom, 'verdict')));
+    assert(/^ROTO/.test(es(need(dom, 'verdict'))), es(need(dom, 'verdict')));
+    assert(acct.includes('1/2/3') && acct.includes('✗'), `the thresholds as read, failing: ${acct}`);
+    const th = ruleMark(dom, 'Thresholds (low/medium/high)');
+    eq(th.textContent, '✗', 'the thresholds row fails');
+    eq(th.className, 'no', 'shown as a failure');
+    eq(ruleMark(dom, 'Master weight').textContent, '✓', 'the master weight (0) still passes');
+    assert(acct.includes('This account does not match the frozen setup; see the problems above.'), acct);
+    assert(!/no single key/i.test(acct) && !/ninguna clave sola/i.test(es(need(dom, 'acctPanel'))), `no claim: ${acct}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9: roles given in the address (for a feed whose faults.json declares none) fill the three inputs, are used and written back; the panel says where they came from', async () => {
+  const w = await pageWorld({ run: runFile({ anchoring: undefined }) });
+  try {
+    const roles = `&proposer=${ROLES.proposer}&verifier=${ROLES.verifier}&third=${ROLES.third}`;
+    const dom = await runPage(w.q(roles));
+    eq(need(dom, 'proposerIn').value, ROLES.proposer, 'proposer input');
+    eq(need(dom, 'verifierIn').value, ROLES.verifier, 'verifier input');
+    eq(need(dom, 'thirdIn').value, ROLES.third, 'third input');
+    assert(/^RECONCILED/.test(en(need(dom, 'verdict'))), `${en(need(dom, 'verdict'))} ${en(need(dom, 'progress'))}`);
+    assert(en(need(dom, 'acctPanel')).includes("Roles from: this page's address"), en(need(dom, 'acctPanel')));
+    const url = dom.replaced[0] || '';
+    for (const r of ['proposer', 'verifier', 'third']) assert(url.includes(`${r}=${ROLES[r]}`), `${r} written back: ${url}`);
+    /* two of three is not a role set: nothing is written back and nothing is used */
+    const two = await runPage(w.q(`&proposer=${ROLES.proposer}&verifier=${ROLES.verifier}`));
+    assert(!/proposer=|verifier=/.test(two.replaced[0] || ''), `two roles are not written back: ${two.replaced[0]}`);
+    assert(/^BROKEN/.test(en(need(two, 'verdict'))) && /signer roles are not declared/.test(en(need(two, 'verdict'))), `two roles are not used: ${en(need(two, 'verdict'))}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9: a browser without WebCrypto Ed25519 gets no verdict from the page, only a message that points to reconcile-cli', async () => {
+  const w = await pageWorld();
+  const real = globalThis.crypto.subtle;
+  const noEd25519 = { subtle: {
+    digest: (...a) => real.digest(...a),
+    verify: (...a) => real.verify(...a),
+    importKey: async () => { const e = new Error('Unrecognized algorithm name'); e.name = 'NotSupportedError'; throw e; },
+  } };
+  try {
+    const dom = await runPage(w.q(), { crypto: noEd25519 });
+    eq(need(dom, 'result').hidden, true, 'no result is shown');
+    eq(need(dom, 'verdict').textContent, '', 'no verdict');
+    const prog = en(need(dom, 'progress'));
+    assert(/cannot verify Ed25519/.test(prog) && /reconcile-cli/.test(prog), `the message points to the CLI: ${prog}`);
+    assert(/no puede verificar firmas Ed25519/.test(es(need(dom, 'progress'))), es(need(dom, 'progress')));
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: the account panel fails what breaks §3, row by row: master weight 1 shows ✗ on that row, a signer of weight 2 shows ✗ on that signer\'s row, and the verdict is BROKEN with no "no single key" claim', async () => {
+  for (const [what, record, check] of [
+    ['master weight 1', () => honestRecord({ master: 1 }), (dom) => {
+      const m = ruleMark(dom, 'Master weight');
+      eq(m.textContent, '✗', 'the master-weight row fails');
+      eq(m.className, 'no', 'shown as a failure');
+      eq(ruleMark(dom, 'Thresholds (low/medium/high)').textContent, '✓', 'the thresholds (2/2/3) still pass');
+      for (const r of ['proposer', 'verifier', 'third']) eq(lastCell(signerRow(dom, ROLES[r])).textContent, '✓', `the ${r} row still passes`);
+    }],
+    ['third signer of weight 2', () => honestRecord({ weights: { [ROLES.third]: 2 } }), (dom) => {
+      const third = signerRow(dom, ROLES.third);
+      eq(third.children[2].textContent, '2', 'the weight as read');
+      eq(lastCell(third).textContent, '✗', "the third signer's row fails");
+      eq(lastCell(third).children[0].className, 'no', 'shown as a failure');
+      for (const r of ['proposer', 'verifier']) eq(lastCell(signerRow(dom, ROLES[r])).textContent, '✓', `the ${r} row still passes`);
+      eq(ruleMark(dom, 'Master weight').textContent, '✓', 'the master weight (0) still passes');
+    }],
+  ]) {
+    const w = await pageWorld({ record });
+    try {
+      const dom = await runPage(w.q());
+      assert(/^BROKEN/.test(en(need(dom, 'verdict'))), `${what}: verdict ${en(need(dom, 'verdict'))} (${en(need(dom, 'progress'))})`);
+      check(dom);
+      const acct = en(need(dom, 'acctPanel'));
+      assert(acct.includes('This account does not match the frozen setup; see the problems above.'), `${what}: ${acct}`);
+      assert(!/no single key/i.test(acct), `${what}: no claim: ${acct}`);
+    } finally { await w.close(); }
+  }
+});
+
+test('V3-9.3: an anchor signed by another pair (verifier + third) is shown as ✗ with that pair in "Signed by", counted as other in the tile, and the verdict is BROKEN; the stand-in next to it stays a stand-in', async () => {
+  const w = await pageWorld({ edit: (a) => { a[1] = resign(a[1], ['verifier', 'third']); } });
+  try {
+    const dom = await runPage(w.q());
+    assert(/^BROKEN/.test(en(need(dom, 'verdict'))), `verdict: ${en(need(dom, 'verdict'))}`);
+    const rows = need(dom, 'rows').children;
+    const bad = lastCell(rows[1]);
+    eq(bad.className, 'no', 'the pair is shown as a failure');
+    assert(en(bad).startsWith('✗ ') && /verifier/.test(en(bad)) && /third/.test(en(bad)), `it names the pair: ${en(bad)}`);
+    assert(!en(bad).includes('proposer'), `not a pair with the proposer: ${en(bad)}`);
+    assert(es(bad).startsWith('✗ ') && /verificador/.test(es(bad)) && /tercer firmante/.test(es(bad)), `nombra la pareja: ${es(bad)}`);
+    eq(en(lastCell(rows[0])), 'proposer + verifier', 'batch 0 is still normal');
+    eq(lastCell(rows[0]).className, 'ok', 'and ok');
+    assert(en(lastCell(rows[2])).includes('proposer + third signer') && !lastCell(rows[2]).textContent.includes('✗'), `batch 2 is still a stand-in: ${en(lastCell(rows[2]))}`);
+    assert(en(need(dom, 'tAncS')).includes('1 proposer + verifier · 1 stand-in · 1 other'), `tile sub-line: ${en(need(dom, 'tAncS'))}`);
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: a link that names a Horizon other than the public testnet one does not run by itself; once the reader presses Reconcile, every result names that server in a visible notice above the verdict, in the account line and in the progress line', async () => {
+  const w = await pageWorld();
+  try {
+    const host = new URL(w.hz.url).host;
+    const dom = await runPage(w.q(), { click: false });
+    eq(dom.state, 'waiting', 'the check does not start by itself');
+    eq(w.hz.requests.length, 0, 'nothing is read from that server before the click');
+    eq(need(dom, 'result').hidden, true, 'no result yet');
+    eq(need(dom, 'horizonIn').value, w.hz.url, 'the server from the link is in the Horizon input');
+    eq(need(dom, 'advOpts').open, true, 'the Horizon input is shown, not folded away');
+    const waiting = en(need(dom, 'progress'));
+    assert(waiting.includes(host) && /not the public Stellar testnet Horizon/.test(waiting) && /press Reconcile/.test(waiting), `the page says why it waits: ${waiting}`);
+    assert(es(need(dom, 'progress')).includes(host) && /pulsa Conciliar/.test(es(need(dom, 'progress'))), `y en español: ${es(need(dom, 'progress'))}`);
+    eq(dom.replaced.length, 0, 'the address is not rewritten before the click');
+
+    const during = await clickReconcile(dom);
+    eq(during, 'Reading the anchoring account, its signers and every anchoring transaction from Horizon, then downloading the evidence feed at its latest commit…', 'the progress text in the order of the reads');
+    assert(w.hz.requests.length > 0, 'the click runs the check');
+    assert(/^RECONCILED/.test(en(need(dom, 'verdict'))), en(need(dom, 'verdict')));
+    const note = need(dom, 'horizonNote');
+    eq(note.hidden, false, 'the notice is shown');
+    assert(en(note).startsWith(`Reading a non-default Horizon: ${host}.`), `the notice names the server: ${en(note)}`);
+    assert(/only as trustworthy as that server/.test(en(note)) && en(note).includes('horizon-testnet.stellar.org'), `and says what that means: ${en(note)}`);
+    const inResult = need(dom, 'result').all();
+    assert(inResult.indexOf(note) >= 0 && inResult.indexOf(note) < inResult.indexOf(need(dom, 'verdict')), 'the notice is part of the result, above the verdict');
+    assert(en(need(dom, 'acctId')).includes(`as ${host} returned it`), en(need(dom, 'acctId')));
+    assert(en(need(dom, 'progress')).includes(`Horizon ${host}`), en(need(dom, 'progress')));
+    assert(dom.replaced[0].includes('horizon=' + encodeURIComponent(w.hz.url)), `the server stays in the address: ${dom.replaced[0]}`);
+    await clickReconcile(dom);
+    eq(note.hidden, false, 'a second check names it again');
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: a look-alike of the public testnet Horizon (another host that starts with its name, or its name as user info before another host) is a non-default server: the link does not run by itself, and the waiting line and the notice name the host the page really reads', async () => {
+  for (const lookalike of [`${DEFAULT_HORIZON}.evil.example`, `${DEFAULT_HORIZON}@evil.example`]) {
+    const w = await pageWorld();
+    try {
+      const host = new URL(lookalike).host;                   // horizon-testnet.stellar.org.evil.example, evil.example
+      const reads = [];
+      /* the look-alike is served by the local fake Horizon; the public Horizon and anything else off 127.0.0.1 is never read */
+      const pageFetch = async (url, init) => {
+        const u = String(url);
+        if (u.startsWith(lookalike + '/')) { reads.push(u); return fetch(w.hz.url + u.slice(lookalike.length), init); }
+        if (!u.startsWith('http://127.0.0.1:')) throw new Error(`no network in tests: ${u}`);
+        return fetch(u, init);
+      };
+      const dom = await runPage(`feed=${encodeURIComponent(w.host.url)}&account=${ACCOUNT}&horizon=${encodeURIComponent(lookalike)}`, { click: false, fetch: pageFetch });
+      eq(dom.state, 'waiting', `${lookalike}: the check does not start by itself`);
+      eq(reads.length + w.hz.requests.length, 0, `${lookalike}: nothing is read before the click`);
+      eq(need(dom, 'result').hidden, true, `${lookalike}: no result yet`);
+      eq(need(dom, 'advOpts').open, true, `${lookalike}: the Horizon input is shown, not folded away`);
+      const waiting = en(need(dom, 'progress'));
+      assert(/not the public Stellar testnet Horizon/.test(waiting) && waiting.includes(`Horizon: ${host}.`) && /press Reconcile/.test(waiting), `${lookalike}: the page says why it waits and names the host it would read: ${waiting}`);
+      await clickReconcile(dom);
+      assert(reads.length > 0, `${lookalike}: the click reads the server the link names`);
+      const note = need(dom, 'horizonNote');
+      eq(note.hidden, false, `${lookalike}: the notice is shown`);
+      assert(en(note).startsWith(`Reading a non-default Horizon: ${host}.`), `${lookalike}: the notice names the host read: ${en(note)}`);
+      assert(en(need(dom, 'acctId')).includes(`as ${host} returned it`), `${lookalike}: ${en(need(dom, 'acctId'))}`);
+      assert(!en(need(dom, 'acctId')).includes('as horizon-testnet.stellar.org returned it'), `${lookalike}: never passed off as the public Horizon: ${en(need(dom, 'acctId'))}`);
+      assert(dom.replaced[0].includes('horizon=' + encodeURIComponent(lookalike)), `${lookalike}: the server stays in the address: ${dom.replaced[0]}`);
+      const links = need(dom, 'rows').all().filter((e) => e.tagName === 'A');
+      eq(links.length, 0, `${lookalike}: no transaction is linked on the testnet explorer when another server was read`);
+    } finally { await w.close(); }
+  }
+});
+
+test('V3-9.3: with no ?horizon= (or the public testnet Horizon named exactly) the page runs by itself against horizon-testnet.stellar.org, shows no notice, and links each anchoring transaction on the testnet explorer', async () => {
+  const w = await pageWorld();
+  try {
+    const base = `feed=${encodeURIComponent(w.host.url)}&account=${ACCOUNT}`;
+    for (const query of [base, `${base}&horizon=${encodeURIComponent(DEFAULT_HORIZON)}`, `${base}&horizon=${encodeURIComponent(DEFAULT_HORIZON + '/')}`]) {
+      const dom = await runPage(query, { click: false, fetch: routed(w.hz.url) });
+      eq(dom.state, 'ran', `it runs by itself (${query})`);
+      assert(/^RECONCILED/.test(en(need(dom, 'verdict'))), `${en(need(dom, 'verdict'))} ${en(need(dom, 'progress'))}`);
+      eq(need(dom, 'horizonNote').hidden, true, 'no notice for the public testnet Horizon');
+      eq(need(dom, 'horizonNote').textContent, '', 'and no text');
+      assert(en(need(dom, 'acctId')).includes('as horizon-testnet.stellar.org returned it'), en(need(dom, 'acctId')));
+      assert(en(need(dom, 'progress')).includes('Horizon horizon-testnet.stellar.org'), en(need(dom, 'progress')));
+      assert(!/horizon=/.test(dom.replaced[0]), `the default is not written into the address: ${dom.replaced[0]}`);
+      const links = need(dom, 'rows').all().filter((e) => e.tagName === 'A');
+      eq(links.length, 3, 'one explorer link per anchored batch');
+      for (const a of links) assert(/^https:\/\/stellar\.expert\/explorer\/testnet\/tx\/[0-9a-f]{64}$/.test(a.href) && a.target === '_blank' && /noopener/.test(a.rel), `a testnet explorer link that opens a new tab: ${a.href}`);
+      assert(en(need(dom, 'runFeed')).includes("The feed and the account come from this page's address."), en(need(dom, 'runFeed')));
+    }
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: when api.github.com refuses the commit lookup (HTTP 403 or 429), the page says it is GitHub\'s anonymous rate limit and when to retry, not that the feed URL is wrong', async () => {
+  const w = await pageWorld();
+  try {
+    const feed = 'https://raw.githubusercontent.com/acme/qwatt-evidence/main/run';
+    const query = `feed=${encodeURIComponent(feed)}&account=${ACCOUNT}`;
+    for (const status of [403, 429]) {
+      const dom = await runPage(query, { fetch: routed(w.hz.url, async () => new Response('rate limit exceeded', { status })) });
+      const prog = en(need(dom, 'progress'));
+      eq(need(dom, 'result').hidden, true, `${status}: no result`);
+      assert(prog.includes("GitHub's anonymous API limit") && /60 requests an hour/.test(prog), `${status}: names the limit: ${prog}`);
+      assert(/try again/i.test(prog) && /within the hour|in an hour/.test(prog), `${status}: says when to retry: ${prog}`);
+      assert(/reconcile-cli/.test(prog), `${status}: points to the CLI: ${prog}`);
+      assert(!/Confirm the feed URL/.test(prog), `${status}: does not blame the feed URL: ${prog}`);
+      assert(/límite anónimo de la API de GitHub/.test(es(need(dom, 'progress'))), `${status}: ${es(need(dom, 'progress'))}`);
+    }
+    /* any other failure keeps the general message */
+    const other = await runPage(query, { fetch: routed(w.hz.url, async () => new Response('boom', { status: 500 })) });
+    assert(/Confirm the feed URL/.test(en(need(other, 'progress'))) && !/anonymous API limit/.test(en(need(other, 'progress'))), en(need(other, 'progress')));
+  } finally { await w.close(); }
+});
+
+test('V3-9.3: opened without a feed while status.json names no public run feed yet (the evidence repository does not exist), the page says so plainly in both languages, reads nothing off the site, fills nothing in and shows no result', async () => {
+  const noNet = async (u) => { throw new Error(`no network in tests: ${u}`); };
+  const S = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'status.json'), 'utf8'));
+  const run = (S.feeds || []).find((f) => f.id === 'corrida');
+  const configured = !!(run && run.base && S.anchor && S.anchor.account);
+  /* the repository's own status.json (while it names no run feed), the same with both fields empty, and one that cannot be read */
+  for (const [what, status] of [['the repository status.json', configured ? statusWith(null, null) : undefined], ['no run feed, no account', statusWith(null, null)], ['an account but no run feed', statusWith(null, ACCOUNT)], ['an unreadable status.json', null]]) {
+    const dom = await runPage('', { click: false, fetch: noNet, status });
+    eq(dom.state, 'idle', `${what}: the page does not run`);
+    eq(dom.remote.length, 0, `${what}: nothing is read off the site: ${dom.remote.join(' ')}`);
+    assert(dom.local.includes('/assets/status.json'), `${what}: it looks for the run feed in status.json`);
+    eq(need(dom, 'result').hidden, true, `${what}: no result`);
+    eq(need(dom, 'noResult').hidden, false, `${what}: the empty state stays`);
+    eq(need(dom, 'verdict').textContent, '', `${what}: no verdict`);
+    const info = need(dom, 'runFeed');
+    assert(/^There is no public run feed yet/.test(en(info)) && /in preparation \(week 2\)/.test(en(info)) && /makes none up/.test(en(info)), `${what}: ${en(info)}`);
+    assert(/^Todavía no hay un feed público de la corrida/.test(es(info)) && /\(semana 2\)/.test(es(info)), `${what}: ${es(info)}`);
+    eq(need(dom, 'feedIn').value, '', `${what}: no feed is filled in`);
+    eq(need(dom, 'acctIn').value, '', `${what}: no account is filled in`);
+    eq(dom.replaced.length, 0, `${what}: the address is not rewritten`);
+  }
+  /* pressing Reconcile with nothing to check asks for a feed and an account, and reads nothing */
+  const dom = await runPage('', { click: false, fetch: noNet, status: statusWith(null, null) });
+  await clickReconcile(dom);
+  assert(/^Enter an evidence feed URL and an anchoring account/.test(en(need(dom, 'progress'))), en(need(dom, 'progress')));
+  eq(dom.remote.length, 0, 'nothing is read');
+  eq(need(dom, 'result').hidden, true, 'still no result');
+});
+
+test('V3-9.3: once status.json names the public run feed and the real anchoring account, the page opened with no address fills them in and reconciles by itself against the public testnet Horizon', async () => {
+  const w = await pageWorld();
+  try {
+    const dom = await runPage('', { click: false, fetch: routed(w.hz.url), status: statusWith(w.host.url + '/', ACCOUNT) });
+    eq(dom.state, 'ran', 'it runs by itself');
+    eq(need(dom, 'feedIn').value, w.host.url, 'the run feed is filled in');
+    eq(need(dom, 'acctIn').value, ACCOUNT, 'the anchoring account is filled in');
+    assert(/^RECONCILED/.test(en(need(dom, 'verdict'))), `${en(need(dom, 'verdict'))} ${en(need(dom, 'progress'))}`);
+    assert(en(need(dom, 'runFeed')).includes(`The public run feed, as this site is configured: ${w.host.url} · account ${ACCOUNT}.`), en(need(dom, 'runFeed')));
+    assert(es(need(dom, 'runFeed')).includes(`El feed público de la corrida, según la configuración de este sitio: ${w.host.url}`), es(need(dom, 'runFeed')));
+    eq(need(dom, 'horizonNote').hidden, true, 'the public testnet Horizon: no notice');
+    assert((dom.replaced[0] || '').includes('feed=' + encodeURIComponent(w.host.url)) && dom.replaced[0].includes('account=' + ACCOUNT), `the address carries the check: ${dom.replaced[0]}`);
+    /* a link that names only half of a check is left for the reader to finish */
+    const half = await runPage(`account=${ACCOUNT}`, { click: false, fetch: routed(w.hz.url), status: statusWith(w.host.url + '/', ACCOUNT) });
+    eq(half.state, 'idle', 'half a link does not run by itself');
+    eq(need(half, 'feedIn').value, '', 'and the run feed does not replace what the link gave');
+  } finally { await w.close(); }
+});
+
+/* What the page says about itself must be what it does (review of the port). */
+const flat = (s) => String(s).replace(/\s+/g, ' ').trim();
+/** The page's description, og:description and twitter:description, in page order, as [key, content]. */
+const metaDescriptions = (html) => [...html.matchAll(/<meta (?:name|property)="((?:og:|twitter:)?description)" content="([^"]*)">/g)].map((m) => [m[1], m[2]]);
+
+test('V3-9.3: the page writes the check into its own address (so a link carries it), and says so: neither reconcile.html nor terminos.html claims what is typed is "not sent to QWATT" or "not stored"; both say, in each language, that it stays in the browser history and, like any address, reaches qwatt.org', async () => {
+  assert(/history\.replaceState\(/.test(stripComments(readIf(PAGE_JS))), 'the page script writes the check into its address');
+  const page = pageDom(fs.readFileSync(PAGE, 'utf8'), '');
+  const terms = pageDom(fs.readFileSync(path.join(ROOT, 'terminos.html'), 'utf8'), '');
+  const src = page.byId.fuentes, priv = terms.byId.privacidad;
+  assert(src && priv, 'reconcile.html has #fuentes and terminos.html has #privacidad');
+  for (const [what, p] of [
+    ['reconcile.html, what to reconcile', src.all().find((e) => e.tagName === 'P' && /\?feed=/.test(e.textContent))],
+    ['terminos.html, privacy', priv.all().find((e) => e.tagName === 'P' && /reconciliation page/.test(en(e)))],
+  ]) {
+    assert(p, `${what}: the paragraph about what is typed in the page's fields`);
+    const e = flat(en(p)), s = flat(es(p));
+    assert(/browser history/.test(e) && /reaches qwatt\.org/.test(e), `${what}, English: it stays in the browser history and, with the address, reaches qwatt.org: ${e}`);
+    assert(/historial de tu navegador/.test(s) && /llega a qwatt\.org/.test(s), `${what}, Spanish: queda en el historial y llega a qwatt.org: ${s}`);
+  }
+  for (const [what, node] of [['reconcile.html #fuentes', src], ['terminos.html #privacidad', priv]]) {
+    const e = flat(en(node)), s = flat(es(node));
+    assert(!/not sent to QWATT|or stored\b|is not stored/i.test(e), `${what}, English: no "not sent to QWATT" or "not stored": ${e}`);
+    assert(!/no se envía a QWATT|ni se guarda/i.test(s), `${what}, Spanish: no "no se envía a QWATT" or "ni se guarda": ${s}`);
+  }
+});
+
+test('V3-9.3: with no public run feed yet, the page offers only what the site\'s CSP lets a browser read: a feed published on this site or in a public GitHub repository, with its account; for any other host it points to reconcile-cli', async () => {
+  const csp = (JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.json'), 'utf8')).headers || []).flatMap((h) => h.headers || []).find((h) => h.key === 'Content-Security-Policy');
+  const connect = ((csp && csp.value) || '').split(';').map((d) => d.trim()).find((d) => d.startsWith('connect-src ')) || '';
+  eq(connect, "connect-src 'self' https://horizon-testnet.stellar.org https://api.github.com https://raw.githubusercontent.com", 'what a browser on qwatt.org may read: this site, Horizon testnet and the two GitHub hosts (a github.io feed is read from its repository at one commit)');
+  const noNet = async (u) => { throw new Error(`no network in tests: ${u}`); };
+  const dom = await runPage('', { click: false, fetch: noNet, status: statusWith(null, null) });
+  const info = need(dom, 'runFeed'), e = flat(en(info)), s = flat(es(info));
+  assert(!/any published feed|any feed/i.test(e), `English: no promise to reconcile any feed here: ${e}`);
+  assert(!/cualquier feed/i.test(s), `Spanish: no promise to reconcile any feed here: ${s}`);
+  assert(/a feed published on this site or in a public GitHub repository/.test(e) && /for any other host, use node anchor\/reconcile-cli\.js/.test(e), `English: names what works here and the CLI for the rest: ${e}`);
+  assert(/un feed publicado en este sitio o en un repositorio público de GitHub/.test(s) && /para cualquier otro servidor, usa node anchor\/reconcile-cli\.js/.test(s), `Spanish: ${s}`);
+});
+
+test('V3-9.3: the page\'s descriptions (meta, og, twitter) and its lead speak of a published evidence feed, never of "the public evidence feed" as if it existed: the run feed is not published yet, and those lines are read alone in search results and share cards', async () => {
+  const html = fs.readFileSync(PAGE, 'utf8');
+  const descs = metaDescriptions(html);
+  eq(descs.map(([k]) => k).join(' '), 'description og:description twitter:description', 'the three descriptions');
+  for (const [k, v] of descs) {
+    assert(!/feed público de evidencia|public evidence feed/i.test(v), `${k}: not "the public evidence feed": ${v}`);
+    assert(/cada lote de un feed de evidencia publicado/.test(v), `${k}: "cada lote de un feed de evidencia publicado": ${v}`);
+  }
+  const top = pageDom(html, '').byId.top;
+  const lead = top && top.all().find((e) => e.className === 'q-lead');
+  assert(lead, 'the lead (.q-lead) in the hero');
+  assert(/^This page downloads a published evidence feed,/.test(flat(en(lead))), `English lead: ${flat(en(lead))}`);
+  assert(/^Esta página descarga un feed de evidencia publicado,/.test(flat(es(lead))), `Spanish lead: ${flat(es(lead))}`);
 });
 
 (async () => {

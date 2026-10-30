@@ -58,7 +58,7 @@ const HORIZON_HOST = 'horizon-testnet.stellar.org';
 const FEED_HOSTS = ['academiaseul.github.io'];
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 const ALLOWED_HOSTS = new Set([
-  'qwatt.org', HORIZON_HOST, 'stellar.expert', 'github.com', 'academiaseul.github.io', 'raw.githubusercontent.com',
+  'qwatt.org', HORIZON_HOST, 'stellar.expert', 'github.com', 'academiaseul.github.io', 'raw.githubusercontent.com', 'api.github.com',
   'youtube.com', 'www.youtube.com', 'x.com', 'fonts.googleapis.com', 'fonts.gstatic.com', 'schema.org',
   'json-schema.org', 'www.w3.org', 'data.openei.org', 'www.nrel.gov', 'creativecommons.org', 'developers.stellar.org',
 ]);
@@ -78,7 +78,19 @@ const FULL_BILINGUAL = {
   'index.html': null, '404.html': null, 'terminos.html': null,
   'como-funciona.html': null, 'pruebas.html': null, 'hoja-de-ruta.html': null,
   'verificacion.html': ['top', 'derivar'],       // hero and §A only
+  'reconcile.html': null,                        // V3-9.3: every word in both languages, like verificacion.html §A
 };
+
+/* V3-9.3: the reconciliation page is served, and so is the one module that pins a GitHub feed to one commit. */
+const MUST_SERVE = ['reconcile.html', 'assets/qwatt-pin.js'];
+/* api.github.com (the evidence's head commit) and the bare raw.githubusercontent.com origin are named only by the
+   pin module; every other file reaches raw.githubusercontent.com only under the two evidence repositories. */
+const PIN_FILE = 'assets/qwatt-pin.js';
+/* FD-14, decided 26 Oct: batch ids are shown on the reconciliation page, because the live run's site_id is the
+   neutral qwatt-chispa-01 (live/run.js), so no batch id names a place. Only batch_id, and only that page's script:
+   site_id and node_id never reach any screen (D-17). */
+const BATCH_ID_ON_SCREEN = ['assets/pages/reconcile.js'];
+const LIVE_SITE_ID = 'qwatt-chispa-01';
 
 /* Accounts that must never become the anchoring account (DESIGN Appendix A). */
 const KNOWN_PRIOR_ACCOUNTS = [
@@ -93,7 +105,8 @@ const ENGINE = ['assets/gates.browser.js', 'assets/qwatt-gates.js', 'assets/qwat
 const READERS = ['assets/qwatt-live.js', 'assets/qwatt-feed.js'];
 const SEC_HEADERS = ['X-Content-Type-Options', 'X-Frame-Options', 'Referrer-Policy', 'Strict-Transport-Security', 'Permissions-Policy', 'Cross-Origin-Opener-Policy'];
 /* DESIGN §6.6: the browser itself refuses outside scripts, inline scripts, frames, forms and any host not listed. */
-const CSP_CANON = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'";
+/* V3-9.3: connect-src adds the two GitHub hosts the reconciliation page reads the public evidence from (approved by both founders). */
+const CSP_CANON = "default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://horizon-testnet.stellar.org https://api.github.com https://raw.githubusercontent.com; frame-src 'none'; object-src 'none'; form-action 'none'; base-uri 'self'; frame-ancestors 'self'";
 
 /* ═════════════════════════════ exceptions (§7.6) ═════════════════════════════
  * Each entry: file, rule, match (sub-rule ids, or '*'), reason, fd. An entry whose
@@ -530,7 +543,8 @@ function ruleHosts(file, text) {
       const named = NAMED_BAD_HOSTS.find((h) => host === h || host.endsWith('.' + h) || host.includes(h));
       if (named) { fail(file, i + 1, 'R-HOSTS', 'named-host', l, `${named} is not allowed: no outside scripts, APIs, wallets or main network`); continue; }
       if (!ALLOWED_HOSTS.has(host)) { fail(file, i + 1, 'R-HOSTS', 'host', l, `host ${host} is not on the allowlist`); continue; }
-      if (host === 'raw.githubusercontent.com' && !/^\/academiaseul\/(qwatt-evidence|qwatt-verifier-log)\//.test(p)) fail(file, i + 1, 'R-HOSTS', 'raw-path', l, 'raw.githubusercontent.com only for the two evidence repositories');
+      if (host === 'api.github.com' && file !== PIN_FILE) fail(file, i + 1, 'R-HOSTS', 'api-github', l, `api.github.com only in ${PIN_FILE} (it finds the evidence's head commit)`);
+      if (host === 'raw.githubusercontent.com' && !/^\/academiaseul\/(qwatt-evidence|qwatt-verifier-log)\//.test(p) && !(file === PIN_FILE && p === '/')) fail(file, i + 1, 'R-HOSTS', 'raw-path', l, `raw.githubusercontent.com only for the two evidence repositories (the bare origin only in ${PIN_FILE})`);
       if (host === 'json-schema.org' && file !== 'assets/qwatt-protocol.js') fail(file, i + 1, 'R-HOSTS', 'json-schema', l, 'json-schema.org only inside the generated protocol build');
     }
     if (/stellar\.expert\/explorer\/testnet\/asset\//i.test(l)) fail(file, i + 1, 'R-HOSTS', 'asset-page', l, 'never link the asset page (it shows the August amount)');
@@ -565,8 +579,19 @@ const FIELD_PATTERNS = [
 const DOM_PATTERNS = /\bdocument\b|innerHTML|outerHTML|insertAdjacentHTML|textContent|createElement|createTextNode|appendChild|\.append\(|\.prepend\(|\.replaceChildren\(|setAttribute\(/;
 function ruleFieldsPageJS(file, text) {
   text.split('\n').forEach((l, i) => {
-    for (const [id, re] of FIELD_PATTERNS) if (re.test(l)) fail(file, i + 1, 'R-FIELDS', id, l, 'this field never reaches the screen (memo, amounts, fees, batch/site ids, profile text, issuance)');
+    for (const [id, re] of FIELD_PATTERNS) {
+      if (id === 'batch_id' && BATCH_ID_ON_SCREEN.includes(file)) continue;   // FD-14: batch ids on the reconciliation page
+      if (re.test(l)) fail(file, i + 1, 'R-FIELDS', id, l, 'this field never reaches the screen (memo, amounts, fees, batch/site ids, profile text, issuance)');
+    }
   });
+}
+/** FD-14: a page shows batch ids only while the live run's site_id (live/run.js) is the neutral one and names no place. */
+function ruleLiveSiteId(src) {
+  const F = 'live/run.js';
+  const m = /\bconst SITE_ID = '([^']*)'/.exec(src || '');
+  const id = m ? m[1] : null;
+  if (id !== LIVE_SITE_ID) fail(F, m ? lineAt(src, m.index) : 0, 'R-FIELDS', 'site-id', id || 'no SITE_ID', `batch ids are on screen (FD-14): the live run's site_id must be the neutral "${LIVE_SITE_ID}"`);
+  if (id) for (const h of scan(id.replace(/[-_]/g, ' '), LOCATION)) fail(F, lineAt(src, m.index), 'R-FIELDS', 'site-id', id, `the live run's site_id names a place (${h.match}): every batch id would carry it`);
 }
 function ruleFieldsReader(file, text) {
   text.split('\n').forEach((l, i) => { const m = DOM_PATTERNS.exec(l); if (m) fail(file, i + 1, 'R-FIELDS', 'reader-dom', l, 'READERS hand plain objects to renderers and never touch the DOM (D-17)'); });
@@ -723,6 +748,18 @@ function selfTest() {
   expectPass('Horizon fetch', () => ruleHosts('x.js', "fetch('https://horizon-testnet.stellar.org/ledgers')"), 'R-HOSTS');
   expectPass('a G… public key', () => ruleSecretLiteral('x.txt', 'GAYA2PZSQJTHHXZPB2ZD6LO3C75GOLSI3T4PZNSSYOEL4FNWFK27CYET'), 'R-SECRET-LITERAL');
   expectPass('memoShown', () => ruleFieldsPageJS('assets/pages/x.js', 'cell.textContent = tx.memoShown;'), 'R-FIELDS');
+  // V3-9.3: the GitHub hosts, the look-alike of the public Horizon, and batch ids on the reconciliation page only
+  expectFail('a look-alike of the public Horizon (another host that starts with its name)', () => ruleHosts('x.js', "fetch('https://horizon-testnet.stellar.org.evil.example/accounts/G')"), 'R-HOSTS');
+  expectFail('a link to a look-alike of the public Horizon', () => ruleHosts('x.html', '<a href="https://horizon-testnet.stellar.org.evil.example/">x</a>'), 'R-HOSTS');
+  expectFail('api.github.com outside the pin module', () => ruleHosts('assets/pages/x.js', "var u = 'https://api.github.com/repos/a/b/commits/main';"), 'R-HOSTS');
+  expectFail('the bare raw.githubusercontent.com origin outside the pin module', () => ruleHosts('assets/pages/x.js', "var o = 'https://raw.githubusercontent.com';"), 'R-HOSTS');
+  expectFail('raw.githubusercontent.com for another repository', () => ruleHosts(PIN_FILE, "var u = 'https://raw.githubusercontent.com/acme/other/main/x.json';"), 'R-HOSTS');
+  expectPass('the pin module names the two GitHub origins', () => ruleHosts(PIN_FILE, "var DEFAULTS = { rawOrigin: 'https://raw.githubusercontent.com', gitOrigin: 'https://github.com', apiOrigin: 'https://api.github.com' };"), 'R-HOSTS');
+  expectPass('the evidence repository on raw.githubusercontent.com', () => ruleHosts('x.html', '<code>https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/run</code>'), 'R-HOSTS');
+  expectPass('batch ids on the reconciliation page (FD-14)', () => ruleFieldsPageJS('assets/pages/reconcile.js', 'td.textContent = r.batch_id;'), 'R-FIELDS');
+  expectFail('site_id on the reconciliation page', () => ruleFieldsPageJS('assets/pages/reconcile.js', 'td.textContent = b.site_id;'), 'R-FIELDS');
+  expectFail("a live run site_id that names a city", () => ruleLiveSiteId("const SITE_ID = 'bench-santiago';"), 'R-FIELDS');
+  expectPass('the neutral live run site_id', () => ruleLiveSiteId(`const SITE_ID = '${LIVE_SITE_ID}';`), 'R-FIELDS');
   // .vercelignore semantics
   const ig = compileIgnore('ops\n.env*\n/top.txt\nprotocol/*\n!protocol/batch.schema.json\nassets/vendor\nbuild/\n*.local.txt\n');
   const igCases = [['ops/site.test.js', true], ['a/ops/x.js', true], ['.env.local', true], ['top.txt', true], ['sub/top.txt', false],
@@ -1242,6 +1279,7 @@ for (const f of PAGES.concat(SCRIPTS, STYLES)) ruleHosts(f, TEXTS[f]);
 for (const f of PAGE_JS) { ruleFieldsPageJS(f, TEXTS[f]); ruleNumJS(f, TEXTS[f]); ruleI18nDicts(f, TEXTS[f]); }
 for (const f of PAGES) for (const s of all(TREES[f], (e) => e.tag === 'script' && e.attrs.src == null && (e.attrs.type || '') !== 'application/ld+json')) ruleFieldsPageJS(f, s.inner || '');
 for (const f of SCRIPTS.filter((x) => READERS.includes(x))) ruleFieldsReader(f, TEXTS[f]);
+if (BATCH_ID_ON_SCREEN.some((f) => DEPLOYED_SET.has(f))) ruleLiveSiteId(exists('live/run.js') ? readText('live/run.js') : '');
 
 // pages
 for (const f of PAGES) { rulePage(f, TEXTS[f], TREES[f]); ruleLinks(f, TEXTS[f], TREES[f]); ruleI18n(f, TEXTS[f], TREES[f]); ruleA11y(f, TEXTS[f], TREES[f]); }
@@ -1273,6 +1311,17 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
     const st = body && body.attrs['data-status'];
     const parts = body && body.attrs['data-parts'] != null ? body.attrs['data-parts'].split(/\s+/).filter(Boolean).sort().join(' ') : null;
     if (st !== e.status || parts !== (e.parts || []).slice().sort().join(' ')) fail(p, body ? lineAt(TEXTS[p], body.pos) : 0, 'R-NAV', 'match', `${st} [${parts}] vs NAV ${e.status} [${(e.parts || []).join(' ')}]`, 'data-status/data-parts must equal the NAV entry');
+  }
+  /* V3-9.3: "Conciliación / Reconciliation" is a real link in the shared menu. Its dot is testnet only once
+     status.json names the public run feed and the real anchoring account; until then there is no run to reconcile. */
+  const rc = entries.find((x) => x.id === 'reconcile');
+  if (!rc || rc.href !== '/reconcile.html' || rc.file !== 'reconcile.html') fail(F, 0, 'R-NAV', 'reconcile-link', rc ? `reconcile href ${rc.href}` : 'no reconcile entry', 'the menu links the reconciliation page: href "/reconcile.html", file "reconcile.html" (V3-9.3)');
+  else {
+    if (!/^Conciliación\b/.test(rc.es || '') || !/^Reconciliation\b/.test(rc.en || '')) fail(F, 0, 'R-NAV', 'reconcile-link', `${rc.es} / ${rc.en}`, 'the entry reads "Conciliación" / "Reconciliation"');
+    let S0 = null; try { S0 = exists('assets/status.json') ? JSON.parse(readText('assets/status.json')) : null; } catch (e) { S0 = null; }
+    const run = S0 && (S0.feeds || []).find((f) => f.id === 'corrida');
+    const want = run && run.base && S0.anchor && S0.anchor.account ? 'testnet' : 'planificado';
+    if (rc.dot !== want) fail(F, 0, 'R-NAV', 'reconcile-dot', `reconcile dot ${rc.dot}`, `the reconciliation dot is "${want}" (testnet only when status.json names the run feed and the real account)`);
   }
   const pr = entries.find((x) => x.id === 'pruebas');
   if (pr) {
@@ -1330,10 +1379,15 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
   const toml = (VERCEL.headers || []).find((h) => h.source === '/.well-known/stellar.toml');
   if (!toml || !(toml.headers || []).some((h) => h.key === 'Access-Control-Allow-Origin' && h.value === '*')) fail(F, 0, 'R-VERCEL', '4', 'stellar.toml CORS', 'keep the stellar.toml CORS header block');
   if (TREES['terminos.html']) {
-    const named = all(TREES['terminos.html'], (e) => e.tag === 'code' && hasClass(e, 'q-host')).map((e) => textOf(e).replace(/^https?:\/\//, '').replace(/\/$/, ''));
-    const want = (csp ? (cspDirectives(csp)['connect-src'] || []) : []).filter((c) => c !== "'self'").map((c) => c.replace(/^https:\/\//, '')).concat(FONT_HOSTS, ['qwatt.org']);
-    const a = [...new Set(named)].sort().join(','), b = [...new Set(want)].sort().join(',');
-    if (a !== b) fail('terminos.html', 0, 'R-VERCEL', '5', a, `the hosts named in 06 (code.q-host) must equal the CSP connect-src + font hosts + qwatt.org: ${b}`);
+    /* in each language: a reader of either one sees every host the browser may connect to (V3-9.3 adds the two GitHub hosts) */
+    const connect = (CANON['connect-src'] || []).concat(csp ? (cspDirectives(csp)['connect-src'] || []) : []);   // the canonical hosts, plus a feed host vercel.json adds
+    const want = connect.filter((c) => c !== "'self'").map((c) => c.replace(/^https:\/\//, '')).concat(FONT_HOSTS, ['qwatt.org']);
+    const b = [...new Set(want)].sort().join(',');
+    for (const lg of ['es', 'en']) {
+      const named = all(TREES['terminos.html'], (e) => e.tag === 'code' && hasClass(e, 'q-host') && !!closest(e, (n) => n.attrs['data-l'] === lg)).map((e) => textOf(e).replace(/^https?:\/\//, '').replace(/\/$/, ''));
+      const a = [...new Set(named)].sort().join(',');
+      if (a !== b) fail('terminos.html', 0, 'R-VERCEL', '5', `${lg}: ${a}`, `the hosts named in 06 (code.q-host, ${lg === 'es' ? 'Spanish' : 'English'}) must equal the CSP connect-src + font hosts + qwatt.org: ${b}`);
+    }
   }
   if (STATUS) for (const fd of STATUS.feeds || []) {
     const m = fd.base && /^https:\/\/([^/]+)\//.exec(fd.base);
@@ -1353,6 +1407,7 @@ for (const f of STYLES.concat(SCRIPTS)) ruleLinks(f, TEXTS[f], null);
   const negs = lines.filter((l) => /^!protocol\//.test(l)).sort();
   const wantNegs = ['!protocol/batch.schema.json', '!protocol/interval.schema.json', '!protocol/reasons.json'];
   if (negs.join(',') !== wantNegs.join(',')) fail(F, 0, 'R-IGNORE', 'protocol-negations', negs.join(' ') || 'none', 'protocol/* with exactly the negations ' + wantNegs.join(' '));
+  for (const f of MUST_SERVE) if (exists(f) && !DEPLOYED_SET.has(f)) fail(F, 0, 'R-IGNORE', 'served', f, `${f} is served (V3-9.3): .vercelignore must not hide it`);
   for (const f of DEPLOYED) {
     if (f.startsWith('assets/vendor/')) fail(F, 0, 'R-IGNORE', 'vendor', f, 'nothing under assets/vendor/ may deploy');
     if (/^protocol\/[^/]+\.js$/.test(f) || f.startsWith('protocol/conformance/')) fail(F, 0, 'R-IGNORE', 'protocol', f, 'protocol scripts and conformance data are not deployed (D-16)');
