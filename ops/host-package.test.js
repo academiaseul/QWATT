@@ -142,6 +142,15 @@ test('every acceptance test AT-1..AT-26 is defined once in the README; each auto
   }
 });
 
+test('CI runs the exact Node the hosts run (decision 1), and no action is pinned to a major older than v5 (GitHub retires the Node 20 action runtime)', () => {
+  const ci = read('.github/workflows/conformance.yml');
+  const node = shellVar(read(INSTALL), 'NODE_VERSION');
+  const pins = [...ci.matchAll(/node-version:\s*['"]?([^'"\s]+)/g)].map((m) => m[1]);
+  assert(pins.length > 0, 'the CI sets a node-version');
+  for (const p of pins) eq(p, node, 'CI node-version = install.sh NODE_VERSION (one exact version everywhere)');
+  for (const m of ci.matchAll(/uses:\s*actions\/([\w-]+)@v(\d+)/g)) assert(Number(m[2]) >= 5, `actions/${m[1]}@v${m[2]}: v5 or later`);
+});
+
 test('shell scripts are checked out with LF line endings, so bash runs them on a Windows-cloned tree too', () => {
   assert(/^\*\.sh\s+text\s+eol=lf/m.test(read('.gitattributes')), '.gitattributes: *.sh text eol=lf');
 });
