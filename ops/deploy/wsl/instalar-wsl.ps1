@@ -52,13 +52,14 @@ $every5 = New-ScheduledTaskTrigger -Once -At (Get-Date).AddMinutes(1) -Repetitio
 $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable `
   -MultipleInstances IgnoreNew -RestartCount 999 -RestartInterval (New-TimeSpan -Minutes 1) -ExecutionTimeLimit (New-TimeSpan -Seconds 0)
 $user = "$env:USERDOMAIN\$env:USERNAME"
-$principal = New-ScheduledTaskPrincipal -UserId $user -LogonType Password -RunLevel Limited
-if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false }
-Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($atBoot, $every5) -Settings $settings -Principal $principal `
-  -Description 'QWATT verifier host: keeps the WSL distribution (systemd and the QWATT services) running with nobody signed in.' | Out-Null
+# The password first: Windows refuses a "run whether or not anyone is signed in" task registered
+# without it (0x8007052E). Register-ScheduledTask gets -User and -Password and stores them itself.
 Write-Host "Windows now asks for the password of $user, so the task can run with nobody signed in."
 $cred = Get-Credential -UserName $user -Message "Your Windows password (stored by Task Scheduler for '$TaskName' only)"
-Set-ScheduledTask -TaskName $TaskName -User $cred.UserName -Password $cred.GetNetworkCredential().Password | Out-Null
+if (Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue) { Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false }
+Register-ScheduledTask -TaskName $TaskName -Action $action -Trigger @($atBoot, $every5) -Settings $settings -RunLevel Limited `
+  -User $cred.UserName -Password $cred.GetNetworkCredential().Password `
+  -Description 'QWATT verifier host: keeps the WSL distribution (systemd and the QWATT services) running with nobody signed in.' | Out-Null
 Start-ScheduledTask -TaskName $TaskName
 Write-Host "task '$TaskName' registered and started"
 
