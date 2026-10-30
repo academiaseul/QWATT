@@ -124,7 +124,13 @@ test('env files are created from the placeholders only when missing (never overw
 test('WSL keeps running with no window open and starts after a reboot with nobody signed in', () => {
   const t = read(TASK);
   assert(/New-ScheduledTaskTrigger -AtStartup/.test(t), 'a task at startup');
-  assert(/-LogonType Password/.test(t), 'that runs whether or not anyone is signed in');
+  /* Windows refuses a LogonType Password task registered without its password (0x8007052E, found on
+     Jay's PC on 30 Oct): the password is asked first and given to Register-ScheduledTask itself */
+  const code = t.split(/\r?\n/).filter((l) => !/^\s*#/.test(l)).join('\n');
+  const askAt = code.search(/Get-Credential/), regAt = code.search(/Register-ScheduledTask/);
+  assert(askAt >= 0 && regAt > askAt, 'the password is asked (Get-Credential) before the task is registered');
+  assert(/Register-ScheduledTask[^\n]*(`\n[^\n]*)*-User [^\n]*-Password /.test(code), 'Register-ScheduledTask gets -User and -Password: it runs whether or not anyone is signed in');
+  assert(!/New-ScheduledTaskPrincipal[^\n]*-LogonType Password/.test(code), 'no Password principal registered without its password');
   assert(/sleep infinity/.test(t), 'whose action keeps the distribution alive');
   assert(/RestartCount/.test(t) && /ExecutionTimeLimit\s*\(?\s*New-TimeSpan|ExecutionTimeLimit ([\w.]+::)?Zero|-ExecutionTimeLimit 0/.test(t), 'restarted on failure, no time limit');
   assert(/standby-timeout-ac 0/.test(t) && /hibernate off/i.test(t), 'the PC never sleeps on AC power');
