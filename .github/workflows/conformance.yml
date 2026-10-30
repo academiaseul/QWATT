@@ -14,14 +14,14 @@ jobs:
   gates:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           # Full history and tags: the site test proves that every commit and release
           # cited as evidence in assets/status.json exists (DESIGN FD-16).
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24.14.1
       - name: Generated bindings are current
         if: ${{ !cancelled() }}
         run: node protocol/gen.js --check
@@ -108,7 +108,7 @@ jobs:
       matrix:
         role: [proposer, verifier]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: "Host package: install.sh --role ${{ matrix.role }} on a clean VM"
         run: |
           sudo git clone --quiet "$GITHUB_WORKSPACE" /opt/qwatt
