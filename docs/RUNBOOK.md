@@ -1,7 +1,8 @@
 # QWATT live run — operator runbook
 
 For the people running the hosts, from the week-2 setup (Tue 27 Oct) to Day 30. Commands assume
-the repository at `/opt/qwatt` on Linux hosts, Node 20, and the systemd units in `ops/deploy/`.
+the repository at `/opt/qwatt` on Linux hosts, Node 24.14.1 at `/usr/bin/node`, and the systemd units in
+`ops/deploy/`, installed by the host package (`ops/deploy/host/README.md`).
 What the founders must provide first is in `docs/FOUNDER-CHECKLIST.md`.
 
 ## The three machines
@@ -29,12 +30,17 @@ confirm with stellar-cli 28.1.0 (founder step 0)**: before the first host is set
 each form once on the pinned binary with a throwaway identity, removes the identity, and corrects
 this page where a form differs.
 
-1. **Both hosts (Tue 27 Oct):** install Node 20, `git clone` the repository into `/opt/qwatt` at a
-   merged `main` commit, then `cd /opt/qwatt/anchor && npm ci`. Create the user `qwatt`
-   (`useradd --create-home --shell /usr/sbin/nologin qwatt`) and run `timedatectl set-ntp true`.
-   Install **stellar-cli 28.1.0** from the official `stellar/stellar-cli` release into
-   `/usr/local/bin`, checking the release's SHA-256 before installing; `stellar version --only-version`
-   must print `28.1.0`. Every host and every holder's computer uses that version (decision D-2).
+1. **Both hosts (Tue 27 Oct):** `git clone` the repository into `/opt/qwatt` at a merged `main`
+   commit, the same on both hosts, then
+   `sudo bash /opt/qwatt/ops/deploy/host/install.sh --role proposer|verifier --commit <commit>`
+   (`ops/deploy/host/README.md`; on the verifier PC, also `ops/deploy/wsl/instalar-wsl.ps1`). It
+   installs Node 24.14.1 at `/usr/bin/node`, where every unit calls it, `npm ci` in `anchor/`, the
+   user `qwatt` (`useradd --create-home --shell /usr/sbin/nologin qwatt`), the clock, and
+   **stellar-cli 28.1.0** from the official `stellar/stellar-cli` release into `/usr/local/bin`,
+   checked against the release's SHA-256
+   `c1680deee94301d33ada7a17f98411e642a4248c727afbd2e43050d345746462` before installing;
+   `stellar version --only-version` must print `28.1.0`. Every host and every holder's computer
+   uses that version (decision D-2). `ops/deploy/host/check.sh` runs the acceptance tests.
 2. **Keys, generated on the host that uses them, over SSH only** (never a provider's web console;
    to confirm with stellar-cli 28.1.0, founder step 0):
    - proposer host: `sudo -u qwatt -H stellar keys generate qwatt-proposer`;

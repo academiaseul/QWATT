@@ -4,3 +4,6 @@
 # Datasets and evidence are hashed: keep their bytes exactly as written (no EOL conversion)
 datasets/** -text
 evidence/** -text
+
+# Shell scripts run on Linux hosts: LF in every checkout, a Windows one included
+*.sh text eol=lf

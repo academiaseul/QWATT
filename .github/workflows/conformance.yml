@@ -73,6 +73,9 @@ jobs:
       - name: Key policy (V3-8) — no secret in env files, the repository or a browser
         if: ${{ !cancelled() }}
         run: node ops/keys-policy.test.js
+      - name: Host package (W2-5) — Node at /usr/bin/node, stellar-cli 28.1.0, each role's units and deploy key, WSL kept running with nobody signed in
+        if: ${{ !cancelled() }}
+        run: node ops/host-package.test.js
       - name: "Site: stamped blocks and shared header/footer match status.json and ops/site-fragments"
         if: ${{ !cancelled() }}
         run: node ops/site-sync.js --check
@@ -94,3 +97,28 @@ jobs:
       - name: "Evidence formats: sample feeds and tests A-D (R-FEEDS, R-ABCD)"
         if: ${{ !cancelled() }}
         run: node ops/site-evidence.test.js
+
+  # The host package installed for real on a clean Ubuntu VM, once per role (plan W2-5): install.sh
+  # from a checkout at /opt/qwatt, then check.sh. WAIT lines (no key yet, deploy key not added) are
+  # expected here; any FAIL fails the job. Nothing here holds or creates a stellar-cli key.
+  host-package:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [proposer, verifier]
+    steps:
+      - uses: actions/checkout@v4
+      - name: "Host package: install.sh --role ${{ matrix.role }} on a clean VM"
+        run: |
+          sudo git clone --quiet "$GITHUB_WORKSPACE" /opt/qwatt
+          sudo git -C /opt/qwatt checkout --quiet --detach "$GITHUB_SHA"
+          sudo bash /opt/qwatt/ops/deploy/host/install.sh --role ${{ matrix.role }} --commit "$GITHUB_SHA"
+      - name: "Host package: check.sh --role ${{ matrix.role }} (no FAIL)"
+        run: sudo bash /opt/qwatt/ops/deploy/host/check.sh --role ${{ matrix.role }} --commit "$GITHUB_SHA"
+      - name: "Host package: running install.sh again changes nothing it should keep"
+        run: |
+          sum() { sudo sha256sum /etc/qwatt/*.env /home/qwatt/.ssh/qwatt-* | sort; }
+          before=$(sum)
+          sudo bash /opt/qwatt/ops/deploy/host/install.sh --role ${{ matrix.role }} --commit "$GITHUB_SHA" > /dev/null
+          [ "$before" = "$(sum)" ] || { echo "a second run changed env files or the deploy key"; exit 1; }
