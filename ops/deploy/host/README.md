@@ -94,7 +94,9 @@ verifier key is generated (RUNBOOK; the account cannot change a signer later wit
 
 ## Decisions this package takes, and where they can change
 
-- **Node 24.14.1** (decision 1, recommended; to confirm by both founders): two lines in `install.sh`
-  (`NODE_VERSION`, `NODE_SHA256`) and AT-3. CI still runs Node 20 until the CI-only PR.
+- **Node 24.14.1** (decision 1): the same exact version in CI (`node-version` in
+  `.github/workflows/conformance.yml`) and on both hosts. Changing it is `NODE_VERSION` and
+  `NODE_SHA256` in `install.sh`, AT-3 and the CI pin together: `ops/host-package.test.js` fails
+  while they disagree. No runtime change after the freeze.
 - **Memory cap 3 GB** for WSL (Q14): `wslconfig.example`.
 - **Update guard** until RECONCILED (Q5): undone as above.
