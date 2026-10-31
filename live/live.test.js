@@ -292,6 +292,55 @@ test('the audit ties every published raw payload to a row of a published samples
     `the forged payload of the refused line is reported with its file and interval: ${c.problems.join('; ')}`);
 });
 
+/* ───────────── week 3 (W3-4): the run length, one soak day then the seven counted days ───────────── */
+
+const RUN_START = '2026-11-07T03:00:00Z';   // Sat 7 Nov 03:00 UTC (freeze v3 V3-14)
+const COUNTED = { from: Date.parse('2026-11-08T03:00:00Z'), to: Date.parse('2026-11-15T03:00:00Z') };   // Sun 8 to Sun 15, 03:00 UTC
+
+test('W3-4: an 8-day run from Sat 7 Nov 03:00 UTC ends Sun 15 Nov 03:00 UTC, when the counted window closes; its faults stay on Sun 8 - Fri 13; faults.json calls it the seven-day live run after a one-day soak, naming no city', async () => {
+  const s = Date.parse(RUN_START);
+  /* the schedule does not move with the extra day: day offsets 1-6 from the start day, the same eight windows as a 7-day run */
+  eq(JSON.stringify(S.buildSchedule(s, 8)), JSON.stringify(S.buildSchedule(s, 7)), 'the 8-day schedule is the 7-day one');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 8, startMs: s, seed: 20261103, speed: 'realtime', log: quiet, stopAtMs: s, signers: SIGNERS, codeCommit: 'f'.repeat(40) });
+  const def = readDef(dir);
+  eq(def.days, 8, 'days');
+  eq(def.run_start, '2026-11-07T03:00:00.000Z', 'run_start');
+  eq(def.run_end, '2026-11-15T03:00:00.000Z', 'run_end: the counted window closes then');
+  eq(def.faults.length, 8, 'all eight injections');
+  for (const f of def.faults) {
+    assert(Date.parse(f.start) >= COUNTED.from && Date.parse(f.end) <= COUNTED.to, `${f.id} inside the counted window: ${f.start}`);
+    assert(f.start.slice(0, 10) >= '2026-11-08' && f.end.slice(0, 10) <= '2026-11-13', `${f.id} on Sun 8 - Fri 13: ${f.start} → ${f.end}`);
+  }
+  assert(/seven-day live run after a one-day soak/.test(def.description), `the description reads as the seven-day live run after a one-day soak: ${def.description}`);
+  assert(!/\b8-day\b|eight-day/i.test(def.description), `never an "8-day live run": ${def.description}`);
+  assert(!/santiago/i.test(def.description), `the published run description names no city: ${def.description}`);
+  /* a 7-day real-time run keeps its description */
+  const seven = tmp();
+  await runLive({ feedDir: seven, days: 7, startMs: s, seed: 20261103, speed: 'realtime', log: quiet, stopAtMs: s, signers: SIGNERS, codeCommit: 'f'.repeat(40) });
+  assert(/^QWATT seven-day live run: /.test(readDef(seven).description), `a 7-day real-time run is still "QWATT seven-day live run": ${readDef(seven).description}`);
+});
+
+test('W3-4: a run length that is not a whole number of days is refused before anything is published (an unset QWATT_RUN_DAYS reaches the CLI as --days "")', async () => {
+  const { spawnSync } = require('child_process');
+  for (const d of ['', '0', '-1', '7.5', 'eight']) {
+    const dir = tmp();
+    const r = spawnSync(process.execPath, [path.join(__dirname, 'run.js'), '--feed', dir, '--days', d, '--start', RUN_START, '--speed', 'fast', '--code-commit', 'f'.repeat(40)], { encoding: 'utf8', timeout: 60e3 });
+    eq(r.status, 2, `--days ${JSON.stringify(d)} exits 2 at start (${(r.stderr || '').trim()})`);
+    assert(/--days/.test(r.stderr), `the message names --days: ${r.stderr}`);
+    assert(!fs.existsSync(path.join(dir, 'faults.json')), `--days ${JSON.stringify(d)}: no faults.json`);
+  }
+  const none = tmp();
+  await throwsLike(() => runLive({ feedDir: none, days: 0, startMs: START, seed: 3, speed: 'fast', log: quiet }), /days/, 'runLive with 0 days');
+  assert(!fs.existsSync(path.join(none, 'faults.json')), 'runLive with 0 days publishes nothing');
+});
+
+test('W3-4: runLive itself still takes a fraction of a day, as live/soak.js passes --hours / 24 (its default --hours 3); only the CLI wants whole days', async () => {
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 3 / 24, startMs: START, seed: 20261017, speed: 'fast', log: quiet });
+  eq(readDef(dir).run_end, new Date(START + 3 * 3600e3).toISOString(), 'a 3-hour run (days 3/24) ends three hours after its start');
+});
+
 (async () => {
   console.log('\nlive run');
   for (const t of tests) {

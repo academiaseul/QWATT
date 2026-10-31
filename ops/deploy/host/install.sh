@@ -17,7 +17,8 @@
 #      npm ci in /opt/qwatt/anchor;
 #   4. the clock synchronised; no automatic upgrade or service restart during the run (Q5);
 #   5. this role's units copied to /etc/systemd/system and its env files created from
-#      ops/deploy/env.example when missing (an existing file is never overwritten). Nothing is
+#      ops/deploy/env.example when missing (an existing file is never overwritten; a kept file that
+#      lacks a variable of its env.example block is named, e.g. QWATT_RUN_DAYS, W3-4). Nothing is
 #      enabled or started: the services need the stellar-cli identity and /etc/qwatt/anchor.json;
 #   6. this role's deploy key (generated once, as user qwatt) and GitHub's host key, pinned only
 #      if it matches GITHUB_ED25519_FP. It prints the .pub line to send to Jay, nothing else.
@@ -50,6 +51,8 @@ CONF=/etc/qwatt
 QHOME=/home/qwatt
 
 die() { echo "install.sh: $*" >&2; exit 1; }
+# the lines of env.example's block for <name>.env: under "# <name>.env", up to the next "# <other>.env" header
+env_block() { awk -v want="# $1.env" 'index($0, want) == 1 { on = 1; next } /^# [a-z-]+\.env/ { on = 0 } on && !/^#/ && NF' "$REPO/ops/deploy/env.example"; }
 step() { echo; echo "== $*"; }
 
 ROLE= COMMIT=
@@ -161,9 +164,15 @@ step "5. units for the $ROLE host (installed, not started)"
 for u in "${UNITS[@]}"; do install -m 644 "$REPO/ops/deploy/$u" "/etc/systemd/system/$u"; done
 for e in "${ENVS[@]}"; do
   f="$CONF/$e.env"
-  if [ -e "$f" ]; then echo "kept $f"; continue; fi
-  # the block of env.example under "# <name>.env", up to the next "# <other>.env" header
-  awk -v want="# $e.env" 'index($0, want) == 1 { on = 1; next } /^# [a-z-]+\.env/ { on = 0 } on && !/^#/ && NF' "$REPO/ops/deploy/env.example" > "$f"
+  if [ -e "$f" ]; then
+    # a file kept from an earlier commit can lack a variable added since (W3-4: QWATT_RUN_DAYS): it is named, never edited
+    miss=""
+    for v in $(env_block "$e" | cut -d= -f1); do grep -q "^$v=" "$f" || miss="$miss $v"; done
+    if [ -n "$miss" ]; then echo "kept $f, which lacks$miss: add it from ops/deploy/env.example before starting the service (check.sh AT-17)"
+    else echo "kept $f"; fi
+    continue
+  fi
+  env_block "$e" > "$f"
   chmod 600 "$f"; chown root:root "$f"
   echo "created $f from env.example (placeholders: fill in before starting)"
 done
