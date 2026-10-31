@@ -50,7 +50,9 @@ function solarExtreme(dayMs, want) {
 
 /**
  * @param {number} startMs   run start
- * @param {number} days      run length (7 for the SOW run)
+ * @param {number} days      run length (the live run: 8, W3-4). Faults sit on day offsets 1-6 from the UTC
+ *                           day of the start, whatever the length: from Sat 7 Nov that is Sun 8 - Fri 13,
+ *                           the counted days, so the soak day moves none of them; an offset >= days is left out
  * @returns {object[]} faults: { id, kind, startMs, endMs, start, end, expect, ...params }
  */
 function buildSchedule(startMs, days = 7) {

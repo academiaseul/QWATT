@@ -1,4 +1,6 @@
-# Proposer host — the seven-day live run: simulator → CSV replay → gates → batches → feed/
+# Proposer host — the live run: simulator → CSV replay → gates → batches → feed/
+# Its length is QWATT_RUN_DAYS in live.env (W3-4): the live run is 8 days, one soak day from
+# QWATT_RUN_START, then the seven counted days. An unset QWATT_RUN_DAYS makes the run exit 2.
 [Unit]
 Description=QWATT live run (simulator + CSV replay at real-time pace)
 After=network-online.target time-sync.target
@@ -7,7 +9,7 @@ Wants=network-online.target
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
-ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days 7 --start ${QWATT_RUN_START} --proposer ${QWATT_PROPOSER_PUBLIC} --verifier ${QWATT_VERIFIER_PUBLIC} --third ${QWATT_THIRD_PUBLIC}
+ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days ${QWATT_RUN_DAYS} --start ${QWATT_RUN_START} --proposer ${QWATT_PROPOSER_PUBLIC} --verifier ${QWATT_VERIFIER_PUBLIC} --third ${QWATT_THIRD_PUBLIC}
 EnvironmentFile=/etc/qwatt/live.env
 Restart=always
 RestartSec=10

@@ -170,7 +170,11 @@ this page where a form differs.
    starts: a real-time run will not start without them, and they are published in `faults.json`,
    which never changes (wrong keys mean a new feed). Set `QWATT_RUN_START` for the run being
    started (`now` for the week-2 rehearsal on Thu 29 Oct; the live run's own start time for the
-   live run) and give each run an empty feed directory. `/opt/qwatt` must be a git checkout of the
+   live run) and `QWATT_RUN_DAYS`, the run length in whole days that `qwatt-live` passes as `--days`
+   (W3-4: 8 for the live run, so from `2026-11-07T03:00:00Z` it ends `2026-11-15T03:00:00Z`, one
+   soak day then the seven counted days; the faults stay on Sun 8 - Fri 13). Unset, `qwatt-live`
+   exits 2; a `live.env` kept from an earlier install lacks it, and `check.sh` AT-17 says so.
+   Give each run an empty feed directory. `/opt/qwatt` must be a git checkout of the
    commit being run: the run publishes it as `code_commit`.
    When a unit file changes in this repository, copy it again, `systemctl daemon-reload` and restart
    that service: editing only its env file is not enough. For example `qwatt-watch.service` now passes

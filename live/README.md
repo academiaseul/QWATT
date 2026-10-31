@@ -33,7 +33,7 @@ audit.js ──► every fault refused for its reason · every 5-minute slot jud
 | Implausible ramp | 0 → 400 W within one sample, 5 min | `nameplate.over` (dedicated ramp gate deferred to Instaward #2, freeze D-10) |
 
 ```bash
-node live/run.js --feed feed --days 7 --proposer G… --verifier G… --third G…   # the real run, real-time pace
+node live/run.js --feed feed --days 8 --start 2026-11-07T03:00:00Z --proposer G… --verifier G… --third G…   # the live run, real-time pace (W3-4)
 node live/audit.js feed                                    # any time during or after the run
 node live/run.js --feed /tmp/f --days 7 --speed fast       # the whole week in seconds (rehearsal)
 ```

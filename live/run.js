@@ -2,8 +2,14 @@
 /**
  * QWATT — seven-day live run (Deliverable 4)
  * ---------------------------------------------------------------------------
- *   node live/run.js --feed feed --days 7 [--start now|<ISO>] [--seed 20261103] [--speed realtime|fast|<N>]
+ *   node live/run.js --feed feed --days 8 [--start now|<ISO>] [--seed 20261103] [--speed realtime|fast|<N>]
  *        [--proposer G… --verifier G… --third G…] [--code-commit <40-hex commit>]
+ *
+ * --days is the run length from run_start, a whole number of days. The live run (W3-4) lasts 8:
+ * from Sat 7 Nov 03:00 UTC, one soak day, then the seven counted days to run_end
+ * 2026-11-15T03:00:00Z. qwatt-live passes QWATT_RUN_DAYS from /etc/qwatt/live.env; a length that
+ * is not a whole number of days (an unset QWATT_RUN_DAYS arrives as "") exits 2 before anything is
+ * written.
  *
  * SOW: "the full pipeline anchoring every interval through the multisig at
  * real-time pace, fed by the solar simulator and the CSV replay adapter."
@@ -59,13 +65,30 @@ function writeAtomic(file, text) {
   fs.renameSync(tmp, file);
 }
 
-/** How faults.json describes the run: the speed actually used, never "real-time" for an accelerated run. */
+/**
+ * How faults.json describes the run: the speed actually used, never "real-time" for an accelerated run.
+ * The live run lasts 8 days (W3-4): one soak day from run_start, then the seven counted days, so it is
+ * the seven-day live run after a one-day soak, never an "8-day live run". It is written once.
+ */
 function describeRun(days, speed) {
   const rig = 'simulated Phase 1 bench rig (150 Wp, two DC meters)';
   const then = 'Each fault window below must appear in ledger/rejected.jsonl with one of its expected reasons.';
-  if (speed === 'realtime') return `QWATT ${days === 7 ? 'seven-day' : `${days}-day`} live run: ${rig} replayed through the CSV adapter at real-time pace. ${then}`;
+  if (speed === 'realtime') {
+    const what = days === 7 ? 'seven-day live run'
+      : days === 8 ? 'seven-day live run after a one-day soak (run_start to run_end is 8 days; the seven counted days begin one day after run_start)'
+        : `${days}-day live run`;
+    return `QWATT ${what}: ${rig} replayed through the CSV adapter at real-time pace. ${then}`;
+  }
   const pace = speed === 'fast' ? 'as fast as possible (fast mode)' : `at ${speed}× real-time speed`;
   return `QWATT accelerated rehearsal, ${days} simulated day(s), not real time: ${rig} replayed through the CSV adapter ${pace}. ${then}`;
+}
+
+/** W3-4: --days <n>, the run length, a whole number of days (1 or more). systemd passes an unset QWATT_RUN_DAYS as "". */
+function daysArg(text) {
+  if (!/^[1-9][0-9]*$/.test(String(text))) {
+    throw new Error(`--days: the run length is a whole number of days (the live run: 8), got ${JSON.stringify(text)}; on the proposer host set QWATT_RUN_DAYS in /etc/qwatt/live.env`);
+  }
+  return Number(text);
 }
 
 /** V3-6: receive time for clock_skew_s. Real time reads the host clock; fast and every numeric speed
@@ -171,7 +194,7 @@ function runDefinition(feedDir, o) {
  * Run (or resume) the live run.
  * @param {object} o
  * @param {string} o.feedDir
- * @param {number} [o.days=7]
+ * @param {number} [o.days=7]       the run length in days (the live run: 8, W3-4; live/soak.js passes a fraction)
  * @param {number} [o.startMs=now]
  * @param {number} [o.seed=20261103]
  * @param {'realtime'|'fast'|number} [o.speed='realtime']
@@ -185,8 +208,11 @@ async function runLive(o) {
   const log = o.log || ((...a) => console.log('[live]', ...a));
   const speed = o.speed ?? 'realtime';
   if (o.codeCommit != null && !COMMIT.test(o.codeCommit)) throw new Error(`code commit: a 40-hex commit id is required, got ${JSON.stringify(o.codeCommit)}`);
+  const days = o.days ?? 7;
+  /* the CLI takes whole days (daysArg); runLive also takes a fraction of a day, as live/soak.js passes --hours / 24 */
+  if (typeof days !== 'number' || !Number.isFinite(days) || days <= 0) throw new Error(`days: the run length is a positive number of days, got ${JSON.stringify(days)}`);
   const commit = o.codeCommit || codeCommit(o.repoDir || path.join(__dirname, '..'));
-  const def = runDefinition(o.feedDir, { seed: o.seed ?? 20261103, days: o.days ?? 7, startMs: o.startMs ?? Date.now(), speed, signers: checkSigners(o.signers), codeCommit: commit });
+  const def = runDefinition(o.feedDir, { seed: o.seed ?? 20261103, days, startMs: o.startMs ?? Date.now(), speed, signers: checkSigners(o.signers), codeCommit: commit });
   if (def.resumed && commit && def.code_commit && commit !== def.code_commit) {
     log(`note: this code is ${commit}, the run was started from ${def.code_commit} (faults.json code_commit); after the code freeze that is a numbered deviation for the write-up`);
   }
@@ -240,11 +266,11 @@ async function cli() {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
   const sp = opt('--speed', 'realtime');
   const startArg = opt('--start', 'now');
-  let signers;
-  try { signers = signersArg(args); } catch (e) { console.error(e.message); process.exit(2); }
+  let signers, days;
+  try { days = daysArg(opt('--days', '7')); signers = signersArg(args); } catch (e) { console.error(e.message); process.exit(2); }
   await runLive({
     feedDir: path.resolve(opt('--feed', 'feed')),
-    days: Number(opt('--days', 7)),
+    days,
     seed: Number(opt('--seed', 20261103)),
     startMs: startArg === 'now' ? Date.now() : Date.parse(startArg),
     speed: sp === 'realtime' || sp === 'fast' ? sp : Number(sp),
@@ -255,4 +281,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('[live] stopped:', e.message); process.exit(1); });
 
-module.exports = { runLive, SITE_ID, builderClock, checkSigners, signersArg, codeCommit };
+module.exports = { runLive, SITE_ID, builderClock, checkSigners, signersArg, daysArg, codeCommit };

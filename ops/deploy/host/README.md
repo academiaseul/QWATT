@@ -33,8 +33,8 @@ sudo bash /opt/qwatt/ops/deploy/host/check.sh --role proposer --commit <commit> 
 ```
 
 To move a host to a new commit: `sudo git -C /opt/qwatt fetch && sudo git -C /opt/qwatt checkout --detach <new>`,
-run `install.sh` again with `--commit <new>` (it keeps env files, keys and state), then restart
-the services. A unit file that changed is copied again by `install.sh`.
+run `install.sh` again with `--commit <new>` (it keeps env files, keys and state, and names any
+variable a kept env file lacks: add it from `ops/deploy/env.example`), then restart the services. A unit file that changed is copied again by `install.sh`.
 
 ### On the Windows side (verifier PC)
 
@@ -81,7 +81,7 @@ verifier key is generated (RUNBOOK; the account cannot change a signer later wit
 | AT-14 | this role's units are installed, identical to `ops/deploy` | auto | install |
 | AT-15 | the other role's units are not on this host | auto | install |
 | AT-16 | this role's env files exist, mode 600, owner root | auto | install |
-| AT-17 | the env files are filled in (no `G...`, `rehearsal-YYYY-MM-DD` or `<…>` left) | auto | before start |
+| AT-17 | the env files are filled in: every variable of its `ops/deploy/env.example` block is set (FAIL when one is missing, e.g. a `live.env` kept from before `QWATT_RUN_DAYS`, W3-4) and no `G...`, `rehearsal-YYYY-MM-DD` or `<…>` is left (WAIT) | auto | before start |
 | AT-18 | no env file holds a secret | auto | before start |
 | AT-19 | GitHub's host key pinned for `qwatt` on its published ED25519 fingerprint | auto | install |
 | AT-20 | this role's deploy key exists, the private file 600 owned by `qwatt` | auto | install |

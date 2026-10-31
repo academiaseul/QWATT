@@ -77,11 +77,17 @@ for o in qwatt-live qwatt-proposer qwatt-publish qwatt-verifier qwatt-verifier-l
   case " $UNITS " in *" $o "*) continue ;; esac
   check AT-15 "$o.service is NOT on this host (the other role's)" sh -c "[ ! -e /etc/systemd/system/$o.service ]"
 done
+# the lines of env.example's block for <name>.env, as install.sh copies them (under "# <name>.env", up to the next header)
+env_block() { awk -v want="# $1.env" 'index($0, want) == 1 { on = 1; next } /^# [a-z-]+\.env/ { on = 0 } on && !/^#/ && NF' "$REPO/ops/deploy/env.example"; }
 for e in $ENVS; do
   f="$CONF/$e.env"
   if [ ! -e "$f" ]; then fail AT-16 "$f exists"; continue; fi
   check AT-16 "$f mode 600, root" sh -c "[ \"\$(stat -c %a:%U $f)\" = 600:root ]"
-  if grep -Eq 'G\.\.\.|YYYY-MM-DD|<[^>]*>' "$f"; then wait_ AT-17 "$f still has placeholders (G..., rehearsal-YYYY-MM-DD, <…>)"; else pass AT-17 "$f filled in"; fi
+  # every variable of its block: a file kept from an earlier install can lack a newer one (W3-4: QWATT_RUN_DAYS)
+  miss=""
+  for v in $(env_block "$e" | cut -d= -f1); do grep -q "^$v=" "$f" || miss="$miss $v"; done
+  if [ -n "$miss" ]; then fail AT-17 "$f lacks$miss (ops/deploy/env.example sets it for this file: add it before starting the service)"
+  elif grep -Eq 'G\.\.\.|YYYY-MM-DD|<[^>]*>' "$f"; then wait_ AT-17 "$f still has placeholders (G..., rehearsal-YYYY-MM-DD, <…>)"; else pass AT-17 "$f filled in"; fi
   check AT-18 "$f holds no secret (no S… seed)" sh -c "! grep -Eq '(^|[^A-Z2-7])S[A-Z2-7]{55}([^A-Z2-7]|$)' $f"
 done
 
