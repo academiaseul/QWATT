@@ -161,6 +161,53 @@ test('shell scripts are checked out with LF line endings, so bash runs them on a
   assert(/^\*\.sh\s+text\s+eol=lf/m.test(read('.gitattributes')), '.gitattributes: *.sh text eol=lf');
 });
 
+/** The variables env.example sets for <name>.env, as install.sh copies them: the lines under "# <name>.env" up to the
+    next "# <other>.env" header, comments and blank lines left out. */
+function envBlock(name) {
+  const out = {};
+  let on = false;
+  for (const l of read('ops/deploy/env.example').split(/\r?\n/)) {
+    if (l.startsWith(`# ${name}.env`)) { on = true; continue; }
+    if (/^# [a-z-]+\.env/.test(l)) { on = false; continue; }
+    if (on && !l.startsWith('#') && l.trim()) { const i = l.indexOf('='); out[l.slice(0, i)] = l.slice(i + 1); }
+  }
+  return out;
+}
+
+test('every ${VAR} a unit passes is set in the env.example block of the env file it reads, so a file created by install.sh has it', () => {
+  for (const u of units()) {
+    const text = read(`ops/deploy/${u}`);
+    const exec = text.split(/\r?\n/).find((l) => l.startsWith('ExecStart=')) || '';
+    const vars = [...exec.matchAll(/\$\{([A-Z_]+)\}/g)].map((m) => m[1]);
+    if (!vars.length) continue;
+    const m = /^EnvironmentFile=\/etc\/qwatt\/([a-z-]+)\.env$/m.exec(text);
+    assert(m, `${u} uses ${vars.join(', ')} and reads an /etc/qwatt/<name>.env file`);
+    const block = envBlock(m[1]);
+    for (const v of vars) assert(v in block, `${u}: ${v} is set in env.example under "# ${m[1]}.env"`);
+  }
+});
+
+test('W3-4: the run length comes from live.env: qwatt-live passes --days ${QWATT_RUN_DAYS}, and env.example sets 8 (one soak day, then the seven counted days to Sun 15 Nov 03:00 UTC)', () => {
+  const exec = read('ops/deploy/qwatt-live.service').split(/\r?\n/).find((l) => l.startsWith('ExecStart=')) || '';
+  assert(/ --days \$\{QWATT_RUN_DAYS\}( |$)/.test(exec), `qwatt-live passes --days \${QWATT_RUN_DAYS}: ${exec}`);
+  assert(!/ --days \d/.test(exec), `no length fixed in the unit: ${exec}`);
+  const live = envBlock('live');
+  eq(live.QWATT_RUN_DAYS, '8', 'env.example live.env QWATT_RUN_DAYS');
+  const tpl = read('ops/deploy/env.example');
+  assert(tpl.includes('2026-11-07T03:00:00Z') && tpl.includes('2026-11-15T03:00:00Z'), 'the comment gives the live run\'s start and its run_end');
+  eq(new Date(Date.parse('2026-11-07T03:00:00Z') + Number(live.QWATT_RUN_DAYS) * 86400e3).toISOString(), '2026-11-15T03:00:00.000Z', 'the live run\'s start plus QWATT_RUN_DAYS is the end of the counted window');
+  assert(/QWATT_RUN_DAYS/.test(read('docs/RUNBOOK.md')), 'the RUNBOOK (setup step 9) names QWATT_RUN_DAYS');
+});
+
+test('W3-4: an env file kept from an earlier install that lacks a variable of its env.example block (a live.env without QWATT_RUN_DAYS) is named by install.sh and FAILs check.sh AT-17', () => {
+  const s = read(INSTALL), c = read(CHECK), r = read(README);
+  assert(/kept [^\n]*lacks/.test(s), 'install.sh, keeping an env file, names the variables it lacks (it never edits the file)');
+  assert(/ops\/deploy\/env\.example/.test(c), 'check.sh reads the env.example blocks');
+  assert(/fail AT-17 [^\n]*lacks/.test(c), 'check.sh FAILs AT-17 for an env file that lacks a variable of its block');
+  const row = r.split(/\r?\n/).find((l) => /^\| AT-17 \|/.test(l)) || '';
+  assert(/every variable/.test(row), `the README's AT-17 row says every variable of env.example's block must be set: ${row}`);
+});
+
 test('no secret in the package: no S… seed, no private key block', () => {
   for (const f of PACKAGE) {
     const s = read(f);
