@@ -24,6 +24,8 @@ a numbered deviation in the write-up, never a silent edit.
 **Scope:** Stellar testnet only. The existing QWATT testnet asset is used only as the anchoring
 vehicle. QWATT is not electricity, not an investment, not a security or financial instrument, not a
 renewable energy certificate (REC) and not a carbon credit.
+**Status notes:** dated notes added after the agreement (OD-2, OD-4, the deviations built in week 2
+and a summary of week 2) are in §9. They add to this document and change none of its agreed wording.
 
 > **Resumen.** Adenda v3 a la congelación de la arquitectura, acordada por Jay Kim y Diego Ostertag
 > el miércoles 21 de octubre (Día 3), porque la SOW final v4 (septiembre 2026) pone el
@@ -52,6 +54,12 @@ renewable energy certificate (REC) and not a carbon credit.
 > umbrales 2/2/2. Cada rechazo queda en la bitácora de rechazos pública. La entrada es simulada y
 > todo ocurre solo en Stellar testnet: la corrida prueba el software y los filtros de verificación,
 > no que una instalación física haya producido energía.
+>
+> *Nota fechada (viernes 30 de octubre de 2026, Jay Kim y Diego Ostertag).* No se usó la
+> alternativa 2/2/2: se retiró el domingo 25 de octubre (correo de decisiones de la semana 2,
+> punto 2). La cuenta se crea solo con las tres claves públicas; si la clave del tercer firmante se
+> atrasa, la cuenta espera y los dos fundadores escriben juntos una desviación numerada. Las notas
+> fechadas, las desviaciones de la semana 2 y un resumen de la semana 2 están en §9.
 
 ## 1. What stays frozen from v2
 
@@ -136,6 +144,8 @@ qwatt-evidence/<run>/        index.json · faults.json · batches/<batch_id>.jso
                              ledger/{batches,accepted,rejected}.jsonl · pending/<batch_id>.xdr · anchored/<batch_id>.json
 qwatt-verifier-log/<run>/    decisions.jsonl (signed or refused, per batch) · refusals.jsonl · status.json
 ```
+
+*Deviations built in week 2 (DV-6 to DV-8): §9, status note of Fri 30 Oct 2026.*
 
 ### Week 3 · 2–8 Nov (code freeze Fri 6 Nov)
 
@@ -263,6 +273,9 @@ threshold, so no single key can send any transaction for the account.
 | Work | none | `setup-account.js` and its `--verify` check, the fake Horizon in the recovery tests, `rehearse.js`, the write-up and the docs change; the rehearsal is repeated on a throwaway account |
 | Fallback with two team signers | 1/2/2 | 2/2/2 |
 
+*Not used (status Fri 30 Oct 2026, Jay Kim and Diego Ostertag): the fallback below was withdrawn
+on Sun 25 Oct 2026, and the account is created only with the three public keys (§9, OD-2).*
+
 **Fallback.** If the third signer's public key has not arrived when the account must exist, it is
 created with the two team signers, master weight 0, at thresholds 2/2/2, and the write-up reports
 the off-team requirement as not met. No single key can send any transaction for the account under
@@ -285,6 +298,8 @@ Signing adopts each proposal unless the founders write another answer into the r
 | OD-8 | "Seven consecutive days" | A restart that drains its backlog in order, with original timestamps, within 2 hours keeps the run continuous; published before Sat 7 Nov | Fri 6 Nov |
 | OD-9 | Dawn and dusk refusals from G0's relative tolerance (B-3) | Listed in advance in the run's published expectations; spec unchanged | Fri 6 Nov |
 | OD-10 | Spec digest | Keep version 1.0.0 with digest `32dc1cf9a84eaa9b…` | Sign-off |
+
+*Status notes of Fri 30 Oct 2026 on OD-2 and OD-4: §9. The rows above keep their agreed wording.*
 
 ## 6. Input, and what the seven-day run proves
 
@@ -348,3 +363,62 @@ OD-1: ☐ Option A (1/2/3) ☒ Option B (2/2/3)
 
 Both founders agreed to §1–§7, the proposals in §5 and Option B for OD-1 on Wed 21 Oct 2026. Jay Kim
 recorded the agreement in the repository on Thu 22 Oct 2026.
+
+## 9. Dated status notes
+
+Notes added after the agreement of Wed 21 Oct 2026. Each is dated and agreed by both founders, and
+records what was decided or built since. None of them changes the agreed wording of §1–§8: every row
+and paragraph above stays as agreed, and a note says where the facts now differ from a proposal. The
+build facts of V3-6, V3-9 and V3-10 are in the week-2 changelog ([CHANGELOG.md](../CHANGELOG.md)),
+not here.
+
+### Fri 30 Oct 2026 (Day 12) · Jay Kim and Diego Ostertag
+
+**OD-2 · Third signer (status note, Fri 30 Oct 2026, Jay Kim and Diego Ostertag).** The fallback of
+§5, the two team signers at thresholds 2/2/2, is withdrawn: decided on Sun 25 Oct 2026 (week-2
+decisions email, item 2). The anchoring account is created only with the three public keys
+(proposer, verifier and third signer). If the third signer's public key is late, the account waits,
+and the founders write a numbered deviation together. **Fallback: Not used.** At the date of this
+note the third signer is confirmed (week 1) and their public key has not arrived.
+
+**OD-4 · Hosts, as built (status note, Fri 30 Oct 2026, Jay Kim and Diego Ostertag).** Proposer
+host: a cloud VPS operated by Diego Ostertag (provider: <provider, to be filled when the VPS exists>).
+Verifier host: Jay Kim's own computer (Windows 10, WSL2, Ubuntu 26.04), installed with the host
+package of [PR #32](https://github.com/academiaseul/QWATT/pull/32) at commit `03169a8`. Different
+founders on different providers, as §5 proposed. The proposer host is not set up yet.
+
+**Deviations built in week 2 (status note, Fri 30 Oct 2026, Jay Kim and Diego Ostertag).** Three
+deviations from the week-2 rows of §2, each approved by both founders and built in the PR shown.
+Each text is the approved text, word for word.
+
+| # | Departs from | Approved text | Built in | Approved |
+|---|---|---|---|---|
+| DV-6 | V3-5 | V3-5 as built departs from the freeze row's wording in these points: **Encoding:** the leaves are the raw payload bytes, grouped in runs with a count `n`. **Order (R3):** raw lines in time order; at a tie, accepted before refused; unreadable lines last. **R2 exemption tightened:** only `source.adapter` `http-json`, and the payload must be the record as posted. **Sub-decisions:** keep R3's "readable" timestamp as built (whatever `Date.parse` accepts) for week 2 and revisit it in week 3, since it only changes the order of odd refused lines. R1 does not refuse zero-length payloads for now, since no honest adapter makes one. `ingest.raw_missing` stays for intervals with no samples. | [PR #24](https://github.com/academiaseul/QWATT/pull/24) | Jay Kim, Sun 25 Oct 2026 (week-2 decisions email, item 3); Diego Ostertag, Tue 27 Oct 2026 (message to Jay) |
+| DV-7 | V3-4 | V3-4 as built: A submits the published proposal; B re-signs that same body; I withholds the batch from the verifier's only input path through a local proxy that reads one pinned evidence commit (`feed_commit`). The public feed is never touched. Wording rule: I's batch is never called "unpublished". The step name `I_withheld_refused` is accepted. | [PR #27](https://github.com/academiaseul/QWATT/pull/27) | Jay Kim, Sun 25 Oct 2026 (week-2 decisions email, item 3); Diego Ostertag, Thu 29 Oct 2026 (approval comment on PR #27) |
+| DV-8 | V3-7 | `status.json` in `qwatt-verifier-log` is the one file that is replaced, at most every 5 minutes. `decisions.jsonl` and `refusals.jsonl` only grow. | [PR #26](https://github.com/academiaseul/QWATT/pull/26) (its tests merged first in [PR #25](https://github.com/academiaseul/QWATT/pull/25)) | Jay Kim, Sun 25 Oct 2026 (week-2 decisions email, item 3); Diego Ostertag, Thu 29 Oct 2026 (approval comment on PR #26) |
+
+**Resumen / Summary of week 2 as built (status note, Fri 30 Oct 2026, Jay Kim and Diego
+Ostertag).** PRs #22 to #32, merged on main from 27 to 29 Oct: account setup and funding from the
+public keys (V3-8b, PR #22); key check and backup drill (V3-8c, PR #23); `samples_root` (V3-5,
+DV-6, PR #24); the verifier's public log (V3-7b, DV-8, PRs #25 and #26); tests A–D and the
+independence step (V3-4a, DV-7, PR #27); the live-run audit of raw readings (V3-5b, PR #28); readers
+pinned to one commit of the public evidence (V3-7c, PR #29); the neutral site name (FD-14, PR #30);
+the reconciliation page on the site (V3-9.3, PR #31); the host package (PR #32). PRs #33 to #35,
+merged on 30 Oct: the host package's Windows task fix (PR #33), CI on Node 24.14.1 (PR #34), the
+week-2 changelog and `status.json` (PR #35). PRs #12 to #21, merged on 25 and 26 Oct, are in the
+week-2 changelog. Not done yet: the real 2-of-3 anchoring account on Stellar testnet (V3-4), and
+tests A–D and the independence test on it, so nothing is anchored on the real account yet. The
+account waits for the proposer's public key (its host is not set up yet) and the third signer's
+public key.
+
+> **Resumen (viernes 30 de octubre de 2026, Jay Kim y Diego Ostertag).** La semana 2 tal como se
+> construyó: en main entraron los PR #22 a #32 (27 a 29 de octubre) y #33 a #35 (30 de octubre);
+> los PR #12 a #21 están en el registro de cambios de la semana 2. Ambos fundadores aprobaron tres
+> desviaciones: DV-6 (`samples_root`), DV-7 (pruebas A–D e independencia) y DV-8 (`status.json` de
+> la bitácora del verificador). La alternativa 2/2/2 se retiró el 25 de octubre: la cuenta se crea
+> solo con las tres claves públicas. Falta todavía: la cuenta real 2 de 3 en Stellar testnet y las
+> pruebas A–D sobre ella, así que aún no hay anclajes en la cuenta real. El host del proponente
+> será un VPS en la nube a cargo de Diego Ostertag, aún no instalado; el del verificador es el
+> computador de Jay Kim (Windows 10, WSL2, Ubuntu 26.04).
+
+Status notes agreed by Jay Kim and Diego Ostertag, Fri 30 Oct 2026.
