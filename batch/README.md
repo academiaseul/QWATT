@@ -64,6 +64,14 @@ window spans only intervals that hold time: accepted ones, and gate-refused ones
 profile's `interval_max_dt_s`. Lines refused at the door never set a window; a window with nothing
 that holds time is zero-length at the floor (`1970-01-01T00:00:00.000Z` before anything is accepted).
 
+Clock-error watermark (V3-12): a line the gates refused because its own time cannot be trusted
+(`plausibility.skew`, `plausibility.order`, `plausibility.dt_mismatch`) holds no time. It moves
+neither the latest start judged (`last_ts_start`, which also goes into `index.json`) nor the end of
+the latest interval that holds time (`last_ts_end`), and it never sets a window; `restore` rebuilds
+both by the same rule on restart. One record from a clock that jumped ahead is refused on its own
+line, and the honest records after it are judged as usual instead of `ingest.out_of_order` or
+`ingest.overlap`.
+
 ```bash
 node batch/batch.test.js                 # tests (part of npm test and CI)
 node batch/scale.js                      # synthetic month; or --csv file.csv --a a_w --b b_w [--sample-s 60]

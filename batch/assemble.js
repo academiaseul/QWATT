@@ -32,6 +32,14 @@
  * window; with nothing that holds time the window is zero-length at the floor
  * (the epoch before anything is accepted).
  *
+ * Clock-error watermark (V3-12): an interval refused because its own time
+ * cannot be trusted (plausibility.skew, plausibility.order,
+ * plausibility.dt_mismatch; the V3-2 timestamp refusal, ingest.off_grid, is
+ * already a door refusal) holds no time and moves neither last_ts_start nor
+ * last_ts_end, and restore() rebuilds both by the same rule. One future-dated
+ * record then cannot turn every later honest one into ingest.out_of_order or
+ * ingest.overlap, nor stretch a window, and with it the floor, into the future.
+ *
  * No I/O here; batch/pipeline.js persists lines and batches.
  */
 
@@ -43,6 +51,11 @@ const V = require('./verify');
 const iso = (ms) => new Date(ms).toISOString();
 const EPOCH = iso(0);   // the floor before anything is accepted: canonical, and on every grid
 const refusedAtDoor = (l) => (l.reasons || []).some((c) => c.startsWith('ingest.'));
+/** The gate refusals that say the interval's own time cannot be trusted (V3-12). */
+const TIME_REASONS = new Set(['plausibility.skew', 'plausibility.order', 'plausibility.dt_mismatch']);
+const refusedForTime = (l) => (l.reasons || []).some((c) => TIME_REASONS.has(c));
+/** Does a judged line move last_ts_start? Not when refused at the door or for its time. */
+const movesStart = (l) => !refusedAtDoor(l) && !refusedForTime(l);
 
 /**
  * The order of a window's lines in raw/<batch_id>.jsonl (R3): by interval start (an unreadable one
@@ -74,7 +87,7 @@ class BatchAssembler {
     this.seq = s.seq ?? 0;
     this.prev_hash = s.prev_hash ?? E.ZERO_HASH;
     this.cumulative_mwh = s.cumulative_mwh ?? 0;
-    this.last_ts_start = s.last_ts_start ?? null;   // ISO string of the latest in-order interval judged
+    this.last_ts_start = s.last_ts_start ?? null;   // ISO string of the latest in-order interval judged whose time is trusted (V3-12)
     this.prev = s.prev ?? null;                     // the last published batch, as published (verifyBatch rehashes it)
     this.floor = s.floor ?? null;                   // the last accepted batch: time, node and counted intervals start here
     this.last_ts_end = this.floor ? this.floor.ts_end : null;   // end of the latest interval that holds time
@@ -91,10 +104,13 @@ class BatchAssembler {
     return { seq: this.seq, prev_hash: this.prev_hash, cumulative_mwh: this.cumulative_mwh, last_ts_start: this.last_ts_start, prev: this.prev, floor: this.floor };
   }
 
-  /** Does this judged line hold time? Accepted, or refused by a gate while no longer than the profile allows. */
+  /**
+   * Does this judged line hold time? Accepted, or refused by a gate while no longer than the profile
+   * allows, unless the gate refused its time itself (V3-12).
+   */
   _holdsTime(line) {
     if (line.verdict === 'accept') return true;
-    return !refusedAtDoor(line) && line.interval.dt_s <= this.profile.interval_max_dt_s;
+    return movesStart(line) && line.interval.dt_s <= this.profile.interval_max_dt_s;
   }
 
   /**
@@ -134,25 +150,25 @@ class BatchAssembler {
       line.detail = { why: rawWhy.why };
     } else {
       const v = V.GATES.evaluateInterval(rec, this.profile, this.spec);
-      this.last_ts_start = rec.ts_start;
       if (v.verdict === 'accept') {
         line.verdict = 'accept';
         line.basis_mwh = E.basisMwh(rec);
       } else {
         line.reasons = v.failures.map((f) => f.code);
       }
+      /* V3-12: a line refused for its time moves neither watermark */
+      if (movesStart(line)) this.last_ts_start = rec.ts_start;
       if (this._holdsTime(line)) this.last_ts_end = rec.ts_end;
     }
     this.window.push(line);
     return line;
   }
 
-  /** Restore an already-persisted line into the open window (restart recovery). */
+  /** Restore an already-persisted line into the open window (restart recovery), moving the watermarks as judge() did. */
   restore(line) {
     if (line.batch_id !== this.openBatchId) throw new Error(`restore: line belongs to ${line.batch_id}, open batch is ${this.openBatchId}`);
     this.window.push(line);
-    const inOrder = !refusedAtDoor(line);
-    if (inOrder && (this.last_ts_start == null || Date.parse(line.interval.ts_start) > Date.parse(this.last_ts_start))) {
+    if (movesStart(line) && (this.last_ts_start == null || Date.parse(line.interval.ts_start) > Date.parse(this.last_ts_start))) {
       this.last_ts_start = line.interval.ts_start;
     }
     if (this._holdsTime(line) && (this.last_ts_end == null || Date.parse(line.interval.ts_end) > Date.parse(this.last_ts_end))) {
