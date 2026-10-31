@@ -139,6 +139,29 @@ test('WSL keeps running with no window open and starts after a reboot with nobod
   assert(/\[boot\][\s\S]*systemd=true/.test(read(INSTALL)), 'install.sh turns systemd on in /etc/wsl.conf');
 });
 
+/* V3-13a: the RestartSec each unit had under Restart=always, kept as it was */
+const RESTART_SEC = { 'qwatt-live.service': 10, 'qwatt-proposer.service': 10, 'qwatt-publish.service': 30, 'qwatt-verifier.service': 10, 'qwatt-verifier-log.service': 30, 'qwatt-watch.service': 30 };
+/** The values of every KEY=value line of a unit file (comments skipped). */
+const directives = (text, key) => text.split(/\r?\n/).map((l) => l.trim()).filter((l) => l.startsWith(`${key}=`)).map((l) => l.slice(key.length + 1));
+
+test('V3-13a: every unit restarts on failure only (Restart=on-failure, RestartSec kept), so qwatt-live stays stopped after run_end, a clean exit 0', () => {
+  eq(units().sort().join(' '), Object.keys(RESTART_SEC).sort().join(' '), 'the units in ops/deploy');
+  for (const u of units()) {
+    const t = read(`ops/deploy/${u}`);
+    eq(directives(t, 'Restart').join(','), 'on-failure', `${u}: Restart=`);
+    eq(directives(t, 'RestartSec').join(','), String(RESTART_SEC[u]), `${u}: RestartSec= kept`);
+  }
+});
+
+test('V3-13a: a start the service refuses (exit 2: arguments, configuration or key) is not restarted in a loop; the unit stays failed, where systemctl shows it', () => {
+  for (const u of units()) eq(directives(read(`ops/deploy/${u}`), 'RestartPreventExitStatus').join(','), '2', `${u}: RestartPreventExitStatus=`);
+});
+
+test('V3-13a: AT-26 kills with SIGKILL, as a crash does: under Restart=on-failure a plain SIGTERM is a clean stop and is not restarted', () => {
+  const row = read(README).split(/\r?\n/).find((l) => /^\| AT-26 \|/.test(l)) || '';
+  assert(/systemctl kill -s SIGKILL qwatt-verifier/.test(row), `AT-26 kills with SIGKILL: ${row}`);
+});
+
 test('every acceptance test AT-1..AT-26 is defined once in the README; each automated one is in check.sh', () => {
   const r = read(README), c = read(CHECK);
   for (let i = 1; i <= 26; i++) {
