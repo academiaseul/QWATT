@@ -115,7 +115,7 @@ test('the run is published under <run>/ on main of its own repository, with .git
   fs.mkdirSync(w.f('samples'));
   fs.writeFileSync(w.f('samples', '2026-09-20_150000.csv'), 'ts,a_w,b_w\n2026-09-20T15:00:00Z,100,99\n');
   fs.writeFileSync(w.f('samples', '2026-09-21_000000.csv'), 'ts,a_w,b_w\n');      // written, not yet in the manifest
-  fs.writeFileSync(w.f('samples', 'manifest.jsonl'), JSON.stringify({ file: 'samples/2026-09-20_150000.csv', rows: 1 }) + '\n');
+  fs.writeFileSync(w.f('samples', 'manifest.jsonl'), JSON.stringify({ file: 'samples/2026-09-20_150000.csv', from: '2026-09-20T15:00:00.000Z', to: '2026-09-20T15:00:10.000Z', rows: 1 }) + '\n');
   PF.publishOnce(w.o);
   const files = tree(w.remote);
   for (const f of ['run/index.json', 'run/ledger/batches.jsonl', 'run/ledger/accepted.jsonl', 'run/batches/pub-000000.json', 'run/batches/pub-000001.json',
@@ -605,14 +605,14 @@ test('after the first publication each file keeps its rule: the samples manifest
   fs.writeFileSync(w.f('faults.json'), JSON.stringify({ description: 'test run', seed: 1 }, null, 2) + '\n');
   fs.mkdirSync(w.f('samples'));
   fs.writeFileSync(w.f('samples', '2026-09-20_150000.csv'), 'ts,a_w,b_w\n2026-09-20T15:00:00Z,100,99\n');
-  fs.writeFileSync(w.f('samples', 'manifest.jsonl'), JSON.stringify({ file: 'samples/2026-09-20_150000.csv', rows: 1 }) + '\n');
+  fs.writeFileSync(w.f('samples', 'manifest.jsonl'), JSON.stringify({ file: 'samples/2026-09-20_150000.csv', from: '2026-09-20T15:00:00.000Z', to: '2026-09-20T15:00:10.000Z', rows: 1 }) + '\n');
   fs.mkdirSync(w.f('anchored'));
   fs.writeFileSync(w.f('anchored', 'pub-000000.json'), JSON.stringify({ batch_id: 'pub-000000', tx_hash: 'a'.repeat(64) }, null, 2) + '\n');
   PF.publishOnce(w.o);
   for (const rel of ['faults.json', 'anchored/pub-000000.json', 'samples/manifest.jsonl']) assert(tree(w.remote).includes(`run/${rel}`), `${rel} published`);
   /* (a) the next day: a new CSV and its manifest line, published as a grow */
   fs.writeFileSync(w.f('samples', '2026-09-21_000000.csv'), 'ts,a_w,b_w\n');
-  fs.appendFileSync(w.f('samples', 'manifest.jsonl'), JSON.stringify({ file: 'samples/2026-09-21_000000.csv', rows: 0 }) + '\n');
+  fs.appendFileSync(w.f('samples', 'manifest.jsonl'), JSON.stringify({ file: 'samples/2026-09-21_000000.csv', from: '2026-09-21T00:00:00.000Z', to: '2026-09-21T00:00:00.000Z', rows: 0 }) + '\n');
   const ra = PF.publishOnce(w.o);
   eq(JSON.stringify([...ra.phase1].sort()), JSON.stringify(['samples/2026-09-21_000000.csv', 'samples/manifest.jsonl']), 'the manifest grows with the file it lists');
   assert(showRun(w.remote, 'samples/manifest.jsonl').equals(fs.readFileSync(w.f('samples', 'manifest.jsonl'))), 'the grown manifest on the remote');
@@ -862,6 +862,55 @@ test('the deploy template makes the operator choose the run name: QWATT_RUN is a
   assert(/public history is never rewritten/.test(tpl) && /`run` is only for the seven-day live run/.test(tpl) && /rehearsal-2026-10-29/.test(tpl), 'the comment says why: run vs rehearsal, and a published name can never be reused');
   const rb = fs.readFileSync(path.join(__dirname, '..', 'docs', 'RUNBOOK.md'), 'utf8');
   assert(/env\.example` carries the placeholder `rehearsal-YYYY-MM-DD`/.test(rb), 'the RUNBOOK says what the template carries');
+});
+
+test('V3-13c: no sample is published before its time: a run dated ahead of the publish clock publishes each samples file and its manifest line only once the line\'s `to` has passed, never a row later than the publish time, and the published feed then passes the live audit', async () => {
+  const { runLive } = require('../live/run');
+  const { auditLive } = require('../live/audit');
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-v313c-'));
+  roots.push(root);
+  const feed = path.join(root, 'feed'), out = path.join(root, 'out');
+  /* an accelerated day written in seconds: its samples files are all on disk long before their time */
+  await runLive({ feedDir: feed, days: 1, startMs: Date.parse('2026-11-03T03:00:00Z'), seed: 3, speed: 'fast', log: () => {} });
+  const localManifest = fs.readFileSync(path.join(feed, 'samples', 'manifest.jsonl'), 'utf8');
+  eq(localManifest.split('\n').filter(Boolean).map((l) => JSON.parse(l).to).join(' '), '2026-11-04T00:00:00.000Z 2026-11-04T03:00:00.000Z', 'two samples files on disk, to 00:00Z and to 03:00Z');
+  const pub = (rel) => { try { return fs.readFileSync(path.join(out, 'run', rel), 'utf8'); } catch (e) { return null; } };
+  const listed = [];
+  for (const at of ['2026-11-03T02:00:00Z', '2026-11-03T04:00:00Z', '2026-11-03T23:59:59.999Z', '2026-11-04T00:00:00Z', '2026-11-04T02:59:50Z', '2026-11-04T03:00:00Z']) {
+    const t = Date.parse(at);
+    PF.publishOnce({ kind: 'evidence', feed, run: 'run', dir: out, now: () => t });
+    const man = (pub('samples/manifest.jsonl') || '').split('\n').filter(Boolean).map((l) => JSON.parse(l));
+    for (const m of man) assert(Date.parse(m.to) <= t, `at ${at} the published manifest lists ${m.file} up to ${m.to}`);
+    const dir = path.join(out, 'run', 'samples');
+    for (const name of fs.existsSync(dir) ? fs.readdirSync(dir).filter((n) => n.endsWith('.csv')) : []) {
+      assert(man.some((m) => m.file === `samples/${name}`), `at ${at} samples/${name} is published without its manifest line`);
+      for (const row of pub(`samples/${name}`).split('\n').slice(1).filter(Boolean)) {
+        assert(Date.parse(row.split(',')[0]) <= t, `at ${at} the published samples/${name} holds a row dated ${row.split(',')[0]}`);
+      }
+    }
+    listed.push(man.length);
+  }
+  eq(listed.join(' '), '0 0 0 1 1 2', 'each samples file goes public when its `to` has passed, not before');
+  eq(pub('samples/manifest.jsonl'), localManifest, 'once the run\'s time has passed, the whole manifest is published');
+  const a = auditLive(path.join(out, 'run'));
+  assert(a.ok, `the published feed passes the live audit: ${a.problems.join('; ')}`);
+  eq(a.samples.files, 2, 'both samples files published and hash-intact (check 3)');
+  assert(a.raw.payloads > 0, 'every raw payload is a row of a published samples file (check 4, V3-5b)');
+});
+
+test('V3-13c: a manifest line whose `to` is missing or not a time holds that line and every later one; the rest of the feed is still published', () => {
+  const w = setup();
+  w.add(12);
+  fs.mkdirSync(w.f('samples'));
+  fs.writeFileSync(w.f('samples', 'a.csv'), 'ts,a_w,b_w\n2026-09-20T15:00:00Z,100,99\n');
+  fs.writeFileSync(w.f('samples', 'b.csv'), 'ts,a_w,b_w\n2026-09-20T15:00:10Z,100,99\n');
+  fs.writeFileSync(w.f('samples', 'c.csv'), 'ts,a_w,b_w\n2026-09-20T15:00:20Z,100,99\n');
+  const lines = [{ file: 'samples/a.csv', to: '2026-09-20T15:00:10.000Z' }, { file: 'samples/b.csv' }, { file: 'samples/c.csv', to: '2026-09-20T15:00:30.000Z' }];
+  fs.writeFileSync(w.f('samples', 'manifest.jsonl'), lines.map((l) => JSON.stringify(l)).join('\n') + '\n');
+  const r = PF.publishOnce(w.o);
+  assert(r.phase1.includes('batches/pub-000000.json') && r.phase1.includes('samples/a.csv'), `the batches and the first samples file are published: ${r.phase1.join(', ')}`);
+  assert(!r.phase1.includes('samples/b.csv') && !r.phase1.includes('samples/c.csv'), `a line without a to holds itself and every later line: ${r.phase1.join(', ')}`);
+  eq(showRun(w.remote, 'samples/manifest.jsonl').toString(), JSON.stringify(lines[0]) + '\n', 'the published manifest stops before the line without a to');
 });
 
 (async () => {

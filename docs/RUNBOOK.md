@@ -253,6 +253,12 @@ Start in this order, checking each before the next:
 | 3 | proposer | `systemctl enable --now qwatt-publish` | `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>/index.json` (`<run>` = `QWATT_RUN`, `run` for the live run) loads (the CDN may lag up to 5 minutes); `journalctl -u qwatt-publish` shows `published …` |
 | 4 | proposer | `systemctl enable --now qwatt-proposer` | within an hour, the first batch shows **anchored** on the reconciliation page |
 
+No sample is public before its time (V3-13c). `qwatt-live` writes each hour's samples file to
+`feed/samples/` before it replays it, so the file is on the proposer host up to an hour ahead (and
+before `QWATT_RUN_START`, which `run.js` waits for); `qwatt-publish` publishes a file and its
+manifest line only once the line's `to` has passed. Enabling the services before the run start is
+therefore safe: until then only `faults.json` is published.
+
 Reconciliation page:
 `https://qwatt.org/reconcile.html?feed=<QWATT_FEED_URL>&account=<anchoring account>`.
 It reads Horizon first, then the evidence at the branch's head commit (in a browser through
