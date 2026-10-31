@@ -421,4 +421,19 @@ public key.
 > será un VPS en la nube a cargo de Diego Ostertag, aún no instalado; el del verificador es el
 > computador de Jay Kim (Windows 10, WSL2, Ubuntu 26.04).
 
-Status notes agreed by Jay Kim and Diego Ostertag, Fri 30 Oct 2026.
+### Sat 31 Oct 2026 (Day 13) · Jay Kim and Diego Ostertag
+
+**V3-5 · Scale-test head (status note, Sat 31 Oct 2026, Jay Kim and Diego Ostertag).** As the V3-5
+row of §2 says, the scale test was re-run when `samples_root` became required (batch schema 1.1.0,
+[PR #24](https://github.com/academiaseul/QWATT/pull/24)). Its head is now `99e22999…`
+(`evidence/scale/scale-pvdaq-4902-2017-09.json`): 8,640 intervals, 720 batches, 0 rejected, chain
+verified. The `cb3d1050…` cited in §2 (the V3-1/V3-2 paragraph and the DV-3 row) is the head before
+V3-5.
+
+**§8 · Diego Ostertag's GitHub account (status note, Sat 31 Oct 2026, Jay Kim and Diego
+Ostertag).** §8 lists Diego Ostertag's GitHub account as `CogeloEasy`. His GitHub account is
+`dostertags`, the account that approved DV-7 and DV-8 on PRs #27 and #26; no GitHub account is
+named `CogeloEasy`. The agreement recorded in §8 stands.
+
+Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
+adds them and Jay Kim merges it; the merge date is the date of agreement.
