@@ -358,6 +358,19 @@ test('V3-13a: the CLI exits 0 at run_end (its unit, Restart=on-failure, leaves i
   eq(refused.status, 2, `a start it refuses (two of the three signer keys) exits 2 (${refused.stderr.trim()})`);
 });
 
+test('V3-13c: in real time each samples file covers at most one UTC hour (the publisher holds a file until its `to` has passed, so at most an hour); an accelerated run keeps one file per UTC day', () => {
+  const { chunkEnd } = require('./run');
+  eq(typeof chunkEnd, 'function', 'live/run.js exports chunkEnd');
+  const iso = (t) => new Date(t).toISOString();
+  const t = Date.parse('2026-11-07T03:00:00Z'), end = t + 7 * 86400e3;
+  eq(iso(chunkEnd(t, end, 'realtime')), '2026-11-07T04:00:00.000Z', 'real time: to the next whole UTC hour');
+  eq(iso(chunkEnd(t + 1234e3, end, 'realtime')), '2026-11-07T04:00:00.000Z', 'a real-time restart mid-hour: to the end of that hour');
+  eq(iso(chunkEnd(end - 600e3, end, 'realtime')), iso(end), 'never past the run end');
+  eq(iso(chunkEnd(t, t + 1800e3, 'realtime')), iso(t + 1800e3), 'never past an early stop');
+  eq(iso(chunkEnd(t, end, 'fast')), '2026-11-08T00:00:00.000Z', 'fast: to the end of the UTC day');
+  eq(iso(chunkEnd(t, end, 60)), '2026-11-08T00:00:00.000Z', 'a numeric speed: to the end of the UTC day');
+});
+
 (async () => {
   console.log('\nlive run');
   for (const t of tests) {
