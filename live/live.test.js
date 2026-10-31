@@ -341,6 +341,23 @@ test('W3-4: runLive itself still takes a fraction of a day, as live/soak.js pass
   eq(readDef(dir).run_end, new Date(START + 3 * 3600e3).toISOString(), 'a 3-hour run (days 3/24) ends three hours after its start');
 });
 
+test('V3-13a: the CLI exits 0 at run_end (its unit, Restart=on-failure, leaves it stopped) and 2 on a start it refuses (not restarted: RestartPreventExitStatus=2)', async () => {
+  const { spawnSync } = require('child_process');
+  const dir = tmp(), start = new Date(Date.now() - 3 * 86400e3).toISOString().slice(0, 10) + 'T00:00:00Z';
+  const keys = ['--proposer', SIGNERS.proposer, '--verifier', SIGNERS.verifier, '--third', SIGNERS.third];
+  const cli = (k) => spawnSync(process.execPath, [path.join(__dirname, 'run.js'), '--feed', dir, '--days', '1', '--speed', 'fast', '--start', start, '--code-commit', 'f'.repeat(40), ...k], { encoding: 'utf8' });
+  const end = cli(keys);
+  eq(end.status, 0, `exit status at run_end (${end.stderr.trim()})`);
+  assert(/run complete · 288 intervals/.test(end.stdout), `it ran to run_end: ${end.stdout.trim().split('\n').pop()}`);
+  const batches = fs.readdirSync(path.join(dir, 'batches')).length;
+  const again = cli(keys);   /* what Restart=always did 10 s after run_end, for as long as the host ran */
+  eq(again.status, 0, 'exit status when started again after run_end');
+  assert(/run complete · 0 intervals/.test(again.stdout), 'a start after run_end replays nothing');
+  eq(fs.readdirSync(path.join(dir, 'batches')).length, batches, 'a start after run_end adds no batch');
+  const refused = cli(keys.slice(0, 4));
+  eq(refused.status, 2, `a start it refuses (two of the three signer keys) exits 2 (${refused.stderr.trim()})`);
+});
+
 (async () => {
   console.log('\nlive run');
   for (const t of tests) {

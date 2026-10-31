@@ -162,7 +162,8 @@ checks that the new signature is from the key it expects. Node never reads a sec
 CLI refuses a `QWATT_*_SECRET` in the environment, checks that the identity's key is the config's
 `signers.proposer` or `signers.verifier`, and signs one throwaway transaction offline (it expired in
 1970 and is never submitted), so a missing stellar-cli, a missing identity or a swapped key stops it
-with exit 2 instead of failing later on the network. The anchor config's `TESTNET` is mapped to the
+with exit 2 instead of failing later on the network; its unit does not restart it after exit 2
+(`RestartPreventExitStatus=2`, V3-13a), so it stays `failed` until the cause is fixed and an operator starts it again (`systemctl restart`). The anchor config's `TESTNET` is mapped to the
 full passphrase before stellar-cli sees it. `config.json` (copy `config.example.json`) holds public
 values only, `signers` included, and stays out of git because it is host-specific. The stellar-cli
 command forms (`stellar keys address <id>`, `stellar tx sign` with the XDR on stdin and no RPC URL,

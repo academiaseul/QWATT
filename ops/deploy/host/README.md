@@ -34,7 +34,10 @@ sudo bash /opt/qwatt/ops/deploy/host/check.sh --role proposer --commit <commit> 
 
 To move a host to a new commit: `sudo git -C /opt/qwatt fetch && sudo git -C /opt/qwatt checkout --detach <new>`,
 run `install.sh` again with `--commit <new>` (it keeps env files, keys and state, and names any
-variable a kept env file lacks: add it from `ops/deploy/env.example`), then restart the services. A unit file that changed is copied again by `install.sh`.
+variable a kept env file lacks: add it from `ops/deploy/env.example`), then restart the services.
+A unit file that changed is copied again by `install.sh`. V3-13a changed all six
+units (`Restart=on-failure`, `RestartPreventExitStatus=2`): a host installed before it runs
+`install.sh` again, and `check.sh` fails AT-14 until it does.
 
 ### On the Windows side (verifier PC)
 
@@ -90,7 +93,7 @@ verifier key is generated (RUNBOOK; the account cannot change a signer later wit
 | AT-23 | the holder's stellar-cli identity exists and its store is closed to others (700) | auto | after the holder's step |
 | AT-24 | the other role's identity is not on this host | auto | after the holder's step |
 | AT-25 | `keys.js check` signs offline; with `/etc/qwatt/anchor.json`, a weight-1 signer of the account | auto | after the account |
-| AT-26 | with the services running: reboot without signing in, then `sudo systemctl kill qwatt-verifier` (or `qwatt-proposer`): each comes back by itself, and the verifier log (or the feed) moves on within 10 minutes | hand | during the soak |
+| AT-26 | with the services running: reboot without signing in, then `sudo systemctl kill -s SIGKILL qwatt-verifier` (or `qwatt-proposer`), as a crash would: each comes back by itself, and the verifier log (or the feed) moves on within 10 minutes. The units restart after a failure only (`Restart=on-failure`, V3-13a): a plain `systemctl kill` or `kill` sends SIGTERM, a clean stop, and the service then stays stopped | hand | during the soak |
 
 ## Decisions this package takes, and where they can change
 
