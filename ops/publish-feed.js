@@ -28,6 +28,10 @@
  *     for the same batch, and the verifier's status.json (DV-8);
  *   - a ledger .jsonl only grows (its published bytes stay a prefix), and only up to its
  *     last complete line; raw/<id>.jsonl is written once, with its batch;
+ *   - no sample before its time (V3-13c): samples/manifest.jsonl is cut at its first line whose
+ *     `to` is missing or later than this host's clock, and a samples/<name>.csv is published
+ *     only with a line kept. live/run.js writes each file to disk ahead of its rows' time;
+ *     it goes public once its last row's time has passed;
  *   - a file that looks like a secret key (a Stellar secret seed, a PEM private key) is
  *     never published.
  * File by file, with each field: protocol/FEED-FORMAT.md.
@@ -175,7 +179,7 @@ const carriesSamplesRoot = (buf) => { try { return 'samples_root' in JSON.parse(
  * What may be published this tick, read in the reverse of the writer's order.
  * @returns {{files: Map<string, Buffer>, pending: Map<string, Buffer>, skipped: string[], head: string|null}}
  */
-function snapshot(kind, dir) {
+function snapshot(kind, dir, clock = Date.now) {
   const K = kindOf(kind);
   const files = new Map(), pending = new Map();
   const read = (rel) => (matches(K.layout, rel) ? readRegular(dir, rel) : null);
@@ -211,18 +215,24 @@ function snapshot(kind, dir) {
         if (end > 0) files.set(rel, buf.subarray(0, end));
       }
     }
-    /* (d) the samples manifest, and only the files it lists */
+    /* (d) the samples manifest, and only the files it lists, none before its time (V3-13c): the manifest
+       is cut at its first line whose `to` (the end of its file's rows) is missing or later than the clock.
+       The clock is read after index.json, so a batch listed above closed before it: in a real-time run
+       whose batches fall on whole hours (no restart gap), its hourly samples file ended no later than the
+       batch did and is published with it; otherwise the file follows within the hour. */
+    const cutoff = clock();
     const man = completeLines(read('samples/manifest.jsonl') || EMPTY);
-    if (man.length) {
-      files.set('samples/manifest.jsonl', man);
-      for (const l of jsonLines(man, 'samples/manifest.jsonl')) {
-        const rel = typeof l.obj.file === 'string' ? l.obj.file : '';
-        if (!/^samples\//.test(rel) || !matches(K.layout, rel)) continue;
-        const b = read(rel);
-        if (!b) throw new FeedMidWrite(`samples/manifest.jsonl lists ${rel}, which is not there`);
-        files.set(rel, b);
-      }
+    let manEnd = 0;
+    for (const l of jsonLines(man, 'samples/manifest.jsonl')) {
+      if (!(typeof l.obj.to === 'string' && Date.parse(l.obj.to) <= cutoff)) break;
+      manEnd = l.end;
+      const rel = typeof l.obj.file === 'string' ? l.obj.file : '';
+      if (!/^samples\//.test(rel) || !matches(K.layout, rel)) continue;
+      const b = read(rel);
+      if (!b) throw new FeedMidWrite(`samples/manifest.jsonl lists ${rel}, which is not there`);
+      files.set(rel, b);
     }
+    if (manEnd > 0) files.set('samples/manifest.jsonl', man.subarray(0, manEnd));
     /* (e) the run definition */
     const faults = read('faults.json');
     if (faults) files.set('faults.json', faults);
@@ -474,7 +484,7 @@ function publishOnce(o) {
   let pushed = target.push();                                          // a push that failed on an earlier tick
 
   let snap;
-  try { snap = snapshot(kind, o.feed); } catch (e) {
+  try { snap = snapshot(kind, o.feed, o.now || Date.now); } catch (e) {
     if (e instanceof FeedMidWrite) return { phase1: [], phase2: [], skipped: [], pushed, waited: e.message };
     throw e;
   }

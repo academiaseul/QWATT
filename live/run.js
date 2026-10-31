@@ -15,7 +15,9 @@
  * real-time pace, fed by the solar simulator and the CSV replay adapter."
  *
  *   simulator (live/simulator.js, faults from live/schedule.js)
- *     → one CSV per UTC day, published in the feed with its SHA-256   <feed>/samples/
+ *     → one CSV per UTC hour (per UTC day when accelerated), with     <feed>/samples/
+ *       its SHA-256 in samples/manifest.jsonl; ops/publish-feed.js publishes each
+ *       only once its `to` has passed (V3-13c: no sample before its time)
  *     → CSV replay adapter at real-time pace                          ingest/adapters/csv.js
  *     → interval builder → gates → batch pipeline                     batch/pipeline.js
  *     → feed on disk, which the proposer signs and the verifier co-signs (separate processes)
@@ -58,6 +60,18 @@ const SITE_ID = 'qwatt-chispa-01';
 const NODE_ID = 'live-sim';
 const DT_MS = 300 * 1000;
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
+
+/**
+ * V3-13c: where the samples file that starts at `cur` ends, never past `stop`. Real time: the next whole
+ * UTC hour. The file is written before its rows are replayed, and ops/publish-feed.js publishes it (and
+ * its manifest line) only once its `to` has passed, so it is held at most an hour and an hourly batch's
+ * raw payloads go public with the samples they came from (live/audit.js check 4). Accelerated runs: the
+ * end of the UTC day.
+ */
+function chunkEnd(cur, stop, speed) {
+  const span = speed === 'realtime' ? 3600e3 : 86400e3;
+  return Math.min(Math.floor(cur / span) * span + span, stop);
+}
 
 function writeAtomic(file, text) {
   const tmp = `${file}.tmp-${process.pid}`;
@@ -237,18 +251,19 @@ async function runLive(o) {
   });
 
   for (let cur = from; cur < stop;) {
-    const dayEnd = Math.floor(cur / 86400e3) * 86400e3 + 86400e3;
-    const chunkEnd = Math.min(dayEnd, stop);
-    const text = sim.csvFor(def.seed, cur, chunkEnd, def.faults);
+    const end = chunkEnd(cur, stop, speed);
+    const text = sim.csvFor(def.seed, cur, end, def.faults);
     const name = `${new Date(cur).toISOString().slice(0, 10)}_${new Date(cur).toISOString().slice(11, 19).replace(/:/g, '')}.csv`;
     const file = path.join(samplesDir, name);
     writeAtomic(file, text);
-    fs.appendFileSync(path.join(samplesDir, 'manifest.jsonl'), JSON.stringify({ file: `samples/${name}`, from: new Date(cur).toISOString(), to: new Date(chunkEnd).toISOString(), rows: text.split('\n').length - 2, sha256: sha(text) }) + '\n');
-    /* real time never emits a sample before its timestamp (the run start is rounded up to the grid) */
+    fs.appendFileSync(path.join(samplesDir, 'manifest.jsonl'), JSON.stringify({ file: `samples/${name}`, from: new Date(cur).toISOString(), to: new Date(end).toISOString(), rows: text.split('\n').length - 2, sha256: sha(text) }) + '\n');
+    /* real time replays no sample before its timestamp (the run start is rounded up to the grid). The file
+       above is on disk before its rows' time but not public: the publisher holds it and its manifest line
+       until `to` has passed (V3-13c) */
     if (speed === 'realtime' && cur > Date.now()) await new Promise((r) => setTimeout(r, cur - Date.now()));
-    log(`replaying ${name} (${new Date(cur).toISOString()} → ${new Date(chunkEnd).toISOString()})`);
+    log(`replaying ${name} (${new Date(cur).toISOString()} → ${new Date(end).toISOString()})`);
     await csv.replay({ file, ts_column: 'ts', meters: { a: { power_w: 'a_w' }, b: { power_w: 'b_w' } }, pace: speed === 'fast' ? 'fast' : speed, flush: false }, builder);
-    cur = chunkEnd;
+    cur = end;
   }
 
   if (stop >= runEnd) {
@@ -281,4 +296,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('[live] stopped:', e.message); process.exit(1); });
 
-module.exports = { runLive, SITE_ID, builderClock, checkSigners, signersArg, daysArg, codeCommit };
+module.exports = { runLive, SITE_ID, builderClock, checkSigners, signersArg, daysArg, codeCommit, chunkEnd };
