@@ -501,6 +501,69 @@ test('a batch window comes only from intervals that hold time: refused lines and
   assert(verifyFeed(dir).ok, 'the feed verifies');
 });
 
+/* ───────────────────────── V3-12: clock-error watermark ───────────────────────── */
+const ENERGY = Math.round(99000 * DT / 3600);                       // what one honest iv() counts (min of A and B)
+/** An interval a clock three hours fast wrote: 18:00 UTC, received at 15:00 UTC (clock_skew_s = receive − ts_end = −11100). */
+const future = () => Object.assign(ivAt(180, DT, { seq: 5000 }), { clock_skew_s: -11100 });
+
+test('V3-12: a future-dated interval refused for plausibility.skew moves no watermark; the honest intervals after it are accepted and the window never reaches the future', () => {
+  const a = mkAsm();
+  for (let i = 0; i < 5; i++) a.judge(iv(i));                      // 15:00–15:25
+  const fut = a.judge(future());
+  record([fut]);
+  eq(fut.verdict, 'reject', 'the future-dated line');
+  assert(fut.reasons.includes('plausibility.skew'), `refused for its clock [${fut.reasons}]`);
+  eq(a.last_ts_start, iv(4).ts_start, 'last_ts_start stays at the last honest interval');
+  eq(a.last_ts_end, iv(4).ts_end, 'last_ts_end stays at the last honest interval');
+  const after = [];
+  for (let i = 5; i < 11; i++) after.push(a.judge(iv(i)));        // 15:25–15:55
+  record(after);
+  after.forEach((l, k) => eq(l.verdict, 'accept', `honest interval ${k + 5} after the future one [${l.reasons}]`));
+  eq(a.last_ts_start, iv(10).ts_start, 'last_ts_start follows the honest intervals');
+  eq(a.last_ts_end, iv(10).ts_end, 'last_ts_end follows the honest intervals');
+  const closed = a.close();
+  eq(closed.status, 'accepted', `the batch survives [${closed.reasons}]`);
+  eq(closed.batch.accepted_count, 11, 'every honest line counted');
+  eq(closed.batch.rejected_count, 1, 'the future line recorded once');
+  eq(closed.batch.ts_end, iv(10).ts_end, 'the window ends with the last honest interval, not in the future');
+  /* through the pipeline: the floor never reaches the future, so no later batch is refused */
+  const dir = tmpDir(), p = mkPipe(dir);
+  for (let i = 0; i < 5; i++) p.push(iv(i));
+  record([p.push(future())]);
+  const later = [];
+  for (let i = 5; i < 35; i++) later.push(p.push(iv(i)));        // three full windows
+  record(later);
+  later.forEach((l, k) => eq(l.verdict, 'accept', `pipeline: honest interval ${k + 5} [${l.reasons}]`));
+  eq(p.head().last_ts_start, iv(34).ts_start, 'index.json last_ts_start is the last honest start in a published batch');
+  const out = verifyFeed(dir);
+  assert(out.ok, out.problems.join('; '));
+  eq(out.rejected_batches, 0, 'no batch refused');
+  eq(out.cumulative_mwh, 35 * ENERGY, 'every honest interval counted once, the future one never');
+});
+
+test('V3-12: an accepted interval still advances last_ts_start and last_ts_end, and so does one refused by a gate that is not about time', () => {
+  const a = mkAsm();
+  const ok = a.judge(iv(0));
+  eq(ok.verdict, 'accept', 'accepted');
+  eq(a.last_ts_start, iv(0).ts_start, 'accepted: last_ts_start');
+  eq(a.last_ts_end, iv(0).ts_end, 'accepted: last_ts_end');
+  const over = a.judge(iv(1, { aW: 5000, bW: 4990 }));             // above the bench nameplate ceiling: its time is honest
+  record([over]);
+  eq(over.verdict, 'reject', 'over the nameplate');
+  assert(over.reasons.length && !over.reasons.some((c) => /^plausibility\.(skew|order|dt_mismatch)$/.test(c)), `not a time reason [${over.reasons}]`);
+  eq(a.last_ts_start, iv(1).ts_start, 'gate-refused, not for time: last_ts_start');
+  eq(a.last_ts_end, iv(1).ts_end, 'gate-refused, not for time: last_ts_end');
+  const again = a.judge(iv(2));
+  eq(again.verdict, 'accept', 'the next one');
+  eq(a.last_ts_start, iv(2).ts_start, 'last_ts_start moves on');
+  eq(a.last_ts_end, iv(2).ts_end, 'last_ts_end moves on');
+  /* a restart rebuilds the same: every line restored, both watermarks at the last one */
+  const b = mkAsm();
+  for (const l of clone([ok, over, again])) b.restore(l);
+  eq(b.last_ts_start, iv(2).ts_start, 'restore: last_ts_start');
+  eq(b.last_ts_end, iv(2).ts_end, 'restore: last_ts_end');
+});
+
 /* ───────────────────────── pipeline: restart safety ───────────────────────── */
 
 test('restart mid-window: persisted lines are restored and closed as a batch, nothing lost', () => {
@@ -545,6 +608,53 @@ test('a duplicate replayed after a restart is still rejected', () => {
   const line = p2.push(iv(11));
   record([line]);
   eq(line.reasons[0], 'ingest.duplicate_interval', 'restart does not reopen the door');
+});
+
+test('V3-12: a restart rebuilds both watermarks by the same rule: a line refused for its time (plausibility.skew, plausibility.order, plausibility.dt_mismatch) moves neither', () => {
+  /* restore() straight from persisted lines, the future-dated one last as windowOrder puts it */
+  const a = mkAsm();
+  const lines = [];
+  for (let i = 0; i < 5; i++) lines.push(a.judge(iv(i)));
+  lines.push(a.judge(future()));
+  const b = mkAsm();
+  for (const l of clone(lines)) b.restore(l);
+  eq(b.last_ts_start, iv(4).ts_start, 'restore: last_ts_start skips the future line');
+  eq(b.last_ts_end, iv(4).ts_end, 'restore: last_ts_end skips the future line');
+  const next = b.judge(iv(5));
+  eq(next.verdict, 'accept', `restore: the next honest interval [${next.reasons}]`);
+  /* persisted lines refused for the other two time reasons (the door's off-grid check now stops them first) */
+  for (const code of ['plausibility.order', 'plausibility.dt_mismatch']) {
+    const c = mkAsm();
+    c.restore(clone(lines[0]));
+    c.restore({ batch_id: c.openBatchId, verdict: 'reject', reasons: [code], interval: clone(future()), raw: [] });
+    eq(c.last_ts_start, iv(0).ts_start, `${code}: last_ts_start`);
+    eq(c.last_ts_end, iv(0).ts_end, `${code}: last_ts_end`);
+  }
+  /* the pipeline crashes right after the future-dated line; the restart closes that window and goes on */
+  const dir = tmpDir();
+  const p1 = mkPipe(dir);
+  for (let i = 0; i < 5; i++) p1.push(iv(i));
+  record([p1.push(future())]);
+  const p2 = mkPipe(dir);                                          // "crash" and restart
+  eq(p2.recovered.length, 1, 'one batch closed on restart');
+  const rec0 = p2.recovered[0];
+  eq(rec0.status, 'accepted', `the recovered batch [${rec0.reasons}]`);
+  eq(rec0.batch.ts_end, iv(4).ts_end, 'the recovered window ends with the last honest interval');
+  eq(p2.head().last_ts_start, iv(4).ts_start, 'index.json keeps the last honest start');
+  const after = [];
+  for (let i = 5; i < 17; i++) after.push(p2.push(iv(i)));
+  record(after);
+  after.forEach((l, k) => eq(l.verdict, 'accept', `after the restart: honest interval ${k + 5} [${l.reasons}]`));
+  /* and a second restart, from index.json and the floor alone */
+  const p3 = mkPipe(dir);
+  eq(p3.recovered.length, 0, 'nothing open');
+  const last = p3.push(iv(17));
+  eq(last.verdict, 'accept', `after a second restart [${last.reasons}]`);
+  p3.close();
+  const out = verifyFeed(dir);
+  assert(out.ok, out.problems.join('; '));
+  eq(out.rejected_batches, 0, 'no batch refused');
+  eq(out.cumulative_mwh, 18 * ENERGY, 'every honest interval counted once, the future one never');
 });
 
 test('the same input always produces the same head hash', () => {

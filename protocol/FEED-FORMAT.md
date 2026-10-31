@@ -19,7 +19,7 @@ can lag up to 5 minutes).
 
 | Path | Written by | Content | Once published |
 |---|---|---|---|
-| `index.json` | pipeline (`batch/feed.js`) | the head: `latest_batch_id`, `latest_seq`, `head_sha256`, `cumulative_mwh`, `spec_version`, `schema_version`, `last_ts_start`, `site_id` | replaced (it only points at the head) |
+| `index.json` | pipeline (`batch/feed.js`) | the head: `latest_batch_id`, `latest_seq`, `head_sha256`, `cumulative_mwh`, `spec_version`, `schema_version`, `last_ts_start` (the latest interval start judged whose time is trusted: a line refused for `plausibility.skew`, `plausibility.order` or `plausibility.dt_mismatch` never sets it, V3-12), `site_id` | replaced (it only points at the head) |
 | `batches/<batch_id>.json` | pipeline | one batch, accepted or rejected, in canonical JSON (`protocol/batch.schema.json`; hash rules in `protocol/evidence.js`) | written once |
 | `ledger/batches.jsonl` | pipeline | one line per published batch: `batch_id`, `seq`, `sha256`, `status` (`accepted` or `rejected`), `reasons` | grows only |
 | `ledger/accepted.jsonl` | pipeline | one line per accepted interval: `batch_id`, `verdict` (`accept`), `reasons` (empty), `interval` (the normalized record, `protocol/interval.schema.json`), `raw` (the raw payloads it was built from, V3-5), `basis_mwh` | grows only |
