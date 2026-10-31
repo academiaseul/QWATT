@@ -12,8 +12,12 @@ WorkingDirectory=/opt/qwatt
 ExecStart=/usr/bin/node ops/publish-feed.js --kind evidence --feed /var/lib/qwatt/feed --run ${QWATT_RUN} --remote git@github.com:academiaseul/qwatt-evidence.git --branch main --work /var/lib/qwatt/evidence-repo --ssh-key /home/qwatt/.ssh/qwatt-evidence --interval 120
 # QWATT_RUN=run for the seven-day live run; a rehearsal-YYYY-MM-DD name for rehearsals
 EnvironmentFile=/etc/qwatt/publish.env
-Restart=always
+# V3-13a: restarted after a crash only. A clean exit stays stopped (qwatt-live exits 0 at run_end), and so does
+# exit 2, a start the service refuses (arguments, configuration or key), which a restart cannot fix: the unit
+# shows failed (status=2). A plain SIGTERM is a clean stop too; kill tests use SIGKILL (host README, AT-26).
+Restart=on-failure
 RestartSec=30
+RestartPreventExitStatus=2
 
 [Install]
 WantedBy=multi-user.target
