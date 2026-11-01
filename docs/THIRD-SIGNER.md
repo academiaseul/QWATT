@@ -32,11 +32,12 @@ founders send this brief once they have checked them on that release.
    needed: your key is a signer, not an account.
 3. **Send only the public key:** `stellar keys address qwatt-third` prints one line that starts with
    `G`. Email only that line to both founders, then confirm its first and last four characters with
-   them by voice. Nothing else ever leaves your computer.
+   them by voice. The only other thing that ever leaves your computer is the signed drill envelope
+   of step 5, which is public too.
 4. **Paper backup, once:** `stellar keys secret qwatt-third --phrase` prints 24 recovery words.
    Write them on paper and keep the paper offline. Never photograph them, type them into a website
-   or a wallet, paste them into a chat or send them to anyone, the founders included. Run `clear`
-   (or close the terminal) afterwards.
+   or a wallet, paste them into a chat or send them to anyone, the founders included. Then close the
+   terminal window: `clear` alone can leave the words in the window's scrollback.
 5. **Backup drill, once, before the anchoring account is created.** The founders email you
    `drill.xdr`, an unsigned throwaway transaction for a throwaway testnet account.
    - Restore your key from the paper into a separate identity: run `stellar keys add
