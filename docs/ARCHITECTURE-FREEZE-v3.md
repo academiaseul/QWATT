@@ -60,6 +60,14 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > punto 2). La cuenta se crea solo con las tres claves públicas; si la clave del tercer firmante se
 > atrasa, la cuenta espera y los dos fundadores escriben juntos una desviación numerada. Las notas
 > fechadas, las desviaciones de la semana 2 y un resumen de la semana 2 están en §9.
+>
+> *Nota fechada (martes 3 de noviembre de 2026, Jay Kim y Diego Ostertag).* OD-6: comisión fija
+> de 1.000 stroops por operación, como se propuso en §5 (PR #42, ya en main). OD-7: un rechazo del
+> verificador es definitivo, salvo cuando su único motivo es `verifier.walk_too_long`, que solo
+> indica que el recorrido llegó a su límite, no que el lote esté mal; ese lote se vuelve a juzgar.
+> Se decidió el martes 3 de noviembre (correo de Jay Kim a Diego Ostertag); los PR #43 y #44, que
+> lo construyen, siguen abiertos a la fecha de esta nota. El detalle, y las dos consecuencias que
+> los dos fundadores aceptan al acordar esta nota, están en §9.
 
 ## 1. What stays frozen from v2
 
@@ -237,6 +245,9 @@ anchoring stops, and recovery is a new account. Hence the tested backups (V3-8).
 | A verifier refusal | changes no status: the batch stays next in line and anchoring stops there | unchanged | is terminal; anchoring continues with the next batch |
 | Reconciliation | expects contiguous `seq` | also BROKEN unless every cumulative is the energy of the accepted batches up to it | also accepts a link that skips a batch only where the skipped batch is refused in the verifier log |
 
+*Status note of Tue 3 Nov 2026 on OD-7: a refusal whose only reason is `verifier.walk_too_long` is
+not terminal (§9).*
+
 Since week 1 the time, node and counted-interval checks run against the floor, not the previous
 published batch: a rejected batch carries no energy, so its window and intervals never become the
 floor, and a rejected batch with an earlier window cannot reopen time that an accepted batch already
@@ -300,6 +311,8 @@ Signing adopts each proposal unless the founders write another answer into the r
 | OD-10 | Spec digest | Keep version 1.0.0 with digest `32dc1cf9a84eaa9b…` | Sign-off |
 
 *Status notes of Fri 30 Oct 2026 on OD-2 and OD-4: §9. The rows above keep their agreed wording.*
+
+*Status notes of Tue 3 Nov 2026 on OD-6 and OD-7: §9.*
 
 ## 6. Input, and what the seven-day run proves
 
@@ -443,6 +456,40 @@ Fri 30 Oct and Sat 31 Oct 2026, was merged on Sat 31 Oct 2026, before Diego Oste
 approved it on Tue 3 Nov 2026 (approval comment on PR #40). The date of agreement of those notes is
 therefore Tue 3 Nov 2026, not the merge date, and their text stands as merged. From this note on,
 Jay Kim merges a pull request that adds status notes only once Diego Ostertag's approval is on it.
+
+**OD-6 · Fee per operation (status note, Tue 3 Nov 2026, Jay Kim and Diego Ostertag).** 1,000
+stroops per operation, as §5 proposed. Built in
+[PR #42](https://github.com/academiaseul/QWATT/pull/42) (V3-11a), merged on Tue 3 Nov 2026.
+`base_fee` in `anchor.json` is now required, a whole number of stroops of at least 100, with no
+default, and `setup-account.js` writes 1,000. An anchoring transaction has three operations, so its
+maximum fee is 3,000 stroops. The verifier rebuilds each proposal from its own `anchor.json`, so
+both hosts must carry the same `base_fee`: a different fee is refused with `verifier.tx_mismatch`.
+There is no fallback fee: if testnet fees rise above 1,000 stroops per operation, a submission can
+fail and the proposal expire; the proposer then rebuilds it at the same fee, so anchoring waits,
+with no refusal. The account's setup and funding transactions are outside OD-6 and bid the network
+minimum.
+
+**OD-7 · Which refusals are terminal (status note, Tue 3 Nov 2026, Jay Kim and Diego Ostertag).**
+All, as §5 proposed (V3-11 as written), with one exception: a refusal whose only reason is
+`verifier.walk_too_long` is not terminal. Decided on Tue 3 Nov 2026 (email from Jay Kim to Diego
+Ostertag, on the rule as built in PR #43). That code says the walk stopped at its bound (DV-5), not
+that the batch is wrong, so the batch is judged again, for example once the bound is raised. A
+refusal with `verifier.walk_too_long` and any other reason is terminal. OD-7 asks which refusals
+are terminal, so this exception is its answer, not a deviation from V3-11. **Alternative
+(`verifier.not_published` and `verifier.tx_mismatch` as waits): Not used.** Built in
+[PR #43](https://github.com/academiaseul/QWATT/pull/43) (V3-11b, `5b62e8d`) and
+[PR #44](https://github.com/academiaseul/QWATT/pull/44) (V3-11c, `34a8bc3`: the same rule in the
+reconciliation and `batch/verify-cli.js`), both open at the date of this note. By agreeing this
+note, both founders accept two consequences for the run. First, a file that answers 404 at the
+pinned evidence commit is read again once, 2 seconds later; if the 404 stays, the refusal is
+terminal: `verifier.not_published` for the proposed batch file or an earlier batch file the walk
+reads, `batch.raw_missing` for its raw readings, and `batch.count_mismatch` for a batch with
+rejected intervals when the missing file is the rejected ledger. Other read failures (a timeout,
+403, 429 or 5xx) are `verifier.feed_unavailable`, a wait. A longer wait is not built, although
+`raw.githubusercontent.com` can answer 404 for a file that the commit holds; each refusal names the
+commit it judged (`feed_commit` in `decisions.jsonl`), so anyone can check whether the file was in
+that commit. Second, `verifier.tx_mismatch` is terminal, so the two hosts' `anchor.json` must be
+identical: with a different fee or proposer key, every proposal is refused, each one for good.
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
