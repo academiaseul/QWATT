@@ -1001,6 +1001,53 @@ test('V3-11: the walk skips a batch only where the verifier refused it; a link t
   await w.close();
 });
 
+/* ── V3-13d: the stand-in, always proposer + third signer ── */
+
+test('V3-13d: with the verifier down, the third signer runs the same checks as a stand-in and co-signs the published proposal: the anchor is proposer + third', async () => {
+  const w = await world();
+  w.addBatches(1);
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed (the verifier service is down)');
+  const standIn = new Verifier({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.keys.third, standIn: true, stateDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-stand-in-')), server: w.fake });
+  eq(standIn.role, 'stand-in', 'it runs as the stand-in');
+  const r = await standIn.tick(w.clock.now());
+  eq(r.action, 'anchored', `the stand-in anchors (got ${JSON.stringify(r)})`);
+  const tx = w.fake.txs[0];
+  eq(tx.signatures.length, 2, 'two signatures');
+  const signed = (kp) => tx.signatures.some((s) => kp.verify(Buffer.from(tx.hash, 'hex'), Buffer.from(s, 'base64')));
+  assert(signed(w.keys.proposer) && signed(w.keys.third), 'the proposer and the third signer');
+  assert(!signed(w.keys.verifier), 'never the verifier');
+  const d = jsonl(path.join(standIn.stateDir, 'decisions.jsonl'));
+  eq(d.length && d[d.length - 1].role, 'stand-in', 'its decision line says it signed as the stand-in');
+  await w.close();
+});
+
+test('V3-13d: the stand-in co-signs only an envelope signed by the proposer alone, so it can never make verifier + third', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.p.tick(w.clock.now());
+  /* the proposal as if the verifier had signed it (verifier key, not the proposer'\''s) */
+  const f = path.join(w.feedDir, 'pending', 'rec-000000.xdr');
+  const tx = new S.Transaction(fs.readFileSync(f, 'utf8').trim(), w.cfg.network_passphrase);
+  tx.signatures.length = 0; tx.sign(w.keys.verifier);
+  fs.writeFileSync(f, tx.toEnvelope().toXDR('base64') + '\n');
+  const standIn = new Verifier({ feedUrl: w.host.url, cfg: w.cfg, keypair: w.keys.third, standIn: true, stateDir: fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-stand-in-')), server: w.fake });
+  const r = await standIn.tick(w.clock.now());
+  eq(r.action, 'refused', 'refused');
+  assert((r.reasons || []).includes('verifier.tx_mismatch'), `as verifier.tx_mismatch (${JSON.stringify(r.reasons)})`);
+  eq(w.fake.txs.length, 0, 'nothing anchored');
+  await w.close();
+});
+
+test('V3-13d: the CLI stand-in is one-shot, needs its own state directory and never serves a port', () => {
+  const run = (extra) => require('child_process').spawnSync(process.execPath, [path.join(__dirname, 'verifier.js'), '--stand-in', '--feed', 'http://127.0.0.1:1/feed', '--config', path.join(__dirname, 'config.example.json'), '--sign-with-key', 'qwatt-third', ...extra], { encoding: 'utf8', timeout: 20000 });
+  const noState = run([]);
+  eq(noState.status, 2, `without --state: exit 2 (${noState.stderr.trim()})`);
+  assert(/the stand-in needs its own --state/.test(noState.stderr), `and says why: ${noState.stderr.trim()}`);
+  const port = run(['--state', fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-si-')), '--port', '8090']);
+  eq(port.status, 2, `with --port: exit 2 (${port.stderr.trim()})`);
+  assert(/the stand-in serves no port/.test(port.stderr), `and says why: ${port.stderr.trim()}`);
+});
+
 test('the reader V3-11 will use: the public verifier log read at one commit (V3-7c)', async () => {
   const w = await githubWorld();
   try {
