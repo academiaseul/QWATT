@@ -27,7 +27,7 @@ const ANCHOR_KEY = 'qwatt.anchor.sha256';
 const CUMULATIVE_KEY = 'qwatt.cumulative_mwh';
 /** V3-11: a proposal is valid for at most 60 minutes, so a refused or abandoned one dies within the hour. */
 const MAX_WINDOW_S = 3600;
-/** OD-6: the fixed fee per anchoring transaction, in stroops, that setup-account writes into anchor.json. */
+/** OD-6: the fixed fee per operation, in stroops (an anchoring transaction has three operations: 3,000 stroops), that setup-account writes into anchor.json as base_fee. */
 const OD6_FEE = 1000;
 
 /**
