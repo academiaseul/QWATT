@@ -180,10 +180,12 @@ test('tests table has the independence row and points to tests-abcd.js, not rehe
     steps: {
       A_proposer_alone: { ok: false, refused: true, codes: { transaction: 'tx_bad_auth' } },
       I_withheld_refused: { ok: true, refused: true, reasons: ['verifier.not_published'], submitted: false },
+      L_proposer_plus_third: { ok: true, hash: 'f'.repeat(64) },
     },
   }));
   const md = (await build(opts({ tests: file }))).markdown;
   const row = (t) => md.split('\n').find((l) => l.startsWith(`| ${t} |`)) || '';
+  assert(/proposer \+ third signer \(stand-in\)/.test(row('L')) && row('L').includes('success') && row('L').includes('f'.repeat(64)), `L is the stand-in pair, proposer + third (V3-13d, D6): ${row('L')}`);
   assert(row('I').includes('`verifier.not_published`'), `I shows the verifier's code: ${row('I')}`);
   assert(/withheld from the verifier's only input path/.test(row('I')), `I says what was done, not "unpublished": ${row('I')}`);
   assert(!/unpublished/i.test(row('I')), `no "unpublished" wording: ${row('I')}`);

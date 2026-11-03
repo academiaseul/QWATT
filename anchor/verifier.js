@@ -4,6 +4,14 @@
  * ---------------------------------------------------------------------------
  *   node anchor/verifier.js --feed https://<public feed> --config anchor/config.json --sign-with-key qwatt-verifier \
  *        [--stellar-bin stellar] [--state ./verifier-state] [--interval 30] [--port 8090 (127.0.0.1 only)] [--max-walk 168]
+ *   node anchor/verifier.js --stand-in --feed https://<public feed> --config anchor.json --sign-with-key qwatt-third \
+ *        --state ./stand-in-state     (freeze v3 V3-13d: the third signer, while the verifier is down)
+ *
+ * --stand-in: the third signer runs this same code, once, with their key (signers.third in the config):
+ * the same checks, then it co-signs the published proposal. Since that envelope must carry exactly one
+ * signature, the proposer's (V3-11), a stand-in anchor is always proposer + third, never verifier + third.
+ * It keeps its own state directory (required; never the verifier's, whose log stays the verifier's own),
+ * serves no port, and exits 0 only when it anchored. Its decision lines say role "stand-in".
  *
  * The verifier key is the stellar-cli identity `qwatt-verifier` on this host
  * (freeze v3, V3-8): stellar-cli signs, and Node never reads a secret. A secret
@@ -115,6 +123,8 @@ class Verifier {
     if (!this.signer) throw new Error('Verifier: a signer is required (stellar-cli through anchor/signer.js; a keypair only in tests and throwaway rehearsals)');
     this.server = o.server || new S.Horizon.Server(o.cfg.horizon_url);
     this.maxWalk = o.maxWalk == null ? C.MAX_WALK_BATCHES : C.checkMaxWalk(o.maxWalk);
+    /* V3-13d: the third signer running this code as the verifier's stand-in */
+    this.role = o.standIn ? 'stand-in' : 'verifier';
     this.stateDir = o.stateDir;
     fs.mkdirSync(this.stateDir, { recursive: true });
     this.refusalsFile = path.join(this.stateDir, 'refusals.jsonl');
@@ -144,7 +154,7 @@ class Verifier {
   /** One decision line per (decision, batch, proposal). @returns whether a line was appended */
   _decide(entry, decision, txHash, reasons, detail) {
     if (this._logged(this.decisionsFile, (d) => d.decision === decision && d.batch_id === entry.batch_id && d.pending_tx_hash === txHash)) return false;
-    this._append(this.decisionsFile, { at: new Date().toISOString(), batch_id: entry.batch_id, seq: entry.seq, batch_sha256: entry.sha256, decision, pending_tx_hash: txHash, reasons, detail, feed_commit: this.feed.commit });
+    this._append(this.decisionsFile, { at: new Date().toISOString(), batch_id: entry.batch_id, seq: entry.seq, batch_sha256: entry.sha256, decision, pending_tx_hash: txHash, reasons, detail, feed_commit: this.feed.commit, ...(this.role === 'stand-in' ? { role: 'stand-in' } : {}) });
     return true;
   }
 
@@ -258,17 +268,27 @@ async function cli() {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
   let maxWalk;
   try { maxWalk = C.maxWalkArg(args); } catch (e) { console.error(e.message); process.exit(2); }
-  const usage = 'usage: node anchor/verifier.js --feed <public base URL> --config anchor.json --sign-with-key qwatt-verifier [--stellar-bin stellar] [--state DIR] [--interval 30] [--port 8090] [--max-walk 168]';
-  const env = SG.refuseEnvSecrets(['QWATT_VERIFIER_SECRET']);
+  const usage = 'usage: node anchor/verifier.js --feed <public base URL> --config anchor.json --sign-with-key qwatt-verifier [--stellar-bin stellar] [--state DIR] [--interval 30] [--port 8090] [--max-walk 168]\n       node anchor/verifier.js --stand-in --feed <public base URL> --config anchor.json --sign-with-key qwatt-third --state DIR';
+  const standIn = args.includes('--stand-in');
+  const role = standIn ? 'third' : 'verifier';
+  const env = SG.refuseEnvSecrets(['QWATT_VERIFIER_SECRET', 'QWATT_THIRD_SECRET']);
   if (env) { console.error(env); process.exit(2); }
-  if (!args.includes('--sign-with-key')) { console.error(`--sign-with-key <identity> is required (the stellar-cli identity that holds the verifier key)\n${usage}`); process.exit(2); }
+  if (standIn && !args.includes('--state')) { console.error(`the stand-in needs its own --state directory (never the verifier's)\n${usage}`); process.exit(2); }
+  if (standIn && args.includes('--port')) { console.error(`the stand-in serves no port: it runs once, on the third signer's computer\n${usage}`); process.exit(2); }
+  if (!args.includes('--sign-with-key')) { console.error(`--sign-with-key <identity> is required (the stellar-cli identity that holds the ${role} key)\n${usage}`); process.exit(2); }
   const feedUrl = opt('--feed');
   if (!feedUrl) { console.error('--feed <public base URL> is required: it is the verifier\'s only input'); process.exit(2); }
   const cfg = loadConfig(opt('--config', path.join(__dirname, 'config.json')));
-  const { signer, error } = await SG.signerForRole({ args, cfg, role: 'verifier', envNames: ['QWATT_VERIFIER_SECRET'] });
+  const { signer, error } = await SG.signerForRole({ args, cfg, role, envNames: ['QWATT_VERIFIER_SECRET', 'QWATT_THIRD_SECRET'] });
   if (error) { console.error(`${error}\n${usage}`); process.exit(2); }
-  console.log(new Date().toISOString(), `verifier key ${signer.publicKey} (stellar-cli identity ${signer.identity})`);
-  const v = new Verifier({ feedUrl, cfg, signer, stateDir: path.resolve(opt('--state', 'verifier-state')), maxWalk });
+  console.log(new Date().toISOString(), `${standIn ? 'stand-in (third signer)' : 'verifier'} key ${signer.publicKey} (stellar-cli identity ${signer.identity})`);
+  const v = new Verifier({ feedUrl, cfg, signer, stateDir: path.resolve(opt('--state', 'verifier-state')), maxWalk, standIn });
+  if (standIn) {
+    const r = await v.tick();
+    console.log(new Date().toISOString(), JSON.stringify(r));
+    process.exitCode = r.action === 'anchored' ? 0 : 1;
+    return;
+  }
   if (opt('--port')) v.serve(Number(opt('--port')));
   const every = Number(opt('--interval', 30)) * 1000;
   const run = async () => console.log(new Date().toISOString(), JSON.stringify(await v.tick()));

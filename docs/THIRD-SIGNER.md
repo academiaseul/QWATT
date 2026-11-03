@@ -50,7 +50,16 @@ founders send this brief once they have checked them on that release.
      line, the signed envelope. Email that line back to both founders; it is public data.
    - `stellar keys rm qwatt-third-restored`.
 6. **Be reachable through Day 30 (Tue 17 Nov).** In week 3 the founders run one stand-in drill
-   (proposer + third) and will ask you to co-sign it.
+   (proposer + third) and will ask you to co-sign it. When they confirm by voice that the verifier
+   service is stopped and a proposal is published, you run, on your own computer (Node.js 24 and a
+   copy of the repository at the commit they name, `npm ci --prefix anchor`):
+   - `node anchor/verifier.js --stand-in --feed <public feed URL> --config anchor.json --sign-with-key qwatt-third --state ./stand-in-state`
+     with the `anchor.json` and feed URL the founders send you (public values). It runs the verifier's
+     checks once and co-signs the published proposal only if everything matches; the envelope must
+     already carry the proposer's signature and no other, so the anchor is proposer + third. It prints
+     `anchored` and exits 0, or prints why not and exits 1. Send the founders that printed line.
+   - It never asks for your recovery words and never serves anything; `./stand-in-state` holds only
+     its own decision log (public data).
 7. **A lost key, or recovery words that someone else may have seen:** tell both founders at once.
 8. **Sign nothing else** unless both founders confirm it to you by voice.
 

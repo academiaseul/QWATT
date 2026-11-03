@@ -64,6 +64,9 @@ jobs:
       - name: Watchdog decisions (plan 3.9)
         if: ${{ !cancelled() }}
         run: node ops/watch.test.js
+      - name: Check from outside both hosts (V3-13b) — 90 minutes without an anchor, a host's repository that stops moving, read from public data only
+        if: ${{ !cancelled() }}
+        run: node ops/outside-check.test.js
       - name: Evidence publisher (two repositories, a public history) and its history audit, against local bare remotes
         if: ${{ !cancelled() }}
         run: node ops/publish-feed.test.js

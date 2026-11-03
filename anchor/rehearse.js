@@ -14,7 +14,7 @@
  *   A  proposer signs alone             → must be rejected by the network
  *   B  verifier signs alone             → must be rejected by the network
  *   C  proposer + verifier              → must be accepted
- *   L  third signer + verifier (next batch) → must be accepted (third-key liveness)
+ *   L  proposer + third signer (next batch) → must be accepted (the stand-in pair, V3-13d / D6)
  *   D  batch altered after the proposer signed → the verifier refuses (no submission)
  *
  * Throwaway by design: secret keys live only in this process and are never
@@ -175,10 +175,11 @@ async function main() {
   const mD = T.matchPending(pendingD, forged, cfg);
   record('D_altered_after_proposer_signed', { ok: !mD.match, refused: !mD.match, reasons: mD.reasons, detail: mD.detail, expect: 'verifier refuses; nothing submitted' });
 
-  /* L: third signer + verifier anchor the genuine next batch — the off-team key works */
-  const txL = signedBy(b1, p1, keys.third, keys.verifier);
+  /* L: the stand-in pair, proposer + third signer, anchors the genuine next batch (V3-13d, D6). The 8 Oct
+     rehearsal of prior work recorded third + verifier as L_third_plus_verifier; that pair is no longer used */
+  const txL = signedBy(b1, p1, keys.proposer, keys.third);
   const rL = await submit(txL);
-  record('L_third_plus_verifier', { ...rL, expect: 'accepted', link: rL.ok ? link(rL.hash) : null });
+  record('L_proposer_plus_third', { ...rL, expect: 'accepted', link: rL.ok ? link(rL.hash) : null });
 
   /* on-chain state after: the anchor value equals the last anchored batch hash */
   acct = await server.loadAccount(pub.account);
