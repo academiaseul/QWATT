@@ -16,12 +16,11 @@
  *   - the anchoring account is read from Horizon and must be thresholds 2/2/3
  *     (low/medium/high), master weight 0 and exactly three ed25519 signers of
  *     weight 1 (freeze v3 §3);
- *   - each anchoring transaction's signatures are verified (Ed25519 over the
- *     transaction hash, which is what Stellar signs) against the signer keys:
- *     proposer + verifier is normal, proposer + third signer is STAND-IN,
- *     anything else is BROKEN. Who is who comes from the run's faults.json
- *     (`anchoring.signers`) or is given explicitly; both must name signers of
- *     the account, and must agree when both exist;
+ *   - each anchoring transaction's signatures are verified against the signer
+ *     keys: proposer + verifier is normal, proposer + third signer is STAND-IN,
+ *     anything else is BROKEN. Who is who: the run's faults.json
+ *     (`anchoring.signers`) or given explicitly; both must name account signers
+ *     and agree;
  *   - the feed publishes faults.json, and it carries the fixed label
  *     "Simulated input · assurance A0 · Stellar testnet".
  *
@@ -30,32 +29,15 @@
  * pipeline runs), BROKEN (any mismatch, gap, unexplained anchor, account rule or
  * signature pair outside §3). STAND-IN alone is reported, not a problem.
  *
- * Read order (check): Horizon first (the account, then every anchor with its
- * signatures), then the feed at ONE commit. A feed in a GitHub repository (the
- * raw.githubusercontent.com branch URL, or its github.io address) is first
- * resolved to the branch's head commit (assets/qwatt-pin.js; freeze v3 V3-7,
- * decision D7) and every file is read at that commit, because a branch URL is
- * served file by file from a CDN cache up to 5 minutes old. A batch is
- * published before it is signed, so a feed read at a commit taken after
- * Horizon holds every anchored batch; an anchor missing from it is a real
- * defect, not a stale copy. A Horizon or feed error fails the check (it
- * throws): it is never a verdict.
+ * Read order (check): Horizon first, then the feed at ONE commit (see check). A
+ * Horizon or feed error fails the check (it throws): it is never a verdict.
  *
- * No dependency besides assets/qwatt-pin.js (required in Node; in a browser,
- * load it first, as window.QWATT_PIN). SHA-256 and Ed25519 come from WebCrypto: Ed25519 needs
- * Node 20 or a current browser (Chrome 137+, Firefox 129+, Safari 17+). Without
- * it the check fails closed, with no verdict and a message naming
- * anchor/reconcile-cli.js. ES2017, loads as a classic <script>
- * (window.QWATT_RECONCILE) or via require.
+ * Needs assets/qwatt-pin.js (required in Node; in a browser, window.QWATT_PIN) and
+ * WebCrypto Ed25519 (Node 20, Chrome 137+, Firefox 129+, Safari 17+); without it the
+ * check fails closed, naming anchor/reconcile-cli.js. Classic <script> or require.
  *
- * API: check({ feed, horizon, account, roles?, feedOptions? }) → { report, feed,
- * anchors, account }; reconcile(feed, anchors, chain) with chain = { account,
- * record, record_error?, roles? } (two arguments throw); fetchFeed(base, opt?)
- * → { index, run, listed, batches, rejected, commit, base }, where `run` is
- * faults.json, `commit` the evidence commit read (null for a feed that is not
- * a repository) and `base` the URL every file came from; `opt` is { timeoutMs }
- * plus the pin options (rawOrigin, gitOrigin, apiOrigin, via, branch), and
- * check passes its feedOptions through; fetchAnchors; fetchAccount.
+ * API: check, reconcile(feed, anchors, chain) (two arguments throw), fetchFeed,
+ * fetchAnchors, fetchAccount.
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) module.exports = factory(require('./qwatt-pin.js'));
