@@ -9,6 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { decide, observe, POLICY } = require('./watch');
+const W = require('./watch');
 
 let passed = 0, failed = 0;
 const tests = [];
@@ -196,6 +197,52 @@ test('the retired --verifier-status flag is a usage error (exit 2) in the watchd
     eq(p.status, 2, 'preflight.js --verifier-status');
     assert(/--verifier-status was replaced by --verifier-log/.test(p.stderr), `the preflight names the replacement: ${p.stderr}`);
   } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+});
+
+/* ── V3-13b: 90 minutes without an anchor; an alert counts as sent only on HTTP 2xx ── */
+
+/** A webhook on 127.0.0.1 that answers each POST with the next status of `statuses` (then 200), recording bodies. */
+async function webhook(statuses) {
+  const http = require('http');
+  const got = [];
+  const srv = http.createServer((req, res) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { got.push(b); res.writeHead(statuses.length ? statuses.shift() : 200); res.end(); }); });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  return { url: `http://127.0.0.1:${srv.address().port}/topic`, got, close: () => new Promise((r) => srv.close(r)) };
+}
+
+test('V3-13b: NO_ANCHOR fires after 90 minutes without an anchor during the run, not 2 h', () => {
+  eq(POLICY.no_anchor_s, 90 * 60, 'the threshold is 90 minutes');
+  assert(!codes(decide({ ...healthy(), last_anchor_at: iso(85 * 60) }, {}, NOW)).includes('NO_ANCHOR:alert'), '85 minutes: quiet');
+  assert(codes(decide({ ...healthy(), last_anchor_at: iso(91 * 60) }, {}, NOW)).includes('NO_ANCHOR:alert'), '91 minutes: NO_ANCHOR');
+});
+
+test('V3-13b: deliver() reports each alert as sent only when the webhook answers 2xx', async () => {
+  const hook = await webhook([500, 200, 404]);
+  try {
+    const alerts = [{ code: 'A', kind: 'alert', message: 'a' }, { code: 'B', kind: 'alert', message: 'b' }, { code: 'C', kind: 'alert', message: 'c' }];
+    const sent = await W.deliver(alerts, hook.url, () => {});
+    eq(JSON.stringify(sent), JSON.stringify([false, true, false]), '500 and 404 are not sent; 200 is');
+    eq(hook.got.length, 3, 'all three were posted');
+    eq(JSON.stringify(await W.deliver(alerts, 'http://127.0.0.1:1/nowhere', () => {})), JSON.stringify([false, false, false]), 'a webhook that cannot be reached sends nothing');
+    eq(JSON.stringify(await W.deliver(alerts, null, () => {})), JSON.stringify([true, true, true]), 'with no webhook the console is the channel (local runs)');
+  } finally { await hook.close(); }
+});
+
+test('V3-13b: an alert the webhook did not take is sent again on the next tick, and a resolved one too', () => {
+  const bad = { ...healthy(), last_anchor_at: iso(3 * 3600) };
+  const r1 = decide(bad, {}, NOW);
+  const kept = W.keepUnsent({}, r1.state, r1.alerts, r1.alerts.map(() => false));
+  eq(JSON.stringify(kept.active), '{}', 'NO_ANCHOR is not recorded as alerted while its delivery failed');
+  const r2 = decide({ ...bad }, kept, NOW + 30);
+  assert(codes(r2).includes('NO_ANCHOR:alert'), 'so the next tick alerts again');
+  const ok = W.keepUnsent(kept, r2.state, r2.alerts, r2.alerts.map(() => true));
+  const r3 = decide(healthy(NOW + 60), ok, NOW + 60);
+  assert(codes(r3).includes('NO_ANCHOR:resolved'), 'resolved');
+  const stillActive = W.keepUnsent(ok, r3.state, r3.alerts, r3.alerts.map(() => false));
+  assert(stillActive.active.NO_ANCHOR, 'a resolved alert that was not delivered keeps the condition active');
+  assert(codes(decide(healthy(NOW + 90), stillActive, NOW + 90)).includes('NO_ANCHOR:resolved'), 'so resolved is sent again');
+  const ref = decide({ ...healthy(), verifier_refusals: 3 }, {}, NOW);
+  eq(W.keepUnsent({}, ref.state, ref.alerts, [false]).refusals_seen || 0, 0, 'a NEW_REFUSAL not delivered is not counted as seen');
 });
 
 (async () => {

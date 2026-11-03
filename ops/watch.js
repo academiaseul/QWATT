@@ -15,7 +15,7 @@
  * the failure that matters most: that thing silently not running.
  *
  * Conditions (thresholds in POLICY):
- *   NO_ANCHOR        no anchoring transaction for 2 h while the run is live
+ *   NO_ANCHOR        no anchoring transaction for 90 minutes while the run is live (V3-13b)
  *   FEED_STALE       the feed's newest judged interval is older than 30 min
  *   BACKLOG          an accepted batch has waited more than 2 h for its anchor
  *   VERIFIER_SILENT  the verifier's last tick, as its public log shows it, is older than 15 min
@@ -35,7 +35,8 @@ const path = require('path');
 const PIN = require('../assets/qwatt-pin.js');                  // shared, dependency-free: resolves a branch to its commit
 
 const POLICY = {
-  no_anchor_s: 2 * 3600,
+  /* V3-13b: 90 minutes, as the check from outside both hosts (ops/outside-check.js) */
+  no_anchor_s: 90 * 60,
   feed_stale_s: 30 * 60,
   backlog_s: 2 * 3600,
   /* status.json reaches the public log at most every 5 min (+1 min publisher interval, +30 s verifier
@@ -174,17 +175,49 @@ async function observe(o, nowS) {
 
 /* ─────────────────────────── delivery ─────────────────────────── */
 
+/**
+ * Post each alert to the webhook. V3-13b: an alert counts as sent only when the webhook answers HTTP 2xx;
+ * anything else (an error status, no answer) is not sent and is tried again on the next tick (keepUnsent).
+ * With no webhook configured the console is the channel (local runs), and every alert counts as sent.
+ * @returns {Promise<boolean[]>} sent, per alert
+ */
 async function deliver(alerts, webhook, log = console.log) {
+  const sent = [];
   for (const a of alerts) {
     const line = `[QWATT ${a.kind.toUpperCase()}] ${a.code}: ${a.message}`;
     log(line);
-    if (!webhook) continue;
+    if (!webhook) { sent.push(true); continue; }
     try {
-      await fetch(webhook, { method: 'POST', body: line, headers: { Title: `QWATT ${a.code}`, Priority: a.kind === 'resolved' ? 'default' : 'high', Tags: a.kind === 'resolved' ? 'white_check_mark' : 'warning' }, signal: AbortSignal.timeout(15000) });
+      const r = await fetch(webhook, { method: 'POST', body: line, headers: { Title: `QWATT ${a.code}`, Priority: a.kind === 'resolved' ? 'default' : 'high', Tags: a.kind === 'resolved' ? 'white_check_mark' : 'warning' }, signal: AbortSignal.timeout(15000) });
+      sent.push(r.status >= 200 && r.status < 300);
+      if (!sent[sent.length - 1]) log(`  (webhook answered HTTP ${r.status}: not sent; tried again on the next tick)`);
     } catch (e) {
-      log(`  (webhook delivery failed: ${e.message}; the alert stays in the state file)`);
+      sent.push(false);
+      log(`  (webhook delivery failed: ${e.message}; tried again on the next tick)`);
     }
   }
+  return sent;
+}
+
+/**
+ * The state to keep after delivery: what decide() moved forward for an alert that was not sent goes back,
+ * so the next tick sends it again (a new or repeated alert, a resolved one, a new refusal).
+ * @param {object} prev  the state before this tick
+ * @param {object} next  decide()'s state
+ * @param {object[]} alerts
+ * @param {boolean[]} sent  deliver()'s answer, per alert
+ */
+function keepUnsent(prev, next, alerts, sent) {
+  const active = { ...next.active };
+  const before = prev.active || {};
+  let refusalsSeen = next.refusals_seen;
+  alerts.forEach((a, i) => {
+    if (sent[i]) return;
+    if (a.code === 'NEW_REFUSAL') { refusalsSeen = prev.refusals_seen || 0; return; }
+    if (a.kind === 'resolved' || a.kind === 'repeat') { if (before[a.code]) active[a.code] = before[a.code]; }
+    else delete active[a.code];
+  });
+  return { active, refusals_seen: refusalsSeen };
 }
 
 async function tick(o) {
@@ -193,8 +226,9 @@ async function tick(o) {
   const stateFile = path.join(o.stateDir, 'watch-state.json');
   const state = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile, 'utf8')) : {};
   const obs = await observe(o, nowS);
-  const { alerts, state: next } = decide(obs, state, nowS);
-  await deliver(alerts, process.env.QWATT_ALERT_WEBHOOK);
+  const decided = decide(obs, state, nowS);
+  const alerts = decided.alerts;
+  const next = keepUnsent(state, decided.state, alerts, await deliver(alerts, process.env.QWATT_ALERT_WEBHOOK));
   fs.writeFileSync(stateFile, JSON.stringify(next, null, 2) + '\n');
   fs.writeFileSync(path.join(o.stateDir, 'heartbeat.json'), JSON.stringify({ at: new Date(nowS * 1000).toISOString(), observations: obs, active: Object.keys(next.active) }, null, 2) + '\n');
   return { obs, alerts };
@@ -227,4 +261,4 @@ async function cli() {
 
 if (require.main === module) cli();
 
-module.exports = { decide, observe, deliver, POLICY };
+module.exports = { decide, observe, deliver, keepUnsent, POLICY };
