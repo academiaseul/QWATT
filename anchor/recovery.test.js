@@ -1001,6 +1001,31 @@ test('V3-11: the walk skips a batch only where the verifier refused it; a link t
   await w.close();
 });
 
+test('V3-11: a verifier log the proposer has never read stops it proposing, with the reason; once read, a log that cannot be read keeps the last list (Jay, review of #44)', async () => {
+  const { refusalsFromLog } = require('./proposer');
+  assert(typeof refusalsFromLog === 'function', 'anchor/proposer.js exports refusalsFromLog');
+  /* a wrong QWATT_VERIFIER_LOG_URL answers 404 for everything: no status.json means it is not a verifier log */
+  const wrong = { snapshot: async () => {}, status: async () => null, refusals: async () => [] };
+  let m = null; try { await refusalsFromLog(wrong); } catch (e) { m = e.message; }
+  assert(m && /status\.json/.test(m), `a log with no status.json is not read as "no refusals": ${m}`);
+  const right = { snapshot: async () => {}, status: async () => ({ last_tick: 'x' }), refusals: async () => [{ batch_id: 'rec-000004', reasons: ['verifier.tx_mismatch'] }, { batch_id: 'rec-000005', reasons: ['verifier.walk_too_long'] }] };
+  eq(JSON.stringify([...(await refusalsFromLog(right))]), JSON.stringify(['rec-000004']), 'a real log: its terminal refusals');
+  const w = await world();
+  try {
+    w.addBatches(1);
+    const never = new Proposer({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.keys.proposer, server: w.fake, refused: async () => { throw new Error('the verifier log has no status.json'); } });
+    const r = await never.tick(w.clock.now());
+    eq(r.action, 'wait', `a log never read: the proposer waits (got ${JSON.stringify(r)})`);
+    assert(/verifier log/.test(r.reason || ''), `and says why: ${r.reason}`);
+    let up = true;
+    const once = new Proposer({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.keys.proposer, server: w.fake, refused: async () => { if (up) return []; throw new Error('HTTP 503'); } });
+    eq((await once.tick(w.clock.now())).action, 'proposed', 'read once: it proposes');
+    up = false;
+    const later = await once.tick(w.clock.now());
+    assert(!/verifier log/.test(later.reason || ''), `read before, a failed read keeps the last list and goes on (got ${JSON.stringify(later)})`);
+  } finally { await w.close(); }
+});
+
 test('the reader V3-11 will use: the public verifier log read at one commit (V3-7c)', async () => {
   const w = await githubWorld();
   try {
