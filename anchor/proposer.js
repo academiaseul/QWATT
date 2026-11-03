@@ -86,7 +86,13 @@ class Proposer {
   /** V3-11: the batches the verifier refused; a log that cannot be read keeps the last list. */
   async _readRefused() {
     if (!this.refusedSource) return this.refused;
-    try { this.refused = new Set(await this.refusedSource()); } catch (e) { /* keep the last list read */ }
+    try { this.refused = new Set(await this.refusedSource()); this.refusedRead = true; this.refusedError = null; }
+    catch (e) {
+      /* a log read before: keep its last list and go on; a log never read (a wrong URL, or down since the
+         start): do not propose, or a refused batch would be proposed again and again (Jay, review of #44) */
+      this.refusedError = e.message;
+      if (!this.refusedRead) return null;
+    }
     if (this.refusedFile) {
       const text = JSON.stringify([...this.refused].sort()) + '\n';
       let cur = null; try { cur = fs.readFileSync(this.refusedFile, 'utf8'); } catch (e) { /* not written yet */ }
@@ -121,6 +127,7 @@ class Proposer {
 
     /* 3. the next batch the verifier has not refused (V3-11) */
     const refused = await this._readRefused();
+    if (refused == null) return { action: 'wait', reason: `the verifier log could not be read yet (${this.refusedError}); not proposing until its refusals are known (V3-11)` };
     const next = C.nextToAnchor(listed, prefix, refused);
     if (!next) return { action: 'idle', anchored: prefix };
     if (!this.feed.hasBatch(next.batch_id)) return { action: 'wait', reason: 'batch listed but file not yet written', batch_id: next.batch_id };
@@ -153,6 +160,17 @@ class Proposer {
   }
 }
 
+/**
+ * V3-11: the refusals of a verifier log read at one commit. A log with no status.json is not a verifier log
+ * (a wrong QWATT_VERIFIER_LOG_URL answers 404 for every file), so it throws instead of reading as "no
+ * refusals". refusals.jsonl may be absent: a verifier that never refused.
+ */
+async function refusalsFromLog(log) {
+  await log.snapshot();
+  if (await log.status() == null) throw new Error(`the verifier log has no status.json at ${log.base}: check QWATT_VERIFIER_LOG_URL in live.env`);
+  return C.refusedIds(await log.refusals());
+}
+
 function loadConfig(file) {
   const cfg = JSON.parse(fs.readFileSync(file, 'utf8'));
   if (cfg.network_passphrase === 'TESTNET') cfg.network_passphrase = S.Networks.TESTNET;
@@ -178,7 +196,7 @@ async function cli() {
   if (opt('--verifier-log')) {
     const { makeVerifierLogClient } = require('./feed-client');
     const log = makeVerifierLogClient(opt('--verifier-log'));
-    refused = async () => { await log.snapshot(); return C.refusedIds(await log.refusals()); };
+    refused = () => refusalsFromLog(log);
   }
   const refusedFile = opt('--refused-file') ? path.resolve(opt('--refused-file')) : null;
   const p = new Proposer({ feedDir: path.resolve(opt('--feed', 'feed')), cfg, signer, maxWalk, refused, refusedFile });
@@ -193,4 +211,4 @@ async function cli() {
 
 if (require.main === module) cli();
 
-module.exports = { Proposer, loadConfig, EXPIRY_MARGIN_S };
+module.exports = { Proposer, loadConfig, refusalsFromLog, EXPIRY_MARGIN_S };
