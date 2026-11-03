@@ -11,6 +11,11 @@
  *     the not-yet-published batch are restored as the open window;
  *   - a restored window is closed immediately ("a batch closes … when the node
  *     restarts", docs/ARCHITECTURE-FREEZE.md §2);
+ *   - a batch the verifier refused is left out of the chain (V3-11): before each
+ *     close, the batch ids the verifier refused (o.refused) are read, and if the
+ *     chain being extended contains one, the next batch links to the parent of the
+ *     oldest such batch and carries its total. That needs no memory: a restart
+ *     reads the refusals again;
  *   - if the crash fell between writing a batch file and updating the index,
  *     the existing file is adopted rather than a second batch built. A restored
  *     window is sorted in the raw-file order (windowOrder), so a batch closed
@@ -22,6 +27,7 @@
 const { BatchAssembler, windowOrder } = require('./assemble');
 const { Feed } = require('./feed');
 const V = require('./verify');
+const E = require('../protocol/evidence');
 
 class Pipeline {
   /**
@@ -32,10 +38,13 @@ class Pipeline {
    * @param {number} [o.closeEvery=12]
    * @param {object} [o.profile]
    * @param {function} [o.onBatch]  called with each published { batch, status, reasons }
+   * @param {function} [o.refused]  () => batch ids the verifier refused (V3-11; on the proposer host, the file the
+   *                                proposer writes from the public verifier log)
    */
   constructor(o) {
     this.feed = new Feed(o.dir);
     this.onBatch = o.onBatch || null;
+    this.refusedSource = o.refused || null;
     this.recovered = [];
     const idx = this.feed.readIndex();
     if (idx && idx.site_id !== o.site_id) throw new Error(`feed belongs to site ${idx.site_id}, not ${o.site_id}`);
@@ -57,7 +66,8 @@ class Pipeline {
     if (this.feed.hasBatch(openId)) {
       const batch = this.feed.readBatch(openId);
       const rejected = this.feed.readLedger('rejected');
-      const ctx = { prev: this.asm.prev, floor: this.asm.floor, rejected, raw: this.feed.readRaw(openId), profile: this.asm.profile };
+      this._relink();                                               // V3-11: the batch was built on the same base
+      const ctx = { prev: this.asm.prev, floor: this.asm.floor, rejected, raw: this.feed.readRaw(openId), profile: this.asm.profile, refused: this.asm.refused };
       const ok = V.verifyBatch(batch, ctx).ok;
       /* a refused batch was written with the total carried forward (F6): its reasons are judged that way */
       const check = ok ? { failures: [] } : V.verifyBatch(batch, { ...ctx, status: 'rejected' });
@@ -87,8 +97,37 @@ class Pipeline {
     return line;
   }
 
+  /**
+   * V3-11: if the chain the next batch would extend contains a batch the verifier refused, link the next
+   * batch to the parent of the oldest such batch instead, with its total.
+   */
+  _relink() {
+    if (!this.refusedSource || !this.asm.prev) return;
+    const R = new Set(this.refusedSource() || []);
+    this.asm.refused = R;
+    if (!R.size) return;
+    const seqs = [...R].map((id) => Number(/-(\d{6})$/.exec(id) ? /-(\d{6})$/.exec(id)[1] : NaN)).filter(Number.isSafeInteger);
+    if (!seqs.length) return;
+    const low = Math.min(...seqs);
+    /* the batch a link names: at seq − 1, or earlier past a gap left by an earlier relink */
+    const parentOf = (b) => {
+      if (b.prev_hash === E.ZERO_HASH) return null;
+      for (let s = b.seq - 1; s >= 0; s--) {
+        const id = E.batchId(b.site_id, s);
+        if (!this.feed.hasBatch(id)) return null;
+        const c = this.feed.readBatch(id);
+        if (c.sha256 === b.prev_hash) return c;
+      }
+      return null;
+    };
+    let oldest = null;
+    for (let b = this.asm.prev; b && b.seq >= low; b = parentOf(b)) if (R.has(b.batch_id)) oldest = b;
+    if (oldest) this.asm.rebase(parentOf(oldest), R);
+  }
+
   /** Close and publish the open window (no-op when empty). */
   close() {
+    if (this.asm.window.length) this._relink();
     const closed = this.asm.close();
     if (!closed) return null;
     this.feed.publish(closed, { last_ts_start: this.asm.last_ts_start });

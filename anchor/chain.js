@@ -44,9 +44,14 @@ function anchoredPrefix(listed, headAnchor) {
   return i + 1;
 }
 
-/** The next batch that should be anchored: the first accepted entry after the anchored prefix. */
-function nextToAnchor(listed, prefix) {
-  for (let i = prefix; i < listed.length; i++) if (listed[i].status === 'accepted') return listed[i];
+/**
+ * The next batch that should be anchored: the first accepted entry after the anchored prefix that the
+ * verifier has not refused. A verifier refusal is terminal (V3-11): a refused batch is never anchored.
+ * @param {Set<string>|string[]} [refused]  batch ids the verifier refused (its log)
+ */
+function nextToAnchor(listed, prefix, refused) {
+  const R = refused instanceof Set ? refused : new Set(refused || []);
+  for (let i = prefix; i < listed.length; i++) if (listed[i].status === 'accepted' && !R.has(listed[i].batch_id)) return listed[i];
   return null;
 }
 
@@ -113,14 +118,23 @@ function maxWalkArg(args) {
  * batch before it, and `floor`, the anchored head (the last accepted batch;
  * null when nothing is anchored yet).
  *
+ * A batch the verifier refused is left out of the chain (V3-11, freeze v3 §4):
+ * the batch after it links to its parent. So a link may skip earlier seqs, but
+ * only seqs whose batches are in `refused`, and each skipped batch is still
+ * downloaded and must not be the one the link names. A link that names a
+ * refused batch is verifier.links_refused (a batch built on it before the
+ * refusal was known); a link that skips any other batch is a forged chain.
+ *
  * @param {object} batch        the batch offered for anchoring
  * @param {{anchor_sha256:string|null, cumulative_mwh:number|null}} head  from getHead
  * @param {(id:string) => Promise<object|null>} fetchBatch  a published batch by id; null when not published
  * @param {object} [o]
  * @param {number} [o.maxSteps=MAX_WALK_BATCHES]  most batches downloaded; one more is verifier.walk_too_long
+ * @param {Set<string>|string[]} [o.refused]  batch ids the verifier refused (its log): the only seqs a link may skip
  * @returns {Promise<{ok:boolean, code:string|null, detail:string|null, steps:number, prev:object|null, floor:object|null}>}
  */
-async function walkToHead(batch, head, fetchBatch, { maxSteps = MAX_WALK_BATCHES } = {}) {
+async function walkToHead(batch, head, fetchBatch, { maxSteps = MAX_WALK_BATCHES, refused } = {}) {
+  const R = refused instanceof Set ? refused : new Set(refused || []);
   let steps = 0;
   const fail = (code, detail) => ({ ok: false, code, detail, steps, prev: null, floor: null });
   const anchored = head.anchor_sha256 != null;
@@ -129,22 +143,31 @@ async function walkToHead(batch, head, fetchBatch, { maxSteps = MAX_WALK_BATCHES
 
   /* links, newest first: from the offered batch back to the on-chain head (or seq 0) */
   const chain = [batch];
+  const genesis = (child) => {
+    if (anchored) return fail('verifier.head_mismatch', `reached seq 0 without meeting the on-chain head ${head.anchor_sha256.slice(0, 12)}…`);
+    if (child.prev_hash !== E.ZERO_HASH) return fail('verifier.head_mismatch', `${child.batch_id}: nothing is anchored, but the chain does not start from prev_hash 0`);
+    return null;
+  };
   for (let child = batch; ;) {
-    if (child.seq === 0) {
-      if (anchored) return fail('verifier.head_mismatch', `reached seq 0 without meeting the on-chain head ${head.anchor_sha256.slice(0, 12)}…`);
-      if (child.prev_hash !== E.ZERO_HASH) return fail('verifier.head_mismatch', `${child.batch_id}: nothing is anchored, but the chain does not start from prev_hash 0`);
-      break;
+    if (child.seq === 0) { const g = genesis(child); if (g) return g; break; }
+    /* the parent is the batch at seq − 1, or, past batches the verifier refused, an earlier one */
+    let parent = null, h = null;
+    for (let s = child.seq - 1; ; s--) {
+      if (s < 0) break;                                             // every earlier batch refused: the link starts the chain
+      if (steps >= maxSteps) return fail('verifier.walk_too_long', `more than ${maxSteps} published batches between ${batch.batch_id} and the on-chain head; the walk stopped at its bound before reaching the head. If they are batches published as rejected, raise --max-walk on the proposer and the verifier (docs/RUNBOOK.md)`);
+      const id = E.batchId(child.site_id, s);
+      const cand = await fetchBatch(id);
+      steps++;
+      if (cand == null) return fail('verifier.not_published', `${id} is not in the public feed`);
+      let ch;
+      try { ch = E.batchSha256(cand); } catch (e) { return fail('verifier.head_mismatch', `${id}: ${e.message}`); }
+      const named = ch === cand.sha256 && ch === child.prev_hash && cand.seq === s && cand.site_id === child.site_id;
+      if (named && R.has(id)) return fail('verifier.links_refused', `${child.batch_id} links to ${id}, which the verifier refused (V3-11): it cannot be anchored`);
+      if (named) { parent = cand; h = ch; break; }
+      if (!R.has(id)) return fail('verifier.head_mismatch', `${id} does not rehash to the prev_hash of ${child.batch_id}`);
+      /* a batch the verifier refused, which the link does not name: left out of the chain (V3-11) */
     }
-    if (steps >= maxSteps) return fail('verifier.walk_too_long', `more than ${maxSteps} published batches between ${batch.batch_id} and the on-chain head; the walk stopped at its bound before reaching the head. If they are batches published as rejected, raise --max-walk on the proposer and the verifier (docs/RUNBOOK.md)`);
-    const id = E.batchId(child.site_id, child.seq - 1);
-    const parent = await fetchBatch(id);
-    steps++;
-    if (parent == null) return fail('verifier.not_published', `${id} is not in the public feed`);
-    let h;
-    try { h = E.batchSha256(parent); } catch (e) { return fail('verifier.head_mismatch', `${id}: ${e.message}`); }
-    if (h !== parent.sha256 || h !== child.prev_hash || parent.seq !== child.seq - 1 || parent.site_id !== child.site_id) {
-      return fail('verifier.head_mismatch', `${id} does not rehash to the prev_hash of ${child.batch_id}`);
-    }
+    if (parent == null) { const g = genesis(child); if (g) return g; break; }
     chain.push(parent);
     if (anchored && h === head.anchor_sha256) break;
     child = parent;
@@ -164,6 +187,24 @@ async function walkToHead(batch, head, fetchBatch, { maxSteps = MAX_WALK_BATCHES
   return { ok: true, code: null, detail: null, steps, prev: chain[1] || null, floor };
 }
 
+/**
+ * The batches a verifier log refused, for good (V3-11, OD-7: every refusal is terminal), from its
+ * refusals.jsonl lines. One exception: verifier.walk_too_long says the check did not finish, not that
+ * the batch is wrong (DV-5), so a batch refused only for it is judged again once the bound is raised.
+ * @param {Array<{batch_id:string, reasons?:string[]}>} lines
+ * @returns {Set<string>}
+ */
+function refusedIds(lines) {
+  const out = new Set();
+  for (const l of lines || []) {
+    if (!l || typeof l.batch_id !== 'string') continue;
+    const reasons = Array.isArray(l.reasons) ? l.reasons : [];
+    if (reasons.length && reasons.every((r) => r === 'verifier.walk_too_long')) continue;
+    out.add(l.batch_id);
+  }
+  return out;
+}
+
 /** Above this disagreement with the network, neither service signs: timebounds would be judged wrong. */
 const MAX_CLOCK_SKEW_S = 120;
 
@@ -174,4 +215,4 @@ async function clockSkewS(server, nowS = Math.floor(Date.now() / 1000)) {
   return nowS - closed;
 }
 
-module.exports = { getHead, anchoredPrefix, nextToAnchor, walkToHead, findAnchorTx, clockSkewS, MAX_CLOCK_SKEW_S, MAX_WALK_BATCHES, checkMaxWalk, maxWalkArg, decode };
+module.exports = { getHead, anchoredPrefix, nextToAnchor, walkToHead, refusedIds, findAnchorTx, clockSkewS, MAX_CLOCK_SKEW_S, MAX_WALK_BATCHES, checkMaxWalk, maxWalkArg, decode };

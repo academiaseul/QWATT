@@ -40,6 +40,7 @@
     "verifier.tx_mismatch": "The pending transaction is not byte-identical to the one the verifier rebuilt from the published batch.",
     "verifier.hash_mismatch": "The published batch no longer hashes to the value in the pending transaction.",
     "verifier.head_mismatch": "Walking back from the batch through the published chain, rehashing every batch and re-adding every total (a batch never anchored carries the total forward unchanged), does not end at the on-chain anchor with the on-chain cumulative_mwh.",
-    "verifier.walk_too_long": "The walk back to the on-chain head stopped at its bound (168 published batches by default) before reaching the head. The check did not finish; nothing is known to be wrong. The usual cause is a long run of batches published as rejected, such as a node_id changed by mistake. The proposer blocks with the same code; operators raise the bound with --max-walk on both services."
+    "verifier.walk_too_long": "The walk back to the on-chain head stopped at its bound (168 published batches by default) before reaching the head. The check did not finish; nothing is known to be wrong. The usual cause is a long run of batches published as rejected, such as a node_id changed by mistake. The proposer blocks with the same code; operators raise the bound with --max-walk on both services.",
+    "verifier.links_refused": "The batch links to a batch the verifier refused. A verifier refusal is terminal (V3-11), so a batch built on a refused one before the refusal was known can never be anchored; it is refused too, and the next batch links past both."
   }
 }

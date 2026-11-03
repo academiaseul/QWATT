@@ -186,7 +186,16 @@ class Verifier {
     this.status.feed_commit = this.feed.commit;
     const listed = await this.feed.batches();
     const prefix = C.anchoredPrefix(listed, head.anchor_sha256);
-    const next = C.nextToAnchor(listed, prefix);
+    /* V3-11: a refusal is terminal; the batches it names are never judged again and links skip them */
+    const refusals = readJsonl(this.refusalsFile);
+    const refused = C.refusedIds(refusals);
+    /* a refusal whose decision line was lost in a crash between the two appends gets it now: the batch
+       is not judged again, so this is where its decision is completed */
+    for (const r of refusals) {
+      const e = listed.find((x) => x.batch_id === r.batch_id) || { batch_id: r.batch_id, seq: null, sha256: null };
+      this._decide(e, 'refused', r.pending_tx_hash, r.reasons, r.detail == null ? null : r.detail);
+    }
+    const next = C.nextToAnchor(listed, prefix, refused);
     if (!next) return { action: 'idle', anchored: prefix };
 
     const pending = await this.feed.pending(next.batch_id);
@@ -204,9 +213,9 @@ class Verifier {
     /* what the batch inherits is believed only once it leads back to the on-chain head (S1). Each
        earlier batch is downloaded once, and the batch is judged against those same rehashed copies:
        the previous batch, and the anchored head as the floor for time, node and counted intervals. */
-    const walk = await C.walkToHead(batch, head, (id) => this.feed.batch(id), { maxSteps: this.maxWalk });
+    const walk = await C.walkToHead(batch, head, (id) => this.feed.batch(id), { maxSteps: this.maxWalk, refused });
     if (!walk.ok) return this._refuse(next, pending, [walk.code], walk.detail);
-    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: await this.feed.rejected(), raw: await this.feed.raw(next.batch_id) });
+    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: await this.feed.rejected(), raw: await this.feed.raw(next.batch_id), refused });
     if (!check.ok) return this._refuse(next, pending, [...new Set(check.failures.map((f) => f.code))], 'batch does not re-derive');
 
     const m = T.matchPending(pending, batch, this.cfg, nowS);

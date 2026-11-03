@@ -57,15 +57,19 @@ async function world() {
   const keys = { account: S.Keypair.random(), proposer: S.Keypair.random(), verifier: S.Keypair.random(), third: S.Keypair.random(), dest: S.Keypair.random() };
   const clock = { t: Math.floor(Date.parse('2026-11-03T12:00:00Z') / 1000), now() { return this.t; } };
   const fake = new FakeHorizon({ account: keys.account.publicKey(), signers: [keys.proposer.publicKey(), keys.verifier.publicKey(), keys.third.publicKey()], clock });
-  const cfg = { network_passphrase: S.Networks.TESTNET, horizon_url: 'http://fake', anchor_account: keys.account.publicKey(), asset_code: 'native', payment_destination: keys.dest.publicKey(), payment_amount: '0.0000001', base_fee: 100 };
+  const cfg = { network_passphrase: S.Networks.TESTNET, horizon_url: 'http://fake', anchor_account: keys.account.publicKey(), asset_code: 'native', payment_destination: keys.dest.publicKey(), payment_amount: '0.0000001', base_fee: 100,
+    signers: { proposer: keys.proposer.publicKey(), verifier: keys.verifier.publicKey(), third: keys.third.publicKey() } };
   const feedDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-rec-feed-'));
   const stateDir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-rec-ver-'));
   const host = await serveDir(feedDir);
-  const pipe = new Pipeline({ dir: feedDir, site_id: 'rec', node_id: 'rec' });
+  /* V3-11: the batches the verifier refused, from its log (on the hosts the proposer reads the public log
+     and leaves the list for the pipeline in a local file; here both read the verifier's state directory) */
+  const refusedIds = () => { try { return [...C.refusedIds(fs.readFileSync(path.join(stateDir, 'refusals.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)))]; } catch (e) { return []; } };
+  const pipe = new Pipeline({ dir: feedDir, site_id: 'rec', node_id: 'rec', refused: refusedIds });
   let n = 0;
   const w = {
-    keys, clock, fake, cfg, feedDir, stateDir, host, pipe,
-    mkProposer: () => new Proposer({ feedDir, cfg, keypair: keys.proposer, server: fake }),
+    keys, clock, fake, cfg, feedDir, stateDir, host, pipe, refusedIds,
+    mkProposer: () => new Proposer({ feedDir, cfg, keypair: keys.proposer, server: fake, refused: async () => refusedIds() }),
     mkVerifier: (o = {}) => new Verifier({ feedUrl: host.url, cfg, keypair: keys.verifier, stateDir, server: fake, ...o }),
     addBatches(k) { for (let i = 0; i < 12 * k; i++) pipe.push(iv(n++)); },
     accepted() { return pipe.feed.readLedger('batches').filter((e) => e.status === 'accepted'); },
@@ -269,7 +273,7 @@ test('both services restarted mid-flight resume from chain and feed without dupl
   await w.close();
 });
 
-test('a batch the verifier refused is never retried with the same proposal, and the refusal is logged once', async () => {
+test('a batch the verifier refused is never judged again, even once the feed is put back (V3-11); the refusal is logged once, and the next batch starts the chain again', async () => {
   const w = await world();
   w.addBatches(1);
   await w.p.tick(w.clock.now());
@@ -278,17 +282,21 @@ test('a batch the verifier refused is never retried with the same proposal, and 
   const b = JSON.parse(orig); b.energy_mwh += 1; b.sha256 = E.batchSha256(b);
   fs.writeFileSync(f, E.canonical(b) + '\n');
   eq((await w.v.tick(w.clock.now())).action, 'refused', 'refused');
-  eq((await w.v.tick(w.clock.now())).action, 'refused', 'still refused');
+  eq((await w.v.tick(w.clock.now())).action, 'idle', 'not judged again: the refusal is terminal');
   const lines = fs.readFileSync(path.join(w.stateDir, 'refusals.jsonl'), 'utf8').split('\n').filter(Boolean);
   eq(lines.length, 1, 'logged once');
-  eq(w.fake.txs.length, 0, 'nothing anchored while the feed is wrong');
   fs.writeFileSync(f, orig);
   await w.settle(w.p, w.v);
-  w.invariant();
-  /* the same proposal, refused while the feed was wrong and signed once it was restored: both decisions are logged */
-  const h = w.fake.txs[0].hash;
-  const d = jsonl(path.join(w.stateDir, 'decisions.jsonl')).map((l) => [l.decision, l.batch_id, l.pending_tx_hash]);
-  eq(JSON.stringify(d), JSON.stringify([['refused', 'rec-000000', h], ['signed', 'rec-000000', h]]), 'decisions.jsonl: refused, then signed, the same proposal');
+  eq(w.fake.txs.length, 0, 'put back, it is still never anchored');
+  /* rec-000000 was the first batch: the next one starts the chain again, from prev_hash 0 */
+  w.addBatches(1);
+  const b1 = w.pipe.feed.readBatch('rec-000001');
+  eq(b1.prev_hash, E.ZERO_HASH, 'rec-000001 starts the chain again');
+  eq(b1.cumulative_mwh, b1.energy_mwh, 'with its own energy only');
+  await w.settle(w.p, w.v);
+  eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#1']), 'rec-000001 anchored');
+  const d = jsonl(path.join(w.stateDir, 'decisions.jsonl')).map((l) => [l.decision, l.batch_id]);
+  eq(JSON.stringify(d), JSON.stringify([['refused', 'rec-000000'], ['signed', 'rec-000001']]), 'decisions.jsonl: rec-000000 refused, rec-000001 signed');
   await w.close();
 });
 
@@ -310,7 +318,7 @@ async function decisionFlow() {
   await w.p.tick(w.clock.now());
   forge(w, 'rec-000001', (b) => { b.energy_mwh += 1; });
   eq((await w.v.tick(w.clock.now())).action, 'refused', 'rec-000001 refused');
-  eq((await w.v.tick(w.clock.now())).action, 'refused', 'and refused again on the next tick');
+  eq((await w.v.tick(w.clock.now())).action, 'idle', 'and not judged again on the next tick (V3-11)');
   return { w, atSubmit };
 }
 
@@ -414,7 +422,7 @@ test('a power cut in the middle of an append leaves half a line: the next append
   await w.close();
 });
 
-test('a refusal whose decision line was lost in a crash between the two appends is completed on the next tick; the refusal count comes from refusals.jsonl', async () => {
+test('a refusal whose decision line was lost in a crash between the two appends is completed on the next tick, without judging the batch again; the refusal count comes from refusals.jsonl', async () => {
   const { w } = await decisionFlow();
   const dec = path.join(w.stateDir, 'decisions.jsonl'), ref = path.join(w.stateDir, 'refusals.jsonl');
   const refBefore = fs.readFileSync(ref);
@@ -422,7 +430,7 @@ test('a refusal whose decision line was lost in a crash between the two appends 
   fs.writeFileSync(dec, jsonl(dec).filter((l) => l.decision !== 'refused').map((l) => JSON.stringify(l) + '\n').join(''));
   const v2 = w.mkVerifier();
   eq(v2.status.refused, 1, 'refused counted from refusals.jsonl (decisions.jsonl holds none) before any tick');
-  eq((await v2.tick(w.clock.now())).action, 'refused', 'the same proposal is refused again');
+  eq((await v2.tick(w.clock.now())).action, 'idle', 'the refused batch is not judged again (V3-11)');
   const refused = jsonl(dec).filter((l) => l.decision === 'refused');
   eq(refused.length, 1, 'exactly one refused decision appended');
   eq(refused[0].pending_tx_hash, jsonl(ref)[0].pending_tx_hash, 'for the refusal already logged');
@@ -697,7 +705,7 @@ test('a lagging Horizon head: whatever the verifier co-signs on a stale head car
   await w.close();
 });
 
-test('the verifier recomputes samples_root from the public raw file before co-signing: an edited or missing raw file is refused and the proposer blocks with the same code; restored, it anchors (batch.samples_root_mismatch, batch.raw_missing)', async () => {
+test('the verifier recomputes samples_root from the public raw file before co-signing: an edited or missing raw file is refused, for good, and the proposer blocks with the same code (batch.samples_root_mismatch, batch.raw_missing)', async () => {
   const w = await world();
   try {
     w.addBatches(1);
@@ -714,15 +722,21 @@ test('the verifier recomputes samples_root from the public raw file before co-si
     const v = await w.v.tick(w.clock.now());
     eq(v.action, 'refused', 'the verifier refuses');
     assert(v.reasons.includes('batch.samples_root_mismatch'), `verifier reasons ${v.reasons}`);
-    fs.unlinkSync(f);
-    const gone = await w.v.tick(w.clock.now());
-    eq(gone.action, 'refused', 'no raw file, no signature');
-    assert(gone.reasons.includes('batch.raw_missing'), `verifier reasons ${gone.reasons}`);
-    eq(w.fake.txs.length, 0, 'nothing anchored');
     fs.writeFileSync(f, good);
     await w.settle(w.p, w.v);
-    w.invariant();
+    eq(w.fake.txs.length, 0, 'restored, it is still never anchored: the refusal is terminal (V3-11)');
   } finally { await w.close(); }
+  const w2 = await world();
+  try {
+    w2.addBatches(1);
+    const f2 = path.join(w2.feedDir, 'raw', 'rec-000000.jsonl');
+    fs.unlinkSync(f2);
+    await propose(w2, w2.pipe.feed.readBatch('rec-000000'));
+    const gone = await w2.v.tick(w2.clock.now());
+    eq(gone.action, 'refused', 'no raw file, no signature');
+    assert(gone.reasons.includes('batch.raw_missing'), `verifier reasons ${gone.reasons}`);
+    eq(w2.fake.txs.length, 0, 'nothing anchored');
+  } finally { await w2.close(); }
 });
 
 /* ── V3-7c: the public evidence read at one commit, after Horizon ── */
@@ -884,7 +898,7 @@ test('a 404 at the pinned commit is read once more before it counts: one CDN mis
   }
 });
 
-test('a 404 at the pinned commit is never remembered: once the file can be read, the next tick at the same commit anchors (review fix 1)', async () => {
+test('a 404 at the pinned commit that outlasts the re-read is a refusal, and like every refusal it is terminal (review fix 1, OD-7, V3-11)', async () => {
   const w = await githubWorld();
   try {
     w.addBatches(1);
@@ -892,14 +906,99 @@ test('a 404 at the pinned commit is never remembered: once the file can be read,
     eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
     w.publish();
     const head = w.headOf(w.bare);
-    w.gh.failRaw(404, 'run/raw/rec-000000.jsonl');                    // a 404 that outlasts the re-read: judged as today (OD-7 decides)
-    eq((await w.v.tick(w.clock.now())).action, 'refused', 'refused while the raw file cannot be read');
+    w.gh.failRaw(404, 'run/raw/rec-000000.jsonl');                    // a 404 that outlasts the re-read
+    const refused = await w.v.tick(w.clock.now());
+    eq(refused.action, 'refused', 'refused while the raw file cannot be read');
+    assert((refused.reasons || []).includes('batch.raw_missing'), `as batch.raw_missing (${JSON.stringify(refused.reasons)})`);
     w.gh.failRaw(null);
     eq(w.headOf(w.bare), head, 'the branch has not moved: the next tick reads the same commit');
     const r = await w.v.tick(w.clock.now());
-    eq(r.action, 'anchored', `the 404 was not kept for that commit (got ${JSON.stringify(r)})`);
-    w.invariant();
+    eq(r.action, 'idle', `the batch is not judged again (got ${JSON.stringify(r)})`);
+    eq(w.fake.txs.length, 0, 'nothing anchored');
   } finally { await w.close(); }
+});
+
+/* ── V3-11 (part b): a verifier refusal is terminal; the chain leaves the refused batch out ── */
+
+/** Replace the live proposal for `id` with one another key signed: the verifier refuses it (verifier.tx_mismatch). */
+function badProposal(w, id) {
+  const f = path.join(w.feedDir, 'pending', `${id}.xdr`);
+  const tx = new S.Transaction(fs.readFileSync(f, 'utf8').trim(), w.cfg.network_passphrase);
+  tx.signatures.length = 0;
+  tx.sign(S.Keypair.random());
+  fs.writeFileSync(f, tx.toEnvelope().toXDR('base64') + '\n');
+}
+const onChain = (w) => ({ head: Buffer.from(w.fake.data['qwatt.anchor.sha256'] || '', 'base64').toString(), cumulative: Number(Buffer.from(w.fake.data['qwatt.cumulative_mwh'] || '', 'base64').toString()) });
+
+test('V3-11: a verifier refusal is terminal: the refused batch is never anchored, the next batch links to its parent and carries its total, and anchoring goes on', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.settle(w.p, w.v);
+  const b0 = w.pipe.feed.readBatch('rec-000000');
+  w.addBatches(1);
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'rec-000001 proposed');
+  badProposal(w, 'rec-000001');
+  eq((await w.v.tick(w.clock.now())).action, 'refused', 'the verifier refuses rec-000001');
+  /* terminal: an honest proposal for the same batch is never signed */
+  await propose(w, w.pipe.feed.readBatch('rec-000001'));
+  const again = await w.v.tick(w.clock.now());
+  assert(again.action !== 'anchored' && again.action !== 'refused', `a refused batch is not judged again (got ${JSON.stringify(again)})`);
+  eq((await w.p.tick(w.clock.now())).action, 'idle', 'the proposer moves past it: nothing else to anchor yet');
+  /* the next batch leaves it out of the chain */
+  w.addBatches(1);
+  const b2 = w.pipe.feed.readBatch('rec-000002');
+  eq(b2.prev_hash, b0.sha256, 'rec-000002 links to rec-000000, the parent of the refused batch');
+  eq(b2.cumulative_mwh, b0.cumulative_mwh + b2.energy_mwh, 'and carries its total: the refused energy never enters it');
+  await w.settle(w.p, w.v);
+  eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#2']), 'rec-000000 and rec-000002 anchored, rec-000001 never');
+  eq(onChain(w).head, b2.sha256, 'on-chain head = rec-000002');
+  eq(onChain(w).cumulative, b0.energy_mwh + b2.energy_mwh, 'the anchored total is the energy of the anchored batches only');
+  await w.close();
+});
+
+test('V3-11: a batch built on the refused one before the refusal was known is refused too (verifier.links_refused), and the batch after it links past both', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.settle(w.p, w.v);
+  const b0 = w.pipe.feed.readBatch('rec-000000');
+  w.addBatches(2);                                                  // rec-000001 and rec-000002, built before any refusal
+  eq(w.pipe.feed.readBatch('rec-000002').prev_hash, w.pipe.feed.readBatch('rec-000001').sha256, 'rec-000002 was built on rec-000001');
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'rec-000001 proposed');
+  badProposal(w, 'rec-000001');
+  eq((await w.v.tick(w.clock.now())).action, 'refused', 'rec-000001 refused');
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', 'the proposer proposes rec-000002, so the verifier can refuse it in public');
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'refused', 'rec-000002 is refused');
+  assert((r.reasons || []).includes('verifier.links_refused'), `with verifier.links_refused (${JSON.stringify(r.reasons)})`);
+  eq((await w.p.tick(w.clock.now())).action, 'idle', 'nothing left to anchor');
+  w.addBatches(1);
+  const b3 = w.pipe.feed.readBatch('rec-000003');
+  eq(b3.prev_hash, b0.sha256, 'rec-000003 links past both, to rec-000000');
+  await w.settle(w.p, w.v);
+  eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#3']), 'rec-000000 and rec-000003 anchored');
+  eq(onChain(w).cumulative, b0.energy_mwh + b3.energy_mwh, 'neither refused batch adds energy');
+  await w.close();
+});
+
+test('V3-11: the walk skips a batch only where the verifier refused it; a link that skips any other batch is a forged chain', async () => {
+  const w = await world();
+  w.addBatches(1);
+  await w.settle(w.p, w.v);
+  w.addBatches(1);
+  const head = await C.getHead(w.fake, w.cfg.anchor_account);
+  const b0 = w.pipe.feed.readBatch('rec-000000');
+  /* a batch at seq 2 linked straight to rec-000000, as the pipeline builds after a refusal of rec-000001 (in memory only) */
+  const skip = JSON.parse(JSON.stringify(w.pipe.feed.readBatch('rec-000001')));
+  Object.assign(skip, { seq: 2, batch_id: 'rec-000002', prev_hash: b0.sha256, cumulative_mwh: b0.cumulative_mwh + skip.energy_mwh });
+  skip.sha256 = E.batchSha256(skip);
+  const fetch = (id) => (w.pipe.feed.hasBatch(id) ? w.pipe.feed.readBatch(id) : null);
+  const one = await C.walkToHead(skip, head, fetch, { refused: new Set(['rec-000001']) });
+  eq(one.ok, true, 'skipping rec-000001, which the verifier refused, leads to the head (' + one.detail + ')');
+  eq(one.prev && one.prev.batch_id, 'rec-000000', 'and the batch before it is rec-000000');
+  const none = await C.walkToHead(skip, head, fetch, { refused: new Set() });
+  eq(none.ok, false, 'without that refusal the same link is refused');
+  eq(none.code, 'verifier.head_mismatch', 'as a forged chain');
+  await w.close();
 });
 
 test('the reader V3-11 will use: the public verifier log read at one commit (V3-7c)', async () => {

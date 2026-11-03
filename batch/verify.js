@@ -153,6 +153,7 @@ function intervalErrors(rec) {
  * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
  *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
+ * @param {Set<string>|string[]} [ctx.refused]  batch ids the verifier refused (V3-11): the only seqs a link may skip
  * @param {object[]|null} [ctx.raw] the batch's raw lines (raw/<batch_id>.jsonl, parsed); null: the file is
  *                                 not published (batch.raw_missing); undefined: not checked
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
@@ -193,12 +194,16 @@ function verifyBatch(batch, ctx = {}) {
   const root = E.merkleRoot(batch.intervals);
   if (root !== batch.intervals_root) fail('batch.root_mismatch', { claimed: batch.intervals_root, recomputed: root });
 
-  /* chain: nothing is read from the previous batch or the floor before it rehashes */
+  /* chain: nothing is read from the previous batch or the floor before it rehashes. A link may skip
+     earlier seqs only where the verifier refused those batches (V3-11, ctx.refused): every seq between
+     the batch it links to and itself must be refused */
+  const refused = ctx.refused instanceof Set ? ctx.refused : new Set(ctx.refused || []);
+  const skipsOnlyRefused = (from, to) => { for (let s = from; s < to; s++) if (!refused.has(E.batchId(batch.site_id, s))) return false; return true; };
   if (prev == null) {
-    if (batch.seq !== 0 || batch.prev_hash !== E.ZERO_HASH) fail('batch.genesis_invalid', { seq: batch.seq, prev_hash: batch.prev_hash });
+    if (batch.prev_hash !== E.ZERO_HASH || !(batch.seq === 0 || skipsOnlyRefused(0, batch.seq))) fail('batch.genesis_invalid', { seq: batch.seq, prev_hash: batch.prev_hash });
   } else if (!rehashes(prev)) {
     fail('batch.chain_break', { prev_seq: prev.seq, why: 'the previous batch does not rehash to its sha256' });
-  } else if (batch.seq !== prev.seq + 1 || batch.prev_hash !== prev.sha256 || batch.site_id !== prev.site_id) {
+  } else if (batch.prev_hash !== prev.sha256 || batch.site_id !== prev.site_id || !(batch.seq === prev.seq + 1 || (batch.seq > prev.seq + 1 && skipsOnlyRefused(prev.seq + 1, batch.seq)))) {
     fail('batch.chain_break', { seq: batch.seq, prev_seq: prev.seq, prev_hash: batch.prev_hash, expected: prev.sha256 });
   }
   if (floor != null && floor !== prev && !rehashes(floor)) {

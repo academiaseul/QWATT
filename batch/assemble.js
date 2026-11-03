@@ -92,6 +92,21 @@ class BatchAssembler {
     this.floor = s.floor ?? null;                   // the last accepted batch: time, node and counted intervals start here
     this.last_ts_end = this.floor ? this.floor.ts_end : null;   // end of the latest interval that holds time
     this.window = [];                               // ledger lines of the open window, in judgment order
+    this.refused = new Set();                       // batch ids the verifier refused (V3-11): seqs a link may skip
+  }
+
+  /**
+   * V3-11: the verifier refused a batch on this chain, so the next batch leaves it out. It links to `base`
+   * (the refused batch's parent, or null to start the chain again) and carries its total; the seq goes on.
+   * The floor does not move: time and intervals already judged stay judged.
+   * @param {object|null} base
+   * @param {Set<string>} refused  the verifier's refusals; every seq the new link skips is among them
+   */
+  rebase(base, refused) {
+    this.refused = new Set(refused);
+    this.prev = base;
+    this.prev_hash = base ? base.sha256 : E.ZERO_HASH;
+    this.cumulative_mwh = base ? base.cumulative_mwh : 0;
   }
 
   get openBatchId() { return E.batchId(this.site_id, this.seq); }
@@ -233,7 +248,7 @@ class BatchAssembler {
     };
     batch.sha256 = E.batchSha256(batch);
 
-    const check = V.verifyBatch(batch, { prev: this.prev, floor: this.floor, rejected, raw, profile: this.profile, spec: this.spec });
+    const check = V.verifyBatch(batch, { prev: this.prev, floor: this.floor, rejected, raw, profile: this.profile, spec: this.spec, refused: this.refused });
 
     /* The chain advances through a batch-level rejection so the defect stays
        visible in sequence; it is published, never anchored, and carries the

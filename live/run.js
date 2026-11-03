@@ -3,7 +3,11 @@
  * QWATT — seven-day live run (Deliverable 4)
  * ---------------------------------------------------------------------------
  *   node live/run.js --feed feed --days 8 [--start now|<ISO>] [--seed 20261103] [--speed realtime|fast|<N>]
- *        [--proposer G… --verifier G… --third G…] [--code-commit <40-hex commit>]
+ *        [--proposer G… --verifier G… --third G…] [--code-commit <40-hex commit>] [--refused-file <path>]
+ *
+ * --refused-file: the batches the verifier refused (V3-11), a JSON array of batch ids that
+ * anchor/proposer.js --refused-file writes from the public verifier log. Before each batch closes,
+ * the pipeline reads it and links the next batch past any refused batch on its chain.
  *
  * --days is the run length from run_start, a whole number of days. The live run (W3-4) lasts 8:
  * from Sat 7 Nov 03:00 UTC, one soak day, then the seven counted days to run_end
@@ -208,6 +212,7 @@ function runDefinition(feedDir, o) {
  * Run (or resume) the live run.
  * @param {object} o
  * @param {string} o.feedDir
+ * @param {string} [o.refusedFile]  V3-11: the proposer's list of batches the verifier refused
  * @param {number} [o.days=7]       the run length in days (the live run: 8, W3-4; live/soak.js passes a fraction)
  * @param {number} [o.startMs=now]
  * @param {number} [o.seed=20261103]
@@ -218,6 +223,15 @@ function runDefinition(feedDir, o) {
  * @param {string} [o.repoDir]     the checkout to name (default: this repository)
  * @param {function} [o.log]
  */
+/** The batch ids in the proposer's refused file (V3-11): [] while it does not exist; anything else but a JSON array of ids throws. */
+function readRefused(file) {
+  let text;
+  try { text = fs.readFileSync(file, 'utf8'); } catch (e) { if (e.code === 'ENOENT') return []; throw e; }
+  const ids = JSON.parse(text);
+  if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string')) throw new Error(`${file}: not a JSON array of batch ids`);
+  return ids;
+}
+
 async function runLive(o) {
   const log = o.log || ((...a) => console.log('[live]', ...a));
   const speed = o.speed ?? 'realtime';
@@ -231,7 +245,10 @@ async function runLive(o) {
     log(`note: this code is ${commit}, the run was started from ${def.code_commit} (faults.json code_commit); after the code freeze that is a numbered deviation for the write-up`);
   }
   const runStart = Date.parse(def.run_start), runEnd = Date.parse(def.run_end);
-  const pipe = new Pipeline({ dir: o.feedDir, site_id: def.site_id, node_id: def.node_id });
+  /* V3-11: the batches the verifier refused, from the file the proposer writes from the public verifier
+     log (--refused-file); the pipeline links the next batch past them */
+  const refused = o.refusedFile ? () => readRefused(o.refusedFile) : undefined;
+  const pipe = new Pipeline({ dir: o.feedDir, site_id: def.site_id, node_id: def.node_id, refused });
   const samplesDir = path.join(o.feedDir, 'samples');
   fs.mkdirSync(samplesDir, { recursive: true });
 
@@ -291,9 +308,10 @@ async function cli() {
     speed: sp === 'realtime' || sp === 'fast' ? sp : Number(sp),
     signers,
     codeCommit: opt('--code-commit'),
+    refusedFile: opt('--refused-file') ? path.resolve(opt('--refused-file')) : undefined,
   });
 }
 
 if (require.main === module) cli().catch((e) => { console.error('[live] stopped:', e.message); process.exit(1); });
 
-module.exports = { runLive, SITE_ID, builderClock, checkSigners, signersArg, daysArg, codeCommit, chunkEnd };
+module.exports = { runLive, readRefused, SITE_ID, builderClock, checkSigners, signersArg, daysArg, codeCommit, chunkEnd };
