@@ -372,12 +372,14 @@ test('C names the two keys that signed by role and links the transaction on stel
   eq(JSON.stringify([...c.signer_keys].sort()), JSON.stringify([w.cfg.signers.proposer, w.cfg.signers.verifier].sort()), 'the two keys');
   eq(c.link, 'https://stellar.expert/explorer/testnet/tx/' + c.hash, 'stellar.expert link');
   assert(c.ok, 'C ok');
+  /* V3-11: the verifier co-signs only an envelope signed by the proposer, so a verifier + third anchor
+     cannot come from the services; the stand-in pair is proposer + third (D6, W3-8) */
   const viaThird = new Proposer({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.third, server: w.fake });
   eq((await viaThird.tick()).action, 'proposed', 'the third signer proposes the next batch');
-  eq((await w.verifier.tick()).action, 'anchored', 'third signer + verifier');
-  const c2 = await X.testC({ cfg: w.cfg, server: w.fake });
-  eq(c2.pair, 'verifier+third', 'pair');
-  eq(c2.ok, false, 'not test C');
+  const r = await w.verifier.tick();
+  eq(r.action, 'refused', 'the verifier refuses a proposal the third signer signed');
+  assert((r.reasons || []).includes('verifier.tx_mismatch'), `with verifier.tx_mismatch (${JSON.stringify(r.reasons)})`);
+  eq((await X.testC({ cfg: w.cfg, server: w.fake })).pair, 'proposer+verifier', 'the latest anchor is still proposer + verifier');
   await w.host.close();
 });
 
@@ -721,16 +723,23 @@ test('tests A and B are rejected with tx_bad_auth under 2/2/3', async () => {
   await w.host.close();
 });
 
-test('two keys still anchor a batch: proposer + verifier, then third signer + verifier', async () => {
+test('two keys still anchor a batch: proposer + verifier through the services, and the stand-in pair proposer + third signer on the network; the verifier co-signs nothing the third signer proposed (V3-11)', async () => {
   const w = await world(await configuredAccount());
   await w.proposer.tick();
   eq((await w.verifier.tick()).action, 'anchored', 'proposer + verifier');
   const viaThird = new Proposer({ feedDir: w.feedDir, cfg: w.cfg, keypair: w.K.third, server: w.fake });
   eq((await viaThird.tick()).action, 'proposed', 'the third signer proposes the next batch');
-  eq((await w.verifier.tick()).action, 'anchored', 'third signer + verifier');
+  eq((await w.verifier.tick()).action, 'refused', 'the verifier refuses it: one signature, the proposer\'s (V3-11)');
+  /* the account still accepts the stand-in pair: the next batch, signed by the proposer and the third signer */
+  const b1 = JSON.parse(fs.readFileSync(path.join(w.feedDir, 'batches', 'abcd-000001.json'), 'utf8'));
+  const head = await w.fake.loadAccount(w.cfg.anchor_account);
+  const tx = T.buildAnchorTx(b1, w.cfg, T.proposalParams(head.sequence, clock.now()));
+  tx.sign(w.K.proposer); tx.sign(w.K.third);
+  await w.fake.submitTransaction(tx);
   const c = await X.testC({ cfg: w.cfg, server: w.fake });
   eq(c.signatures, 2, 'two signatures');
   eq(c.memo, 'QW#1', 'the second batch');
+  eq(c.pair, 'proposer+third', 'the stand-in pair');
   await w.host.close();
 });
 

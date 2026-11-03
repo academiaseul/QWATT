@@ -140,7 +140,11 @@ test('V3-11: timebounds are a window of at most 60 minutes, for the builder, the
   let threw = false;
   try { T.buildAnchorTx(b, cfg, { sequence: '1', minTime: NOW, maxTime: NOW + 3601 }); } catch (e) { threw = /60 minutes/.test(e.message); }
   assert(threw, 'the builder refuses a window one second over 60 minutes, and says why');
-  const wide = propose(b, cfg, { sequence: '123456790', minTime: NOW - 60, maxTime: NOW + 2 * 3600 });
+  /* built by hand: the builder itself refuses this window */
+  const wideTx = new S.TransactionBuilder(new S.Account(cfg.anchor_account, '123456789'), { fee: String(cfg.base_fee), networkPassphrase: cfg.network_passphrase, timebounds: { minTime: NOW - 60, maxTime: NOW + 2 * 3600 } })
+    .addOperation(S.Operation.manageData({ name: T.ANCHOR_KEY, value: Buffer.from(b.sha256, 'ascii') })).build();
+  wideTx.sign(proposer);
+  const wide = wideTx.toEnvelope().toXDR('base64');
   const m = T.matchPending(wide, b, cfg, NOW);
   eq(m.match, false, 'the verifier refuses a two-hour proposal');
   eq(m.reasons[0], 'verifier.tx_mismatch', 'as a transaction mismatch');
