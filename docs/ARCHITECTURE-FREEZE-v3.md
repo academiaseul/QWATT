@@ -435,5 +435,14 @@ Ostertag).** §8 lists Diego Ostertag's GitHub account as `CogeloEasy`. His GitH
 `dostertags`, the account that approved DV-7 and DV-8 on PRs #27 and #26; no GitHub account is
 named `CogeloEasy`. The agreement recorded in §8 stands.
 
+### Tue 3 Nov 2026 (Day 16) · Jay Kim and Diego Ostertag
+
+**§9 · Date of agreement of the notes of 30 and 31 Oct (status note, Tue 3 Nov 2026, Jay Kim and
+Diego Ostertag).** [PR #40](https://github.com/academiaseul/QWATT/pull/40), which added the notes of
+Fri 30 Oct and Sat 31 Oct 2026, was merged on Sat 31 Oct 2026, before Diego Ostertag approved it. He
+approved it on Tue 3 Nov 2026 (approval comment on PR #40). The date of agreement of those notes is
+therefore Tue 3 Nov 2026, not the merge date, and their text stands as merged. From this note on,
+Jay Kim merges a pull request that adds status notes only once Diego Ostertag's approval is on it.
+
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
