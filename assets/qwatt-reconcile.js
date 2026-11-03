@@ -278,12 +278,42 @@
    * @param {{feed:string, horizon:string, account:string, roles?:{proposer:string, verifier:string, third:string}|null, feedOptions?:object}} o
    * @returns {Promise<{report:object, feed:object, anchors:object[], account:object}>}
    */
+  /* the verifier log of the same run: qwatt-evidence/… → qwatt-verifier-log/…; null for any other feed */
+  function verifierLogFor(feedUrl) {
+    var u = String(feedUrl).replace(/\/+$/, '');
+    if (/\/qwatt-evidence\//.test(u)) return u.replace(/\/qwatt-evidence\//, '/qwatt-verifier-log/');
+    if (/\.github\.io\/qwatt-evidence(\/|$)/.test(u)) return u.replace(/\.github\.io\/qwatt-evidence/, '.github.io/qwatt-verifier-log');
+    return null;
+  }
+
+  /* V3-11: batch ids the log refused, at one commit (anchor/chain.js refusedIds: all but walk_too_long alone) */
+  async function fetchRefusals(logUrl, opt) {
+    if (!PIN || typeof PIN.pinBase !== 'function') throw new Error('assets/qwatt-pin.js must be loaded before assets/qwatt-reconcile.js');
+    var pinned = await PIN.pinBase(logUrl, opt || {});
+    var lines = jsonl(await getText(pinned.base + '/refusals.jsonl', opt && opt.timeoutMs));
+    var out = [];
+    lines.forEach(function (l) {
+      if (!l || typeof l.batch_id !== 'string') return;
+      var rs = Array.isArray(l.reasons) ? l.reasons : [];
+      if (rs.length && rs.every(function (r) { return r === 'verifier.walk_too_long'; })) return;
+      if (out.indexOf(l.batch_id) < 0) out.push(l.batch_id);
+    });
+    return { refused: out, base: pinned.base, commit: pinned.commit };
+  }
+
   async function check(o) {
     var record = await fetchAccount(o.horizon, o.account);
     var anchors = await fetchAnchors(o.horizon, o.account);
     var feed = await fetchFeed(o.feed, o.feedOptions);
-    var report = await reconcile(feed, anchors, { account: o.account, record: record, roles: o.roles || null });
-    return { report: report, feed: feed, anchors: anchors, account: record };
+    /* V3-11, after the feed: a given log must be readable; a derived one that is not counts as no refusals (a skip stays BROKEN) */
+    var logUrl = o.verifierLog || verifierLogFor(o.feed), log = null, logError = null;
+    if (logUrl) {
+      try { log = await fetchRefusals(logUrl, o.feedOptions); }
+      catch (err) { if (o.verifierLog) throw err; logError = err.message; }
+    }
+    var report = await reconcile(feed, anchors, { account: o.account, record: record, roles: o.roles || null, refused: log ? log.refused : [] });
+    report.summary.verifier_log = log ? { base: log.base, commit: log.commit } : (logError ? { error: logError } : null);
+    return { report: report, feed: feed, anchors: anchors, account: record, verifierLog: log };
   }
 
   /* ───────────────────────────── the account (§3) ───────────────────────────── */
@@ -383,10 +413,16 @@
       else bySha[a.sha256] = Object.assign({ order: i }, a);
     });
 
-    var prev = null, lastAnchoredIdx = -1, firstUnanchoredAccepted = -1, published = {}, acceptedEnergy = 0;
+    /* V3-11: a link may skip only batches the verifier log refused; it names `tip` and carries its total */
+    var refusedSet = {};
+    (chain.refused || []).forEach(function (id) { refusedSet[id] = true; });
+    var refusedRows = [], refusedSha = {};
+    var prev = null, tip = null, lastAnchoredIdx = -1, firstUnanchoredAccepted = -1, published = {}, acceptedEnergy = 0;
     for (var i = 0; i < feed.listed.length; i++) {
       var e = feed.listed[i], b = feed.batches[e.batch_id];
       var row = { batch_id: e.batch_id, seq: e.seq, status: e.status, reasons: e.reasons || [], ledger_sha256: e.sha256 };
+      var isRefused = refusedSet[e.batch_id] === true;
+      if (isRefused) { row.verifier_refused = true; refusedRows.push(e.batch_id); }
       if (e.seq !== i) problems.push(e.batch_id + ': seq ' + e.seq + ' at position ' + i + ' (sequence gap)');
       if (!b) { problems.push(e.batch_id + ': listed but the batch file is missing'); row.file = 'missing'; rows.push(row); continue; }
       var recomputed;
@@ -394,13 +430,23 @@
       row.recomputed_sha256 = recomputed;
       row.file_ok = recomputed === b.sha256 && b.sha256 === e.sha256;
       if (!row.file_ok) problems.push(e.batch_id + ': file does not re-hash to its ledger entry');
-      var link = prev == null ? '0'.repeat(64) : prev.sha256;
-      row.chain_ok = b.prev_hash === link && (prev == null ? b.seq === 0 : b.seq === prev.seq + 1);
-      if (!row.chain_ok) problems.push(e.batch_id + ': prev_hash does not continue the chain');
+      var link = tip == null ? '0'.repeat(64) : tip.sha256;
+      var skips = prev != null && tip !== prev;
+      row.chain_ok = b.prev_hash === link || (isRefused && refusedSha[b.prev_hash] === true);
+      if (!row.chain_ok) {
+        if (prev != null && b.prev_hash !== prev.sha256 && !refusedRows.length) problems.push(e.batch_id + ': prev_hash does not continue the chain (a link may skip a batch only where the verifier log refused it)');
+        else problems.push(e.batch_id + ': prev_hash does not continue the chain');
+      }
+      row.skips = skips && b.prev_hash === link;
       row.energy_mwh = b.energy_mwh; row.cumulative_mwh = b.cumulative_mwh;
-      if (e.status === 'accepted') acceptedEnergy += b.energy_mwh;
-      row.total_ok = b.cumulative_mwh === acceptedEnergy;
-      if (!row.total_ok) problems.push(e.batch_id + ': cumulative ' + b.cumulative_mwh + ' ≠ ' + acceptedEnergy + ', the energy of the accepted batches up to it (a rejected batch adds none)');
+      if (isRefused) {
+        row.total_ok = true;
+        refusedSha[b.sha256] = true;
+      } else {
+        if (e.status === 'accepted') acceptedEnergy += b.energy_mwh;
+        row.total_ok = b.cumulative_mwh === acceptedEnergy;
+        if (!row.total_ok) problems.push(e.batch_id + ': cumulative ' + b.cumulative_mwh + ' ≠ ' + acceptedEnergy + ', the energy of the accepted batches up to it (a rejected batch and a batch the verifier refused add none)');
+      }
       row.accepted_count = b.accepted_count; row.rejected_count = b.rejected_count;
       published[b.sha256] = true;
 
@@ -410,15 +456,17 @@
         row.anchor = { tx_hash: a.tx_hash, ledger: a.ledger, created_at: a.created_at, memo: a.memo, signed_by: k2.signed_by, mode: k2.mode };
         if (k2.mode === 'broken') problems.push(e.batch_id + ': anchor ' + a.tx_hash.slice(0, 10) + '… ' + (k2.why || 'signed by ' + k2.signed_by + '; only proposer+verifier (normal) or proposer+third (stand-in) may anchor'));
         if (e.status !== 'accepted') problems.push(e.batch_id + ': published as rejected but anchored in ' + a.tx_hash.slice(0, 10) + '…');
+        if (isRefused) problems.push(e.batch_id + ': refused by the verifier (its log) but anchored in ' + a.tx_hash.slice(0, 10) + '…; a refusal is terminal (V3-11)');
         if (a.cumulative_mwh !== b.cumulative_mwh) problems.push(e.batch_id + ': anchored cumulative ' + a.cumulative_mwh + ' ≠ batch ' + b.cumulative_mwh);
         if (a.memo != null && a.memo !== 'QW#' + b.seq) problems.push(e.batch_id + ': anchor memo ' + a.memo + ' ≠ QW#' + b.seq);
         if (firstUnanchoredAccepted >= 0) problems.push(e.batch_id + ' is anchored but earlier accepted batch ' + feed.listed[firstUnanchoredAccepted].batch_id + ' is not (gap)');
         lastAnchoredIdx = i;
-      } else if (e.status === 'accepted' && firstUnanchoredAccepted < 0) {
+      } else if (e.status === 'accepted' && !isRefused && firstUnanchoredAccepted < 0) {
         firstUnanchoredAccepted = i;
       }
       rows.push(row);
       prev = b;
+      if (!isRefused) tip = b;
     }
 
     anchors.forEach(function (a) {
@@ -430,7 +478,7 @@
 
     var accepted = rows.filter(function (r) { return r.status === 'accepted'; });
     var anchoredRows = rows.filter(function (r) { return r.anchor; });
-    var unanchored = accepted.filter(function (r) { return !r.anchor; });
+    var unanchored = accepted.filter(function (r) { return !r.anchor && !r.verifier_refused; });
     var lastAnchor = anchors.length ? anchors[anchors.length - 1] : null;
     var lastAnchoredRow = anchoredRows.length ? anchoredRows[anchoredRows.length - 1] : null;
 
@@ -446,7 +494,8 @@
         anchored_batches: anchoredRows.length,
         awaiting_anchor: unanchored.map(function (r) { return r.batch_id; }),
         anchor_transactions: anchors.length,
-        published_cumulative_mwh: prev ? prev.cumulative_mwh : 0,
+        published_cumulative_mwh: tip ? tip.cumulative_mwh : 0,
+        verifier_refused: refusedRows,
         anchored_cumulative_mwh: lastAnchor ? lastAnchor.cumulative_mwh : 0,
         last_anchored_batch: lastAnchoredRow ? lastAnchoredRow.batch_id : null,
         rejected_intervals: (feed.rejected || []).length,
@@ -464,5 +513,6 @@
   }
 
   return { canonical: canonical, sha256Hex: sha256Hex, batchSha256: batchSha256, fetchFeed: fetchFeed, fetchAnchors: fetchAnchors, fetchAccount: fetchAccount, check: check, reconcile: reconcile,
+    fetchRefusals: fetchRefusals, verifierLogFor: verifierLogFor,
     publicKeyBytes: publicKeyBytes, signedBy: signedBy, INPUT_LABEL: INPUT_LABEL, ACCOUNT_RULES: ACCOUNT_RULES, ROLE_NAMES: ROLE_NAMES, ANCHOR_KEY: ANCHOR_KEY, CUMULATIVE_KEY: CUMULATIVE_KEY };
 }));

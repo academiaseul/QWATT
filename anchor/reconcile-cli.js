@@ -28,7 +28,7 @@ const path = require('path');
 const R = require(path.join(__dirname, '..', 'assets', 'qwatt-reconcile.js'));
 const PIN = require(path.join(__dirname, '..', 'assets', 'qwatt-pin.js'));
 
-const USAGE = 'usage: node anchor/reconcile-cli.js --feed <base URL> --account G… [--horizon URL] [--proposer G… --verifier G… --third G…] [--json]';
+const USAGE = 'usage: node anchor/reconcile-cli.js --feed <base URL> --account G… [--horizon URL] [--verifier-log URL] [--proposer G… --verifier G… --third G…] [--json]';
 
 async function main() {
   const args = process.argv.slice(2);
@@ -40,7 +40,8 @@ async function main() {
   if (given.length && given.length !== 3) { console.error('pass --proposer, --verifier and --third together (public keys)'); process.exitCode = 2; return; }
   const roles = given.length ? { proposer: opt('--proposer'), verifier: opt('--verifier'), third: opt('--third') } : null;
 
-  const { report: rep, feed } = await R.check({ feed: feedUrl, horizon, account, roles });
+  /* V3-11: the verifier log of the same run (derived from a qwatt-evidence address unless given) says which skipped links are refusals */
+  const { report: rep, feed } = await R.check({ feed: feedUrl, horizon, account, roles, verifierLog: opt('--verifier-log') });
   /* process.exitCode, never process.exit(): fetch keep-alive sockets must close first (libuv assert on Windows) */
   process.exitCode = rep.verdict === 'BROKEN' ? 1 : 0;
   if (args.includes('--json')) { console.log(JSON.stringify({ ...rep, evidence: { base: feed.base, commit: feed.commit } }, null, 2)); return; }

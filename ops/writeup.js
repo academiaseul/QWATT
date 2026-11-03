@@ -44,7 +44,8 @@ function testsSection(file) {
     ['C', 'proposer + verifier', 'anchored', s.C_proposer_plus_verifier && s.C_proposer_plus_verifier.ok ? 'success' : '—', s.C_proposer_plus_verifier && s.C_proposer_plus_verifier.hash ? txl(s.C_proposer_plus_verifier.hash) : '—'],
     ['D', 'batch altered after the proposer signed', 'verifier refuses, nothing anchors', s.D_altered_after_proposer_signed ? `\`${(s.D_altered_after_proposer_signed.reasons || []).join(', ')}\`` : '—', 'no transaction (by design)'],
     ['I', 'independence: batch withheld from the verifier\'s only input path', 'verifier refuses, nothing anchors', s.I_withheld_refused ? `\`${(s.I_withheld_refused.reasons || []).join(', ')}\`` : '—', 'no transaction (by design)'],
-    ['L', 'third signer + verifier (liveness)', 'anchored', s.L_third_plus_verifier && s.L_third_plus_verifier.ok ? 'success' : '—', s.L_third_plus_verifier && s.L_third_plus_verifier.hash ? txl(s.L_third_plus_verifier.hash) : '—'],
+    /* V3-13d (D6): the stand-in pair is always proposer + third signer */
+    ['L', 'proposer + third signer (stand-in)', 'anchored', s.L_proposer_plus_third && s.L_proposer_plus_third.ok ? 'success' : '—', s.L_proposer_plus_third && s.L_proposer_plus_third.hash ? txl(s.L_proposer_plus_third.hash) : '—'],
   ];
   return [
     `Evidence file: \`${path.relative(process.cwd(), file).replace(/\\/g, '/')}\` · anchoring account [\`${ev.public_keys.account}\`](${EXPLORER}/account/${ev.public_keys.account})`,
@@ -107,7 +108,12 @@ async function build(o) {
   const anchors = await R.fetchAnchors(o.horizon, o.account);
   /* at one commit of the evidence repository, resolved after Horizon (V3-7c); the write-up names it */
   const feed = await R.fetchFeed(o.feed, o.feedOptions);
-  const rep = await R.reconcile(feed, anchors, { account: o.account, record: acct.error ? null : acct, record_error: acct.error || null, roles: o.roles || null });
+  /* V3-11: the verifier log of the same run says which skipped links are refusals */
+  /* as R.check: a log given explicitly must be readable; a derived one that cannot be read means no refusals */
+  const logUrl = o.verifierLog || R.verifierLogFor(o.feed);
+  let log = null;
+  if (logUrl) { try { log = await R.fetchRefusals(logUrl, o.feedOptions); } catch (e) { if (o.verifierLog) throw e; } }
+  const rep = await R.reconcile(feed, anchors, { account: o.account, record: acct.error ? null : acct, record_error: acct.error || null, roles: o.roles || null, refused: log ? log.refused : [] });
   const s = rep.summary;
   const now = new Date().toISOString();
   const recLink = `${o.reconcileBase}?feed=${encodeURIComponent(o.feed)}&account=${o.account}`;

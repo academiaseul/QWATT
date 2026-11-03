@@ -2,7 +2,11 @@
 /**
  * QWATT — verify a published evidence feed from its files alone
  * ---------------------------------------------------------------------------
- *   node batch/verify-cli.js <feed-dir> [--profile bench | --dataset <dataset.json>] [--json]
+ *   node batch/verify-cli.js <feed-dir> [--profile bench | --dataset <dataset.json>] [--verifier-log <dir|refusals.jsonl>] [--json]
+ *
+ * --verifier-log: the run's directory in a clone of qwatt-verifier-log (or its refusals.jsonl). A batch the
+ * verifier refused is left out of the chain (V3-11): the next batch links past it, and only such a skip is
+ * accepted. Without it, a skip is reported as a chain break.
  *
  * Walks ledger/batches.jsonl in order, loads each batch file, and re-derives
  * it with verifyBatch against the previous batch, the last batch published as
@@ -25,7 +29,24 @@ const { Feed } = require('./feed');
 const V = require('./verify');
 const E = require('../protocol/evidence');
 
-function verifyFeed(dir, { profile } = {}) {
+/**
+ * The batch ids a verifier log refused (V3-11): from its refusals.jsonl lines, every batch_id except one
+ * refused only for verifier.walk_too_long (the rule of anchor/chain.js refusedIds, kept here so this CLI
+ * needs nothing outside protocol/ and batch/).
+ */
+function refusedFromLines(lines) {
+  const out = new Set();
+  for (const l of lines || []) {
+    if (!l || typeof l.batch_id !== 'string') continue;
+    const rs = Array.isArray(l.reasons) ? l.reasons : [];
+    if (rs.length && rs.every((r) => r === 'verifier.walk_too_long')) continue;
+    out.add(l.batch_id);
+  }
+  return out;
+}
+
+function verifyFeed(dir, { profile, refused } = {}) {
+  const R = refused instanceof Set ? refused : new Set(refused || []);
   const feed = new Feed(dir);
   const spec = V.SPEC;
   /* a profile is a spec profile name, or a full profile object (a dataset's derived profile) */
@@ -37,12 +58,18 @@ function verifyFeed(dir, { profile } = {}) {
   const problems = [];
   const report = [];
   let prev = null, floor = null;
+  const bySha = new Map();                                            // every batch read so far, by its hash
 
   listed.forEach((entry, i) => {
     if (entry.seq !== i) problems.push(`batches.jsonl line ${i + 1}: seq ${entry.seq}, expected ${i}`);
     if (!feed.hasBatch(entry.batch_id)) { problems.push(`${entry.batch_id}: listed but no batch file`); return; }
     const batch = feed.readBatch(entry.batch_id);
-    const res = V.verifyBatch(batch, { prev, floor, rejected, raw: feed.readRaw(entry.batch_id), profile: prof, spec, status: entry.status });
+    /* V3-11: a batch is judged against the batch its link names; a link may skip only refused batches
+       (verifyBatch, ctx.refused), and only a refused batch may be built on a refused one */
+    const linked = batch.prev_hash === E.ZERO_HASH ? null : (bySha.get(batch.prev_hash) || prev);
+    if (linked && R.has(linked.batch_id) && !R.has(entry.batch_id)) problems.push(`${entry.batch_id}: links to ${linked.batch_id}, which the verifier refused`);
+    const res = V.verifyBatch(batch, { prev: linked, floor, rejected, raw: feed.readRaw(entry.batch_id), profile: prof, spec, status: entry.status, refused: R });
+    bySha.set(batch.sha256, batch);
     const codes = res.failures.map((f) => f.code);
     if (batch.sha256 !== entry.sha256) problems.push(`${entry.batch_id}: ledger says ${entry.sha256.slice(0, 12)}…, file hashes to ${batch.sha256.slice(0, 12)}…`);
     if (entry.status === 'accepted' && !res.ok) problems.push(`${entry.batch_id}: published as accepted but fails ${codes.join(', ')}`);
@@ -50,7 +77,7 @@ function verifyFeed(dir, { profile } = {}) {
     if (entry.status === 'rejected' && codes.includes('batch.cumulative_mismatch')) problems.push(`${entry.batch_id}: published as rejected but does not carry the previous total forward unchanged`);
     report.push({ batch_id: entry.batch_id, status: entry.status, ok: res.ok, failures: codes, energy_mwh: batch.energy_mwh });
     prev = batch;
-    if (entry.status === 'accepted') floor = batch;
+    if (entry.status === 'accepted' && !R.has(entry.batch_id)) floor = batch;
   });
 
   /* interval lines may name a published batch, or the one batch still open */
@@ -78,11 +105,21 @@ function verifyFeed(dir, { profile } = {}) {
 
 if (require.main === module) {
   const args = process.argv.slice(2);
-  const dir = args.find((a) => !a.startsWith('--'));
-  if (!dir) { console.error('usage: node batch/verify-cli.js <feed-dir> [--profile bench] [--json]'); process.exit(2); }
-  const pi = args.indexOf('--profile'), di = args.indexOf('--dataset');
-  const profile = di >= 0 ? JSON.parse(require('fs').readFileSync(args[di + 1], 'utf8')).profile : (pi >= 0 ? args[pi + 1] : undefined);
-  const out = verifyFeed(path.resolve(dir), { profile });
+  const VALUED = new Set(['--profile', '--dataset', '--verifier-log']);
+  const dir = args.find((a, i) => !a.startsWith('--') && !VALUED.has(args[i - 1]));
+  if (!dir) { console.error('usage: node batch/verify-cli.js <feed-dir> [--profile bench] [--verifier-log <clone of the run in qwatt-verifier-log, or its refusals.jsonl>] [--json]'); process.exit(2); }
+  const fs = require('fs');
+  const pi = args.indexOf('--profile'), di = args.indexOf('--dataset'), li = args.indexOf('--verifier-log');
+  const profile = di >= 0 ? JSON.parse(fs.readFileSync(args[di + 1], 'utf8')).profile : (pi >= 0 ? args[pi + 1] : undefined);
+  /* V3-11: the verifier log of the run says which batches a link may skip */
+  let refused;
+  if (li >= 0) {
+    let f = path.resolve(args[li + 1] || '');
+    if (fs.existsSync(f) && fs.statSync(f).isDirectory()) f = path.join(f, 'refusals.jsonl');
+    const text = fs.existsSync(f) ? fs.readFileSync(f, 'utf8') : '';
+    refused = refusedFromLines(text.split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)));
+  }
+  const out = verifyFeed(path.resolve(dir), { profile, refused });
   if (args.includes('--json')) console.log(JSON.stringify(out, null, 2));
   else {
     console.log(`${out.batches} batches (${out.accepted_batches} accepted, ${out.rejected_batches} rejected) · cumulative ${out.cumulative_mwh} mWh · head ${out.head_sha256 || '—'}`);
@@ -92,4 +129,4 @@ if (require.main === module) {
   process.exit(out.ok ? 0 : 1);
 }
 
-module.exports = { verifyFeed };
+module.exports = { verifyFeed, refusedFromLines };

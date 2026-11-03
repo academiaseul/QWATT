@@ -1003,6 +1003,23 @@ test('pinned fixture: batch hashes are reproducible across implementations', () 
   eq(V.rawOrder(r3[3], r3[2]) > 0 && V.rawOrder({ ts_start: 'yesterday', verdict: 'accept' }, r3[2]) > 0, true, 'R3: an unreadable start (null or not a date) sorts after every readable one');
 });
 
+test('V3-11: verify-cli accepts a link that skips a batch only where the verifier log refused it, and only a refused batch may be built on a refused one', () => {
+  const dir = tmpDir();
+  let refused = [];
+  const p = mkPipe(dir, { refused: () => refused });
+  for (let i = 0; i < 24; i++) p.push(iv(i));
+  refused = ['bench-santiago-000001'];
+  for (let i = 24; i < 36; i++) p.push(iv(i));
+  eq(p.feed.readBatch('bench-santiago-000002').prev_hash, p.feed.readBatch('bench-santiago-000000').sha256, 'the setup holds: batch 2 links to batch 0');
+  const without = verifyFeed(dir);
+  assert(!without.ok && without.problems.some((x) => x.includes('bench-santiago-000002')), `without the verifier log the skip is a chain break: ${without.problems.join('; ')}`);
+  const withLog = verifyFeed(dir, { refused: new Set(refused) });
+  assert(withLog.ok, `with it the feed verifies: ${withLog.problems.join('; ')}`);
+  const { refusedFromLines } = require('./verify-cli');
+  const ids = refusedFromLines([{ batch_id: 'a', reasons: ['verifier.walk_too_long'] }, { batch_id: 'b', reasons: ['verifier.tx_mismatch'] }, { batch_id: 'c', reasons: ['verifier.walk_too_long', 'verifier.head_mismatch'] }]);
+  eq([...ids].sort().join(','), 'b,c', 'every refusal counts, except one for verifier.walk_too_long alone');
+});
+
 /* ───────────────────────────── runner ───────────────────────────── */
 
 if (process.argv.includes('--write')) {
