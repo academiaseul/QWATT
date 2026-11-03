@@ -8,9 +8,12 @@ Wants=network-online.target
 User=qwatt
 WorkingDirectory=/opt/qwatt
 # The proposer key is the stellar-cli identity qwatt-proposer of user qwatt (~qwatt/.config/stellar),
-# generated on this host (freeze v3, V3-8). stellar must be on PATH (/usr/local/bin). No env file:
-# there is no secret to load, and a QWATT_PROPOSER_SECRET in the environment stops the service.
-ExecStart=/usr/bin/node anchor/proposer.js --feed /var/lib/qwatt/feed --config /etc/qwatt/anchor.json --sign-with-key qwatt-proposer --interval 30
+# generated on this host (freeze v3, V3-8). stellar must be on PATH (/usr/local/bin). It loads no secret:
+# live.env holds public values only, and a QWATT_PROPOSER_SECRET in the environment stops the service.
+ExecStart=/usr/bin/node anchor/proposer.js --feed /var/lib/qwatt/feed --config /etc/qwatt/anchor.json --sign-with-key qwatt-proposer --verifier-log ${QWATT_VERIFIER_LOG_URL} --refused-file /var/lib/qwatt/refused.json --interval 30
+# V3-11: the verifier's refusals come from its public log (QWATT_VERIFIER_LOG_URL in live.env, public); the
+# list goes to /var/lib/qwatt/refused.json, which qwatt-live reads before closing each batch.
+EnvironmentFile=/etc/qwatt/live.env
 # V3-13a: restarted after a crash only. A clean exit stays stopped (qwatt-live exits 0 at run_end), and so does
 # exit 2, a start the service refuses (arguments, configuration or key), which a restart cannot fix: the unit
 # shows failed (status=2). A plain SIGTERM is a clean stop too; kill tests use SIGKILL (host README, AT-26).

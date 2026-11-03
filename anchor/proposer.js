@@ -3,6 +3,7 @@
  * QWATT — proposer service (Deliverable 3)
  * ---------------------------------------------------------------------------
  *   node anchor/proposer.js --feed <dir> --config anchor/config.json --sign-with-key qwatt-proposer \
+ *        [--verifier-log <public verifier log URL>/<run>] [--refused-file <path>] \
  *        [--stellar-bin stellar] [--interval 30] [--max-walk 168]
  *
  * The proposer key is the stellar-cli identity `qwatt-proposer` on this host
@@ -24,6 +25,16 @@
  *      proposer key and publish pending/<id>.xdr. Otherwise it returns
  *      'blocked' with the reason the verifier would give, so the two services
  *      cannot disagree about whether a batch can be anchored.
+ *
+ * A verifier refusal is terminal (V3-11). Each tick reads the batches the public
+ * verifier log refused (--verifier-log, at one commit) and never proposes them
+ * again: the next accepted batch goes at the same sequence number. A batch built
+ * on a refused one before the refusal was known is still proposed, so the
+ * verifier refuses it in public (verifier.links_refused) and the reconciliation
+ * can account for it. With --refused-file the list is also written to a local
+ * file, which the pipeline (live/run.js --refused-file) reads before closing a
+ * batch, so the next batch links past the refused ones. A log that cannot be read
+ * keeps the last list read.
  *
  * Publish before sign: a proposal is only ever written for a batch that is
  * already in the feed, so the verifier can never be asked to sign something it
@@ -55,6 +66,8 @@ class Proposer {
    * @param {import('@stellar/stellar-sdk').Keypair} [o.keypair]  instead of a signer, for tests and throwaway rehearsals only
    * @param {object} [o.server]  Horizon server (injectable for tests)
    * @param {number} [o.maxWalk]  most batches walked back to the on-chain head (default chain.MAX_WALK_BATCHES; CLI --max-walk)
+   * @param {function} [o.refused]  async () => batch ids the verifier refused (V3-11; the CLI reads the public verifier log)
+   * @param {string} [o.refusedFile]  where to write that list for the pipeline (CLI --refused-file)
    */
   constructor(o) {
     T.checkConfig(o.cfg);
@@ -64,7 +77,22 @@ class Proposer {
     if (!this.signer) throw new Error('Proposer: a signer is required (stellar-cli through anchor/signer.js; a keypair only in tests and throwaway rehearsals)');
     this.server = o.server || new S.Horizon.Server(o.cfg.horizon_url);
     this.maxWalk = o.maxWalk == null ? C.MAX_WALK_BATCHES : C.checkMaxWalk(o.maxWalk);
+    this.refusedSource = o.refused || null;
+    this.refusedFile = o.refusedFile || null;
+    this.refused = new Set();
     for (const sub of ['pending', 'anchored']) fs.mkdirSync(this.feed.p(sub), { recursive: true });
+  }
+
+  /** V3-11: the batches the verifier refused; a log that cannot be read keeps the last list. */
+  async _readRefused() {
+    if (!this.refusedSource) return this.refused;
+    try { this.refused = new Set(await this.refusedSource()); } catch (e) { /* keep the last list read */ }
+    if (this.refusedFile) {
+      const text = JSON.stringify([...this.refused].sort()) + '\n';
+      let cur = null; try { cur = fs.readFileSync(this.refusedFile, 'utf8'); } catch (e) { /* not written yet */ }
+      if (cur !== text) { const tmp = `${this.refusedFile}.tmp-${process.pid}`; fs.writeFileSync(tmp, text); fs.renameSync(tmp, this.refusedFile); }
+    }
+    return this.refused;
   }
 
   _pendingFile(id) { return this.feed.p('pending', `${id}.xdr`); }
@@ -91,8 +119,9 @@ class Proposer {
       }
     }
 
-    /* 3. the next batch */
-    const next = C.nextToAnchor(listed, prefix);
+    /* 3. the next batch the verifier has not refused (V3-11) */
+    const refused = await this._readRefused();
+    const next = C.nextToAnchor(listed, prefix, refused);
     if (!next) return { action: 'idle', anchored: prefix };
     if (!this.feed.hasBatch(next.batch_id)) return { action: 'wait', reason: 'batch listed but file not yet written', batch_id: next.batch_id };
 
@@ -101,10 +130,13 @@ class Proposer {
     /* the verifier's walk, over the local feed: what the batch inherits must lead back to the on-chain
        head within the same bound, or the verifier would refuse it. The batch is then judged against the
        copies the walk rehashed: the previous batch, and the anchored head as the floor. */
-    const walk = await C.walkToHead(batch, head, (id) => (this.feed.hasBatch(id) ? this.feed.readBatch(id) : null), { maxSteps: this.maxWalk });
-    if (!walk.ok) return { action: 'blocked', batch_id: next.batch_id, reasons: [walk.code], detail: walk.detail };
-    const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: this.feed.readLedger('rejected'), raw: this.feed.readRaw(next.batch_id) });
-    if (!check.ok) return { action: 'blocked', batch_id: next.batch_id, reasons: check.failures.map((f) => f.code) };
+    const walk = await C.walkToHead(batch, head, (id) => (this.feed.hasBatch(id) ? this.feed.readBatch(id) : null), { maxSteps: this.maxWalk, refused });
+    /* a batch built on a refused one is proposed anyway, so the verifier refuses it in public (V3-11) */
+    if (!walk.ok && walk.code !== 'verifier.links_refused') return { action: 'blocked', batch_id: next.batch_id, reasons: [walk.code], detail: walk.detail };
+    if (walk.ok) {
+      const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: this.feed.readLedger('rejected'), raw: this.feed.readRaw(next.batch_id), refused });
+      if (!check.ok) return { action: 'blocked', batch_id: next.batch_id, reasons: check.failures.map((f) => f.code) };
+    }
 
     const pf = this._pendingFile(next.batch_id);
     if (fs.existsSync(pf)) {
@@ -132,7 +164,7 @@ async function cli() {
   const opt = (k, d) => { const i = args.indexOf(k); return i >= 0 ? args[i + 1] : d; };
   let maxWalk;
   try { maxWalk = C.maxWalkArg(args); } catch (e) { console.error(e.message); process.exit(2); }
-  const usage = 'usage: node anchor/proposer.js --feed <dir> --config anchor.json --sign-with-key qwatt-proposer [--stellar-bin stellar] [--interval 30] [--max-walk 168]';
+  const usage = 'usage: node anchor/proposer.js --feed <dir> --config anchor.json --sign-with-key qwatt-proposer [--verifier-log URL] [--refused-file PATH] [--stellar-bin stellar] [--interval 30] [--max-walk 168]';
   const env = SG.refuseEnvSecrets(['QWATT_PROPOSER_SECRET']);
   if (env) { console.error(env); process.exit(2); }
   if (!args.includes('--sign-with-key')) { console.error(`--sign-with-key <identity> is required (the stellar-cli identity that holds the proposer key)\n${usage}`); process.exit(2); }
@@ -140,7 +172,16 @@ async function cli() {
   const { signer, error } = await SG.signerForRole({ args, cfg, role: 'proposer', envNames: ['QWATT_PROPOSER_SECRET'] });
   if (error) { console.error(`${error}\n${usage}`); process.exit(2); }
   console.log(new Date().toISOString(), `proposer key ${signer.publicKey} (stellar-cli identity ${signer.identity})`);
-  const p = new Proposer({ feedDir: path.resolve(opt('--feed', 'feed')), cfg, signer, maxWalk });
+  /* V3-11: the verifier's refusals, from its public log read at one commit */
+  let refused;
+  if (args.includes('--verifier-log') && !/^https?:\/\//.test(opt('--verifier-log') || '')) { console.error(`--verifier-log needs the public verifier log URL (QWATT_VERIFIER_LOG_URL in live.env)\n${usage}`); process.exit(2); }
+  if (opt('--verifier-log')) {
+    const { makeVerifierLogClient } = require('./feed-client');
+    const log = makeVerifierLogClient(opt('--verifier-log'));
+    refused = async () => { await log.snapshot(); return C.refusedIds(await log.refusals()); };
+  }
+  const refusedFile = opt('--refused-file') ? path.resolve(opt('--refused-file')) : null;
+  const p = new Proposer({ feedDir: path.resolve(opt('--feed', 'feed')), cfg, signer, maxWalk, refused, refusedFile });
   const every = Number(opt('--interval', 30)) * 1000;
   const run = async () => {
     try { console.log(new Date().toISOString(), JSON.stringify(await p.tick())); }

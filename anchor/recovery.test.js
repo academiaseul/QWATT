@@ -64,7 +64,7 @@ async function world() {
   const host = await serveDir(feedDir);
   /* V3-11: the batches the verifier refused, from its log (on the hosts the proposer reads the public log
      and leaves the list for the pipeline in a local file; here both read the verifier's state directory) */
-  const refusedIds = () => { try { return fs.readFileSync(path.join(stateDir, 'refusals.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l).batch_id); } catch (e) { return []; } };
+  const refusedIds = () => { try { return [...C.refusedIds(fs.readFileSync(path.join(stateDir, 'refusals.jsonl'), 'utf8').split('\n').filter(Boolean).map((l) => JSON.parse(l)))]; } catch (e) { return []; } };
   const pipe = new Pipeline({ dir: feedDir, site_id: 'rec', node_id: 'rec', refused: refusedIds });
   let n = 0;
   const w = {
@@ -273,7 +273,7 @@ test('both services restarted mid-flight resume from chain and feed without dupl
   await w.close();
 });
 
-test('a batch the verifier refused is never retried with the same proposal, and the refusal is logged once', async () => {
+test('a batch the verifier refused is never judged again, even once the feed is put back (V3-11); the refusal is logged once, and the next batch starts the chain again', async () => {
   const w = await world();
   w.addBatches(1);
   await w.p.tick(w.clock.now());
@@ -282,17 +282,21 @@ test('a batch the verifier refused is never retried with the same proposal, and 
   const b = JSON.parse(orig); b.energy_mwh += 1; b.sha256 = E.batchSha256(b);
   fs.writeFileSync(f, E.canonical(b) + '\n');
   eq((await w.v.tick(w.clock.now())).action, 'refused', 'refused');
-  eq((await w.v.tick(w.clock.now())).action, 'refused', 'still refused');
+  eq((await w.v.tick(w.clock.now())).action, 'idle', 'not judged again: the refusal is terminal');
   const lines = fs.readFileSync(path.join(w.stateDir, 'refusals.jsonl'), 'utf8').split('\n').filter(Boolean);
   eq(lines.length, 1, 'logged once');
-  eq(w.fake.txs.length, 0, 'nothing anchored while the feed is wrong');
   fs.writeFileSync(f, orig);
   await w.settle(w.p, w.v);
-  w.invariant();
-  /* the same proposal, refused while the feed was wrong and signed once it was restored: both decisions are logged */
-  const h = w.fake.txs[0].hash;
-  const d = jsonl(path.join(w.stateDir, 'decisions.jsonl')).map((l) => [l.decision, l.batch_id, l.pending_tx_hash]);
-  eq(JSON.stringify(d), JSON.stringify([['refused', 'rec-000000', h], ['signed', 'rec-000000', h]]), 'decisions.jsonl: refused, then signed, the same proposal');
+  eq(w.fake.txs.length, 0, 'put back, it is still never anchored');
+  /* rec-000000 was the first batch: the next one starts the chain again, from prev_hash 0 */
+  w.addBatches(1);
+  const b1 = w.pipe.feed.readBatch('rec-000001');
+  eq(b1.prev_hash, E.ZERO_HASH, 'rec-000001 starts the chain again');
+  eq(b1.cumulative_mwh, b1.energy_mwh, 'with its own energy only');
+  await w.settle(w.p, w.v);
+  eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#1']), 'rec-000001 anchored');
+  const d = jsonl(path.join(w.stateDir, 'decisions.jsonl')).map((l) => [l.decision, l.batch_id]);
+  eq(JSON.stringify(d), JSON.stringify([['refused', 'rec-000000'], ['signed', 'rec-000001']]), 'decisions.jsonl: rec-000000 refused, rec-000001 signed');
   await w.close();
 });
 
@@ -314,7 +318,7 @@ async function decisionFlow() {
   await w.p.tick(w.clock.now());
   forge(w, 'rec-000001', (b) => { b.energy_mwh += 1; });
   eq((await w.v.tick(w.clock.now())).action, 'refused', 'rec-000001 refused');
-  eq((await w.v.tick(w.clock.now())).action, 'refused', 'and refused again on the next tick');
+  eq((await w.v.tick(w.clock.now())).action, 'idle', 'and not judged again on the next tick (V3-11)');
   return { w, atSubmit };
 }
 
@@ -418,7 +422,7 @@ test('a power cut in the middle of an append leaves half a line: the next append
   await w.close();
 });
 
-test('a refusal whose decision line was lost in a crash between the two appends is completed on the next tick; the refusal count comes from refusals.jsonl', async () => {
+test('a refusal whose decision line was lost in a crash between the two appends is completed on the next tick, without judging the batch again; the refusal count comes from refusals.jsonl', async () => {
   const { w } = await decisionFlow();
   const dec = path.join(w.stateDir, 'decisions.jsonl'), ref = path.join(w.stateDir, 'refusals.jsonl');
   const refBefore = fs.readFileSync(ref);
@@ -426,7 +430,7 @@ test('a refusal whose decision line was lost in a crash between the two appends 
   fs.writeFileSync(dec, jsonl(dec).filter((l) => l.decision !== 'refused').map((l) => JSON.stringify(l) + '\n').join(''));
   const v2 = w.mkVerifier();
   eq(v2.status.refused, 1, 'refused counted from refusals.jsonl (decisions.jsonl holds none) before any tick');
-  eq((await v2.tick(w.clock.now())).action, 'refused', 'the same proposal is refused again');
+  eq((await v2.tick(w.clock.now())).action, 'idle', 'the refused batch is not judged again (V3-11)');
   const refused = jsonl(dec).filter((l) => l.decision === 'refused');
   eq(refused.length, 1, 'exactly one refused decision appended');
   eq(refused[0].pending_tx_hash, jsonl(ref)[0].pending_tx_hash, 'for the refusal already logged');
@@ -701,7 +705,7 @@ test('a lagging Horizon head: whatever the verifier co-signs on a stale head car
   await w.close();
 });
 
-test('the verifier recomputes samples_root from the public raw file before co-signing: an edited or missing raw file is refused and the proposer blocks with the same code; restored, it anchors (batch.samples_root_mismatch, batch.raw_missing)', async () => {
+test('the verifier recomputes samples_root from the public raw file before co-signing: an edited or missing raw file is refused, for good, and the proposer blocks with the same code (batch.samples_root_mismatch, batch.raw_missing)', async () => {
   const w = await world();
   try {
     w.addBatches(1);
@@ -718,15 +722,21 @@ test('the verifier recomputes samples_root from the public raw file before co-si
     const v = await w.v.tick(w.clock.now());
     eq(v.action, 'refused', 'the verifier refuses');
     assert(v.reasons.includes('batch.samples_root_mismatch'), `verifier reasons ${v.reasons}`);
-    fs.unlinkSync(f);
-    const gone = await w.v.tick(w.clock.now());
-    eq(gone.action, 'refused', 'no raw file, no signature');
-    assert(gone.reasons.includes('batch.raw_missing'), `verifier reasons ${gone.reasons}`);
-    eq(w.fake.txs.length, 0, 'nothing anchored');
     fs.writeFileSync(f, good);
     await w.settle(w.p, w.v);
-    w.invariant();
+    eq(w.fake.txs.length, 0, 'restored, it is still never anchored: the refusal is terminal (V3-11)');
   } finally { await w.close(); }
+  const w2 = await world();
+  try {
+    w2.addBatches(1);
+    const f2 = path.join(w2.feedDir, 'raw', 'rec-000000.jsonl');
+    fs.unlinkSync(f2);
+    await propose(w2, w2.pipe.feed.readBatch('rec-000000'));
+    const gone = await w2.v.tick(w2.clock.now());
+    eq(gone.action, 'refused', 'no raw file, no signature');
+    assert(gone.reasons.includes('batch.raw_missing'), `verifier reasons ${gone.reasons}`);
+    eq(w2.fake.txs.length, 0, 'nothing anchored');
+  } finally { await w2.close(); }
 });
 
 /* ── V3-7c: the public evidence read at one commit, after Horizon ── */
@@ -888,7 +898,7 @@ test('a 404 at the pinned commit is read once more before it counts: one CDN mis
   }
 });
 
-test('a 404 at the pinned commit is never remembered: once the file can be read, the next tick at the same commit anchors (review fix 1)', async () => {
+test('a 404 at the pinned commit that outlasts the re-read is a refusal, and like every refusal it is terminal (review fix 1, OD-7, V3-11)', async () => {
   const w = await githubWorld();
   try {
     w.addBatches(1);
@@ -896,13 +906,15 @@ test('a 404 at the pinned commit is never remembered: once the file can be read,
     eq((await w.p.tick(w.clock.now())).action, 'proposed', 'proposed');
     w.publish();
     const head = w.headOf(w.bare);
-    w.gh.failRaw(404, 'run/raw/rec-000000.jsonl');                    // a 404 that outlasts the re-read: judged as today (OD-7 decides)
-    eq((await w.v.tick(w.clock.now())).action, 'refused', 'refused while the raw file cannot be read');
+    w.gh.failRaw(404, 'run/raw/rec-000000.jsonl');                    // a 404 that outlasts the re-read
+    const refused = await w.v.tick(w.clock.now());
+    eq(refused.action, 'refused', 'refused while the raw file cannot be read');
+    assert((refused.reasons || []).includes('batch.raw_missing'), `as batch.raw_missing (${JSON.stringify(refused.reasons)})`);
     w.gh.failRaw(null);
     eq(w.headOf(w.bare), head, 'the branch has not moved: the next tick reads the same commit');
     const r = await w.v.tick(w.clock.now());
-    eq(r.action, 'anchored', `the 404 was not kept for that commit (got ${JSON.stringify(r)})`);
-    w.invariant();
+    eq(r.action, 'idle', `the batch is not judged again (got ${JSON.stringify(r)})`);
+    eq(w.fake.txs.length, 0, 'nothing anchored');
   } finally { await w.close(); }
 });
 

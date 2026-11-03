@@ -2,11 +2,11 @@
  * The repository's own protocol code for the browser (DESIGN D-12): each source below is embedded
  * byte for byte as one module function, so verificacion.html runs exactly what the verifier runs.
  * Sources (SHA-256 of the file bytes, LF line endings as stored in git):
- *   batch/verify.js                2ba0cda90f4f06d318727d8e81d6853d6bfc62ed520ef466a98a404cfada6610
+ *   batch/verify.js                08a08f84c02767a7f821986f33956db6d7c1714630d42903aadb554dd47639d7
  *   protocol/batch.schema.json     ac2552e43e5c78511152b634d1d472ff03f796bbbd8cfc5ba63cd60c3b96a315
  *   protocol/evidence.js           250363a6184c0fde8cad95fde0ce3b3f9a0ffb8b60a3301a6665b73f8aa6a8f9
  *   protocol/interval.schema.json  e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda
- *   protocol/reasons.json          a7e4feafb2b3884b1bcb7b0d8674a603bdce08dfc824301be369c59d751aead5
+ *   protocol/reasons.json          ee3cc82c780bc3f58294671a3a85eff18d77f2e9241646226d79e1ee9ed3372d
  *   protocol/schema-lite.js        9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9
  *   protocol/browser-shim.js       0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec  (the shim)
  * Loaded before this file, not embedded (the gate engine and the served spec binding):
@@ -670,6 +670,7 @@ function intervalErrors(rec) {
  * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
  *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
+ * @param {Set<string>|string[]} [ctx.refused]  batch ids the verifier refused (V3-11): the only seqs a link may skip
  * @param {object[]|null} [ctx.raw] the batch's raw lines (raw/<batch_id>.jsonl, parsed); null: the file is
  *                                 not published (batch.raw_missing); undefined: not checked
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
@@ -710,12 +711,16 @@ function verifyBatch(batch, ctx = {}) {
   const root = E.merkleRoot(batch.intervals);
   if (root !== batch.intervals_root) fail('batch.root_mismatch', { claimed: batch.intervals_root, recomputed: root });
 
-  /* chain: nothing is read from the previous batch or the floor before it rehashes */
+  /* chain: nothing is read from the previous batch or the floor before it rehashes. A link may skip
+     earlier seqs only where the verifier refused those batches (V3-11, ctx.refused): every seq between
+     the batch it links to and itself must be refused */
+  const refused = ctx.refused instanceof Set ? ctx.refused : new Set(ctx.refused || []);
+  const skipsOnlyRefused = (from, to) => { for (let s = from; s < to; s++) if (!refused.has(E.batchId(batch.site_id, s))) return false; return true; };
   if (prev == null) {
-    if (batch.seq !== 0 || batch.prev_hash !== E.ZERO_HASH) fail('batch.genesis_invalid', { seq: batch.seq, prev_hash: batch.prev_hash });
+    if (batch.prev_hash !== E.ZERO_HASH || !(batch.seq === 0 || skipsOnlyRefused(0, batch.seq))) fail('batch.genesis_invalid', { seq: batch.seq, prev_hash: batch.prev_hash });
   } else if (!rehashes(prev)) {
     fail('batch.chain_break', { prev_seq: prev.seq, why: 'the previous batch does not rehash to its sha256' });
-  } else if (batch.seq !== prev.seq + 1 || batch.prev_hash !== prev.sha256 || batch.site_id !== prev.site_id) {
+  } else if (batch.prev_hash !== prev.sha256 || batch.site_id !== prev.site_id || !(batch.seq === prev.seq + 1 || (batch.seq > prev.seq + 1 && skipsOnlyRefused(prev.seq + 1, batch.seq)))) {
     fail('batch.chain_break', { seq: batch.seq, prev_seq: prev.seq, prev_hash: batch.prev_hash, expected: prev.sha256 });
   }
   if (floor != null && floor !== prev && !rehashes(floor)) {
@@ -986,7 +991,8 @@ module.exports = {
     "verifier.tx_mismatch": "The pending transaction is not byte-identical to the one the verifier rebuilt from the published batch.",
     "verifier.hash_mismatch": "The published batch no longer hashes to the value in the pending transaction.",
     "verifier.head_mismatch": "Walking back from the batch through the published chain, rehashing every batch and re-adding every total (a batch never anchored carries the total forward unchanged), does not end at the on-chain anchor with the on-chain cumulative_mwh.",
-    "verifier.walk_too_long": "The walk back to the on-chain head stopped at its bound (168 published batches by default) before reaching the head. The check did not finish; nothing is known to be wrong. The usual cause is a long run of batches published as rejected, such as a node_id changed by mistake. The proposer blocks with the same code; operators raise the bound with --max-walk on both services."
+    "verifier.walk_too_long": "The walk back to the on-chain head stopped at its bound (168 published batches by default) before reaching the head. The check did not finish; nothing is known to be wrong. The usual cause is a long run of batches published as rejected, such as a node_id changed by mistake. The proposer blocks with the same code; operators raise the bound with --max-walk on both services.",
+    "verifier.links_refused": "The batch links to a batch the verifier refused. A verifier refusal is terminal (V3-11), so a batch built on a refused one before the refusal was known can never be anchored; it is refused too, and the next batch links past both."
   }
 };
   }
@@ -1044,10 +1050,10 @@ module.exports = {
     sources: [
     { path: "protocol/evidence.js", sha256: "250363a6184c0fde8cad95fde0ce3b3f9a0ffb8b60a3301a6665b73f8aa6a8f9", bytes: 7689 },
     { path: "protocol/schema-lite.js", sha256: "9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9", bytes: 3019 },
-    { path: "batch/verify.js", sha256: "2ba0cda90f4f06d318727d8e81d6853d6bfc62ed520ef466a98a404cfada6610", bytes: 18572 },
+    { path: "batch/verify.js", sha256: "08a08f84c02767a7f821986f33956db6d7c1714630d42903aadb554dd47639d7", bytes: 19221 },
     { path: "protocol/interval.schema.json", sha256: "e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda", bytes: 4619 },
     { path: "protocol/batch.schema.json", sha256: "ac2552e43e5c78511152b634d1d472ff03f796bbbd8cfc5ba63cd60c3b96a315", bytes: 4872 },
-    { path: "protocol/reasons.json", sha256: "a7e4feafb2b3884b1bcb7b0d8674a603bdce08dfc824301be369c59d751aead5", bytes: 6076 }
+    { path: "protocol/reasons.json", sha256: "ee3cc82c780bc3f58294671a3a85eff18d77f2e9241646226d79e1ee9ed3372d", bytes: 6339 }
     ],
     shim: { path: "protocol/browser-shim.js", sha256: "0acd8489b626ccee234bdd432b1d101c2e8f6d76e87dc4f361f024d015c7f9ec" },
     external: [{"path":"assets/qwatt-gates.js","sha256":"7642446a2e733351256136a31790a6886bdfb13f94cad03751260201c677d22b"},{"path":"assets/gates.browser.js","sha256":"21b50b23f90a71011c2610362cfb5230075b6be6da676c3d76da9ab3a9286994"}],

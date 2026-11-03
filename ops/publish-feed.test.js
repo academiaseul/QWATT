@@ -857,7 +857,7 @@ test('the deploy template makes the operator choose the run name: QWATT_RUN is a
   const cli = spawnSync(process.execPath, [path.join(__dirname, 'publish-feed.js'), '--kind', 'evidence', '--feed', w.feed, '--run', runs[0], '--dir', path.join(w.root, 'site'), '--once'], { encoding: 'utf8', timeout: 60e3 });
   eq(cli.status, 2, `qwatt-publish with the placeholder exits 2 at start (${cli.stderr.trim()})`);
   const urls = [...values('QWATT_FEED_URL'), ...values('QWATT_VERIFIER_LOG_URL')];
-  eq(urls.length, 3, 'the feed URL in verifier.env and watch.env, the log URL in watch.env');
+  eq(urls.length, 4, 'the feed URL in verifier.env and watch.env, the log URL in watch.env and in live.env (V3-11: the proposer reads the refusals)');
   for (const u of urls) assert(u.endsWith(`/main/${runs[0]}`), `the URL names the same run: ${u}`);
   assert(/public history is never rewritten/.test(tpl) && /`run` is only for the seven-day live run/.test(tpl) && /rehearsal-2026-10-29/.test(tpl), 'the comment says why: run vs rehearsal, and a published name can never be reused');
   const rb = fs.readFileSync(path.join(__dirname, '..', 'docs', 'RUNBOOK.md'), 'utf8');

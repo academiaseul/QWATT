@@ -9,7 +9,7 @@ Wants=network-online.target
 [Service]
 User=qwatt
 WorkingDirectory=/opt/qwatt
-ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days ${QWATT_RUN_DAYS} --start ${QWATT_RUN_START} --proposer ${QWATT_PROPOSER_PUBLIC} --verifier ${QWATT_VERIFIER_PUBLIC} --third ${QWATT_THIRD_PUBLIC}
+ExecStart=/usr/bin/node live/run.js --feed /var/lib/qwatt/feed --days ${QWATT_RUN_DAYS} --start ${QWATT_RUN_START} --proposer ${QWATT_PROPOSER_PUBLIC} --verifier ${QWATT_VERIFIER_PUBLIC} --third ${QWATT_THIRD_PUBLIC} --refused-file /var/lib/qwatt/refused.json
 EnvironmentFile=/etc/qwatt/live.env
 # V3-13a: restarted after a crash only. A clean exit stays stopped (qwatt-live exits 0 at run_end), and so does
 # exit 2, a start the service refuses (arguments, configuration or key), which a restart cannot fix: the unit
