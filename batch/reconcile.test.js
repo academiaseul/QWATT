@@ -169,6 +169,47 @@ test('wrong cumulative, wrong memo, or the same hash anchored twice → BROKEN',
   }
 });
 
+/* ── V3-11: a link that skips a batch, only where the verifier log refused it ── */
+
+/** rc-000000, rc-000001 (refused by the verifier), rc-000002 built after the refusal: it links to rc-000000. */
+function makeSkipFeed() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-rc-skip-'));
+  let refused = [];
+  const p = new Pipeline({ dir, site_id: 'rc', node_id: 'rc', refused: () => refused });
+  for (let i = 0; i < 24; i++) p.push(iv(i));
+  refused = ['rc-000001'];
+  for (let i = 24; i < 36; i++) p.push(iv(i));
+  const listed = p.feed.readLedger('batches');
+  const batches = Object.fromEntries(listed.map((e) => [e.batch_id, p.feed.readBatch(e.batch_id)]));
+  return { listed, batches, run: runFile(), index: p.feed.readIndex(), rejected: p.feed.readLedger('rejected') };
+}
+const anchorsOf = (feed, ids) => ids.map((id, i) => {
+  const e = feed.listed.find((x) => x.batch_id === id), tx_hash = E.sha256('tx' + e.seq);
+  return { tx_hash, ledger: 1000 + i, created_at: new Date(T0 + i * 3600e3).toISOString(), memo: `QW#${e.seq}`, sha256: e.sha256, cumulative_mwh: feed.batches[id].cumulative_mwh, signatures: [sign('proposer', tx_hash), sign('verifier', tx_hash)] };
+});
+
+test('V3-11: a link that skips a batch the verifier log refused reconciles; the refused batch is never anchored and adds no energy', async () => {
+  const feed = makeSkipFeed();
+  eq(feed.batches['rc-000002'].prev_hash, feed.batches['rc-000000'].sha256, 'the setup holds: rc-000002 links to rc-000000');
+  const rep = await R.reconcile(feed, anchorsOf(feed, ['rc-000000', 'rc-000002']), chainFor({ refused: ['rc-000001'] }));
+  eq(rep.verdict, 'RECONCILED', rep.problems.join('; '));
+  eq(JSON.stringify(rep.summary.verifier_refused), JSON.stringify(['rc-000001']), 'the summary names the refused batch');
+  eq(rep.rows[1].verifier_refused, true, 'its row says so');
+  eq(rep.summary.anchored_cumulative_mwh, feed.batches['rc-000000'].energy_mwh + feed.batches['rc-000002'].energy_mwh, 'the anchored total is the energy of the anchored batches only');
+  eq(rep.summary.awaiting_anchor.length, 0, 'a refused batch is not awaiting anchor');
+});
+
+test('V3-11: the same skip without the verifier log, or a refused batch anchored anyway → BROKEN', async () => {
+  const feed = makeSkipFeed();
+  const anchors = anchorsOf(feed, ['rc-000000', 'rc-000002']);
+  const none = await R.reconcile(feed, anchors, chainFor());
+  eq(none.verdict, 'BROKEN', 'without the verifier log the skip is not accounted for');
+  assert(none.problems.some((p) => /rc-000002/.test(p) && /verifier log/.test(p)), `the problem names the batch and the missing log: ${none.problems.join('; ')}`);
+  const anchored = await R.reconcile(feed, anchorsOf(feed, ['rc-000000', 'rc-000001']), chainFor({ refused: ['rc-000001'] }));
+  eq(anchored.verdict, 'BROKEN', 'a batch the verifier refused must never be anchored');
+  assert(anchored.problems.some((p) => /rc-000001/.test(p) && /refused/.test(p)), anchored.problems.join('; '));
+});
+
 test('a broken chain link in the feed → BROKEN', async () => {
   const { feed } = makeFeed(3);
   const id = feed.listed[2].batch_id;
