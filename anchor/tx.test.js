@@ -129,6 +129,60 @@ test('expired, over-wide and unparseable proposals are refused', () => {
   assert(threw, 'builder refuses a window wider than 24 h');
 });
 
+/* ── V3-11 (part a): timebounds at most 60 minutes, a fixed fee (OD-6), one signature, the proposer's ── */
+
+test('V3-11: timebounds are a window of at most 60 minutes, for the builder, the proposal and the verifier', () => {
+  const [b] = batches(1);
+  eq(T.MAX_WINDOW_S, 3600, 'MAX_WINDOW_S is 60 minutes');
+  const p = params();
+  assert(p.maxTime - p.minTime <= 3600, `a fresh proposal is valid for at most 60 minutes (${p.maxTime - p.minTime} s)`);
+  assert(p.maxTime > NOW, 'and is still valid now');
+  let threw = false;
+  try { T.buildAnchorTx(b, cfg, { sequence: '1', minTime: NOW, maxTime: NOW + 3601 }); } catch (e) { threw = /60 minutes/.test(e.message); }
+  assert(threw, 'the builder refuses a window one second over 60 minutes, and says why');
+  /* built by hand: the builder itself refuses this window */
+  const wideTx = new S.TransactionBuilder(new S.Account(cfg.anchor_account, '123456789'), { fee: String(cfg.base_fee), networkPassphrase: cfg.network_passphrase, timebounds: { minTime: NOW - 60, maxTime: NOW + 2 * 3600 } })
+    .addOperation(S.Operation.manageData({ name: T.ANCHOR_KEY, value: Buffer.from(b.sha256, 'ascii') })).build();
+  wideTx.sign(proposer);
+  const wide = wideTx.toEnvelope().toXDR('base64');
+  const m = T.matchPending(wide, b, cfg, NOW);
+  eq(m.match, false, 'the verifier refuses a two-hour proposal');
+  eq(m.reasons[0], 'verifier.tx_mismatch', 'as a transaction mismatch');
+  assert(/60 minutes/.test(m.detail || ''), `the detail names the limit: ${m.detail}`);
+});
+
+test('V3-11 / OD-6: the fee is fixed in the public config: required, a whole number of stroops of at least 100, and setup-account writes 1,000', () => {
+  const [b] = batches(1);
+  const without = Object.assign({}, cfg); delete without.base_fee;
+  let threw = false; try { T.buildAnchorTx(b, without, params()); } catch (e) { threw = /base_fee/.test(e.message); }
+  assert(threw, 'a config without base_fee is refused');
+  for (const bad of [50, 100.5, '1000', -1]) {
+    threw = false; try { T.checkConfig(Object.assign({}, cfg, { base_fee: bad })); } catch (e) { threw = /base_fee/.test(e.message); }
+    assert(threw, `base_fee ${JSON.stringify(bad)} is refused`);
+  }
+  const SA = require('./setup-account');
+  const g = () => S.Keypair.random().publicKey();
+  const written = SA.configFor(Object.assign({}, SA.DEFAULTS, { proposer: g(), verifier: g(), third: g() }), g());
+  eq(written.base_fee, 1000, 'anchor.json written by setup-account carries the OD-6 fee');
+  eq(T.OD6_FEE, 1000, 'tx.js names the OD-6 fee');
+});
+
+test('V3-11: the pending envelope carries exactly one signature, the proposer\'s; any other is refused before signing', () => {
+  const [b] = batches(1);
+  const c = Object.assign({}, cfg, { signers: { proposer: proposer.publicKey(), verifier: S.Keypair.random().publicKey(), third: S.Keypair.random().publicKey() } });
+  const env = (signers) => { const tx = T.buildAnchorTx(b, c, params()); for (const k of signers) tx.sign(k); return tx.toEnvelope().toXDR('base64'); };
+  eq(T.matchPending(env([proposer]), b, c, NOW).match, true, 'the proposer alone: matches');
+  const other = S.Keypair.random();
+  for (const [what, keys] of [['unsigned', []], ['proposer + another key', [proposer, other]], ['another key alone', [other]], ['the proposer twice', [proposer, proposer]]]) {
+    const m = T.matchPending(env(keys), b, c, NOW);
+    eq(m.match, false, `${what}: refused`);
+    eq(m.reasons[0], 'verifier.tx_mismatch', `${what}: reason`);
+    assert(/one signature|proposer/.test(m.detail || ''), `${what}: the detail says why (${m.detail})`);
+  }
+  const noRoles = T.matchPending(env([proposer, other]), b, cfg, NOW);
+  eq(noRoles.match, false, 'without signer roles in the config, two signatures are still refused');
+});
+
 test('config is validated before anything is built', () => {
   const [b] = batches(1);
   for (const k of ['anchor_account', 'payment_destination', 'asset_issuer', 'network_passphrase']) {

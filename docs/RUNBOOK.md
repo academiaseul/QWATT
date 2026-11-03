@@ -218,7 +218,7 @@ where it already was.
 ## Tests A–D and independence on the real account
 
 Once, on the week-2 account, right after setup (Thu 29 Oct; Fri 30 is the buffer). A, B, D and I
-must run while the SAME proposal is live (its window is 24 h; 60 minutes once V3-11 lands) and the
+must run while the SAME proposal is live (its window is at most 60 minutes, V3-11; the proposer renews it 10 minutes before it ends, which changes its hash) and the
 verifier service is stopped; C is the verifier service then anchoring that very proposal. A, B and C
 are therefore one transaction body with one hash, and the verdict checks it. `$FEED` is the public
 feed URL and `<G_A>` the anchoring account. Every file written is public data.

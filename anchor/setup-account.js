@@ -327,7 +327,7 @@ function configFor(o, account) {
     asset_issuer: o.asset_issuer,
     payment_destination: o.treasury,
     payment_amount: o.payment_amount,
-    base_fee: Number(S.BASE_FEE),
+    base_fee: 1000,                                    // OD-6: the fixed fee, in stroops (anchor/tx.js OD6_FEE)
     signers: { proposer: o.proposer, verifier: o.verifier, third: o.third },
   };
 }
