@@ -1251,9 +1251,7 @@ function ruleWeight(table) {
     }
     let total = Buffer.byteLength(TEXTS[p]);
     for (const r of refs) total += TEXTS[r] != null ? Buffer.byteLength(TEXTS[r]) : fs.statSync(path.join(ROOT, r)).size;
-    /* index.html stamps every week's highlights and loads assets/qwatt-reconcile.js for its live widgets,
-       which grows with each reconciliation rule (V3-11): 320 KB there; every other page keeps 300 */
-    const cap = p === 'verificacion.html' ? 400 : p === 'index.html' ? 320 : 300;
+    const cap = p === 'verificacion.html' ? 400 : 300;
     table.push({ page: p, html: Buffer.byteLength(TEXTS[p]), total, cap: cap * KB });
     if (total > cap * KB) fail(p, 0, 'R-WEIGHT', 'page-total', `${total} bytes with its scripts and styles`, `page total budget ${cap} KB`);
   }
