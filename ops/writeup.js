@@ -107,7 +107,12 @@ async function build(o) {
   const anchors = await R.fetchAnchors(o.horizon, o.account);
   /* at one commit of the evidence repository, resolved after Horizon (V3-7c); the write-up names it */
   const feed = await R.fetchFeed(o.feed, o.feedOptions);
-  const rep = await R.reconcile(feed, anchors, { account: o.account, record: acct.error ? null : acct, record_error: acct.error || null, roles: o.roles || null });
+  /* V3-11: the verifier log of the same run says which skipped links are refusals */
+  /* as R.check: a log given explicitly must be readable; a derived one that cannot be read means no refusals */
+  const logUrl = o.verifierLog || R.verifierLogFor(o.feed);
+  let log = null;
+  if (logUrl) { try { log = await R.fetchRefusals(logUrl, o.feedOptions); } catch (e) { if (o.verifierLog) throw e; } }
+  const rep = await R.reconcile(feed, anchors, { account: o.account, record: acct.error ? null : acct, record_error: acct.error || null, roles: o.roles || null, refused: log ? log.refused : [] });
   const s = rep.summary;
   const now = new Date().toISOString();
   const recLink = `${o.reconcileBase}?feed=${encodeURIComponent(o.feed)}&account=${o.account}`;

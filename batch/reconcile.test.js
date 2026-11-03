@@ -612,7 +612,12 @@ test('V3-7c: fetchFeed reads a GitHub feed at one commit after Horizon, so an an
     eq(res.feed.commit, g.head(), 'check() returns the commit it read');
     const after = g.gh.requests.slice(mark).map((r) => r.path);
     assert(/info\/refs/.test(after[0] || ''), `the head commit is resolved first: ${after.join(' | ')}`);
-    assert(after.slice(1).every((u) => u.startsWith(`/raw/acme/qwatt-evidence/${g.head()}/run/`)), `then every file at the commit: ${after.join(' | ')}`);
+    /* V3-11: after the feed, the verifier log of the same run (here no such repository: no refusals, noted) */
+    const feedReads = after.slice(1).filter((u) => !/qwatt-verifier-log/.test(u));
+    assert(feedReads.every((u) => u.startsWith(`/raw/acme/qwatt-evidence/${g.head()}/run/`)), `then every file at the commit: ${after.join(' | ')}`);
+    const firstLog = after.findIndex((u) => /qwatt-verifier-log/.test(u));
+    assert(firstLog > 0 && after.slice(firstLog).every((u) => /qwatt-verifier-log/.test(u)), `the verifier log is read after the feed: ${after.join(' | ')}`);
+    assert(res.report.summary.verifier_log && res.report.summary.verifier_log.error, 'an unreadable derived log is reported, not ignored');
   } finally { if (hz) await hz.close(); await g.gh.close(); }
 });
 
