@@ -68,6 +68,12 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > Se decidió el martes 3 de noviembre (correo de Jay Kim a Diego Ostertag); los PR #43 y #44, que
 > lo construyen, siguen abiertos a la fecha de esta nota. El detalle, y las dos consecuencias que
 > los dos fundadores aceptan al acordar esta nota, están en §9.
+>
+> *Nota fechada (martes 3 de noviembre de 2026, Jay Kim y Diego Ostertag).* DV-9, desviación de la
+> semana 3: tras un rechazo definitivo del verificador, el lote siguiente enlaza con el lote
+> anterior al rechazado más antiguo de su cadena, no siempre con el último anclado, y la referencia
+> de tiempo del procesamiento no retrocede. Hay un caso conocido en que el anclaje se detiene: un
+> lote publicado como rechazado encima de un lote que el verificador rechazó. El detalle está en §9.
 
 ## 1. What stays frozen from v2
 
@@ -176,6 +182,8 @@ Not adopted from the sprint plan: F4 (envelope template; the full rebuild is str
 (re-timed dataset with a derived second meter), and F3's run of several pending transactions. F5 is
 the stand-in role in §3.
 
+*Deviation built in week 3 (DV-9): §9, status note of Tue 3 Nov 2026.*
+
 ## 3. What the 2-of-3 multisig guarantees, and what it does not
 
 **Setup.** One dedicated anchoring account with three signers of weight 1: the proposer key
@@ -247,6 +255,10 @@ anchoring stops, and recovery is a new account. Hence the tested backups (V3-8).
 
 *Status note of Tue 3 Nov 2026 on OD-7: a refusal whose only reason is `verifier.walk_too_long` is
 not terminal (§9).*
+
+*Status note of Tue 3 Nov 2026 on DV-9: the next batch links to the parent of the oldest refused
+batch, and the batch pipeline's floor does not move back. Its limits include one case that stops
+anchoring (§9).*
 
 Since week 1 the time, node and counted-interval checks run against the floor, not the previous
 published batch: a rejected batch carries no energy, so its window and intervals never become the
@@ -490,6 +502,15 @@ rejected intervals when the missing file is the rejected ledger. Other read fail
 commit it judged (`feed_commit` in `decisions.jsonl`), so anyone can check whether the file was in
 that commit. Second, `verifier.tx_mismatch` is terminal, so the two hosts' `anchor.json` must be
 identical: with a different fee or proposer key, every proposal is refused, each one for good.
+
+**Deviation built in week 3 (status note, Tue 3 Nov 2026, Jay Kim and Diego Ostertag).** One
+deviation, in how V3-11 was built. It changes no rule for `cumulative_mwh`: only which batch the
+next batch links to, and which floor the batch pipeline keeps. Both founders approve the text by
+agreeing this note: there is no earlier approval, and the code was merged before it.
+
+| # | Departs from | Approved text | Built in | Approved |
+|---|---|---|---|---|
+| DV-9 | V3-11 (§4: week-3 Chain and Floor rows, the row A verifier refusal, and the text below the table); V3-1 (with nothing anchored, the walk can end above seq 0); DV-5 (a batch whose walk fails `verifier.links_refused` is proposed, not blocked) | **Link:** once the batch pipeline knows of a terminal verifier refusal (OD-7), the next batch to close links to the parent of the oldest refused batch on its chain, not always to the last anchored batch. They are the same batch unless batches published as rejected lie between them: those stay in the chain, as in week 1, and only a batch the verifier refused for good may be skipped, so a direct link to the last anchored batch fails `batch.chain_break`. A batch published as rejected carries the total forward, so the next batch still starts from the last anchored batch's `cumulative_mwh`, or from 0 with nothing anchored. If the oldest refused batch started the chain, the next batch starts it again: `prev_hash` of 64 zeros at a `seq` above 0, and a total starting from 0. `seq` keeps counting up. `batch/verify-cli.js` accepts a skip only with `--verifier-log`: the command in §7 has no such flag, so it reports a skip as a chain break. **Floor:** the verifier and `anchor/proposer.js` `tick` judge against the last anchored batch, as §4 says; `batch/verify-cli.js` uses the last accepted batch the verifier log did not refuse. The batch pipeline's own floor stays at the last batch with status `accepted` in `ledger/batches.jsonl`, which can be the refused batch, because a refusal is recorded only in the verifier log. So the pipeline keeps a refused batch's window and intervals closed and drops its energy for good; no checker enforces that. **Limits, as built at `fd99f27`:** this note does not say that anchoring continues after every refusal. If a batch published as rejected sits on a refused batch, the next batch fails its self-check (`batch.chain_break`) and the batch after it fails the walk with `verifier.head_mismatch`: the proposer blocks, anchoring stops and the reconciliation reads BROKEN. A batch that closes before a batch built on a refused one has itself been refused fails `batch.chain_break` and is published as rejected, so its energy is lost too. | [PR #43](https://github.com/academiaseul/QWATT/pull/43) (V3-11b), with the reconciliation and `batch/verify-cli.js` in [PR #47](https://github.com/academiaseul/QWATT/pull/47), which brought V3-11c (`34a8bc3`, opened as PR #44) to main | Jay Kim and Diego Ostertag, by agreeing this note |
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
