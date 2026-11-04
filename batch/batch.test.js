@@ -1020,6 +1020,28 @@ test('V3-11: verify-cli accepts a link that skips a batch only where the verifie
   eq([...ids].sort().join(','), 'b,c', 'every refusal counts, except one for verifier.walk_too_long alone');
 });
 
+test('V3-11: verify-cli accepts a batch published as rejected on a refused batch, and the link past both; a skipped batch built on anything else stays a chain break', () => {
+  const dir = tmpDir();
+  let refused = [];
+  const p = mkPipe(dir, { refused: () => refused });
+  for (let i = 0; i < 24; i++) p.push(iv(i));
+  p.asm.node_id = 'node-2';
+  for (let i = 24; i < 36; i++) p.push(Object.assign(iv(i), { node_id: 'node-2' }));
+  p.asm.node_id = 'test-node';
+  refused = ['bench-santiago-000001'];
+  for (let i = 36; i < 60; i++) p.push(iv(i));
+  const st = p.feed.readLedger('batches').map((e) => e.status).join(',');
+  eq(st, 'accepted,accepted,rejected,accepted,accepted', 'the setup holds: batch 2 rejected on the refused batch 1, batches 3 and 4 accepted');
+  eq(p.feed.readBatch('bench-santiago-000003').prev_hash, p.feed.readBatch('bench-santiago-000000').sha256, 'batch 3 links to batch 0');
+  const withLog = verifyFeed(dir, { refused: new Set(refused) });
+  assert(withLog.ok, `with the log the feed verifies: ${withLog.problems.join('; ')}`);
+  eq(withLog.cumulative_mwh, p.feed.readBatch('bench-santiago-000000').energy_mwh + p.feed.readBatch('bench-santiago-000003').energy_mwh + p.feed.readBatch('bench-santiago-000004').energy_mwh, 'the refused energy never enters the total');
+  assert(!verifyFeed(dir).ok, 'without the log it is a chain break');
+  /* the accepted batch built on the refused one, once refused too, is left out like any other */
+  const V3 = V.leftOut([{ batch_id: 'r', sha256: 'a', prev_hash: 'z' }, { batch_id: 'x', sha256: 'b', prev_hash: 'a' }, { batch_id: 'y', sha256: 'c', prev_hash: 'z' }], ['r']);
+  eq([...V3].sort().join(','), 'r,x', 'V.leftOut: the refused batch and what is built on it, not a batch built elsewhere');
+});
+
 /* ───────────────────────────── runner ───────────────────────────── */
 
 if (process.argv.includes('--write')) {

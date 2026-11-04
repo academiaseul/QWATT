@@ -72,6 +72,8 @@ async function world() {
     mkProposer: () => new Proposer({ feedDir, cfg, keypair: keys.proposer, server: fake, refused: async () => refusedIds() }),
     mkVerifier: (o = {}) => new Verifier({ feedUrl: host.url, cfg, keypair: keys.verifier, stateDir, server: fake, ...o }),
     addBatches(k) { for (let i = 0; i < 12 * k; i++) pipe.push(iv(n++)); },
+    /* one batch published as rejected (batch.site_mismatch): the node changes for one window */
+    addRejectedBatch() { pipe.asm.node_id = 'other'; for (let i = 0; i < 12; i++) pipe.push(iv(n++, { node_id: 'other' })); pipe.asm.node_id = 'rec'; },
     accepted() { return pipe.feed.readLedger('batches').filter((e) => e.status === 'accepted'); },
     async settle(p, v, rounds = 40) {
       for (let r = 0; r < rounds; r++) {
@@ -978,6 +980,128 @@ test('V3-11: a batch built on the refused one before the refusal was known is re
   eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#3']), 'rec-000000 and rec-000003 anchored');
   eq(onChain(w).cumulative, b0.energy_mwh + b3.energy_mwh, 'neither refused batch adds energy');
   await w.close();
+});
+
+/** rec-000000 anchored, then the batches the setup adds, then the verifier refuses rec-000001 (or `id`). */
+async function refuse(w, id = 'rec-000001') {
+  eq((await w.p.tick(w.clock.now())).action, 'proposed', `${id} proposed`);
+  badProposal(w, id);
+  const r = await w.v.tick(w.clock.now());
+  eq(r.action, 'refused', `${id} refused`);
+}
+const statusOf = (w, id) => w.pipe.feed.readLedger('batches').find((e) => e.batch_id === id).status;
+
+test('V3-11: a batch published as rejected on top of a refused batch does not stop anchoring: the next batches are accepted and anchored (DV-9 limit)', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    await w.settle(w.p, w.v);
+    const b0 = w.pipe.feed.readBatch('rec-000000');
+    w.addBatches(1);
+    w.addRejectedBatch();
+    eq(statusOf(w, 'rec-000002'), 'rejected', 'the setup holds: rec-000002 is published as rejected');
+    eq(w.pipe.feed.readBatch('rec-000002').prev_hash, w.pipe.feed.readBatch('rec-000001').sha256, 'on top of rec-000001');
+    await refuse(w);
+    w.addBatches(2);
+    eq(statusOf(w, 'rec-000003'), 'accepted', 'rec-000003 passes its self-check (no batch.chain_break)');
+    eq(w.pipe.feed.readBatch('rec-000003').prev_hash, b0.sha256, 'and links to rec-000000');
+    eq(statusOf(w, 'rec-000004'), 'accepted', 'rec-000004 too');
+    await w.settle(w.p, w.v);
+    eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#3', 'QW#4']), 'anchoring goes on');
+    eq(onChain(w).cumulative, b0.energy_mwh + w.pipe.feed.readBatch('rec-000003').energy_mwh + w.pipe.feed.readBatch('rec-000004').energy_mwh, 'with the energy of the anchored batches only');
+  } finally { await w.close(); }
+});
+
+test('V3-11: a batch that closes before a batch built on a refused one has been refused keeps its energy: it is accepted and anchored after that refusal (DV-9 limit)', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    await w.settle(w.p, w.v);
+    const b0 = w.pipe.feed.readBatch('rec-000000');
+    w.addBatches(2);                                                // rec-000002 is built on rec-000001
+    await refuse(w);
+    w.addBatches(1);                                                // rec-000002 has not been refused yet
+    eq(statusOf(w, 'rec-000003'), 'accepted', 'rec-000003 passes its self-check (no batch.chain_break)');
+    eq(w.pipe.feed.readBatch('rec-000003').prev_hash, b0.sha256, 'and links to rec-000000');
+    eq((await w.p.tick(w.clock.now())).action, 'proposed', 'rec-000002 still goes first');
+    const r = await w.v.tick(w.clock.now());
+    assert(r.action === 'refused' && r.batch_id === 'rec-000002' && r.reasons.includes('verifier.links_refused'), `refused in public: ${JSON.stringify(r)}`);
+    await w.settle(w.p, w.v);
+    eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#3']), 'rec-000003 is anchored');
+    eq(onChain(w).cumulative, b0.energy_mwh + w.pipe.feed.readBatch('rec-000003').energy_mwh, 'its energy counts');
+  } finally { await w.close(); }
+});
+
+test('V3-11: a batch published as rejected just before the refused one stays in the chain: the next batch links to it, with the total it carries (DV-9)', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    await w.settle(w.p, w.v);
+    const b0 = w.pipe.feed.readBatch('rec-000000');
+    w.addRejectedBatch();
+    w.addBatches(1);
+    eq(statusOf(w, 'rec-000002'), 'accepted', 'the setup holds: rec-000002 is accepted, on top of the rejected rec-000001');
+    await refuse(w, 'rec-000002');
+    w.addBatches(1);
+    const b3 = w.pipe.feed.readBatch('rec-000003');
+    eq(statusOf(w, 'rec-000003'), 'accepted', 'rec-000003 is accepted');
+    eq(b3.prev_hash, w.pipe.feed.readBatch('rec-000001').sha256, 'it links to rec-000001, the parent of the refused batch');
+    eq(b3.cumulative_mwh, b0.cumulative_mwh + b3.energy_mwh, 'the total starts from the last anchored batch');
+    await w.settle(w.p, w.v);
+    eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#3']), 'rec-000003 is anchored');
+  } finally { await w.close(); }
+});
+
+test('V3-11: a second refusal after a link past the first: the new link skips everything left out before, a rejected batch included', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    await w.settle(w.p, w.v);
+    const b0 = w.pipe.feed.readBatch('rec-000000');
+    w.addBatches(1);
+    w.addRejectedBatch();
+    await refuse(w);
+    w.addBatches(1);
+    eq(w.pipe.feed.readBatch('rec-000003').prev_hash, b0.sha256, 'the setup holds: rec-000003 links to rec-000000');
+    await refuse(w, 'rec-000003');
+    w.addBatches(1);
+    eq(statusOf(w, 'rec-000004'), 'accepted', 'rec-000004 is accepted');
+    eq(w.pipe.feed.readBatch('rec-000004').prev_hash, b0.sha256, 'and links to rec-000000');
+    await w.settle(w.p, w.v);
+    eq(JSON.stringify(w.fake.txs.map((t) => t.memo)), JSON.stringify(['QW#0', 'QW#4']), 'rec-000004 is anchored');
+  } finally { await w.close(); }
+});
+
+test('V3-11: the walk skips a batch not refused only if it is built on a refused one; any other, or one that does not rehash, is a forged chain', async () => {
+  const w = await world();
+  try {
+    w.addBatches(1);
+    await w.settle(w.p, w.v);
+    w.addBatches(1);
+    const head = await C.getHead(w.fake, w.cfg.anchor_account);
+    const b0 = w.pipe.feed.readBatch('rec-000000'), b1 = w.pipe.feed.readBatch('rec-000001');
+    const at = (seq, prev) => {
+      const b = JSON.parse(JSON.stringify(b1));
+      Object.assign(b, { seq, batch_id: E.batchId('rec', seq), prev_hash: prev.sha256, cumulative_mwh: prev.cumulative_mwh + b.energy_mwh });
+      b.sha256 = E.batchSha256(b);
+      return b;
+    };
+    const R = new Set(['rec-000001']);
+    const walk = (x2) => {
+      const n = at(3, b0);
+      return C.walkToHead(n, head, (id) => (id === 'rec-000002' ? x2 : (w.pipe.feed.hasBatch(id) ? w.pipe.feed.readBatch(id) : null)), { refused: R });
+    };
+    const built = await walk(at(2, b1));
+    eq(built.ok, true, `a batch built on the refused rec-000001 may be skipped (${built.detail})`);
+    eq(built.prev && built.prev.batch_id, 'rec-000000', 'the batch before it is rec-000000');
+    assert(built.leftOut instanceof Set && built.leftOut.has('rec-000001') && built.leftOut.has('rec-000002'), 'the walk returns what the link left out');
+    const other = await walk(at(2, b0));
+    eq(other.ok, false, 'a batch built on the anchored one may not be skipped');
+    eq(other.code, 'verifier.head_mismatch', 'as a forged chain');
+    const lying = await walk(Object.assign(at(2, b1), { energy_mwh: 1 }));
+    eq(lying.ok, false, 'nor one that does not rehash, whatever it says it links to');
+    eq(lying.code, 'verifier.head_mismatch', 'as a forged chain');
+  } finally { await w.close(); }
 });
 
 test('V3-11: the walk skips a batch only where the verifier refused it; a link that skips any other batch is a forged chain', async () => {
