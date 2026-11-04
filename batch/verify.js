@@ -75,6 +75,22 @@ function offGrid(rec) {
   return null;
 }
 
+/**
+ * What a link may leave out of the chain (V3-11): the batches the verifier refused, and every batch built on
+ * one of them. A batch built on a refused batch can never be anchored, whether it was published as rejected
+ * or the verifier has yet to refuse it, so the next batch may link past it.
+ * @param {Array<{batch_id:string, sha256:string, prev_hash:string}>} batches  the batches in question, in seq order
+ * @param {Iterable<string>} refused
+ * @returns {Set<string>} the refused ids and the ids built on them
+ */
+function leftOut(batches, refused) {
+  const out = new Set(refused), hashes = new Set();
+  for (const b of batches) {
+    if (out.has(b.batch_id) || hashes.has(b.prev_hash)) { out.add(b.batch_id); hashes.add(b.sha256); }
+  }
+  return out;
+}
+
 /** Does a published batch hash to its own sha256 field? */
 function rehashes(b) {
   try { return E.batchSha256(b) === b.sha256; } catch (e) { return false; }
@@ -153,7 +169,7 @@ function intervalErrors(rec) {
  * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
  *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
- * @param {Set<string>|string[]} [ctx.refused]  batch ids the verifier refused (V3-11): the only seqs a link may skip
+ * @param {Set<string>|string[]} [ctx.refused]  batch ids a link may skip (V3-11): the ones the verifier refused, and with leftOut what is built on them
  * @param {object[]|null} [ctx.raw] the batch's raw lines (raw/<batch_id>.jsonl, parsed); null: the file is
  *                                 not published (batch.raw_missing); undefined: not checked
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
@@ -324,6 +340,7 @@ function checkRaw(batch, raw, mine, fail) {
 }
 
 module.exports = {
+  leftOut,
   verifyBatch,
   rawBound,
   rawProblem,

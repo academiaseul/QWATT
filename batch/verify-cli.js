@@ -5,8 +5,8 @@
  *   node batch/verify-cli.js <feed-dir> [--profile bench | --dataset <dataset.json>] [--verifier-log <dir|refusals.jsonl>] [--json]
  *
  * --verifier-log: the run's directory in a clone of qwatt-verifier-log (or its refusals.jsonl). A batch the
- * verifier refused is left out of the chain (V3-11): the next batch links past it, and only such a skip is
- * accepted. Without it, a skip is reported as a chain break.
+ * verifier refused, and any batch built on it, is left out of the chain (V3-11): the next batch links past
+ * them, and only such a skip is accepted. Without it, a skip is reported as a chain break.
  *
  * Walks ledger/batches.jsonl in order, loads each batch file, and re-derives
  * it with verifyBatch against the previous batch, the last batch published as
@@ -59,16 +59,18 @@ function verifyFeed(dir, { profile, refused } = {}) {
   const report = [];
   let prev = null, floor = null;
   const bySha = new Map();                                            // every batch read so far, by its hash
+  const left = new Set(R), leftSha = new Set();                       // V3-11: refused, and built on a refused batch
 
   listed.forEach((entry, i) => {
     if (entry.seq !== i) problems.push(`batches.jsonl line ${i + 1}: seq ${entry.seq}, expected ${i}`);
     if (!feed.hasBatch(entry.batch_id)) { problems.push(`${entry.batch_id}: listed but no batch file`); return; }
     const batch = feed.readBatch(entry.batch_id);
-    /* V3-11: a batch is judged against the batch its link names; a link may skip only refused batches
-       (verifyBatch, ctx.refused), and only a refused batch may be built on a refused one */
+    /* V3-11: a batch is judged against the batch its link names; a link may skip only refused batches and
+       what is built on them (verifyBatch, ctx.refused). An accepted batch built on one must itself be refused */
+    if (left.has(entry.batch_id) || leftSha.has(batch.prev_hash)) { left.add(entry.batch_id); leftSha.add(batch.sha256); }
     const linked = batch.prev_hash === E.ZERO_HASH ? null : (bySha.get(batch.prev_hash) || prev);
-    if (linked && R.has(linked.batch_id) && !R.has(entry.batch_id)) problems.push(`${entry.batch_id}: links to ${linked.batch_id}, which the verifier refused`);
-    const res = V.verifyBatch(batch, { prev: linked, floor, rejected, raw: feed.readRaw(entry.batch_id), profile: prof, spec, status: entry.status, refused: R });
+    if (linked && left.has(linked.batch_id) && !R.has(entry.batch_id) && entry.status === 'accepted') problems.push(`${entry.batch_id}: links to ${linked.batch_id}, which the verifier refused`);
+    const res = V.verifyBatch(batch, { prev: linked, floor, rejected, raw: feed.readRaw(entry.batch_id), profile: prof, spec, status: entry.status, refused: left });
     bySha.set(batch.sha256, batch);
     const codes = res.failures.map((f) => f.code);
     if (batch.sha256 !== entry.sha256) problems.push(`${entry.batch_id}: ledger says ${entry.sha256.slice(0, 12)}…, file hashes to ${batch.sha256.slice(0, 12)}…`);
@@ -77,7 +79,7 @@ function verifyFeed(dir, { profile, refused } = {}) {
     if (entry.status === 'rejected' && codes.includes('batch.cumulative_mismatch')) problems.push(`${entry.batch_id}: published as rejected but does not carry the previous total forward unchanged`);
     report.push({ batch_id: entry.batch_id, status: entry.status, ok: res.ok, failures: codes, energy_mwh: batch.energy_mwh });
     prev = batch;
-    if (entry.status === 'accepted' && !R.has(entry.batch_id)) floor = batch;
+    if (entry.status === 'accepted' && !left.has(entry.batch_id)) floor = batch;
   });
 
   /* interval lines may name a published batch, or the one batch still open */

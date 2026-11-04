@@ -199,6 +199,51 @@ test('V3-11: a link that skips a batch the verifier log refused reconciles; the 
   eq(rep.summary.awaiting_anchor.length, 0, 'a refused batch is not awaiting anchor');
 });
 
+/**
+ * rc-000000; rc-000001 the verifier refused; rc-000002 built on it before that was known, `bad` publishes it
+ * as rejected; rc-000003 and rc-000004 after the refusal.
+ */
+function makeOnRefusedFeed(bad) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-rc-on-'));
+  let refused = [];
+  const p = new Pipeline({ dir, site_id: 'rc', node_id: 'rc', refused: () => refused });
+  for (let i = 0; i < 24; i++) p.push(iv(i));
+  if (bad) p.asm.node_id = 'rc-2';
+  for (let i = 24; i < 36; i++) p.push(bad ? Object.assign(iv(i), { node_id: 'rc-2' }) : iv(i));
+  p.asm.node_id = 'rc';
+  refused = ['rc-000001'];
+  for (let i = 36; i < 60; i++) p.push(iv(i));
+  const listed = p.feed.readLedger('batches');
+  const batches = Object.fromEntries(listed.map((e) => [e.batch_id, p.feed.readBatch(e.batch_id)]));
+  return { listed, batches, run: runFile(), index: p.feed.readIndex(), rejected: p.feed.readLedger('rejected') };
+}
+
+test('V3-11: a batch published as rejected on a refused batch, and the link past both, reconcile; the rejected batch adds no energy', async () => {
+  const feed = makeOnRefusedFeed(true);
+  eq(feed.listed.map((e) => e.status).join(','), 'accepted,accepted,rejected,accepted,accepted', 'the setup holds');
+  eq(feed.batches['rc-000003'].prev_hash, feed.batches['rc-000000'].sha256, 'rc-000003 links to rc-000000');
+  const rep = await R.reconcile(feed, anchorsOf(feed, ['rc-000000', 'rc-000003', 'rc-000004']), chainFor({ refused: ['rc-000001'] }));
+  eq(rep.verdict, 'RECONCILED', rep.problems.join('; '));
+  eq(JSON.stringify(rep.summary.verifier_refused), JSON.stringify(['rc-000001']), 'only the refused batch is named as refused');
+  eq(rep.summary.published_cumulative_mwh, feed.batches['rc-000004'].cumulative_mwh, 'the total is that of the chain');
+});
+
+test('V3-11: an accepted batch built on a refused one, not yet judged, is PENDING; anchoring past it is a gap; once refused it reconciles; anchored, it is BROKEN', async () => {
+  const feed = makeOnRefusedFeed(false);
+  eq(feed.listed.map((e) => e.status).join(','), 'accepted,accepted,accepted,accepted,accepted', 'the setup holds');
+  const waiting = await R.reconcile(feed, anchorsOf(feed, ['rc-000000']), chainFor({ refused: ['rc-000001'] }));
+  eq(waiting.verdict, 'PENDING', waiting.problems.join('; '));
+  assert(waiting.summary.awaiting_anchor.includes('rc-000002'), 'it awaits the verifier');
+  const past = await R.reconcile(feed, anchorsOf(feed, ['rc-000000', 'rc-000003']), chainFor({ refused: ['rc-000001'] }));
+  eq(past.verdict, 'BROKEN', 'the verifier judges it first, so an anchor past it is a gap');
+  assert(past.problems.some((p) => /gap/.test(p)), past.problems.join('; '));
+  const done = await R.reconcile(feed, anchorsOf(feed, ['rc-000000', 'rc-000003', 'rc-000004']), chainFor({ refused: ['rc-000001', 'rc-000002'] }));
+  eq(done.verdict, 'RECONCILED', done.problems.join('; '));
+  const anchored = await R.reconcile(feed, anchorsOf(feed, ['rc-000000', 'rc-000002']), chainFor({ refused: ['rc-000001'] }));
+  eq(anchored.verdict, 'BROKEN', 'a batch built on a refused one can never be anchored');
+  assert(anchored.problems.some((p) => /rc-000002/.test(p) && /refused/.test(p)), anchored.problems.join('; '));
+});
+
 test('V3-11: the same skip without the verifier log, or a refused batch anchored anyway → BROKEN', async () => {
   const feed = makeSkipFeed();
   const anchors = anchorsOf(feed, ['rc-000000', 'rc-000002']);

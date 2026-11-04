@@ -1,6 +1,5 @@
 /**
  * QWATT — reconciliation (shared: reconcile.html, anchor/reconcile-cli.js, tests)
- * ---------------------------------------------------------------------------
  * Confirms, from public data only, that what is anchored on Stellar is exactly
  * what was published in the evidence feed:
  *
@@ -255,8 +254,7 @@
    * Everything public in one call, Horizon first: the account, then every anchor with its
    * signatures, then the feed (with faults.json) at one commit. Not in parallel: a batch is
    * published before it is signed, so a feed read at a commit taken after Horizon holds every
-   * anchored batch, and an anchor missing from it is a defect, never a stale copy. Nothing is caught: a Horizon or feed error rejects,
-   * which is a failed check, never a verdict.
+   * anchored batch, and an anchor missing from it is a defect, never a stale copy.
    * @param {{feed:string, horizon:string, account:string, roles?:{proposer:string, verifier:string, third:string}|null, feedOptions?:object}} o
    * @returns {Promise<{report:object, feed:object, anchors:object[], account:object}>}
    */
@@ -395,7 +393,7 @@
       else bySha[a.sha256] = Object.assign({ order: i }, a);
     });
 
-    /* V3-11: a link may skip only batches the verifier log refused; it names `tip` and carries its total */
+    /* V3-11: a link may skip only refused batches and those built on one; it names `tip` and carries its total */
     var refusedSet = {};
     (chain.refused || []).forEach(function (id) { refusedSet[id] = true; });
     var refusedRows = [], refusedSha = {};
@@ -414,14 +412,15 @@
       if (!row.file_ok) problems.push(e.batch_id + ': file does not re-hash to its ledger entry');
       var link = tip == null ? '0'.repeat(64) : tip.sha256;
       var skips = prev != null && tip !== prev;
-      row.chain_ok = b.prev_hash === link || (isRefused && refusedSha[b.prev_hash] === true);
+      var left = isRefused || refusedSha[b.prev_hash] === true;
+      row.chain_ok = b.prev_hash === link || refusedSha[b.prev_hash] === true;
       if (!row.chain_ok) {
         if (prev != null && b.prev_hash !== prev.sha256 && !refusedRows.length) problems.push(e.batch_id + ': prev_hash does not continue the chain (a link may skip a batch only where the verifier log refused it)');
         else problems.push(e.batch_id + ': prev_hash does not continue the chain');
       }
       row.skips = skips && b.prev_hash === link;
       row.energy_mwh = b.energy_mwh; row.cumulative_mwh = b.cumulative_mwh;
-      if (isRefused) {
+      if (left) {
         row.total_ok = true;
         refusedSha[b.sha256] = true;
       } else {
@@ -438,7 +437,7 @@
         row.anchor = { tx_hash: a.tx_hash, ledger: a.ledger, created_at: a.created_at, memo: a.memo, signed_by: k2.signed_by, mode: k2.mode };
         if (k2.mode === 'broken') problems.push(e.batch_id + ': anchor ' + a.tx_hash.slice(0, 10) + '… ' + (k2.why || 'signed by ' + k2.signed_by + '; only proposer+verifier (normal) or proposer+third (stand-in) may anchor'));
         if (e.status !== 'accepted') problems.push(e.batch_id + ': published as rejected but anchored in ' + a.tx_hash.slice(0, 10) + '…');
-        if (isRefused) problems.push(e.batch_id + ': refused by the verifier (its log) but anchored in ' + a.tx_hash.slice(0, 10) + '…; a refusal is terminal (V3-11)');
+        if (left) problems.push(e.batch_id + ': refused by the verifier (its log), or built on a refused batch, but anchored in ' + a.tx_hash.slice(0, 10) + '…; a refusal is terminal (V3-11)');
         if (a.cumulative_mwh !== b.cumulative_mwh) problems.push(e.batch_id + ': anchored cumulative ' + a.cumulative_mwh + ' ≠ batch ' + b.cumulative_mwh);
         if (a.memo != null && a.memo !== 'QW#' + b.seq) problems.push(e.batch_id + ': anchor memo ' + a.memo + ' ≠ QW#' + b.seq);
         if (firstUnanchoredAccepted >= 0) problems.push(e.batch_id + ' is anchored but earlier accepted batch ' + feed.listed[firstUnanchoredAccepted].batch_id + ' is not (gap)');
@@ -448,7 +447,7 @@
       }
       rows.push(row);
       prev = b;
-      if (!isRefused) tip = b;
+      if (!left) tip = b;
     }
 
     anchors.forEach(function (a) {
