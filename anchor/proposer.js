@@ -141,7 +141,7 @@ class Proposer {
     /* a batch built on a refused one is proposed anyway, so the verifier refuses it in public (V3-11) */
     if (!walk.ok && walk.code !== 'verifier.links_refused') return { action: 'blocked', batch_id: next.batch_id, reasons: [walk.code], detail: walk.detail };
     if (walk.ok) {
-      const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: this.feed.readLedger('rejected'), raw: this.feed.readRaw(next.batch_id), refused });
+      const check = V.verifyBatch(batch, { prev: walk.prev, floor: walk.floor, rejected: this.feed.readLedger('rejected'), raw: this.feed.readRaw(next.batch_id), refused: walk.leftOut });
       if (!check.ok) return { action: 'blocked', batch_id: next.batch_id, reasons: check.failures.map((f) => f.code) };
     }
 

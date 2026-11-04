@@ -14,8 +14,8 @@
  *   - a batch the verifier refused is left out of the chain (V3-11): before each
  *     close, the batch ids the verifier refused (o.refused) are read, and if the
  *     chain being extended contains one, the next batch links to the parent of the
- *     oldest such batch and carries its total. That needs no memory: a restart
- *     reads the refusals again;
+ *     oldest such batch and carries its total, leaving out what was built on it. That
+ *     needs no memory: a restart reads the refusals again;
  *   - if the crash fell between writing a batch file and updating the index,
  *     the existing file is adopted rather than a second batch built. A restored
  *     window is sorted in the raw-file order (windowOrder), so a batch closed
@@ -99,7 +99,8 @@ class Pipeline {
 
   /**
    * V3-11: if the chain the next batch would extend contains a batch the verifier refused, link the next
-   * batch to the parent of the oldest such batch instead, with its total.
+   * batch to the parent of the oldest such batch instead, with its total. The link skips every batch after
+   * that parent: each refused or built on a refused one.
    */
   _relink() {
     if (!this.refusedSource || !this.asm.prev) return;
@@ -122,7 +123,10 @@ class Pipeline {
     };
     let oldest = null;
     for (let b = this.asm.prev; b && b.seq >= low; b = parentOf(b)) if (R.has(b.batch_id)) oldest = b;
-    if (oldest) this.asm.rebase(parentOf(oldest), R);
+    if (!oldest) return;
+    const base = parentOf(oldest), gap = [];
+    for (let s = base ? base.seq + 1 : 0; s < this.asm.seq; s++) gap.push(this.feed.readBatch(E.batchId(this.asm.site_id, s)));
+    this.asm.rebase(base, V.leftOut(gap, R));
   }
 
   /** Close and publish the open window (no-op when empty). */

@@ -2,7 +2,7 @@
  * The repository's own protocol code for the browser (DESIGN D-12): each source below is embedded
  * byte for byte as one module function, so verificacion.html runs exactly what the verifier runs.
  * Sources (SHA-256 of the file bytes, LF line endings as stored in git):
- *   batch/verify.js                08a08f84c02767a7f821986f33956db6d7c1714630d42903aadb554dd47639d7
+ *   batch/verify.js                3089fd6053bb12434295473e6455cf231b437bf87d67f9d054b05f32ceeb6e70
  *   protocol/batch.schema.json     ac2552e43e5c78511152b634d1d472ff03f796bbbd8cfc5ba63cd60c3b96a315
  *   protocol/evidence.js           250363a6184c0fde8cad95fde0ce3b3f9a0ffb8b60a3301a6665b73f8aa6a8f9
  *   protocol/interval.schema.json  e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda
@@ -592,6 +592,22 @@ function offGrid(rec) {
   return null;
 }
 
+/**
+ * What a link may leave out of the chain (V3-11): the batches the verifier refused, and every batch built on
+ * one of them. A batch built on a refused batch can never be anchored, whether it was published as rejected
+ * or the verifier has yet to refuse it, so the next batch may link past it.
+ * @param {Array<{batch_id:string, sha256:string, prev_hash:string}>} batches  the batches in question, in seq order
+ * @param {Iterable<string>} refused
+ * @returns {Set<string>} the refused ids and the ids built on them
+ */
+function leftOut(batches, refused) {
+  const out = new Set(refused), hashes = new Set();
+  for (const b of batches) {
+    if (out.has(b.batch_id) || hashes.has(b.prev_hash)) { out.add(b.batch_id); hashes.add(b.sha256); }
+  }
+  return out;
+}
+
 /** Does a published batch hash to its own sha256 field? */
 function rehashes(b) {
   try { return E.batchSha256(b) === b.sha256; } catch (e) { return false; }
@@ -670,7 +686,7 @@ function intervalErrors(rec) {
  * @param {string} [ctx.status]    'accepted' (default) or 'rejected': how the batch is published. A
  *                                 rejected batch carries the previous cumulative forward unchanged (F6).
  * @param {object[]} [ctx.rejected] rejected-ledger lines; only those naming this batch are used
- * @param {Set<string>|string[]} [ctx.refused]  batch ids the verifier refused (V3-11): the only seqs a link may skip
+ * @param {Set<string>|string[]} [ctx.refused]  batch ids a link may skip (V3-11): the ones the verifier refused, and with leftOut what is built on them
  * @param {object[]|null} [ctx.raw] the batch's raw lines (raw/<batch_id>.jsonl, parsed); null: the file is
  *                                 not published (batch.raw_missing); undefined: not checked
  * @param {object} [ctx.profile]   gate profile (default: spec profile `bench`)
@@ -841,6 +857,7 @@ function checkRaw(batch, raw, mine, fail) {
 }
 
 module.exports = {
+  leftOut,
   verifyBatch,
   rawBound,
   rawProblem,
@@ -1050,7 +1067,7 @@ module.exports = {
     sources: [
     { path: "protocol/evidence.js", sha256: "250363a6184c0fde8cad95fde0ce3b3f9a0ffb8b60a3301a6665b73f8aa6a8f9", bytes: 7689 },
     { path: "protocol/schema-lite.js", sha256: "9704f6203bc0be350dbca44cb9d01160ae6dad60f9cb4f1a1b215d05f3eb3cd9", bytes: 3019 },
-    { path: "batch/verify.js", sha256: "08a08f84c02767a7f821986f33956db6d7c1714630d42903aadb554dd47639d7", bytes: 19221 },
+    { path: "batch/verify.js", sha256: "3089fd6053bb12434295473e6455cf231b437bf87d67f9d054b05f32ceeb6e70", bytes: 20035 },
     { path: "protocol/interval.schema.json", sha256: "e2e41178250cf058413f0509231177dda8815d6036c06e571f10217f97c45eda", bytes: 4619 },
     { path: "protocol/batch.schema.json", sha256: "ac2552e43e5c78511152b634d1d472ff03f796bbbd8cfc5ba63cd60c3b96a315", bytes: 4872 },
     { path: "protocol/reasons.json", sha256: "ee3cc82c780bc3f58294671a3a85eff18d77f2e9241646226d79e1ee9ed3372d", bytes: 6339 }

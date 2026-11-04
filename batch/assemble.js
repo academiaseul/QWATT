@@ -100,7 +100,7 @@ class BatchAssembler {
    * (the refused batch's parent, or null to start the chain again) and carries its total; the seq goes on.
    * The floor does not move: time and intervals already judged stay judged.
    * @param {object|null} base
-   * @param {Set<string>} refused  the verifier's refusals; every seq the new link skips is among them
+   * @param {Set<string>} refused  the verifier's refusals and what is built on them (V.leftOut); every seq the new link skips is among them
    */
   rebase(base, refused) {
     this.refused = new Set(refused);
