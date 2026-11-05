@@ -75,8 +75,8 @@
   };
   var SRC = {
     vivo: { es: 'En vivo · Stellar testnet · leído {t}', en: 'Live · Stellar testnet · read {t}' },
-    sim: { es: 'Entrada simulada · Stellar testnet', en: 'Simulated input · Stellar testnet' },
-    ensayo: { es: 'Entrada simulada · Stellar testnet · ensayo 8 oct · cuenta desechable', en: 'Simulated input · Stellar testnet · 8 Oct rehearsal · throwaway account' },
+    sim: { es: 'Entrada simulada · assurance A0 · Stellar testnet', en: 'Simulated input · assurance A0 · Stellar testnet' },
+    ensayo: { es: 'Entrada simulada · assurance A0 · Stellar testnet · ensayo 8 oct · cuenta desechable', en: 'Simulated input · assurance A0 · Stellar testnet · 8 Oct rehearsal · throwaway account' },
     demo: { es: 'Entrada simulada · demo local, no envía nada', en: 'Simulated input · local demo, sends nothing' },
     publico: { es: 'Datos públicos NREL PVDAQ · no son mediciones nuestras', en: 'Public NREL PVDAQ data · not our measurements' },
     dato: { es: 'Dato del repositorio · {d}', en: 'Repository fact · {d}' },

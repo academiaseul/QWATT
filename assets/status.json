@@ -10,7 +10,7 @@
     "run": { "from": "2026-11-08T03:00:00Z", "to": "2026-11-15T03:00:00Z" }
   },
   "labels": {
-    "sim": { "es": "Entrada simulada · Stellar testnet", "en": "Simulated input · Stellar testnet" }
+    "sim": { "es": "Entrada simulada · assurance A0 · Stellar testnet", "en": "Simulated input · assurance A0 · Stellar testnet" }
   },
   "anchor": {
     "account": null,
@@ -19,7 +19,7 @@
   "feeds": [
     { "id": "ensayo-8oct", "base": "/evidence/feeds/ensayo-8oct/", "label": "testnet", "prior": true,
       "title": { "es": "Ensayo del 8 oct", "en": "8 Oct rehearsal" },
-      "note": { "es": "Dos lotes anclados en Stellar testnet en una cuenta desechable (pruebas C y L). Entrada simulada · Stellar testnet.", "en": "Two batches anchored on Stellar testnet on a throwaway account (tests C and L). Simulated input · Stellar testnet." } },
+      "note": { "es": "Dos lotes anclados en Stellar testnet en una cuenta desechable (pruebas C y L). Entrada simulada · assurance A0 · Stellar testnet.", "en": "Two batches anchored on Stellar testnet on a throwaway account (tests C and L). Simulated input · assurance A0 · Stellar testnet." } },
     { "id": "muestra", "base": "/evidence/feeds/muestra/", "label": "prototipo", "prior": false,
       "title": { "es": "Feed de muestra", "en": "Sample feed" },
       "note": { "es": "Un día simulado en el formato actual, con intervalos rechazados y sus motivos. No está anclado: no enviamos transacciones.", "en": "A simulated day in the current format, with refused intervals and their reasons. Not anchored: we send no transactions." } },
@@ -199,7 +199,7 @@
       "evidence": [ { "kind": "site", "url": "/evidence/rehearsal/rehearsal-2026-10-08T20-46-13-037Z.json" } ] },
     { "id": "D4-REHEARSAL", "ref": null, "deliverable": "D4", "week": 0, "status": "prior", "label": "testnet", "nodes": ["cualquiera"],
       "title": { "es": "Ensayo acelerado: 48 horas simuladas en 4 min 18 s (8 oct)", "en": "Accelerated rehearsal: 48 simulated hours in 4 min 18 s (8 Oct)" },
-      "summary": { "es": "En cuentas desechables y con conciliación. Entrada simulada · Stellar testnet.", "en": "On throwaway accounts and with reconciliation. Simulated input · Stellar testnet." },
+      "summary": { "es": "En cuentas desechables y con conciliación. Entrada simulada · assurance A0 · Stellar testnet.", "en": "On throwaway accounts and with reconciliation. Simulated input · assurance A0 · Stellar testnet." },
       "evidence": [ { "kind": "doc", "url": "https://github.com/academiaseul/QWATT/blob/main/docs/PRIOR-WORK.md" } ] },
 
     { "id": "PRIOR-PUBLIC", "ref": null, "deliverable": null, "week": 1, "status": "done", "label": "info", "nodes": [],

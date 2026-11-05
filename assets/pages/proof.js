@@ -86,7 +86,7 @@
     dAnchor: { es: 'Anclaje {m}', en: 'Anchor {m}' },
     dConfig: { es: 'Configuración de la cuenta', en: 'Account configuration' },
     dTx: { es: 'Transacción leída de Horizon', en: 'Transaction read from Horizon' },
-    dSub: { es: 'La cadena de evidencia de este registro, leída ahora de Horizon testnet. Entrada simulada · Stellar testnet.', en: 'The evidence chain of this record, read now from Horizon testnet. Simulated input · Stellar testnet.' },
+    dSub: { es: 'La cadena de evidencia de este registro, leída ahora de Horizon testnet. Entrada simulada · assurance A0 · Stellar testnet.', en: 'The evidence chain of this record, read now from Horizon testnet. Simulated input · assurance A0 · Stellar testnet.' },
     dOther: { es: 'No es una transacción de una cuenta del proyecto. Para cualquier cuenta o transacción, usa la consola.', en: 'This is not a transaction of a project account. For any account or transaction, use the console.' },
     toConsole: { es: 'Abrir la consola →', en: 'Open the console →' },
     kType: { es: 'Tipo', en: 'Type' },
