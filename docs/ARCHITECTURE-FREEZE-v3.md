@@ -74,6 +74,11 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > anterior al rechazado más antiguo de su cadena, no siempre con el último anclado, y la referencia
 > de tiempo del procesamiento no retrocede. Hay un caso conocido en que el anclaje se detiene: un
 > lote publicado como rechazado encima de un lote que el verificador rechazó. El detalle está en §9.
+>
+> *Nota fechada (jueves 5 de noviembre de 2026, Jay Kim y Diego Ostertag).* OD-8: qué cuenta como siete
+> días consecutivos, tanto si se detiene el anclaje como si se apaga el host del proponente; este
+> nunca recupera intervalos: quedan como un hueco visible. OD-9: los rechazos esperados de la corrida
+> quedan publicados antes de que empiece, en `live/expected-run.json`. El detalle está en §9.
 
 ## 1. What stays frozen from v2
 
@@ -511,6 +516,34 @@ agreeing this note: there is no earlier approval, and the code was merged before
 | # | Departs from | Approved text | Built in | Approved |
 |---|---|---|---|---|
 | DV-9 | V3-11 (§4: week-3 Chain and Floor rows, the row A verifier refusal, and the text below the table); V3-1 (with nothing anchored, the walk can end above seq 0); DV-5 (a batch whose walk fails `verifier.links_refused` is proposed, not blocked) | **Link:** once the batch pipeline knows of a terminal verifier refusal (OD-7), the next batch to close links to the parent of the oldest refused batch on its chain, not always to the last anchored batch. They are the same batch unless batches published as rejected lie between them: those stay in the chain, as in week 1, and only a batch the verifier refused for good may be skipped, so a direct link to the last anchored batch fails `batch.chain_break`. A batch published as rejected carries the total forward, so the next batch still starts from the last anchored batch's `cumulative_mwh`, or from 0 with nothing anchored. If the oldest refused batch started the chain, the next batch starts it again: `prev_hash` of 64 zeros at a `seq` above 0, and a total starting from 0. `seq` keeps counting up. `batch/verify-cli.js` accepts a skip only with `--verifier-log`: the command in §7 has no such flag, so it reports a skip as a chain break. **Floor:** the verifier and `anchor/proposer.js` `tick` judge against the last anchored batch, as §4 says; `batch/verify-cli.js` uses the last accepted batch the verifier log did not refuse. The batch pipeline's own floor stays at the last batch with status `accepted` in `ledger/batches.jsonl`, which can be the refused batch, because a refusal is recorded only in the verifier log. So the pipeline keeps a refused batch's window and intervals closed and drops its energy for good; no checker enforces that. **Limits, as built at `fd99f27`:** this note does not say that anchoring continues after every refusal. If a batch published as rejected sits on a refused batch, the next batch fails its self-check (`batch.chain_break`) and the batch after it fails the walk with `verifier.head_mismatch`: the proposer blocks, anchoring stops and the reconciliation reads BROKEN. A batch that closes before a batch built on a refused one has itself been refused fails `batch.chain_break` and is published as rejected, so its energy is lost too. | [PR #43](https://github.com/academiaseul/QWATT/pull/43) (V3-11b), with the reconciliation and `batch/verify-cli.js` in [PR #47](https://github.com/academiaseul/QWATT/pull/47), which brought V3-11c (`34a8bc3`, opened as PR #44) to main | Jay Kim and Diego Ostertag, by agreeing this note |
+
+**OD-8 and OD-9 (status note, Thu 5 Nov 2026, Jay Kim and Diego Ostertag).** Both were due Fri 6 Nov.
+
+**OD-8, "seven consecutive days".** The counted window is seven consecutive days if no outage breaks
+it, by this rule:
+
+- *Anchoring outage* (proposer, verifier, publisher, Horizon or the network, with the pipeline still
+  judging intervals): a restart that drains its backlog in order, with original timestamps, within
+  2 hours keeps the run continuous.
+- *Proposer-host outage* (nothing is judged): `live/run.js` resumes at the current time and never
+  backfills, because backfilling would fake liveness. The missing intervals stay a visible gap, and
+  `live/audit.js` lists them. A gap of at most 2 hours keeps the run continuous.
+- *Either outage for longer than 2 hours* breaks the run. The counted window starts again only if
+  seven days still fit, which means a start no later than Tue 10 Nov (V3-14). Otherwise the write-up
+  reports the longest continuous stretch and says that the SOW's seven days were not met.
+- Every outage, of any length, is listed in the write-up with its times and cause. The 2-hour limit
+  applies to each outage, not to their sum.
+
+**OD-9, expected results.** The refusals the run is expected to make are listed before it starts, in
+`live/expected-run.json` at the frozen tag. `live/expected.js` generates the list by running the
+simulator and gates fast with the run's seed (20261103), start (2026-11-07T03:00:00Z) and length (8
+days). Of 2,304 intervals it lists 32 refusals: 24 inside the eight fault windows, 2 leading edges of
+the night injections, and 6 dawn and dusk refusals from G0's relative tolerance (B-3,
+`plausibility.energy_power`). The spec does not change. `live/audit.js --expected` compares the run
+with the list slot by slot, and any difference is recorded in the write-up. If the run's start
+moves, the list is regenerated and published before the new start. The list lives in the code
+repository at the frozen tag, not next to `faults.json` in `qwatt-evidence`, so the publisher does
+not change at the freeze.
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
