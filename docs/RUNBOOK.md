@@ -321,8 +321,26 @@ anchors"). Any other pair is BROKEN.
 ## The check from outside both hosts (V3-13b)
 
 `ops/watch.js` runs on the verifier host, so it goes quiet with that host. `ops/outside-check.js`
-runs on GitHub every 15 minutes (`.github/workflows/outside-check.yml`), on neither host, from public
-data only. To turn it on, Jay sets, in academiaseul/QWATT → Settings → Secrets and variables →
+runs on GitHub (`.github/workflows/outside-check.yml`), on neither host, from public data only.
+
+**GitHub's schedule alone does not give 15 minutes.** The workflow's cron says every 15 minutes, but
+from 4 to 5 Nov 2026 GitHub started it only every 6 to 9 hours, which cannot support a 90-minute
+alert. Before the run, Jay also sets up an outside scheduler:
+
+1. Create a fine-grained GitHub token limited to academiaseul/QWATT, with the single permission
+   *Actions: read and write*, expiring after Tue 17 Nov. It goes only into the scheduler, never
+   into this repository, a log or a chat.
+2. On a scheduler outside both hosts (for example cron-job.org), add a job that runs every 15
+   minutes: `POST https://api.github.com/repos/academiaseul/QWATT/actions/workflows/outside-check.yml/dispatches`,
+   headers `Authorization: Bearer <token>`, `Accept: application/vnd.github+json` and
+   `Content-Type: application/json`, body `{"ref":"main"}`. Success is HTTP 204.
+3. Turn on the scheduler's failure e-mail to the alert recipient: if it stops, nothing else says so.
+4. An hour later, Actions → outside-check must list about four `workflow_dispatch` runs.
+
+A green run alone proves nothing: with no `QWATT_ANCHOR_ACCOUNT` the job passes without checking. The
+run's log must print the observations.
+
+To turn the check on, Jay sets, in academiaseul/QWATT → Settings → Secrets and variables →
 Actions: the variables `QWATT_ANCHOR_ACCOUNT` (G_A), `QWATT_FEED_URL` and `QWATT_VERIFIER_LOG_URL`
 (the run's raw URLs, as in `watch.env`), and the secret `QWATT_ALERT_WEBHOOK` (the same private ntfy
 topic as the watchdog's, on the alert recipient's phone). Actions → outside-check → *Run workflow*

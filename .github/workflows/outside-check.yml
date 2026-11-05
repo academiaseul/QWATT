@@ -1,8 +1,9 @@
 name: outside-check
 
-# Freeze v3 V3-13b: the check from outside both hosts. GitHub runs it every 15 minutes (a scheduled run can
-# start a few minutes late), on neither host, from public data only: Horizon, the evidence repositories and
-# the verifier's status.json. Settings are repository variables (Settings → Secrets and variables →
+# Freeze v3 V3-13b: the check from outside both hosts, on neither host, from public data only: Horizon, the
+# evidence repositories and the verifier's status.json. The schedule below is not enough by itself: from 4 to
+# 5 Nov 2026 GitHub started it every 6 to 9 hours, not every 15 minutes. An outside scheduler must also start
+# it through workflow_dispatch (docs/RUNBOOK.md, "The check from outside both hosts"). Settings are repository variables (Settings → Secrets and variables →
 # Actions → Variables): QWATT_ANCHOR_ACCOUNT, QWATT_FEED_URL, QWATT_VERIFIER_LOG_URL. The alert webhook is
 # a secret: QWATT_ALERT_WEBHOOK. Without QWATT_ANCHOR_ACCOUNT the job says so and passes. A problem fails
 # the run, so GitHub also notifies the repository's owner. GitHub pauses scheduled workflows after 60 days
