@@ -147,7 +147,7 @@ test('OD-9: the audit compares a run with its expected list: a match passes; a r
   const first = list.refused[0];
   const gone = auditLive(dir, { expected: { ...list, refused: list.refused.slice(1) } });
   assert(!gone.ok && gone.problems.some((p) => p.includes(first.ts_start) && /not in the expected list/.test(p)), `a refusal not listed: ${gone.problems.join('; ')}`);
-  const extraSlot = new Date(Date.parse(first.ts_start) - 24 * 3600e3).toISOString();
+  const extraSlot = list.run_start;
   const extra = auditLive(dir, { expected: { ...list, refused: [{ ts_start: extraSlot, reasons: ['elevation.night'], fault: null }, ...list.refused] } });
   assert(!extra.ok && extra.problems.some((p) => p.includes(extraSlot) && /expected refusal/.test(p)), `a listed refusal that did not happen: ${extra.problems.join('; ')}`);
   const other = auditLive(dir, { expected: { ...list, refused: list.refused.map((r, i) => (i ? r : { ...r, reasons: ['nameplate.over'] })) } });
