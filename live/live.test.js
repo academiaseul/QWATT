@@ -109,6 +109,64 @@ test('a restarted run refuses to change its seed or length', async () => {
   assert(threw, 'a different seed must be refused');
 });
 
+test('OD-9: the expected refusals are a pure function of seed, start and days: every fault slot, and the dawn and dusk refusals outside any fault', async () => {
+  const { expectedRefusals } = require('./expected');
+  const a = await expectedRefusals({ seed: 20261103, startMs: START, days: 2 });
+  const b = await expectedRefusals({ seed: 20261103, startMs: START, days: 2 });
+  eq(JSON.stringify(a), JSON.stringify(b), 'the same list twice');
+  eq(a.seed, 20261103, 'it names its seed');
+  eq(a.days, 2, 'its length');
+  eq(a.run_start, new Date(START).toISOString(), 'and its start');
+  assert(a.refused.length > 0, 'the list is not empty');
+  assert(a.refused.some((r) => r.fault), 'it marks the slots inside a fault window');
+  assert(a.refused.every((r) => /^\d{4}-.*Z$/.test(r.ts_start) && r.reasons.length > 0), 'each entry has its slot and its reasons');
+  eq(a.intervals, 2 * 288, 'it counts every interval of the run');
+});
+
+test('OD-9: the list committed for the live run is what the code gives for seed 20261103, Sat 7 Nov 03:00 UTC, 8 days', async () => {
+  const { expectedRefusals, render, RUN } = require('./expected');
+  eq(RUN.seed, 20261103, 'the seed of the run');
+  eq(RUN.start, '2026-11-07T03:00:00.000Z', 'its start');
+  eq(RUN.days, 8, 'its length');
+  const fresh = render(await expectedRefusals({ seed: RUN.seed, startMs: Date.parse(RUN.start), days: RUN.days }));
+  eq(fs.readFileSync(path.join(__dirname, 'expected-run.json'), 'utf8').replace(/\r\n/g, '\n'), fresh, 'live/expected-run.json');
+});
+
+test('OD-9: the audit compares a run with its expected list: a match passes; a refusal missing, unlisted or with other reasons, or a list for another run, fails', async () => {
+  const { expectedRefusals } = require('./expected');
+  const opts = { seed: 20261103, startMs: START, days: 2 };
+  const list = await expectedRefusals(opts);
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
+  const same = auditLive(dir, { expected: list });
+  assert(same.ok, same.problems.join('; '));
+  eq(same.expected.listed, list.refused.length, 'the audit says how many it compared');
+  eq(same.expected.matching, list.refused.length, 'and that all match');
+  assert(auditLive(dir).expected === null, 'without a list there is no comparison');
+
+  const first = list.refused[0];
+  const gone = auditLive(dir, { expected: { ...list, refused: list.refused.slice(1) } });
+  assert(!gone.ok && gone.problems.some((p) => p.includes(first.ts_start) && /not in the expected list/.test(p)), `a refusal not listed: ${gone.problems.join('; ')}`);
+  const extraSlot = new Date(Date.parse(first.ts_start) - 24 * 3600e3).toISOString();
+  const extra = auditLive(dir, { expected: { ...list, refused: [{ ts_start: extraSlot, reasons: ['elevation.night'], fault: null }, ...list.refused] } });
+  assert(!extra.ok && extra.problems.some((p) => p.includes(extraSlot) && /expected refusal/.test(p)), `a listed refusal that did not happen: ${extra.problems.join('; ')}`);
+  const other = auditLive(dir, { expected: { ...list, refused: list.refused.map((r, i) => (i ? r : { ...r, reasons: ['nameplate.over'] })) } });
+  assert(!other.ok && other.problems.some((p) => p.includes(first.ts_start) && /reasons/.test(p)), `other reasons: ${other.problems.join('; ')}`);
+  const another = auditLive(dir, { expected: { ...list, seed: 1 } });
+  assert(!another.ok && another.problems.some((p) => /another run/.test(p)), `a list for another run: ${another.problems.join('; ')}`);
+});
+
+test('OD-9: a run still going, or with a gap, is compared up to what was judged: a slot not judged yet is no missing refusal', async () => {
+  const { expectedRefusals } = require('./expected');
+  const list = await expectedRefusals({ seed: 20261103, startMs: START, days: 2 });
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
+  const later = new Date(Date.parse(list.run_end) + 3600e3).toISOString();
+  const a = auditLive(dir, { expected: { ...list, refused: [...list.refused, { ts_start: later, reasons: ['elevation.night'], fault: null }] } });
+  assert(a.ok, `a slot past the last judged one is not compared: ${a.problems.join('; ')}`);
+  eq(a.expected.not_judged, 1, 'and it is counted as not judged');
+});
+
 test('the audit catches a fault that was not refused, a gap, and an altered sample file', async () => {
   const dir = tmp();
   await runLive({ feedDir: dir, days: 2, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
