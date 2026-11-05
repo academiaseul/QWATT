@@ -324,7 +324,7 @@ anchors"). Any other pair is BROKEN.
 runs on GitHub (`.github/workflows/outside-check.yml`), on neither host, from public data only.
 
 **GitHub's schedule alone does not give 15 minutes.** The workflow's cron says every 15 minutes, but
-from 4 to 5 Nov 2026 GitHub started it only every 6 to 9 hours, which cannot support a 90-minute
+from 4 to 5 Nov 2026 GitHub started it only every 4 to 9 hours, which cannot support a 90-minute
 alert. Before the run, Jay also sets up an outside scheduler:
 
 1. Create a fine-grained GitHub token limited to academiaseul/QWATT, with the single permission
