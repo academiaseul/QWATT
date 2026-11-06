@@ -1,0 +1,53 @@
+{
+  "id": "GBQFZBRDV7JVHI45CVIOWHHUQPESV67NN57ERYEZOENZF7HR5XSNGSX5",
+  "sequence": "24031484482420737",
+  "thresholds": {
+    "low_threshold": 2,
+    "med_threshold": 2,
+    "high_threshold": 3
+  },
+  "signers": [
+    {
+      "weight": 1,
+      "key": "GAJCK4PA3CFEZNQD3TLVWWSMHIXGIBV33SIYWZM6CUTMLH7LQKKSYI3U",
+      "type": "ed25519_public_key"
+    },
+    {
+      "weight": 1,
+      "key": "GCA6IH2O4N3UOCLTEBEFQ6DA4Y4367G6SWRUTE47Y7VGBHIV64BAMBSD",
+      "type": "ed25519_public_key"
+    },
+    {
+      "weight": 1,
+      "key": "GDGTDIZGF5PY5UZHWLLRIF7O3VYR5ZSYBKG5GZOBNOCL7PC44IRQQT5T",
+      "type": "ed25519_public_key"
+    },
+    {
+      "weight": 0,
+      "key": "GBQFZBRDV7JVHI45CVIOWHHUQPESV67NN57ERYEZOENZF7HR5XSNGSX5",
+      "type": "ed25519_public_key"
+    }
+  ],
+  "balances": [
+    {
+      "balance": "0.0000000",
+      "limit": "922337203685.4775807",
+      "buying_liabilities": "0.0000000",
+      "selling_liabilities": "0.0000000",
+      "last_modified_ledger": 5595273,
+      "is_authorized": true,
+      "is_authorized_to_maintain_liabilities": true,
+      "asset_type": "credit_alphanum12",
+      "asset_code": "QWATT",
+      "asset_issuer": "GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46"
+    },
+    {
+      "balance": "9999.9999500",
+      "buying_liabilities": "0.0000000",
+      "selling_liabilities": "0.0000000",
+      "asset_type": "native"
+    }
+  ],
+  "captured_at": "2026-11-06T21:20:07.442Z",
+  "horizon_url": "https://horizon-testnet.stellar.org"
+}
