@@ -512,5 +512,25 @@ agreeing this note: there is no earlier approval, and the code was merged before
 |---|---|---|---|---|
 | DV-9 | V3-11 (§4: week-3 Chain and Floor rows, the row A verifier refusal, and the text below the table); V3-1 (with nothing anchored, the walk can end above seq 0); DV-5 (a batch whose walk fails `verifier.links_refused` is proposed, not blocked) | **Link:** once the batch pipeline knows of a terminal verifier refusal (OD-7), the next batch to close links to the parent of the oldest refused batch on its chain, not always to the last anchored batch. They are the same batch unless batches published as rejected lie between them: those stay in the chain, as in week 1, and only a batch the verifier refused for good may be skipped, so a direct link to the last anchored batch fails `batch.chain_break`. A batch published as rejected carries the total forward, so the next batch still starts from the last anchored batch's `cumulative_mwh`, or from 0 with nothing anchored. If the oldest refused batch started the chain, the next batch starts it again: `prev_hash` of 64 zeros at a `seq` above 0, and a total starting from 0. `seq` keeps counting up. `batch/verify-cli.js` accepts a skip only with `--verifier-log`: the command in §7 has no such flag, so it reports a skip as a chain break. **Floor:** the verifier and `anchor/proposer.js` `tick` judge against the last anchored batch, as §4 says; `batch/verify-cli.js` uses the last accepted batch the verifier log did not refuse. The batch pipeline's own floor stays at the last batch with status `accepted` in `ledger/batches.jsonl`, which can be the refused batch, because a refusal is recorded only in the verifier log. So the pipeline keeps a refused batch's window and intervals closed and drops its energy for good; no checker enforces that. **Limits, as built at `fd99f27`:** this note does not say that anchoring continues after every refusal. If a batch published as rejected sits on a refused batch, the next batch fails its self-check (`batch.chain_break`) and the batch after it fails the walk with `verifier.head_mismatch`: the proposer blocks, anchoring stops and the reconciliation reads BROKEN. A batch that closes before a batch built on a refused one has itself been refused fails `batch.chain_break` and is published as rejected, so its energy is lost too. | [PR #43](https://github.com/academiaseul/QWATT/pull/43) (V3-11b), with the reconciliation and `batch/verify-cli.js` in [PR #47](https://github.com/academiaseul/QWATT/pull/47), which brought V3-11c (`34a8bc3`, opened as PR #44) to main | Jay Kim and Diego Ostertag, by agreeing this note |
 
+### Thu 5 Nov 2026 (Day 18) · Jay Kim and Diego Ostertag
+
+**OD-2 · Third signer's public key (status note, Thu 5 Nov 2026, Jay Kim and Diego Ostertag).** The
+third signer, off-team, installed stellar-cli 28.1.0 on their own computer, generated the identity
+`qwatt-third` there ([THIRD-SIGNER.md](THIRD-SIGNER.md)), wrote their paper backup and sent only
+the public key. Both founders confirmed it with the third signer by voice on Thu 5 Nov 2026. The
+third signer's name is not recorded. Third signer's public key:
+
+`GCA6IH2O4N3UOCLTEBEFQ6DA4Y4367G6SWRUTE47Y7VGBHIV64BAMBSD` (first four `GCA6`, last four `MBSD`)
+
+The third signer also installed Node.js 24.14.1 and the repository at `3ae1f2c` with
+`npm ci --prefix anchor`, for the stand-in drill (V3-13). Still to come: the backup drill (their
+signature on `drill.xdr`, RUNBOOK D6) and the stand-in drill. The anchoring account still waits for
+the proposer's public key; nothing is anchored on the real account at the date of this note.
+
+> **Resumen (jueves 5 de noviembre de 2026, Jay Kim y Diego Ostertag).** Llegó la clave pública del
+> firmante externo (`GCA6…MBSD`), confirmada por voz por ambos fundadores. Falta el simulacro de
+> respaldo (`drill.xdr`), el simulacro de suplente y la clave pública del proponente; la cuenta de
+> anclaje real aún no existe.
+
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
