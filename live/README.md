@@ -34,7 +34,8 @@ audit.js ──► every fault refused for its reason · every 5-minute slot jud
 
 ```bash
 node live/run.js --feed feed --days 8 --start 2026-11-07T03:00:00Z --proposer G… --verifier G… --third G…   # the live run, real-time pace (W3-4)
-node live/audit.js feed                                    # any time during or after the run
+node live/audit.js feed --expected live/expected-run.json  # any time during or after the run; the list is for the live run only
+node live/expected.js --check                              # the list is what the code gives (--write regenerates it)
 node live/run.js --feed /tmp/f --days 7 --speed fast       # the whole week in seconds (rehearsal)
 ```
 

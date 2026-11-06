@@ -297,9 +297,12 @@ anchors"). Any other pair is BROKEN.
 1. Reconciliation page: the verdict is **RECONCILED**, or **PENDING** with only the last one or two
    batches waiting; the account panel is all ✓; "Signed by" reads proposer + verifier (a stand-in only
    during a verifier outage, noted for the write-up).
-2. `node live/audit.js /var/lib/qwatt/feed` on the proposer host: coverage has no gaps, every
-   fault that is due shows *refused as expected*, and the `raw:` line counts the raw payloads, each
-   tied to a row of a published samples file (any that is not is listed as a problem).
+2. `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json` on the proposer host:
+   coverage has no gaps, every fault that is due shows *refused as expected*, the `expected refusals:`
+   line reports no difference from the list published before the run (OD-9), and the `raw:` line
+   counts the raw payloads, each tied to a row of a published samples file (any that is not is listed
+   as a problem). A refusal that differs from the list is a finding for the write-up, not something
+   to fix during the run.
 3. Glance at the alert channel. No message is expected on a good day; the watchdog sends one only
    when something starts, repeats every 6 h, or clears.
 4. History audit, from any machine with this repository, on a fresh clone of each public
@@ -460,9 +463,9 @@ The feed is off-chain and complete, so a reset loses no evidence.
 
 ## Closing the run (Day 30)
 
-1. Let the run end on its own: `qwatt-live` stops after 7 × 24 h and closes the last batch.
+1. Let the run end on its own: `qwatt-live` stops after 8 × 24 h (`QWATT_RUN_DAYS`) and closes the last batch.
 2. Leave proposer and verifier running until the reconciliation page says **RECONCILED**.
-3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --json > evidence/live-audit.json`.
+3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json --json > evidence/live-audit.json`.
 4. Generate the write-up:
    `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/account/<G_A>/abcd.json --out WRITEUP.md`.
 5. Stop the services. The two repositories and the chain remain as the public history. After the
