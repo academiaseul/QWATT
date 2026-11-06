@@ -7,7 +7,7 @@
     "day30": "2026-11-17",
     "tz": "America/Santiago",
     "code_freeze": "2026-11-06",
-    "run": { "from": "2026-11-08T03:00:00Z", "to": "2026-11-15T03:00:00Z" }
+    "run": { "from": "2026-11-09T03:00:00Z", "to": "2026-11-16T03:00:00Z" }
   },
   "labels": {
     "sim": { "es": "Entrada simulada · Stellar testnet", "en": "Simulated input · Stellar testnet" }
