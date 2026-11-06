@@ -532,5 +532,42 @@ the proposer's public key; nothing is anchored on the real account at the date o
 > respaldo (`drill.xdr`), el simulacro de suplente y la clave pública del proponente; la cuenta de
 > anclaje real aún no existe.
 
+### Fri 6 Nov 2026 (Day 19) · Jay Kim and Diego Ostertag
+
+**DV-9 · Limits, after V3-11d (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).** The
+*Limits, as built at `fd99f27`* of DV-9 (§9, Tue 3 Nov 2026) no longer hold on main. Fixed in
+[PR #51](https://github.com/academiaseul/QWATT/pull/51) (V3-11d, `34198d3`, merged Wed 4 Nov
+2026): a link may also leave out a batch built on a refused batch, published as rejected or not yet
+refused, so neither case stops anchoring or loses the next batch's energy. `V.leftOut`
+(`batch/verify.js`) is that one rule, used by the walk, the batch pipeline and `batch/verify-cli.js`;
+the reconciliation applies the same rule in its own code.
+
+| DV-9 limit, at `fd99f27` | At `34198d3` |
+|---|---|
+| A batch published as rejected on a refused batch stops anchoring for good | The next batch is accepted and links past both; anchoring goes on and the reconciliation reads RECONCILED |
+| A batch that closes before a batch built on a refused one has been refused fails `batch.chain_break`, and its energy is lost | It is accepted: the batch built on the refused one is refused in public first, then this one is anchored |
+
+What stays refused: a skipped batch that was not refused must rehash and be built on a refused
+one, or the walk fails with `verifier.head_mismatch`, as a forged chain; a batch that names a refused
+batch is still `verifier.links_refused`; nothing below the lowest refusal can be skipped. The
+verifier still judges in order, so an anchor past a batch built on a refused one, while that batch
+is not yet judged, is a gap and reads BROKEN. One change in what the reconciliation shows: an accepted
+batch built on a refused one and not yet judged reads PENDING, not BROKEN; anchored, it is BROKEN.
+Unchanged, as DV-9 records: the batch pipeline's own floor, and `batch/verify-cli.js` accepting a
+skip only with `--verifier-log`. DV-9's words "only a batch the verifier refused for good may be
+skipped" read, from `34198d3` on, "only a batch the verifier refused for good, or a batch built on
+one, may be skipped"; DV-9's approved text above stays as agreed. Evidence: CI red on `dd409d9`
+(run 41827554229: batch conformance, anchoring recovery, reconciliation), green on `34198d3` (run
+41830014994).
+
+**OD-4 · Proposer host (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).** The proposer
+host is a VPS at DigitalOcean with Ubuntu 24.04, operated by Diego Ostertag, which fills in the
+provider left open in the OD-4 note of Fri 30 Oct 2026. At the date of this note it is being
+installed with the host package; its key and deploy key have not been sent yet.
+
+**OD-2 · Third signer's independence (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).**
+Diego Ostertag confirmed in writing (email to Jay Kim, Fri 6 Nov 2026) that the third signer does
+not work for QWATT, depends on neither founder and has no role in the Instawards sprint.
+
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
