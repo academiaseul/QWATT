@@ -7,7 +7,7 @@ What we did each week of the Instawards Chile sprint, which started on 19 Oct 20
 ## Week 3 — 2 to 6 November 2026
 
 ### Summary
-This week we made a verifier refusal final and safe, and found and fixed a bug in that same path before the run. On Fri 6 Nov the backup drill landed on Stellar testnet and the run's 2-of-3 account went up with all three keys, thresholds 2/2/3 and 1 QWATT. No batch is anchored on it yet, and tests A–D have not run on it. The code is not frozen yet, and the run moved from Sat 7 to Sun 8 Nov under deviation DV-10 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)). All input is still simulated, assurance A0.
+This week we made a verifier refusal final and safe, and found and fixed a bug in that same path before the run. On Fri 6 Nov the backup drill landed on Stellar testnet and the run's 2-of-3 account went up with all three keys, thresholds 2/2/3 and 1 QWATT. No batch is anchored on it yet, and tests A–D have not run on it. The code is not frozen yet, and the run moved from Sat 7 to Mon 9 Nov under deviations DV-10 and DV-11 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)). All input is still simulated, assurance A0.
 
 ### Added
 - **The 2-of-3 run account on Stellar testnet.** Three signers of weight 1, master key weight 0, thresholds 2/2/3 and a balance of 1 QWATT: [`GDSEQAD3…4MDC`](https://stellar.expert/explorer/testnet/account/GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC). Setup: [`38b27d8a…`](https://stellar.expert/explorer/testnet/tx/38b27d8ab2f55c025b8bd2137bf3bb5b1ba0745087c2fd13a8ebaf0d993764df). Funding: [`67737031…`](https://stellar.expert/explorer/testnet/tx/67737031c547e36f4f8996baba8ee3dcbb8d9d9d73d855ed5625c319c0b96404).
@@ -39,7 +39,7 @@ Last week's "Next week" goals:
 - Goal: the week 3 code list (final refusals, fixed fee, future-dated readings, 8-day run, restarts, no early samples, outside monitoring, stand-in) → Result: all merged.
 - Goal: a rehearsal of the candidate commit on a throwaway 2/2/3 account, with failure tests → Result: not done.
 - Goal: code freeze on Fri 6 Nov → Result: not done. DV-10 changed the run's code on Fri 6 Nov, and there is no freeze tag yet.
-- Goal: the run starts on Sat 7 Nov → Result: moved to Sun 8 Nov. See Blockers.
+- Goal: the run starts on Sat 7 Nov → Result: moved to Mon 9 Nov. See Blockers.
 
 **In numbers**
 - Tests: 449 passing at `03169a8` → 501 passing on main at `6e8515b`, 0 failing (379 in `npm test`, 122 anchoring tests). The video's 497 is the count at `a0b5098`, before PR #52. CI on main: [run #210](https://github.com/academiaseul/QWATT/actions/runs/42243261968).
@@ -48,7 +48,8 @@ Last week's "Next week" goals:
 
 ### Blockers and lessons
 - **The third key arrived late, and our earlier wording got ahead of the facts.** Week 1 said the signer was confirmed, and week 2 said they had been chosen, but no key had arrived. The key we use came from a signer found this week, and it arrived on Thu 5 Nov. The numbered deviation we promised for Sun 1 Nov was not written. Diego confirmed in writing that the signer does not work for QWATT, depends on neither founder and has no role in the sprint (freeze §9).
-- **The August treasury key is lost.** The second testnet genesis on 24 Aug overwrote the browser storage that held it. Deviation DV-10 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)) moves the run to the QWATT asset of 24 Aug, whose treasury key Jay holds, and moves the start to Sun 8 Nov at 03:00 UTC. The counted days are Mon 9 to Mon 16 Nov, 03:00 UTC, before Day 30. The account above already uses that asset.
+- **The August treasury key is lost.** The second testnet genesis on 24 Aug overwrote the browser storage that held it. Deviation DV-10 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)) moves the run to the QWATT asset of 24 Aug, whose treasury key Jay holds. The account above already uses that asset.
+- **The run starts on Mon 9 Nov, with no soak day** (DV-11). Tests A–D had not run by Fri 6 Nov, so they run on Sat 7 Nov on a separate 2/2/3 account, and the run account stays unanchored until the start. The counted days stay Mon 9 to Mon 16 Nov, 03:00 UTC, before Day 30.
 - **Reviewing a fix found a worse bug.** The final-refusal work merged on Tue 3 Nov, and the same day's review found the stoppage that #51 fixed. Review the failure path after changing it.
 - **GitHub's schedule is not a 15-minute clock.** The outside check started every 4 to 9 hours and has no account configured yet ([PR #54](https://github.com/academiaseul/QWATT/pull/54)). It needs an outside scheduler and an alert recipient.
 - **Known limit: the verifier does not recompute energy from the raw readings.** It checks that they match their fingerprint, but no program compares them with the energy a batch claims. A batch with its energy raised and its raw readings untouched still passes the batch check, though the raw row and the claimed number would disagree in public.
@@ -57,9 +58,9 @@ Last week's "Next week" goals:
 Planned, not done yet.
 
 1. Finish the proposer's server and its deploy key.
-2. Run tests A–D and the independence test on the account, and land the first anchor.
+2. Run tests A–D and the independence test on a rehearsal account, and land the first anchor there.
 3. Run the stand-in drill and the kill tests, and set up the outside scheduler and alerts.
-4. Tag the code freeze. The run starts on Sun 8 Nov at 00:00 Chile time with one soak day, and the counted days run from Mon 9 to Mon 16 Nov, 00:00 Chile time.
+4. Tag the code freeze and arm the services. The run starts by itself on Mon 9 Nov at 00:00 Chile time and ends on Mon 16 Nov at 00:00 Chile time.
 
 ### Links
 - **What's new this week, commit by commit:** https://github.com/academiaseul/QWATT/compare/semana-2...semana-3

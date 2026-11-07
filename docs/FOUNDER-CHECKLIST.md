@@ -63,13 +63,13 @@ step by step: `docs/RUNBOOK.md`, one-time setup, step 7.
 | # | What | Who |
 |---|---|---|
 | 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run; someone who will act on it within hours, Days 20–30 | Founders |
-| 11 | **Go / no-go for the live run.** The first 2-of-3 anchor on the week-2 account is planned for Thu 29 Oct (tests A–D, V3-4); the run uses its own account, created at the freeze with the same three public keys (OD-5). Decide by **Fri 6 Nov (Day 19)**, the freeze date. | Founders |
+| 11 | **Go / no-go for the live run.** The first 2-of-3 anchor on the rehearsal account is planned for Sat 7 Nov (tests A–D, V3-4, DV-11); the run uses its own account, with the same three public keys (OD-5). Decide by **Sat 7 Nov (Day 20)**, before the services are armed. | Founders |
 
-## Days 20–27 (Sat 7 Nov – Sun 15 Nov 00:00) — the seven-day live run
+## Days 22–28 (Mon 9 Nov – Mon 16 Nov 00:00) — the seven-day live run
 
-The live run starts **Sat 7 Nov (Day 20)**. The counted seven-day window runs from
-**Sun 8 Nov 00:00 America/Santiago (03:00 UTC)** to **Sun 15 Nov 00:00 America/Santiago
-(03:00 UTC)**, that is Days 21–27.
+The live run starts on **Mon 9 Nov (Day 22)** with no soak day (DV-11). The counted seven-day window
+runs from **Mon 9 Nov 00:00 America/Santiago (03:00 UTC)** to **Mon 16 Nov 00:00 America/Santiago
+(03:00 UTC)**, that is Days 22–28.
 
 | # | What | Who |
 |---|---|---|

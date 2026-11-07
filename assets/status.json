@@ -168,9 +168,9 @@
           "text": { "es": "Podía detener el anclaje; primero la prueba que fallaba.", "en": "It could have stopped anchoring; failing test first." },
           "evidence": [ { "kind": "pr", "url": "https://github.com/academiaseul/QWATT/pull/51" } ] }
       ] },
-    { "n": 4, "id": "corrida", "from": "2026-11-08", "to": "2026-11-15",
+    { "n": 4, "id": "corrida", "from": "2026-11-09", "to": "2026-11-16",
       "title": { "es": "Corrida contada", "en": "Counted run" },
-      "summary": { "es": "7 días en testnet, del domingo 8 nov 00:00 al domingo 15 nov 00:00, hora de Chile, con entrada simulada.", "en": "7 days on testnet, from Sunday 8 Nov 00:00 to Sunday 15 Nov 00:00, Chile time, with simulated input." },
+      "summary": { "es": "7 días en testnet, del lunes 9 nov 00:00 al lunes 16 nov 00:00, hora de Chile, con entrada simulada.", "en": "7 days on testnet, from Monday 9 Nov 00:00 to Monday 16 Nov 00:00, Chile time, with simulated input." },
       "changelog": null, "release": null, "highlights": [] }
   ],
   "deliverables": [
@@ -365,7 +365,7 @@
       "evidence": [] },
     { "id": "V3-14", "ref": null, "deliverable": "D4", "week": 4, "status": "planned", "label": "planificado", "nodes": ["cualquiera"],
       "title": { "es": "Corrida contada de 7 días en Stellar testnet", "en": "Counted 7-day run on Stellar testnet" },
-      "summary": { "es": "Del domingo 8 nov 00:00 al domingo 15 nov 00:00, hora de Chile, con entrada simulada; cada lote anclado con dos firmas o rechazado con su motivo publicado.", "en": "From Sunday 8 Nov 00:00 to Sunday 15 Nov 00:00, Chile time, with simulated input; every batch anchored with two signatures or refused with its published reason." },
+      "summary": { "es": "Del lunes 9 nov 00:00 al lunes 16 nov 00:00, hora de Chile, con entrada simulada; cada lote anclado con dos firmas o rechazado con su motivo publicado.", "en": "From Monday 9 Nov 00:00 to Monday 16 Nov 00:00, Chile time, with simulated input; every batch anchored with two signatures or refused with its published reason." },
       "evidence": [] },
 
     { "id": "HW-PILOT", "ref": null, "deliverable": null, "week": null, "status": "out_of_scope", "label": "info", "nodes": ["medidor"],
