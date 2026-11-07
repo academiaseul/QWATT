@@ -505,7 +505,7 @@ The feed is off-chain and complete, so a reset loses no evidence.
 
 1. Let the run end on its own: `qwatt-live` stops after 8 × 24 h (`QWATT_RUN_DAYS`) and closes the last batch.
 2. Leave proposer and verifier running until the reconciliation page says **RECONCILED**.
-3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json --json > evidence/live-audit.json`.
+3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json --json > evidence/live-audit.json`. Then `node live/rederive.js /var/lib/qwatt/feed --json > evidence/energy-rederivation.json`: it replays the published samples through the same interval builder and compares every interval (F-02). It runs on no service. A mismatch is a finding for the write-up, never something to fix.
 4. Generate the write-up:
    `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/account/<G_A>/abcd.json --out WRITEUP.md`.
 5. Stop the services. The two repositories and the chain remain as the public history. After the
