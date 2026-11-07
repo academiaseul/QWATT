@@ -358,6 +358,18 @@ test('OD-8: a gap over 2 hours says the seven days were not met, and gives the l
   assert(/breaks the run/.test(s), 'the row says it broke the run');
 });
 
+test('OD-8: a notes file with a bad time or no cause is refused: such a note would silently match nothing', () => {
+  const { readOutageNotes } = require('./writeup');
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-writeup-notes-')), 'outages.json');
+  const write = (v) => { fs.writeFileSync(file, JSON.stringify(v)); return file; };
+  eq(readOutageNotes(write([{ from: at(1), to: at(2), cause: 'reboot' }])).length, 1, 'a good note');
+  const refused = (v) => { try { readOutageNotes(write(v)); return false; } catch (e) { return true; } };
+  assert(refused({ from: at(1) }), 'not an array');
+  assert(refused([{ from: 'yesterday', to: at(2), cause: 'x' }]), 'a bad time');
+  assert(refused([{ from: at(2), to: at(1), cause: 'x' }]), 'from after to');
+  assert(refused([{ from: at(1), to: at(2) }]), 'no cause');
+});
+
 test('OD-8: seven days with outages inside the limit are met; a run still going says so and claims neither', () => {
   const { outagesSection } = require('./writeup');
   const gap = { from: at(50), to: at(51), intervals: 12, seconds: 3600 };
