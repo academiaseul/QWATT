@@ -4,6 +4,75 @@ Lo que hicimos cada semana del sprint Instawards Chile, que empezó el 19 oct 20
 
 *Traducción al español. El texto oficial es [CHANGELOG.md](CHANGELOG.md), en inglés.*
 
+## Semana 3 — 2 al 6 de noviembre de 2026
+
+### Resumen
+Esta semana dejamos un rechazo del verificador como definitivo y seguro, y encontramos y arreglamos una falla en ese mismo camino antes de la corrida. El viernes 6 de noviembre el simulacro de respaldo llegó a Stellar testnet y la cuenta 2 de 3 de la corrida quedó creada con las tres claves, umbrales 2/2/3 y 1 QWATT. Todavía no hay ningún lote anclado en ella, y las pruebas A–D no han corrido ahí. El código todavía no está congelado, y la corrida no puede partir el sábado 7 como estaba planeado: la fecha propuesta y el motivo están en el [PR #57](https://github.com/academiaseul/QWATT/pull/57), abierto. Toda la entrada sigue siendo simulada, assurance A0.
+
+### Agregado
+- **La cuenta 2 de 3 de la corrida en Stellar testnet.** Tres firmantes de peso 1, clave maestra de peso 0, umbrales 2/2/3 y saldo de 1 QWATT: [`GDSEQAD3…4MDC`](https://stellar.expert/explorer/testnet/account/GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC). Creación: [`38b27d8a…`](https://stellar.expert/explorer/testnet/tx/38b27d8ab2f55c025b8bd2137bf3bb5b1ba0745087c2fd13a8ebaf0d993764df). Fondeo: [`67737031…`](https://stellar.expert/explorer/testnet/tx/67737031c547e36f4f8996baba8ee3dcbb8d9d9d73d855ed5625c319c0b96404).
+- **Simulacro de respaldo.** Los tres titulares restauraron su clave desde el papel y firmaron una transacción desechable: [`b5726893…`](https://stellar.expert/explorer/testnet/tx/b572689383e4a410ee400192e4f8c540704d4295f1d7e0c72f57f6197ef93c5e). Los archivos de evidencia están en el PR #57, abierto.
+- **Rol de suplente** (V3-13d, [PR #47](https://github.com/academiaseul/QWATT/pull/47)). Si el verificador está caído, el tercer firmante corre una vez las mismas revisiones y cofirma, siempre como proponente + tercer firmante. Probado contra una red simulada; el simulacro no se ha hecho.
+- **Monitoreo desde fuera de los dos servidores** (V3-13b, [PR #45](https://github.com/academiaseul/QWATT/pull/45)). Avisa tras 90 minutos sin anclaje, y una alerta cuenta como enviada solo si el receptor la acepta. Todavía no está activo: ver Bloqueos.
+- **Rechazos esperados, listados antes de la corrida** (OD-9, [PR #52](https://github.com/academiaseul/QWATT/pull/52)). La auditoría compara la corrida real con esa lista, ventana por ventana.
+
+### Cambiado
+- **Un rechazo del verificador es definitivo** (V3-11, [PR #42](https://github.com/academiaseul/QWATT/pull/42), [#43](https://github.com/academiaseul/QWATT/pull/43), [#44](https://github.com/academiaseul/QWATT/pull/44), [#49](https://github.com/academiaseul/QWATT/pull/49)). El lote siguiente enlaza saltándose el rechazado, así que el anclaje continúa y esa energía nunca cuenta. Hay una excepción: un rechazo solo por `verifier.walk_too_long` se vuelve a juzgar. Un lote rechazado queda en `qwatt-evidence`, y su motivo va en la bitácora del verificador.
+- **Las propuestas tienen límites:** valen como máximo 60 minutos, con una comisión fija de 1.000 stroops por operación, y llevan solo la firma del proponente ([PR #42](https://github.com/academiaseul/QWATT/pull/42)).
+- **Entre semanas (31 oct – 1 nov):** el largo de la corrida viene de la configuración, 8 días ([PR #36](https://github.com/academiaseul/QWATT/pull/36)); los servicios se reinician solo tras una falla ([PR #37](https://github.com/academiaseul/QWATT/pull/37)); ninguna muestra se publica antes de su hora ([PR #38](https://github.com/academiaseul/QWATT/pull/38)).
+- **Decisiones escritas en el freeze:** la comisión, qué rechazos son definitivos y la desviación DV-9 ([PR #46](https://github.com/academiaseul/QWATT/pull/46), [#48](https://github.com/academiaseul/QWATT/pull/48), [#50](https://github.com/academiaseul/QWATT/pull/50)); la clave pública del tercer firmante ([PR #56](https://github.com/academiaseul/QWATT/pull/56)).
+
+### Corregido
+- **Una falla que podía detener el anclaje sin que se recuperara solo** ([PR #51](https://github.com/academiaseul/QWATT/pull/51)). Un lote publicado como rechazado sobre un lote que el verificador había rechazado bloqueaba al proponente, y nada en el código lo recuperaba. Necesita ambas cosas a la vez, así que era poco probable. El mismo PR corrigió un caso que perdía la energía de un lote. Primero vino la prueba que fallaba: [CI #192](https://github.com/academiaseul/QWATT/actions/runs/41827554229) en rojo, [CI #193](https://github.com/academiaseul/QWATT/actions/runs/41830014994) en verde. Se encontró en revisión y se mostró en una red simulada, no en testnet.
+- **Una lectura mal fechada ya no bloquea las siguientes** (V3-12, [PR #39](https://github.com/academiaseul/QWATT/pull/39), integrado el sábado 31 oct). Cubre las lecturas que las compuertas rechazan por su hora, es decir, con más de 2 h 5 min de desfase. Un error de reloj menor se acepta y todavía puede bloquear lecturas honestas hasta que la hora real lo alcance.
+
+### Progreso vs. semana anterior
+Metas de "Próxima semana":
+
+- Meta: el servidor del proponente, con su clave y su deploy key → Resultado: en parte. La clave del proponente existe y está en la cuenta. El servidor, un VPS en DigitalOcean, todavía se estaba instalando el viernes 6.
+- Meta: la clave pública del firmante externo, confirmada por voz → Resultado: hecho el jueves 5, cuatro días tarde ([PR #56](https://github.com/academiaseul/QWATT/pull/56)).
+- Meta: el simulacro de respaldo → Resultado: hecho el viernes 6.
+- Meta: la cuenta real 2 de 3 → Resultado: hecho el viernes 6.
+- Meta: pruebas A–D, prueba de independencia y primer anclaje → Resultado: no hecho.
+- Meta: la lista de código de la semana 3 (rechazos definitivos, comisión fija, lecturas con fecha futura, corrida de 8 días, reinicios, sin muestras anticipadas, monitoreo externo, suplente) → Resultado: todo integrado.
+- Meta: un ensayo del commit candidato en una cuenta desechable 2/2/3, con pruebas de falla → Resultado: no hecho.
+- Meta: freeze del código el viernes 6 → Resultado: no hecho. El PR #57 todavía cambia código, y no hay tag de freeze.
+- Meta: la corrida parte el sábado 7 → Resultado: no va a ocurrir en esa fecha. Ver Bloqueos.
+
+**En números**
+- Pruebas: 449 pasando en `03169a8` → 501 pasando en main en `6e8515b`, 0 fallando (379 en `npm test`, 122 de anclaje). Las 497 del video son la cuenta en `a0b5098`, antes del PR #52. CI en main: [corrida #210](https://github.com/academiaseul/QWATT/actions/runs/42243261968).
+- Pull requests integrados: 19 desde `semana-2` (#36 a #52, #54, #56): 6 entre semanas y 13 del lunes 2 al viernes 6. Commits de `semana-2` a `6e8515b`: 34, sin contar los de merge.
+- Las transacciones en testnet de esta semana incluyen el simulacro, la creación de la cuenta y el fondeo. Llegaron al protocolo 30, al que testnet pasó el 3 de noviembre. Todavía no ha llegado ningún anclaje al protocolo 30.
+
+### Bloqueos y lecciones
+- **La tercera clave llegó tarde, y lo que dijimos antes se adelantó a los hechos.** La semana 1 dijo que el firmante estaba confirmado, y la semana 2 que estaba elegido, pero no había llegado ninguna clave. La clave que usamos viene de un firmante encontrado esta semana y llegó el jueves 5. La desviación numerada que prometimos para el domingo 1 no se escribió. Diego confirmó por escrito que el firmante no trabaja en QWATT, no depende de ninguno de los fundadores y no tiene rol en el sprint (nota en el PR #57).
+- **Se perdió la clave de la tesorería de agosto.** La segunda génesis en testnet, el 24 de agosto, sobrescribió el almacenamiento del navegador que la guardaba. El [PR #57](https://github.com/academiaseul/QWATT/pull/57), abierto, propone la desviación DV-10: la corrida usa el activo QWATT del 24 de agosto, cuya clave de tesorería tiene Jay, y parte el domingo 8 a las 03:00 UTC. Los días que cuentan serían del lunes 9 al lunes 16, 03:00 UTC, antes del Día 30. No está acordado hasta que Diego lo apruebe en GitHub. La cuenta de arriba ya usa ese activo.
+- **Revisar un arreglo encontró una falla peor.** Los rechazos definitivos se integraron el martes 3, y la revisión de ese mismo día encontró la detención que arregló el #51. Hay que revisar el camino de falla después de cambiarlo.
+- **El calendario de GitHub no es un reloj de 15 minutos.** El chequeo externo partió cada 4 a 9 horas y todavía no tiene cuenta configurada ([PR #54](https://github.com/academiaseul/QWATT/pull/54)). Necesita un programador externo y un destinatario de alertas.
+- **Límite conocido: el verificador no recalcula la energía desde las lecturas crudas.** Revisa que coincidan con su huella, pero ningún programa las compara con la energía que declara un lote. Un lote con la energía aumentada y las lecturas crudas intactas igual pasa la revisión, aunque la fila cruda y el número declarado quedarían en desacuerdo a la vista de todos.
+
+### Próxima semana (9 al 13 de noviembre)
+Planificado, todavía no hecho.
+
+1. Acordar la DV-10 y la fecha de inicio.
+2. Terminar el servidor del proponente y su deploy key.
+3. Correr las pruebas A–D y la de independencia en la cuenta, y lograr el primer anclaje.
+4. Hacer el simulacro de suplente y las pruebas de caída, y configurar el programador externo y las alertas.
+5. Poner el tag del freeze y partir la corrida.
+
+### Enlaces
+- **Lo nuevo de esta semana, commit por commit:** https://github.com/academiaseul/QWATT/compare/semana-2...semana-3
+- **Cuenta de la corrida:** https://stellar.expert/explorer/testnet/account/GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC
+- **CI en main tras el último merge de la semana:** [corrida #210](https://github.com/academiaseul/QWATT/actions/runs/42243261968), en `6e8515b`.
+- **Repositorio:** https://github.com/academiaseul/QWATT. Con Node.js 20 o superior y git, corre `npm test`; para las pruebas de anclaje, `npm ci --prefix anchor` y luego `npm run test:anchor`. Ninguna prueba se conecta a Stellar testnet.
+- **Documentos:** [runbook](docs/RUNBOOK.md) · [freeze de arquitectura v3](docs/ARCHITECTURE-FREEZE-v3.md) · [firmante externo](docs/THIRD-SIGNER.md)
+
+### Términos nuevos de esta semana
+- **Rechazo:** el "no" permanente del verificador a un lote, publicado con su motivo.
+- **Suplente:** el tercer firmante toma el lugar del verificador cuando está caído.
+- **Simulacro de respaldo:** demostrar que cada respaldo en papel restaura su clave, firmando una transacción desechable.
+- **Rechazos esperados:** la lista de lecturas que la corrida debería rechazar, publicada antes de que parta.
+
 ## Semana 2 — 26 al 30 de octubre de 2026
 
 ### Resumen
