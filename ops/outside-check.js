@@ -12,9 +12,9 @@
  * only and imports nothing from the pipeline or the services:
  *
  *   NO_ANCHOR             no anchoring transaction (memo QW#<seq>) on Horizon for 90 minutes while the run is live
- *   PROPOSER_HOST_SILENT  no commit to the run's directory in qwatt-evidence for 30 minutes while the run is
- *                         live: the proposer host publishes several times an hour, so a repository that stops
- *                         moving is that host's dead man's switch
+ *   PROPOSER_HOST_SILENT  no commit to the run's directory in qwatt-evidence for 75 minutes while the run is
+ *                         live: the proposer host publishes when a batch closes, once an hour, so a repository
+ *                         that stops moving is that host's dead man's switch
  *   VERIFIER_HOST_SILENT  the same for qwatt-verifier-log (the verifier host replaces status.json every 5 min)
  *   VERIFIER_SILENT       the verifier's last tick, in its public status.json, is older than 15 minutes
  *   SOURCE_DOWN           Horizon, the feed, GitHub or the log could not be read: silence is never health
@@ -32,6 +32,8 @@ const { deliver } = require('./watch');                         // the same 2xx 
 
 const POLICY = {
   no_anchor_s: 90 * 60,
+  /* DV-11: the feed moves when a batch closes, once an hour; the verifier log every 5 minutes */
+  proposer_silent_s: 75 * 60,
   host_silent_s: 30 * 60,
   verifier_silent_s: 15 * 60,
 };
@@ -46,13 +48,17 @@ function decideOutside(obs, nowS, policy = POLICY) {
   const out = [];
   const age = (iso) => (iso ? nowS - Math.floor(Date.parse(iso) / 1000) : Infinity);
   if (obs.errors && obs.errors.length) out.push({ code: 'SOURCE_DOWN', message: `cannot read: ${obs.errors.join('; ')}` });
+  /* DV-11: armed ahead of its start, a verifier that stops is the one thing to know before the run needs it */
+  if (obs.run_start && nowS * 1000 < Date.parse(obs.run_start) && obs.verifier_last_tick !== undefined && age(obs.verifier_last_tick) > policy.verifier_silent_s) {
+    out.push({ code: 'VERIFIER_SILENT', message: `the verifier last ticked at ${obs.verifier_last_tick}, before the run has started` });
+  }
   if (!obs.run_live) return out;
   /* DV-11: a run armed ahead of its start has no anchor and no recent push when it starts */
   const inRun = (iso) => Math.min(age(iso), age(obs.run_start));
   if (obs.last_anchor_at !== undefined && inRun(obs.last_anchor_at) > policy.no_anchor_s) {
     out.push({ code: 'NO_ANCHOR', message: obs.last_anchor_at ? `no anchoring transaction since ${obs.last_anchor_at}` : 'no anchoring transaction during the run' });
   }
-  if (obs.evidence_pushed_at !== undefined && inRun(obs.evidence_pushed_at) > policy.host_silent_s) {
+  if (obs.evidence_pushed_at !== undefined && inRun(obs.evidence_pushed_at) > policy.proposer_silent_s) {
     out.push({ code: 'PROPOSER_HOST_SILENT', message: `qwatt-evidence: no commit to the run since ${obs.evidence_pushed_at} (the proposer host or its publisher is down)` });
   }
   if (obs.log_pushed_at !== undefined && age(obs.log_pushed_at) > policy.host_silent_s) {

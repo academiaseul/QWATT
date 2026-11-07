@@ -49,18 +49,29 @@ test('no anchor for 90 minutes during the run → NO_ANCHOR (89 minutes: nothing
   eq(codes(O.decideOutside({ ...healthy(), last_anchor_at: null }, NOW)), 'NO_ANCHOR', 'no anchor at all during the run');
 });
 
-test('DV-11: at the start of a run armed ahead of it, the anchor and the proposer host count from the run start: quiet for 90 and 30 minutes, then they alert', () => {
+test('DV-11: at the start of a run armed ahead of it, the anchor and the proposer host count from the run start: quiet for 90 and 75 minutes, then they alert', () => {
   const O = require('./outside-check');
   const armed = (s) => ({ ...healthy(), last_anchor_at: null, evidence_pushed_at: ago(36 * 3600), run_start: ago(s) });
   eq(codes(O.decideOutside(armed(60), NOW)), '', 'a minute in');
-  eq(codes(O.decideOutside(armed(31 * 60), NOW)), 'PROPOSER_HOST_SILENT', '31 minutes in, nothing pushed since it was armed');
+  eq(codes(O.decideOutside(armed(61 * 60), NOW)), '', 'an hour in: the publisher has nothing to push before the first batch');
+  eq(codes(O.decideOutside(armed(76 * 60), NOW)), 'PROPOSER_HOST_SILENT', '76 minutes in, nothing pushed since it was armed');
   eq(codes(O.decideOutside({ ...armed(91 * 60), evidence_pushed_at: ago(60) }, NOW)), 'NO_ANCHOR', '91 minutes in, no anchor');
 });
 
-test('a repository that stops moving is its host\'s dead man\'s switch: 30 minutes without a push from the proposer or the verifier host', () => {
+test('DV-11: before the start a verifier that stopped alerts, so a PC that went off on Sunday is known before the run needs it; after the run it does not', () => {
   const O = require('./outside-check');
-  eq(O.POLICY.host_silent_s, 30 * 60, '30 minutes');
-  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(31 * 60) }, NOW)), 'PROPOSER_HOST_SILENT', 'the evidence repository: the proposer host');
+  const armed = { run_live: false, run_start: new Date((NOW + 6 * 3600) * 1000).toISOString(), verifier_last_tick: ago(16 * 60), evidence_pushed_at: ago(36 * 3600), log_pushed_at: ago(16 * 60), errors: [] };
+  eq(codes(O.decideOutside(armed, NOW)), 'VERIFIER_SILENT', 'silent for 16 minutes, 6 hours before the start');
+  eq(codes(O.decideOutside({ ...armed, verifier_last_tick: ago(5 * 60) }, NOW)), '', 'ticking: nothing');
+  eq(codes(O.decideOutside({ ...armed, run_start: ago(8 * 86400) }, NOW)), '', 'after the run: nothing');
+});
+
+test('a repository that stops moving is its host\'s dead man\'s switch: 75 minutes for the proposer host, whose feed moves once an hour, 30 for the verifier host', () => {
+  const O = require('./outside-check');
+  eq(O.POLICY.host_silent_s, 30 * 60, '30 minutes: the verifier host');
+  eq(O.POLICY.proposer_silent_s, 75 * 60, '75 minutes: the proposer host');
+  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(58 * 60) }, NOW)), '', 'a healthy run, just before its next batch');
+  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(76 * 60) }, NOW)), 'PROPOSER_HOST_SILENT', 'the evidence repository: the proposer host');
   eq(codes(O.decideOutside({ ...healthy(), log_pushed_at: ago(31 * 60) }, NOW)), 'VERIFIER_HOST_SILENT', 'the verifier log: the verifier host');
   eq(codes(O.decideOutside({ ...healthy(), verifier_last_tick: ago(16 * 60) }, NOW)), 'VERIFIER_SILENT', 'a log that moves but a verifier that does not tick');
 });

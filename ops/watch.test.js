@@ -34,7 +34,7 @@ test('no anchor for over 2 h during the run → NO_ANCHOR; outside the run → n
 });
 
 test('a stalled pipeline, a silent verifier, a waiting batch and a BROKEN verdict each alert', () => {
-  const o = { ...healthy(), feed_last_interval_at: iso(3600), verifier_last_tick: iso(1200), oldest_unanchored_batch: 'b-000010', oldest_unanchored_published_at: iso(3 * 3600), reconcile_verdict: 'BROKEN', reconcile_problems: ['x'] };
+  const o = { ...healthy(), feed_last_interval_at: iso(POLICY.feed_stale_s + 60), verifier_last_tick: iso(1200), oldest_unanchored_batch: 'b-000010', oldest_unanchored_published_at: iso(3 * 3600), reconcile_verdict: 'BROKEN', reconcile_problems: ['x'] };
   const c = codes(decide(o, {}, NOW));
   for (const k of ['FEED_STALE:alert', 'VERIFIER_SILENT:alert', 'BACKLOG:alert', 'BROKEN:alert']) assert(c.includes(k), `${k} in ${c}`);
 });
@@ -238,6 +238,12 @@ test('DV-11: a run armed ahead of its start has only faults.json public: no feed
   eq(feedErrors(first).length, 0, `an hour in, before the first batch: ${first.errors.join('; ')}`);
   eq(first.run_live, true, 'live from the start');
   eq(feedErrors(after).length, 1, 'still no index.json after 90 minutes: the source is down');
+});
+
+test('DV-11: index.json moves once an hour, when a batch closes, so a healthy run reaches about 67 minutes without an alert; a stopped pipeline alerts at 75', () => {
+  eq(POLICY.feed_stale_s, 75 * 60, 'the limit');
+  assert(!codes(decide({ ...healthy(), feed_last_interval_at: iso(67 * 60) }, {}, NOW)).includes('FEED_STALE:alert'), '67 minutes: a healthy run just before its next batch');
+  assert(codes(decide({ ...healthy(), feed_last_interval_at: iso(76 * 60) }, {}, NOW)).includes('FEED_STALE:alert'), '76 minutes: the pipeline stopped');
 });
 
 test('DV-11: NO_ANCHOR counts from the run start, so an account last used days before the start does not alert at the start; 90 minutes in, it does', () => {

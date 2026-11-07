@@ -16,7 +16,7 @@
  *
  * Conditions (thresholds in POLICY):
  *   NO_ANCHOR        no anchoring transaction for 90 minutes while the run is live (V3-13b)
- *   FEED_STALE       the feed's newest judged interval is older than 30 min
+ *   FEED_STALE       the feed's newest judged interval is older than 75 min (index.json moves once an hour)
  *   BACKLOG          an accepted batch has waited more than 2 h for its anchor
  *   VERIFIER_SILENT  the verifier's last tick, as its public log shows it, is older than 15 min
  *   NEW_REFUSAL      the verifier refused something (always worth a human look)
@@ -37,7 +37,8 @@ const PIN = require('../assets/qwatt-pin.js');                  // shared, depen
 const POLICY = {
   /* V3-13b: 90 minutes, as the check from outside both hosts (ops/outside-check.js) */
   no_anchor_s: 90 * 60,
-  feed_stale_s: 30 * 60,
+  /* DV-11: index.json moves when a batch closes, once an hour, so a healthy run reaches about 67 minutes */
+  feed_stale_s: 75 * 60,
   backlog_s: 2 * 3600,
   /* status.json reaches the public log at most every 5 min (+1 min publisher interval, +30 s verifier
      tick): ~390 s for a healthy verifier. The watchdog reads the log at its head commit (V3-7c), so the
