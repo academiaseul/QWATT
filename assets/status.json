@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-10-30",
+  "updated": "2026-11-06",
   "sprint": {
     "name": "Instawards Chile",
     "day1": "2026-10-19",
@@ -159,8 +159,15 @@
       ] },
     { "n": 3, "id": "s3", "from": "2026-11-02", "to": "2026-11-06",
       "title": { "es": "Semana 3", "en": "Week 3" },
-      "summary": { "es": "Un rechazo del verificador es definitivo; ventana de validez de 60 minutos como máximo; marca de error de reloj; recuperación reforzada; congelación del código el viernes 6 nov.", "en": "A verifier refusal is final; validity window of at most 60 minutes; clock-error watermark; hardened recovery; code freeze on Friday 6 Nov." },
-      "changelog": null, "release": null, "highlights": [] },
+      "summary": { "es": "Un rechazo del verificador es definitivo; ventana de validez de 60 minutos como máximo; marca de error de reloj; recuperación reforzada.", "en": "A verifier refusal is final; validity window of at most 60 minutes; clock-error watermark; hardened recovery." },
+      "changelog": { "en": "Week 3 — 2 to 6 November 2026", "es": "Semana 3 — 2 al 6 de noviembre de 2026" },
+      "release": null,
+      "highlights": [
+        { "id": "h3-falla", "status": "done", "label": "prototipo", "live": null,
+          "title": { "es": "Una falla encontrada antes de la corrida", "en": "A bug found before the run" },
+          "text": { "es": "Podía detener el anclaje; primero la prueba que fallaba.", "en": "It could have stopped anchoring; failing test first." },
+          "evidence": [ { "kind": "pr", "url": "https://github.com/academiaseul/QWATT/pull/51" } ] }
+      ] },
     { "n": 4, "id": "corrida", "from": "2026-11-08", "to": "2026-11-15",
       "title": { "es": "Corrida contada", "en": "Counted run" },
       "summary": { "es": "7 días en testnet, del domingo 8 nov 00:00 al domingo 15 nov 00:00, hora de Chile, con entrada simulada.", "en": "7 days on testnet, from Sunday 8 Nov 00:00 to Sunday 15 Nov 00:00, Chile time, with simulated input." },
