@@ -258,10 +258,11 @@ Start in this order, checking each before the next:
 
 | Step | Host | Command | Check |
 |---|---|---|---|
-| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min (port 8090 answers on the verifier host only); within 6 min `https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/status.json` shows it too (the CDN may lag up to 5 minutes more) |
+| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log` | `curl localhost:8090/status.json` shows `last_tick` within 1 min (port 8090 answers on the verifier host only); within 6 min `https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/status.json` shows it too (the CDN may lag up to 5 minutes more) |
 | 2 | proposer | `systemctl enable --now qwatt-live` | `feed/faults.json` exists, with `label` = "Simulated input · assurance A0 · Stellar testnet", `anchoring.signers` = the three public keys from setup step 2 and `code_commit` = `git -C /opt/qwatt rev-parse HEAD`; `journalctl -u qwatt-live` shows "replaying …" |
 | 3 | proposer | `systemctl enable --now qwatt-publish` | `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>/index.json` (`<run>` = `QWATT_RUN`, `run` for the live run) loads (the CDN may lag up to 5 minutes); `journalctl -u qwatt-publish` shows `published …` |
 | 4 | proposer | `systemctl enable --now qwatt-proposer` | within an hour, the first batch shows **anchored** on the reconciliation page |
+| 5 | verifier | `systemctl enable --now qwatt-watch` | `<run>/faults.json` loads first: started earlier, the watchdog reads a source down. `journalctl -u qwatt-watch` shows no alert |
 
 No sample is public before its time (V3-13c). `qwatt-live` writes each hour's samples file to
 `feed/samples/` before it replays it, so the file is on the proposer host up to an hour ahead (and
