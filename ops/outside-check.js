@@ -17,7 +17,7 @@
  *                         times an hour, so a repository that stops moving is that host's dead man's switch
  *   VERIFIER_HOST_SILENT  the same for qwatt-verifier-log (the verifier host replaces status.json every 5 min)
  *   VERIFIER_SILENT       the verifier's last tick, in its public status.json, is older than 15 minutes
- *   SOURCE_DOWN           Horizon, the feed, GitHub or the log could not be read: silence is never health
+ *   SOURCE_DOWN           Horizon, the feed, GitHub or the log could not be read: silence is never health, and so is an unknown account or a URL not set
  *
  * The run is live between run_start and run_end of the run's faults.json. Outside it only SOURCE_DOWN
  * counts. Each problem is posted to the webhook, and counts as sent only on HTTP 2xx (ops/watch.js
@@ -98,8 +98,12 @@ async function observeOutside(o, nowS) {
   const obs = { run_live: false, errors: [] };
   try {
     const page = await getJson(`${o.horizon}/accounts/${o.account}/transactions?order=desc&limit=50`);
-    const t = page && page._embedded ? page._embedded.records.find((x) => x.successful !== false && x.memo_type === 'text' && /^QW#\d+$/.test(x.memo || '')) : null;
-    obs.last_anchor_at = t ? t.created_at : null;
+    /* a 404 is an account Horizon does not know, a mistyped one or a testnet reset: never "no anchors yet" */
+    if (!page) obs.errors.push(`Horizon (account ${o.account} not found)`);
+    else {
+      const t = page._embedded ? page._embedded.records.find((x) => x.successful !== false && x.memo_type === 'text' && /^QW#\d+$/.test(x.memo || '')) : null;
+      obs.last_anchor_at = t ? t.created_at : null;
+    }
   } catch (e) { obs.errors.push(`Horizon (${e.message})`); }
   if (o.feed) {
     try {
@@ -109,11 +113,11 @@ async function observeOutside(o, nowS) {
       if (run) obs.run_start = run.run_start; else obs.errors.push('faults.json (not published)');
     } catch (e) { obs.errors.push(`faults.json (${e.message})`); }
     try { obs.evidence_pushed_at = await lastPush(o.feed, o.token); } catch (e) { obs.errors.push(`qwatt-evidence commits (${e.message})`); }
-  }
+  } else obs.errors.push('the feed (QWATT_FEED_URL is not set)');
   if (o.verifierLog) {
     try { obs.log_pushed_at = await lastPush(o.verifierLog, o.token); } catch (e) { obs.errors.push(`qwatt-verifier-log commits (${e.message})`); }
     try { const st = await getJson(`${o.verifierLog.replace(/\/+$/, '')}/status.json`); obs.verifier_last_tick = st ? st.last_tick : null; } catch (e) { obs.errors.push(`verifier status.json (${e.message})`); }
-  }
+  } else obs.errors.push('the verifier log (QWATT_VERIFIER_LOG_URL is not set)');
   return obs;
 }
 
