@@ -16,7 +16,7 @@
  *
  * Conditions (thresholds in POLICY):
  *   NO_ANCHOR        no anchoring transaction for 90 minutes while the run is live (V3-13b)
- *   FEED_STALE       the feed's newest judged interval is older than 30 min
+ *   FEED_STALE       the feed's newest judged interval is older than 75 min (index.json moves once an hour)
  *   BACKLOG          an accepted batch has waited more than 2 h for its anchor
  *   VERIFIER_SILENT  the verifier's last tick, as its public log shows it, is older than 15 min
  *   NEW_REFUSAL      the verifier refused something (always worth a human look)
@@ -37,7 +37,8 @@ const PIN = require('../assets/qwatt-pin.js');                  // shared, depen
 const POLICY = {
   /* V3-13b: 90 minutes, as the check from outside both hosts (ops/outside-check.js) */
   no_anchor_s: 90 * 60,
-  feed_stale_s: 30 * 60,
+  /* DV-11: index.json moves when a batch closes, once an hour, so a healthy run reaches about 67 minutes */
+  feed_stale_s: 75 * 60,
   backlog_s: 2 * 3600,
   /* status.json reaches the public log at most every 5 min (+1 min publisher interval, +30 s verifier
      tick): ~390 s for a healthy verifier. The watchdog reads the log at its head commit (V3-7c), so the
@@ -61,7 +62,7 @@ function decide(obs, state, nowS, policy = POLICY) {
 
   if (obs.errors && obs.errors.length) conditions.SOURCE_DOWN = `cannot read: ${obs.errors.join('; ')}`;
   if (obs.run_live) {
-    if (obs.last_anchor_at !== undefined && age(obs.last_anchor_at) > policy.no_anchor_s) {
+    if (obs.last_anchor_at !== undefined && Math.min(age(obs.last_anchor_at), age(obs.run_start)) > policy.no_anchor_s) {
       conditions.NO_ANCHOR = obs.last_anchor_at ? `no anchoring transaction since ${obs.last_anchor_at}` : 'no anchoring transaction yet';
     }
     if (obs.feed_last_interval_at !== undefined && age(obs.feed_last_interval_at) > policy.feed_stale_s) {
@@ -121,6 +122,37 @@ async function pinned(url, o) {
   return p.base;
 }
 
+/** The feed's head, and its oldest accepted batch still waiting for a second signature. */
+async function observeFeed(feed, obs) {
+  const idx = await getJson(`${feed}/index.json`);
+  obs.feed_last_interval_at = idx.last_ts_start || null;
+  const listed = (await getText(`${feed}/ledger/batches.jsonl`)).split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const anchoredDir = new Set();
+  for (const e of listed.slice(-50)) {
+    if (e.status !== 'accepted') continue;
+    const a = await getText(`${feed}/anchored/${e.batch_id}.json`);   // 404 is '': any other failure is an unreadable source
+    if (a) anchoredDir.add(e.batch_id);
+  }
+  const waiting = listed.slice(-50).filter((e) => e.status === 'accepted' && !anchoredDir.has(e.batch_id));
+  if (waiting.length) {
+    const b = await getJson(`${feed}/batches/${waiting[0].batch_id}.json`);
+    obs.oldest_unanchored_batch = waiting[0].batch_id;
+    obs.oldest_unanchored_published_at = b.ts_end;                 // a batch is published when its window closes
+  }
+}
+
+/**
+ * DV-11: raw can answer 404 for a file the commit holds, which the reconciliation reads as absent. BROKEN
+ * stands only if a second read agrees, as the verifier re-reads for the same reason.
+ * @param {function} check  async () => ({ report: { verdict } })
+ */
+async function confirmBroken(check, waitMs = 2000) {
+  const first = await check();
+  if (first.report.verdict !== 'BROKEN') return first;
+  await new Promise((r) => setTimeout(r, waitMs));
+  return check();
+}
+
 async function observe(o, nowS) {
   const obs = { errors: [] };
   try {
@@ -128,21 +160,11 @@ async function observe(o, nowS) {
     obs.feed_read_at = feed;
     const faults = await getJson(`${feed}/faults.json`).catch(() => null);
     obs.run_live = faults ? nowS * 1000 >= Date.parse(faults.run_start) && nowS * 1000 < Date.parse(faults.run_end) : !!o.assumeLive;
-    const idx = await getJson(`${feed}/index.json`);
-    obs.feed_last_interval_at = idx.last_ts_start || null;
-    const listed = (await getText(`${feed}/ledger/batches.jsonl`)).split('\n').filter(Boolean).map((l) => JSON.parse(l));
-    const anchoredDir = new Set();
-    for (const e of listed.slice(-50)) {
-      if (e.status !== 'accepted') continue;
-      const a = await getText(`${feed}/anchored/${e.batch_id}.json`).catch(() => '');
-      if (a) anchoredDir.add(e.batch_id);
-    }
-    const waiting = listed.slice(-50).filter((e) => e.status === 'accepted' && !anchoredDir.has(e.batch_id));
-    if (waiting.length) {
-      const b = await getJson(`${feed}/batches/${waiting[0].batch_id}.json`);
-      obs.oldest_unanchored_batch = waiting[0].batch_id;
-      obs.oldest_unanchored_published_at = b.ts_end;                 // a batch is published when its window closes
-    }
+    if (faults) obs.run_start = faults.run_start;
+    /* DV-11: a run is armed ahead of its start, and index.json arrives with its first batch, about an hour
+       after run_start. Until NO_ANCHOR could fire, no index.json is a run not there yet, not a source down. */
+    const early = faults && nowS * 1000 < Date.parse(faults.run_start) + POLICY.no_anchor_s * 1000;
+    if (!early || (await getText(`${feed}/index.json`))) await observeFeed(feed, obs);
   } catch (e) { obs.errors.push(`feed (${e.message})`); }
 
   try {
@@ -250,7 +272,7 @@ async function cli() {
   /* Horizon first, then the feed at one commit (V3-7c); signer roles from the run's faults.json. A Horizon
      or feed error throws, and observe() reports it as an unreadable source (SOURCE_DOWN), never as BROKEN. */
   o.reconcile = async () => {
-    const res = await R.check({ feed: o.feed, horizon: o.horizon, account: o.account });
+    const res = await confirmBroken(() => R.check({ feed: o.feed, horizon: o.horizon, account: o.account }));
     return { ...res.report, read_at: PIN.describe(o.feed, res.feed.commit) || res.feed.base };
   };
   if (!process.env.QWATT_ALERT_WEBHOOK) console.log('QWATT_ALERT_WEBHOOK not set: alerts go to this console only');
@@ -261,4 +283,4 @@ async function cli() {
 
 if (require.main === module) cli();
 
-module.exports = { decide, observe, deliver, keepUnsent, POLICY };
+module.exports = { decide, observe, confirmBroken, deliver, keepUnsent, POLICY };

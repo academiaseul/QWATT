@@ -2,16 +2,15 @@
 /**
  * QWATT — seven-day live run (Deliverable 4)
  * ---------------------------------------------------------------------------
- *   node live/run.js --feed feed --days 8 [--start now|<ISO>] [--seed 20261103] [--speed realtime|fast|<N>]
+ *   node live/run.js --feed feed --days 7 [--start now|<ISO>] [--seed 20261103] [--speed realtime|fast|<N>]
  *        [--proposer G… --verifier G… --third G…] [--code-commit <40-hex commit>] [--refused-file <path>]
  *
  * --refused-file: the batches the verifier refused (V3-11), a JSON array of batch ids that
  * anchor/proposer.js --refused-file writes from the public verifier log. Before each batch closes,
  * the pipeline reads it and links the next batch past any refused batch on its chain.
  *
- * --days is the run length from run_start, a whole number of days. The live run (W3-4) lasts 8:
- * from Sun 8 Nov 03:00 UTC (DV-10), one soak day, then the seven counted days to run_end
- * 2026-11-16T03:00:00Z. qwatt-live passes QWATT_RUN_DAYS from /etc/qwatt/live.env; a length that
+ * --days is the run length from run_start, a whole number of days. The live run lasts 7 (DV-11):
+ * from Mon 9 Nov 03:00 UTC, with no soak day, to run_end 2026-11-16T03:00:00Z. qwatt-live passes QWATT_RUN_DAYS from /etc/qwatt/live.env; a length that
  * is not a whole number of days (an unset QWATT_RUN_DAYS arrives as "") exits 2 before anything is
  * written.
  *
@@ -104,7 +103,7 @@ function describeRun(days, speed) {
 /** W3-4: --days <n>, the run length, a whole number of days (1 or more). systemd passes an unset QWATT_RUN_DAYS as "". */
 function daysArg(text) {
   if (!/^[1-9][0-9]*$/.test(String(text))) {
-    throw new Error(`--days: the run length is a whole number of days (the live run: 8), got ${JSON.stringify(text)}; on the proposer host set QWATT_RUN_DAYS in /etc/qwatt/live.env`);
+    throw new Error(`--days: the run length is a whole number of days (the live run: 7), got ${JSON.stringify(text)}; on the proposer host set QWATT_RUN_DAYS in /etc/qwatt/live.env`);
   }
   return Number(text);
 }
@@ -213,7 +212,7 @@ function runDefinition(feedDir, o) {
  * @param {object} o
  * @param {string} o.feedDir
  * @param {string} [o.refusedFile]  V3-11: the proposer's list of batches the verifier refused
- * @param {number} [o.days=7]       the run length in days (the live run: 8, W3-4; live/soak.js passes a fraction)
+ * @param {number} [o.days=7]       the run length in days (the live run: 7, DV-11; live/soak.js passes a fraction)
  * @param {number} [o.startMs=now]
  * @param {number} [o.seed=20261103]
  * @param {'realtime'|'fast'|number} [o.speed='realtime']

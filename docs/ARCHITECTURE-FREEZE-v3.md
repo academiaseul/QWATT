@@ -79,6 +79,11 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > días consecutivos, tanto si se detiene el anclaje como si se apaga el host del proponente; este
 > nunca recupera intervalos: quedan como un hueco visible. OD-9: los rechazos esperados de la corrida
 > quedan publicados antes de que empiece, en `live/expected-run.json`. El detalle está en §9.
+>
+> *Nota fechada (sábado 7 de noviembre de 2026, Jay Kim y Diego Ostertag).* DV-11, desviación de la
+> corrida: parte el lunes 9 de noviembre a las 00:00 hora de Chile, dura 7 días sin día de prueba y
+> termina el lunes 16 a las 00:00. Las pruebas A–D corren antes en una cuenta 2/2/3 aparte, y la cuenta
+> de la corrida llega al inicio sin anclajes. El detalle está en §9.
 
 ## 1. What stays frozen from v2
 
@@ -608,6 +613,23 @@ moves, the list is regenerated and published before the new start. The list live
 repository at the frozen tag, not next to `faults.json` in `qwatt-evidence`, so the publisher does
 not change at the freeze.
 
+
+### Sat 7 Nov 2026 (Day 20) · Jay Kim and Diego Ostertag
+
+> **Resumen (sábado 7 de noviembre de 2026, Jay Kim y Diego Ostertag).** La corrida parte el lunes 9
+> de noviembre a las 00:00 hora de Chile, dura 7 días sin día de prueba y termina el lunes 16 a las
+> 00:00; los días que cuentan no cambian. La prueba C ancla, y la cadena de la corrida debe nacer en su
+> propia cuenta, así que las pruebas A–D corren el sábado 7 en una cuenta 2/2/3 aparte, con las mismas
+> tres claves públicas. Los servicios quedan armados ese día y la corrida parte sola. Los vigilantes
+> dejan de avisar en falso antes del inicio, en la primera hora y cada hora: `FEED_STALE` pasa de 30 a
+> 75 minutos, porque `index.json` se mueve una vez por hora. La lista de rechazos esperados se
+> regenera para este inicio: 30 rechazos en 2.016 intervalos.
+
+**Deviation agreed on Sat 7 Nov 2026 (status note, Sat 7 Nov 2026, Jay Kim and Diego Ostertag).**
+
+| # | Departs from | Approved text | Built in | Approved |
+|---|---|---|---|---|
+| DV-11 | V3-14 as DV-10 moved it (start Sun 8 Nov 03:00 UTC, one soak day, 8 days) | **Start.** The live run starts Mon 9 Nov 2026 00:00 America/Santiago (`2026-11-09T03:00:00Z`), lasts 7 days with no soak day and ends Mon 16 Nov 00:00 America/Santiago (`2026-11-16T03:00:00Z`). The counted window DV-10 set does not move: Mon 9 to Mon 16 Nov, days 22 to 28. The latest start stays day 23. **Why.** Tests A–D, the independence test and the kill tests had not run by Fri 6 Nov. Test C lands an anchor, and the run's chain starts at genesis on its own account (OD-5), so they cannot run on the run account. **Rehearsal.** They run on Sat 7 Nov on a separate 2/2/3 account with the same three public keys, under a rehearsal name, and the run account `GDSE…4MDC` reaches the start with no anchor. **Armed ahead.** The services are armed the same day, at the frozen commit, and the run starts by itself, with no manual step on Sun 8 Nov. **Monitors.** A run armed ahead of its start has only `faults.json` public and no anchor. Until 90 minutes after `run_start`, the watchdog does not read a missing `index.json` as a source down. Its `NO_ANCHOR`, and the outside check's `NO_ANCHOR` and `PROPOSER_HOST_SILENT`, count from `run_start`, not from an account or repository last used before it. `index.json` moves once an hour, when a batch closes, so `FEED_STALE` alerts at 75 minutes, not 30, and does not fire on a healthy run. `PROPOSER_HOST_SILENT` allows 75 minutes from the start for the first push, and 30 after it. Before the start, the outside check alerts on `VERIFIER_SILENT`. It also reports a `faults.json` it cannot find, and the watchdog calls a run BROKEN only if a second read agrees. **Faults and OD-9.** The eight faults fall on Tue 10 to Sun 15 Nov. `live/expected-run.json` is regenerated for this start, with the seed unchanged: of 2,016 intervals it lists 30 refusals, 24 inside the eight fault windows, 2 leading edges of the night injections and 4 dawn and dusk refusals. | This pull request | Jay Kim and Diego Ostertag, by agreeing this note |
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.

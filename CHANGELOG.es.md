@@ -7,7 +7,7 @@ Lo que hicimos cada semana del sprint Instawards Chile, que empezó el 19 oct 20
 ## Semana 3 — 2 al 6 de noviembre de 2026
 
 ### Resumen
-Esta semana dejamos un rechazo del verificador como definitivo y seguro, y encontramos y arreglamos una falla en ese mismo camino antes de la corrida. El viernes 6 de noviembre el simulacro de respaldo llegó a Stellar testnet y la cuenta 2 de 3 de la corrida quedó creada con las tres claves, umbrales 2/2/3 y 1 QWATT. Todavía no hay ningún lote anclado en ella, y las pruebas A–D no han corrido ahí. El código todavía no está congelado, y la corrida pasó del sábado 7 al domingo 8 con la desviación DV-10 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)). Toda la entrada sigue siendo simulada, assurance A0.
+Esta semana dejamos un rechazo del verificador como definitivo y seguro, y encontramos y arreglamos una falla en ese mismo camino antes de la corrida. El viernes 6 de noviembre el simulacro de respaldo llegó a Stellar testnet y la cuenta 2 de 3 de la corrida quedó creada con las tres claves, umbrales 2/2/3 y 1 QWATT. Todavía no hay ningún lote anclado en ella, y las pruebas A–D no han corrido ahí. El código todavía no está congelado, y la corrida pasó del sábado 7 al lunes 9 con las desviaciones DV-10 y DV-11 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)). Toda la entrada sigue siendo simulada, assurance A0.
 
 ### Agregado
 - **La cuenta 2 de 3 de la corrida en Stellar testnet.** Tres firmantes de peso 1, clave maestra de peso 0, umbrales 2/2/3 y saldo de 1 QWATT: [`GDSEQAD3…4MDC`](https://stellar.expert/explorer/testnet/account/GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC). Creación: [`38b27d8a…`](https://stellar.expert/explorer/testnet/tx/38b27d8ab2f55c025b8bd2137bf3bb5b1ba0745087c2fd13a8ebaf0d993764df). Fondeo: [`67737031…`](https://stellar.expert/explorer/testnet/tx/67737031c547e36f4f8996baba8ee3dcbb8d9d9d73d855ed5625c319c0b96404).
@@ -39,7 +39,7 @@ Metas de "Próxima semana":
 - Meta: la lista de código de la semana 3 (rechazos definitivos, comisión fija, lecturas con fecha futura, corrida de 8 días, reinicios, sin muestras anticipadas, monitoreo externo, suplente) → Resultado: todo integrado.
 - Meta: un ensayo del commit candidato en una cuenta desechable 2/2/3, con pruebas de falla → Resultado: no hecho.
 - Meta: freeze del código el viernes 6 → Resultado: no hecho. La DV-10 cambió el código de la corrida el viernes 6, y todavía no hay tag de freeze.
-- Meta: la corrida parte el sábado 7 → Resultado: pasó al domingo 8. Ver Bloqueos.
+- Meta: la corrida parte el sábado 7 → Resultado: pasó al lunes 9. Ver Bloqueos.
 
 **En números**
 - Pruebas: 449 pasando en `03169a8` → 501 pasando en main en `6e8515b`, 0 fallando (379 en `npm test`, 122 de anclaje). Las 497 del video son la cuenta en `a0b5098`, antes del PR #52. CI en main: [corrida #210](https://github.com/academiaseul/QWATT/actions/runs/42243261968).
@@ -48,7 +48,8 @@ Metas de "Próxima semana":
 
 ### Bloqueos y lecciones
 - **La tercera clave llegó tarde, y lo que dijimos antes se adelantó a los hechos.** La semana 1 dijo que el firmante estaba confirmado, y la semana 2 que estaba elegido, pero no había llegado ninguna clave. La clave que usamos viene de un firmante encontrado esta semana y llegó el jueves 5. La desviación numerada que prometimos para el domingo 1 no se escribió. Diego confirmó por escrito que el firmante no trabaja en QWATT, no depende de ninguno de los fundadores y no tiene rol en el sprint (freeze §9).
-- **Se perdió la clave de la tesorería de agosto.** La segunda génesis en testnet, el 24 de agosto, sobrescribió el almacenamiento del navegador que la guardaba. La desviación DV-10 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)) pasa la corrida al activo QWATT del 24 de agosto, cuya clave de tesorería tiene Jay, y mueve el inicio al domingo 8 a las 03:00 UTC. Los días que cuentan son del lunes 9 al lunes 16, 03:00 UTC, antes del Día 30. La cuenta de arriba ya usa ese activo.
+- **Se perdió la clave de la tesorería de agosto.** La segunda génesis en testnet, el 24 de agosto, sobrescribió el almacenamiento del navegador que la guardaba. La desviación DV-10 ([PR #57](https://github.com/academiaseul/QWATT/pull/57)) pasa la corrida al activo QWATT del 24 de agosto, cuya clave de tesorería tiene Jay. La cuenta de arriba ya usa ese activo.
+- **La corrida parte el lunes 9, sin día de prueba** (DV-11). Las pruebas A–D no habían corrido al viernes 6, así que corren el sábado 7 en una cuenta 2/2/3 aparte, y la cuenta de la corrida sigue sin anclajes hasta el inicio. Los días que cuentan siguen siendo del lunes 9 al lunes 16, 03:00 UTC, antes del Día 30.
 - **Revisar un arreglo encontró una falla peor.** Los rechazos definitivos se integraron el martes 3, y la revisión de ese mismo día encontró la detención que arregló el #51. Hay que revisar el camino de falla después de cambiarlo.
 - **El calendario de GitHub no es un reloj de 15 minutos.** El chequeo externo partió cada 4 a 9 horas y todavía no tiene cuenta configurada ([PR #54](https://github.com/academiaseul/QWATT/pull/54)). Necesita un programador externo y un destinatario de alertas.
 - **Límite conocido: el verificador no recalcula la energía desde las lecturas crudas.** Revisa que coincidan con su huella, pero ningún programa las compara con la energía que declara un lote. Un lote con la energía aumentada y las lecturas crudas intactas igual pasa la revisión, aunque la fila cruda y el número declarado quedarían en desacuerdo a la vista de todos.
@@ -57,9 +58,9 @@ Metas de "Próxima semana":
 Planificado, todavía no hecho.
 
 1. Terminar el servidor del proponente y su deploy key.
-2. Correr las pruebas A–D y la de independencia en la cuenta, y lograr el primer anclaje.
+2. Correr las pruebas A–D y la de independencia en una cuenta de ensayo, y lograr ahí el primer anclaje.
 3. Hacer el simulacro de suplente y las pruebas de caída, y configurar el programador externo y las alertas.
-4. Poner el tag del freeze. La corrida parte el domingo 8 a las 00:00 hora de Chile con un día de prueba, y los días que cuentan van del lunes 9 al lunes 16, 00:00 hora de Chile.
+4. Poner el tag del freeze y dejar los servicios armados. La corrida parte sola el lunes 9 a las 00:00 hora de Chile y termina el lunes 16 a las 00:00 hora de Chile.
 
 ### Enlaces
 - **Lo nuevo de esta semana, commit por commit:** https://github.com/academiaseul/QWATT/compare/semana-2...semana-3
