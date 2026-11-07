@@ -217,8 +217,8 @@ test('W3-4: the run length comes from live.env: qwatt-live passes --days ${QWATT
   const live = envBlock('live');
   eq(live.QWATT_RUN_DAYS, '8', 'env.example live.env QWATT_RUN_DAYS');
   const tpl = read('ops/deploy/env.example');
-  assert(tpl.includes('2026-11-07T03:00:00Z') && tpl.includes('2026-11-15T03:00:00Z'), 'the comment gives the live run\'s start and its run_end');
-  eq(new Date(Date.parse('2026-11-07T03:00:00Z') + Number(live.QWATT_RUN_DAYS) * 86400e3).toISOString(), '2026-11-15T03:00:00.000Z', 'the live run\'s start plus QWATT_RUN_DAYS is the end of the counted window');
+  assert(tpl.includes('2026-11-08T03:00:00Z') && tpl.includes('2026-11-16T03:00:00Z'), 'the comment gives the live run\'s start and its run_end');
+  eq(new Date(Date.parse('2026-11-08T03:00:00Z') + Number(live.QWATT_RUN_DAYS) * 86400e3).toISOString(), '2026-11-16T03:00:00.000Z', 'the live run\'s start plus QWATT_RUN_DAYS is the end of the counted window');
   assert(/QWATT_RUN_DAYS/.test(read('docs/RUNBOOK.md')), 'the RUNBOOK (setup step 9) names QWATT_RUN_DAYS');
 });
 

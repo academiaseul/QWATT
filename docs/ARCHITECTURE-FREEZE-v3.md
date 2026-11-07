@@ -75,7 +75,7 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > de tiempo del procesamiento no retrocede. Hay un caso conocido en que el anclaje se detiene: un
 > lote publicado como rechazado encima de un lote que el verificador rechazó. El detalle está en §9.
 >
-> *Nota fechada (jueves 5 de noviembre de 2026, Jay Kim y Diego Ostertag).* OD-8: qué cuenta como siete
+> *Nota fechada (viernes 6 de noviembre de 2026, Jay Kim y Diego Ostertag).* OD-8: qué cuenta como siete
 > días consecutivos, tanto si se detiene el anclaje como si se apaga el host del proponente; este
 > nunca recupera intervalos: quedan como un hueco visible. OD-9: los rechazos esperados de la corrida
 > quedan publicados antes de que empiece, en `live/expected-run.json`. El detalle está en §9.
@@ -517,7 +517,70 @@ agreeing this note: there is no earlier approval, and the code was merged before
 |---|---|---|---|---|
 | DV-9 | V3-11 (§4: week-3 Chain and Floor rows, the row A verifier refusal, and the text below the table); V3-1 (with nothing anchored, the walk can end above seq 0); DV-5 (a batch whose walk fails `verifier.links_refused` is proposed, not blocked) | **Link:** once the batch pipeline knows of a terminal verifier refusal (OD-7), the next batch to close links to the parent of the oldest refused batch on its chain, not always to the last anchored batch. They are the same batch unless batches published as rejected lie between them: those stay in the chain, as in week 1, and only a batch the verifier refused for good may be skipped, so a direct link to the last anchored batch fails `batch.chain_break`. A batch published as rejected carries the total forward, so the next batch still starts from the last anchored batch's `cumulative_mwh`, or from 0 with nothing anchored. If the oldest refused batch started the chain, the next batch starts it again: `prev_hash` of 64 zeros at a `seq` above 0, and a total starting from 0. `seq` keeps counting up. `batch/verify-cli.js` accepts a skip only with `--verifier-log`: the command in §7 has no such flag, so it reports a skip as a chain break. **Floor:** the verifier and `anchor/proposer.js` `tick` judge against the last anchored batch, as §4 says; `batch/verify-cli.js` uses the last accepted batch the verifier log did not refuse. The batch pipeline's own floor stays at the last batch with status `accepted` in `ledger/batches.jsonl`, which can be the refused batch, because a refusal is recorded only in the verifier log. So the pipeline keeps a refused batch's window and intervals closed and drops its energy for good; no checker enforces that. **Limits, as built at `fd99f27`:** this note does not say that anchoring continues after every refusal. If a batch published as rejected sits on a refused batch, the next batch fails its self-check (`batch.chain_break`) and the batch after it fails the walk with `verifier.head_mismatch`: the proposer blocks, anchoring stops and the reconciliation reads BROKEN. A batch that closes before a batch built on a refused one has itself been refused fails `batch.chain_break` and is published as rejected, so its energy is lost too. | [PR #43](https://github.com/academiaseul/QWATT/pull/43) (V3-11b), with the reconciliation and `batch/verify-cli.js` in [PR #47](https://github.com/academiaseul/QWATT/pull/47), which brought V3-11c (`34a8bc3`, opened as PR #44) to main | Jay Kim and Diego Ostertag, by agreeing this note |
 
-**OD-8 and OD-9 (status note, Thu 5 Nov 2026, Jay Kim and Diego Ostertag).** Both were due Fri 6 Nov.
+### Thu 5 Nov 2026 (Day 18) · Jay Kim and Diego Ostertag
+
+**OD-2 · Third signer's public key (status note, Thu 5 Nov 2026, Jay Kim and Diego Ostertag).** The
+third signer, off-team, installed stellar-cli 28.1.0 on their own computer, generated the identity
+`qwatt-third` there ([THIRD-SIGNER.md](THIRD-SIGNER.md)), wrote their paper backup and sent only
+the public key. Both founders confirmed it with the third signer by voice on Thu 5 Nov 2026. The
+third signer's name is not recorded. Third signer's public key:
+
+`GCA6IH2O4N3UOCLTEBEFQ6DA4Y4367G6SWRUTE47Y7VGBHIV64BAMBSD` (first four `GCA6`, last four `MBSD`)
+
+The third signer also installed Node.js 24.14.1 and the repository at `3ae1f2c` with
+`npm ci --prefix anchor`, for the stand-in drill (V3-13). Still to come: the backup drill (their
+signature on `drill.xdr`, RUNBOOK D6) and the stand-in drill. The anchoring account still waits for
+the proposer's public key; nothing is anchored on the real account at the date of this note.
+
+> **Resumen (jueves 5 de noviembre de 2026, Jay Kim y Diego Ostertag).** Llegó la clave pública del
+> firmante externo (`GCA6…MBSD`), confirmada por voz por ambos fundadores. Falta el simulacro de
+> respaldo (`drill.xdr`), el simulacro de suplente y la clave pública del proponente; la cuenta de
+> anclaje real aún no existe.
+
+### Fri 6 Nov 2026 (Day 19) · Jay Kim and Diego Ostertag
+
+**DV-9 · Limits, after V3-11d (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).** The
+*Limits, as built at `fd99f27`* of DV-9 (§9, Tue 3 Nov 2026) no longer hold on main. Fixed in
+[PR #51](https://github.com/academiaseul/QWATT/pull/51) (V3-11d, `34198d3`, merged Wed 4 Nov
+2026): a link may also leave out a batch built on a refused batch, published as rejected or not yet
+refused, so neither case stops anchoring or loses the next batch's energy. `V.leftOut`
+(`batch/verify.js`) is that one rule, used by the walk, the batch pipeline and `batch/verify-cli.js`;
+the reconciliation applies the same rule in its own code.
+
+| DV-9 limit, at `fd99f27` | At `34198d3` |
+|---|---|
+| A batch published as rejected on a refused batch stops anchoring for good | The next batch is accepted and links past both; anchoring goes on and the reconciliation reads RECONCILED |
+| A batch that closes before a batch built on a refused one has been refused fails `batch.chain_break`, and its energy is lost | It is accepted: the batch built on the refused one is refused in public first, then this one is anchored |
+
+What stays refused: a skipped batch that was not refused must rehash and be built on a refused
+one, or the walk fails with `verifier.head_mismatch`, as a forged chain; a batch that names a refused
+batch is still `verifier.links_refused`; nothing below the lowest refusal can be skipped. The
+verifier still judges in order, so an anchor past a batch built on a refused one, while that batch
+is not yet judged, is a gap and reads BROKEN. One change in what the reconciliation shows: an accepted
+batch built on a refused one and not yet judged reads PENDING, not BROKEN; anchored, it is BROKEN.
+Unchanged, as DV-9 records: the batch pipeline's own floor, and `batch/verify-cli.js` accepting a
+skip only with `--verifier-log`. DV-9's words "only a batch the verifier refused for good may be
+skipped" read, from `34198d3` on, "only a batch the verifier refused for good, or a batch built on
+one, may be skipped"; DV-9's approved text above stays as agreed. Evidence: CI red on `dd409d9`
+(run 41827554229: batch conformance, anchoring recovery, reconciliation), green on `34198d3` (run
+41830014994).
+
+**OD-4 · Proposer host (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).** The proposer
+host is a VPS at DigitalOcean with Ubuntu 24.04, operated by Diego Ostertag, which fills in the
+provider left open in the OD-4 note of Fri 30 Oct 2026. At the date of this note it is being
+installed with the host package; its key and deploy key have not been sent yet.
+
+**Deviation agreed on Fri 6 Nov 2026 (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).**
+
+| # | Departs from | Approved text | Built in | Approved |
+|---|---|---|---|---|
+| DV-10 | V3-14 (start Sat 7 Nov, counted window Sun 8 – Sun 15); §3 and the August asset as the run's marker asset (`anchor/setup-account.js` defaults, OD-3) | **Asset.** The key of the August treasury `GCLS6…SOKW` (asset `QWATT:GDN6…LT46`, created 22 Aug 2026) is not available: the browser storage that held it was overwritten on 24 Aug, when a second testnet genesis ran (`mining-rig/redeploy-testnet.js --go`) and created `QWATT:GC5FJHNEEULWCFXNPHUJ4VU27ROEVKY33VCNN3DJLVD53VNZ7RXXO3SX` with treasury `GCR3JGVRQ37BG6GV22PT4IDSXBDVMLBBE36ZJTT7PBOB3HXXY6KZSWGN`, whose key Jay Kim holds. From this deviation on, the run's anchoring account holds a trustline to `QWATT:GC5F…O3SX`, is funded with 1 QWATT from `GCR3…SWGN`, and each anchor pays 0.0000001 of that asset back to `GCR3…SWGN`. The August accounts stay what the site calls them: prior work, unchanged, still holding their 42,700,000 QWATT; the anchors of the 8 Oct rehearsals keep their August asset. The anchoring account `GBQFZBRDV7JVHI45CVIOWHHUQPESV67NN57ERYEZOENZF7HR5XSNGSX5`, set up on 6 Nov with a trustline to the August asset and never funded, is not used for the run; its setup transaction (`3e511448…`, ledger 5,595,273) stays public on testnet, and its evidence files are published with the run account's tests A–D (R-ABCD allows `evidence/account/` only then). The run's anchoring account is `GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC`, set up the same way (step 4) on Fri 6 Nov 2026 with the same three keys and a trustline to `QWATT:GC5F…O3SX` (setup transaction `38b27d8a…`, ledger 5,596,586). **Dates.** The run starts Sun 8 Nov 00:00 Santiago (03:00 UTC), one day later than V3-14, so it can be installed on the final commit: Sun 8 is the soak day and the counted window is **Mon 9 Nov 03:00 UTC to Mon 16 Nov 03:00 UTC** (days 22–28), inside the SOW's 30 days and before Day 30 (Tue 17 Nov). The run lasts 8 days (`QWATT_RUN_DAYS=8`); the eight faults fall on Mon 9 – Sat 14. `live/expected-run.json` is regenerated for the new start (31 expected refusals in 2,304 intervals; seed unchanged). | This pull request | Jay Kim and Diego Ostertag, by agreeing this note |
+
+**OD-2 · Third signer's independence (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).**
+Diego Ostertag confirmed in writing (email to Jay Kim, Fri 6 Nov 2026) that the third signer does
+not work for QWATT, depends on neither founder and has no role in the Instawards sprint.
+
+**OD-8 and OD-9 (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).** Both were due Fri 6 Nov.
 
 **OD-8, "seven consecutive days".** The counted window is seven consecutive days if no outage breaks
 it, by this rule:
@@ -536,14 +599,15 @@ it, by this rule:
 
 **OD-9, expected results.** The refusals the run is expected to make are listed before it starts, in
 `live/expected-run.json` at the frozen tag. `live/expected.js` generates the list by running the
-simulator and gates fast with the run's seed (20261103), start (2026-11-07T03:00:00Z) and length (8
-days). Of 2,304 intervals it lists 32 refusals: 24 inside the eight fault windows, 2 leading edges of
-the night injections, and 6 dawn and dusk refusals from G0's relative tolerance (B-3,
+simulator and gates fast with the run's seed (20261103), start (2026-11-08T03:00:00Z, DV-10) and length (8
+days). Of 2,304 intervals it lists 31 refusals: 24 inside the eight fault windows, 2 leading edges of
+the night injections, and 5 dawn and dusk refusals from G0's relative tolerance (B-3,
 `plausibility.energy_power`). The spec does not change. `live/audit.js --expected` compares the run
 with the list slot by slot, and any difference is recorded in the write-up. If the run's start
 moves, the list is regenerated and published before the new start. The list lives in the code
 repository at the frozen tag, not next to `faults.json` in `qwatt-evidence`, so the publisher does
 not change at the freeze.
+
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.

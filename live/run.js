@@ -10,8 +10,8 @@
  * the pipeline reads it and links the next batch past any refused batch on its chain.
  *
  * --days is the run length from run_start, a whole number of days. The live run (W3-4) lasts 8:
- * from Sat 7 Nov 03:00 UTC, one soak day, then the seven counted days to run_end
- * 2026-11-15T03:00:00Z. qwatt-live passes QWATT_RUN_DAYS from /etc/qwatt/live.env; a length that
+ * from Sun 8 Nov 03:00 UTC (DV-10), one soak day, then the seven counted days to run_end
+ * 2026-11-16T03:00:00Z. qwatt-live passes QWATT_RUN_DAYS from /etc/qwatt/live.env; a length that
  * is not a whole number of days (an unset QWATT_RUN_DAYS arrives as "") exits 2 before anything is
  * written.
  *

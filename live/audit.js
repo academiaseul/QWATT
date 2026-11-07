@@ -2,7 +2,7 @@
 /**
  * QWATT — audit a live-run feed (Deliverable 4 acceptance)
  * ---------------------------------------------------------------------------
- *   node live/audit.js <feed-dir> [--json]
+ *   node live/audit.js <feed-dir> [--expected live/expected-run.json] [--json]
  *
  * From the published feed alone:
  *   1. every scheduled fault (faults.json): each 5-minute interval fully inside
@@ -16,7 +16,9 @@
  *      byte for byte, a data row of one of those files plus "\n", the way the
  *      CSV replay adapter read it. So nothing a batch's samples_root commits to
  *      was made up: it came from the published samples. Only this direction is
- *      checked; a samples row need not appear in raw/ (the run's last open hour).
+ *      checked; a samples row need not appear in raw/ (the run's last open hour);
+ *   5. with --expected (OD-9, live/expected.js): every slot judged was refused, or not, with the reasons
+ *      listed before the run started. A slot not judged yet, or in a gap, is not compared.
  * Exit 0 when all hold, 1 otherwise.
  */
 
@@ -32,7 +34,31 @@ function readJsonl(f) {
   return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)) : [];
 }
 
-function auditLive(feedDir) {
+/** OD-9: the run's judged slots against the refusals listed in advance. @returns the summary for the report */
+function compareExpected(def, bySlot, expected, problems) {
+  if (expected.seed !== def.seed || expected.days !== def.days || expected.run_start !== def.run_start) {
+    problems.push(`the expected list is for another run (seed ${expected.seed}, ${expected.days} days from ${expected.run_start})`);
+    return { listed: expected.refused.length, matching: 0, not_judged: 0 };
+  }
+  const key = (rs) => [...rs].sort().join(',');
+  const listed = new Map(expected.refused.map((r) => [Date.parse(r.ts_start), r]));
+  let matching = 0, notJudged = 0;
+  for (const [at, r] of listed) {
+    const lines = bySlot.get(at);
+    if (!lines) { notJudged++; continue; }
+    const refused = lines.find((l) => !l.ok);
+    if (!refused) problems.push(`${r.ts_start}: expected refusal (${r.reasons.join(', ')}), but the slot was accepted`);
+    else if (key(refused.reasons) !== key(r.reasons)) problems.push(`${r.ts_start}: refused with reasons ${key(refused.reasons)}, expected ${key(r.reasons)}`);
+    else matching++;
+  }
+  for (const [at, lines] of bySlot) {
+    const refused = lines.find((l) => !l.ok);
+    if (refused && !listed.has(at)) problems.push(`${refused.interval.ts_start}: refused (${key(refused.reasons)}), not in the expected list`);
+  }
+  return { listed: expected.refused.length, matching, not_judged: notJudged };
+}
+
+function auditLive(feedDir, { expected } = {}) {
   const def = JSON.parse(fs.readFileSync(path.join(feedDir, 'faults.json'), 'utf8'));
   const accepted = readJsonl(path.join(feedDir, 'ledger', 'accepted.jsonl'));
   const rejected = readJsonl(path.join(feedDir, 'ledger', 'rejected.jsonl'));
@@ -107,6 +133,8 @@ function auditLive(feedDir) {
   }
   if (strays.length) problems.push(`${strays.length} raw payload(s) not a row of a published samples file (first: ${strays[0]})`);
 
+  const expectedSummary = expected ? compareExpected(def, bySlot, expected, problems) : null;
+
   const expectedSlots = keys.length ? (last - runStart) / DT_MS + 1 : 0;
   return {
     ok: problems.length === 0,
@@ -116,19 +144,22 @@ function auditLive(feedDir) {
     faults,
     samples: { files: manifest.length },
     raw: { files: rawFiles.length, payloads },
+    expected: expectedSummary,
   };
 }
 
 if (require.main === module) {
   const dir = process.argv[2];
-  if (!dir) { console.error('usage: node live/audit.js <feed-dir> [--json]'); process.exit(2); }
-  const r = auditLive(path.resolve(dir));
+  if (!dir) { console.error('usage: node live/audit.js <feed-dir> [--expected live/expected-run.json] [--json]'); process.exit(2); }
+  const ei = process.argv.indexOf('--expected');
+  const r = auditLive(path.resolve(dir), { expected: ei >= 0 ? JSON.parse(fs.readFileSync(path.resolve(process.argv[ei + 1]), 'utf8')) : null });
   if (process.argv.includes('--json')) console.log(JSON.stringify(r, null, 2));
   else {
     console.log(`live run ${r.run.start} → ${r.run.end}`);
     console.log(`  coverage: ${r.coverage.judged_slots}/${r.coverage.expected_slots} intervals judged · ${r.coverage.accepted} accepted · ${r.coverage.rejected} rejected · ${r.coverage.gaps.length} gaps`);
     console.log(`  raw: ${r.raw.payloads} payload(s) in ${r.raw.files} raw file(s), each checked against the ${r.samples.files} published samples file(s)`);
     for (const f of r.faults) console.log(`  ${f.id.padEnd(24)} ${f.start.slice(0, 16)}Z  ${String(f.refused).padStart(2)}/${f.intervals} refused  ${f.status}  ${Object.keys(f.codes).join(', ')}`);
+    if (r.expected) console.log(`  expected refusals: ${r.expected.matching}/${r.expected.listed} match · ${r.expected.not_judged} not judged`);
     for (const p of r.problems) console.log('  ✗ ' + p);
     console.log(r.ok ? 'OK' : 'FAILED');
   }

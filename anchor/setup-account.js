@@ -59,8 +59,8 @@ const DEFAULTS = {
   friendbot_url: 'https://friendbot.stellar.org',
   network_passphrase: S.Networks.TESTNET,
   asset_code: 'QWATT',
-  asset_issuer: 'GDN6IWJT4ES7CI6BEGXWLAXFM6737XAAEQSV5PNSYNDHOGH7PI7BLT46',
-  treasury: 'GCLS6EE5UNXFNK44SQGD4F3TYYFE7QCJX2QEXQ5E4TOQSAQBZUXTSOKW',
+  asset_issuer: 'GC5FJHNEEULWCFXNPHUJ4VU27ROEVKY33VCNN3DJLVD53VNZ7RXXO3SX',   // QWATT of 24 Aug 2026 (freeze v3 §9, DV-10)
+  treasury: 'GCR3JGVRQ37BG6GV22PT4IDSXBDVMLBBE36ZJTT7PBOB3HXXY6KZSWGN',       // its treasury (DV-10)
   funding_amount: '1',
   payment_amount: '0.0000001',
 };
