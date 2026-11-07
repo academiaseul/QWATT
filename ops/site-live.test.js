@@ -313,12 +313,13 @@ function loadStatus() {
   return Q;
 }
 
-test('weekState: week 3 is planned on Sun 1 Nov and in progress from Mon 2 Nov; weeks 1 and 2 are done', () => {
+test('weekState: the run is planned on Sat 7 Nov and in progress from Sun 8 Nov; weeks 1, 2 and 3 are done', () => {
   const Q = loadStatus();
-  eq(Q.weekState(Q.week(3), '2026-11-01'), 'planificado', '1 Nov');
-  eq(Q.weekState(Q.week(3), '2026-11-02'), 'curso', '2 Nov');
+  eq(Q.weekState(Q.week(4), '2026-11-07'), 'planificado', '7 Nov');
+  eq(Q.weekState(Q.week(4), '2026-11-08'), 'curso', '8 Nov');
   eq(Q.weekState(Q.week(1), '2026-10-24'), 'hecho', 'week 1 has its changelog');
   eq(Q.weekState(Q.week(2), '2026-10-30'), 'hecho', 'week 2 has its changelog');
+  eq(Q.weekState(Q.week(3), '2026-11-06'), 'hecho', 'week 3 has its changelog');
   eq(Q.weekState(Q.week(0), '2026-10-24'), 'previo', 'prior work');
   eq(Q.weekState(Q.week(4), '2026-11-02'), 'planificado', 'the run later');
 });
@@ -342,7 +343,7 @@ test('chips: status → chip words, and a week chip computed from the date given
   eq(Q.chipFor('node:cualquiera', '2026-10-24').st, 'testnet', 'node chip');
   eq(Q.chipFor('item:V3-4', '2026-10-30').st, 'curso', 'item chip (V3-4 in progress)');
   eq(Q.chipFor('item:V3-11', '2026-10-30').st, 'planificado', 'item chip (V3-11 planned)');
-  eq(Q.chipFor('week:3', '2026-11-02').st, 'curso', 'week chip by date');
+  eq(Q.chipFor('week:4', '2026-11-08').st, 'curso', 'week chip by date');
   eq(Q.chipFor('item:NOPE', '2026-10-24'), null, 'unknown reference');
 });
 
