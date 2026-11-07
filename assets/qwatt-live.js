@@ -26,7 +26,7 @@
   /* The real global object at call time (window, or globalThis in Node tests). */
   function G0() { return typeof globalThis !== 'undefined' ? globalThis : root; }
 
-  var SIM_DEFAULT = { es: 'Entrada simulada · Stellar testnet', en: 'Simulated input · Stellar testnet' };
+  var SIM_DEFAULT = { es: 'Entrada simulada · assurance A0 · Stellar testnet', en: 'Simulated input · assurance A0 · Stellar testnet' };
 
   var CONFIG = {
     HORIZON: 'https://horizon-testnet.stellar.org',

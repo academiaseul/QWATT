@@ -291,7 +291,7 @@ test('ready(): anchor.account null stays null; a valid G… is taken; a failed r
   L = load(stub([['/assets/status.json', () => new Error('offline')]]));
   await L.ready();
   eq(L.CONFIG.ANCHOR_ACCOUNT, null, 'fetch failure → null');
-  eq(L.CONFIG.SIM_LABEL, { es: 'Entrada simulada · Stellar testnet', en: 'Simulated input · Stellar testnet' }, 'built-in label');
+  eq(L.CONFIG.SIM_LABEL, { es: 'Entrada simulada · assurance A0 · Stellar testnet', en: 'Simulated input · assurance A0 · Stellar testnet' }, 'built-in label');
 });
 
 test('ready(): week windows derived from status.json equal the offline fallbacks', async () => {

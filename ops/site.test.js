@@ -740,7 +740,7 @@ function selfTest() {
   expectFail('page JS with entry.batch_id', () => ruleFieldsPageJS('assets/pages/x.js', 'row.textContent = entry.batch_id;'), 'R-FIELDS');
   expectFail('page JS with tx.memo', () => ruleFieldsPageJS('assets/pages/x.js', 'cell.textContent = tx.memo;'), 'R-FIELDS');
   expectFail('deployed file named bench-santiago-000001.json', () => ruleLocationName('evidence/feeds/x/batches/bench-santiago-000001.json'), 'R-LOCATION');
-  expectFail('status.json done item without evidence', () => statusRules({ version: 1, updated: '2026-10-24', sprint: {}, labels: { sim: { es: 'Entrada simulada · Stellar testnet', en: 'Simulated input · Stellar testnet' } }, anchor: { account: null, target: {} }, feeds: [], weeks: [{ n: 1, id: 's1', from: '2026-10-19', to: '2026-10-23', title: { es: 'a', en: 'a' }, summary: { es: 'a', en: 'a' }, changelog: null, release: null, highlights: [] }], deliverables: [], items: [{ id: 'X-1', ref: null, deliverable: null, week: 1, status: 'done', label: 'prototipo', title: { es: 'a', en: 'a' }, summary: { es: 'a', en: 'a' }, evidence: [], nodes: [] }], nodes: [] }, { quiet: true }), 'R-STATUS');
+  expectFail('status.json done item without evidence', () => statusRules({ version: 1, updated: '2026-10-24', sprint: {}, labels: { sim: { es: 'Entrada simulada · assurance A0 · Stellar testnet', en: 'Simulated input · assurance A0 · Stellar testnet' } }, anchor: { account: null, target: {} }, feeds: [], weeks: [{ n: 1, id: 's1', from: '2026-10-19', to: '2026-10-23', title: { es: 'a', en: 'a' }, summary: { es: 'a', en: 'a' }, changelog: null, release: null, highlights: [] }], deliverables: [], items: [{ id: 'X-1', ref: null, deliverable: null, week: 1, status: 'done', label: 'prototipo', title: { es: 'a', en: 'a' }, summary: { es: 'a', en: 'a' }, evidence: [], nodes: [] }], nodes: [] }, { quiet: true }), 'R-STATUS');
   expectFail('q-num without data-src', () => rulePage('x.html', '<p><span class="q-num">5</span></p>', parseHTML('<p><span class="q-num">5</span></p>')), 'R-PAGE');
   expectFail('inline onclick', () => rulePage('x.html', '<a onclick="x()">a</a>', parseHTML('<a onclick="x()">a</a>')), 'R-PAGE');
   expectPass("localStorage.setItem('qwatt.theme','dark')", () => ruleStorage('x.js', "localStorage.setItem('qwatt.theme','dark')"), 'R-STORAGE');
@@ -786,7 +786,6 @@ const ITEM_STATUSES = ['prior', 'done', 'in_progress', 'planned', 'open', 'out_o
 const LABELS = ['testnet', 'prototipo', 'planificado', 'info'];
 const NODE_IDS = ['medidor', 'entrada', 'filtros', 'lotes', 'feed', 'proponente', 'verificador', 'cuenta', 'cualquiera'];
 const SIM_LABELS = [
-  { es: 'Entrada simulada · Stellar testnet', en: 'Simulated input · Stellar testnet' },
   { es: 'Entrada simulada · assurance A0 · Stellar testnet', en: 'Simulated input · assurance A0 · Stellar testnet' },
 ];
 const PRESENT_TENSE = [
