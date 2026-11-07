@@ -56,6 +56,28 @@ test('DV-11: at the start of a run armed ahead of it, the anchor and the propose
   eq(codes(O.decideOutside(armed(61 * 60), NOW)), '', 'an hour in: the publisher has nothing to push before the first batch');
   eq(codes(O.decideOutside(armed(76 * 60), NOW)), 'PROPOSER_HOST_SILENT', '76 minutes in, nothing pushed since it was armed');
   eq(codes(O.decideOutside({ ...armed(91 * 60), evidence_pushed_at: ago(60) }, NOW)), 'NO_ANCHOR', '91 minutes in, no anchor');
+  eq(O.POLICY.first_push_s, 75 * 60, 'the wait for the first push');
+  eq(codes(O.decideOutside({ ...armed(100 * 60), last_anchor_at: ago(20 * 60), evidence_pushed_at: ago(31 * 60) }, NOW)), 'PROPOSER_HOST_SILENT', 'after the first push the 30-minute limit is back: the repository moves every few minutes');
+});
+
+test('DV-11: observeOutside() reads run_start from the served faults.json, and a faults.json that is not there is a problem, never a quiet pass', async () => {
+  const O = require('./outside-check');
+  const os = require('os');
+  const { serveDir } = require('../anchor/static-server');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-outside-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  const start = '2026-11-09T03:00:00.000Z';
+  fs.writeFileSync(path.join(dir, 'run', 'faults.json'), JSON.stringify({ run_start: start, run_end: '2026-11-16T03:00:00.000Z' }) + '\n');
+  const srv = await serveDir(dir);
+  let found, missing;
+  try {
+    found = await O.observeOutside({ account: 'GOUTSIDETEST', horizon: 'http://127.0.0.1:9', feed: srv.url + '/run' }, NOW);
+    missing = await O.observeOutside({ account: 'GOUTSIDETEST', horizon: 'http://127.0.0.1:9', feed: srv.url + '/wrong-name' }, NOW);
+  } finally { await srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+  eq(found.run_start, start, 'run_start from faults.json');
+  eq(found.run_live, true, 'live on 9 Nov at 12:00');
+  assert(!found.errors.some((e) => /^faults\.json/.test(e)), `read: ${found.errors.join('; ')}`);
+  assert(missing.errors.some((e) => /^faults\.json/.test(e)), `a wrong feed address is reported: ${missing.errors.join('; ')}`);
 });
 
 test('DV-11: before the start a verifier that stopped alerts, so a PC that went off on Sunday is known before the run needs it; after the run it does not', () => {
@@ -66,12 +88,11 @@ test('DV-11: before the start a verifier that stopped alerts, so a PC that went 
   eq(codes(O.decideOutside({ ...armed, run_start: ago(8 * 86400) }, NOW)), '', 'after the run: nothing');
 });
 
-test('a repository that stops moving is its host\'s dead man\'s switch: 75 minutes for the proposer host, whose feed moves once an hour, 30 for the verifier host', () => {
+test('a repository that stops moving is its host\'s dead man\'s switch: 30 minutes without a push from the proposer or the verifier host', () => {
   const O = require('./outside-check');
-  eq(O.POLICY.host_silent_s, 30 * 60, '30 minutes: the verifier host');
-  eq(O.POLICY.proposer_silent_s, 75 * 60, '75 minutes: the proposer host');
-  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(58 * 60) }, NOW)), '', 'a healthy run, just before its next batch');
-  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(76 * 60) }, NOW)), 'PROPOSER_HOST_SILENT', 'the evidence repository: the proposer host');
+  eq(O.POLICY.host_silent_s, 30 * 60, '30 minutes');
+  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(29 * 60) }, NOW)), '', '29 minutes');
+  eq(codes(O.decideOutside({ ...healthy(), evidence_pushed_at: ago(31 * 60) }, NOW)), 'PROPOSER_HOST_SILENT', 'the evidence repository: the proposer host');
   eq(codes(O.decideOutside({ ...healthy(), log_pushed_at: ago(31 * 60) }, NOW)), 'VERIFIER_HOST_SILENT', 'the verifier log: the verifier host');
   eq(codes(O.decideOutside({ ...healthy(), verifier_last_tick: ago(16 * 60) }, NOW)), 'VERIFIER_SILENT', 'a log that moves but a verifier that does not tick');
 });

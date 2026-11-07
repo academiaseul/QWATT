@@ -8,7 +8,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { decide, observe, POLICY } = require('./watch');
+const { decide, observe, confirmBroken, POLICY } = require('./watch');
 const W = require('./watch');
 
 let passed = 0, failed = 0;
@@ -244,6 +244,33 @@ test('DV-11: index.json moves once an hour, when a batch closes, so a healthy ru
   eq(POLICY.feed_stale_s, 75 * 60, 'the limit');
   assert(!codes(decide({ ...healthy(), feed_last_interval_at: iso(67 * 60) }, {}, NOW)).includes('FEED_STALE:alert'), '67 minutes: a healthy run just before its next batch');
   assert(codes(decide({ ...healthy(), feed_last_interval_at: iso(76 * 60) }, {}, NOW)).includes('FEED_STALE:alert'), '76 minutes: the pipeline stopped');
+});
+
+test('DV-11: a raw read can answer 404 for a file the commit holds, so BROKEN stands only if a second read agrees', async () => {
+  const says = (...verdicts) => { let i = 0; return { calls: () => i, check: async () => ({ report: { verdict: verdicts[Math.min(i++, verdicts.length - 1)] } }) }; };
+  const fine = says('RECONCILED');
+  eq((await confirmBroken(fine.check, 0)).report.verdict, 'RECONCILED', 'a good verdict');
+  eq(fine.calls(), 1, 'a good verdict is read once');
+  const blip = says('BROKEN', 'RECONCILED');
+  eq((await confirmBroken(blip.check, 0)).report.verdict, 'RECONCILED', 'one bad read is not BROKEN');
+  eq(blip.calls(), 2, 'read twice');
+  const real = says('BROKEN', 'BROKEN');
+  eq((await confirmBroken(real.check, 0)).report.verdict, 'BROKEN', 'two bad reads are BROKEN');
+});
+
+test('DV-11: an anchored marker that cannot be read is an unreadable source, never a batch still waiting', async () => {
+  const http = require('http');
+  const srv = http.createServer((req, res) => {
+    const body = { '/run/faults.json': JSON.stringify({ run_start: iso(9 * 3600), run_end: iso(-86400) }), '/run/index.json': JSON.stringify({ last_ts_start: iso(600) }), '/run/ledger/batches.jsonl': JSON.stringify({ batch_id: 'b-000001', status: 'accepted' }) + '\n' }[req.url];
+    if (body) { res.writeHead(200); res.end(body); return; }
+    res.writeHead(req.url.startsWith('/run/anchored/') ? 503 : 404); res.end();
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  let obs;
+  try { obs = await observe({ feed: `http://127.0.0.1:${srv.address().port}/run`, horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST' }, NOW); }
+  finally { await new Promise((r) => srv.close(r)); }
+  assert(obs.errors.some((e) => /^feed .*anchored/.test(e)), `the failed read is reported: ${obs.errors.join('; ')}`);
+  eq(obs.oldest_unanchored_batch, undefined, 'not called a waiting batch');
 });
 
 test('DV-11: NO_ANCHOR counts from the run start, so an account last used days before the start does not alert at the start; 90 minutes in, it does', () => {

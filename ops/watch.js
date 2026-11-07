@@ -130,7 +130,7 @@ async function observeFeed(feed, obs) {
   const anchoredDir = new Set();
   for (const e of listed.slice(-50)) {
     if (e.status !== 'accepted') continue;
-    const a = await getText(`${feed}/anchored/${e.batch_id}.json`).catch(() => '');
+    const a = await getText(`${feed}/anchored/${e.batch_id}.json`);   // 404 is '': any other failure is an unreadable source
     if (a) anchoredDir.add(e.batch_id);
   }
   const waiting = listed.slice(-50).filter((e) => e.status === 'accepted' && !anchoredDir.has(e.batch_id));
@@ -139,6 +139,18 @@ async function observeFeed(feed, obs) {
     obs.oldest_unanchored_batch = waiting[0].batch_id;
     obs.oldest_unanchored_published_at = b.ts_end;                 // a batch is published when its window closes
   }
+}
+
+/**
+ * DV-11: raw can answer 404 for a file the commit holds, which the reconciliation reads as absent. BROKEN
+ * stands only if a second read agrees, as the verifier re-reads for the same reason.
+ * @param {function} check  async () => ({ report: { verdict } })
+ */
+async function confirmBroken(check, waitMs = 2000) {
+  const first = await check();
+  if (first.report.verdict !== 'BROKEN') return first;
+  await new Promise((r) => setTimeout(r, waitMs));
+  return check();
 }
 
 async function observe(o, nowS) {
@@ -260,7 +272,7 @@ async function cli() {
   /* Horizon first, then the feed at one commit (V3-7c); signer roles from the run's faults.json. A Horizon
      or feed error throws, and observe() reports it as an unreadable source (SOURCE_DOWN), never as BROKEN. */
   o.reconcile = async () => {
-    const res = await R.check({ feed: o.feed, horizon: o.horizon, account: o.account });
+    const res = await confirmBroken(() => R.check({ feed: o.feed, horizon: o.horizon, account: o.account }));
     return { ...res.report, read_at: PIN.describe(o.feed, res.feed.commit) || res.feed.base };
   };
   if (!process.env.QWATT_ALERT_WEBHOOK) console.log('QWATT_ALERT_WEBHOOK not set: alerts go to this console only');
@@ -271,4 +283,4 @@ async function cli() {
 
 if (require.main === module) cli();
 
-module.exports = { decide, observe, deliver, keepUnsent, POLICY };
+module.exports = { decide, observe, confirmBroken, deliver, keepUnsent, POLICY };
