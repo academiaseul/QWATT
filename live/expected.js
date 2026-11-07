@@ -20,8 +20,8 @@ const os = require('os');
 const path = require('path');
 const { runLive } = require('./run');
 
-/** The live run (freeze v3 V3-14, W3-4): Sun 8 Nov 00:00 Santiago (DV-10), one soak day and seven counted days. */
-const RUN = { seed: 20261103, start: '2026-11-08T03:00:00.000Z', days: 8 };
+/** The live run (freeze v3 V3-14): Mon 9 Nov 00:00 Santiago (DV-11), seven days with no soak day. */
+const RUN = { seed: 20261103, start: '2026-11-09T03:00:00.000Z', days: 7 };
 const FILE = path.join(__dirname, 'expected-run.json');
 
 const readJsonl = (f) => (fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)) : []);

@@ -89,7 +89,7 @@
       { id: 'w1', kind: 'week', es: 'Semana 1 · lun 19 – vie 23 oct', en: 'Week 1 · Mon 19 – Fri 23 Oct', from: w1.from, to: w1.to, expect0: true },
       { id: 'w2', kind: 'week', es: 'Semana 2 · lun 26 – vie 30 oct', en: 'Week 2 · Mon 26 – Fri 30 Oct', from: w2.from, to: w2.to },
       { id: 'w3', kind: 'week', es: 'Semana 3 · lun 2 – vie 6 nov', en: 'Week 3 · Mon 2 – Fri 6 Nov', from: w3.from, to: w3.to },
-      { id: 'run', kind: 'week', es: 'Corrida contada · dom 8 – dom 15 nov', en: 'Counted run · Sun 8 – Sun 15 Nov', from: C.RUN.from, to: C.RUN.to },
+      { id: 'run', kind: 'week', es: 'Corrida contada · lun 9 – lun 16 nov', en: 'Counted run · Mon 9 – Mon 16 Nov', from: C.RUN.from, to: C.RUN.to },
       { id: 'off', kind: 'gaps', es: 'Fuera de semana (fines de semana del sprint)', en: 'Outside the weeks (sprint weekends)',
         gaps: [[w1.to, w2.from], [w2.to, w3.from], [w3.to, C.RUN.from], [C.RUN.to, far]] }
     ];

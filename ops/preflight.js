@@ -85,7 +85,7 @@ async function preflight(o) {
       if (idx.status === 200) {
         const j = JSON.parse(idx.text);
         const age = j.last_ts_start ? Math.round((Date.now() - Date.parse(j.last_ts_start)) / 60000) : null;
-        add('feed', `newest judged interval ${age == null ? 'none yet' : age + ' min ago'} (fresh = under 30 min)`, age != null && age <= 30);
+        add('feed', `newest judged interval ${age == null ? 'none yet' : age + ' min ago'} (fresh = under ${POLICY.feed_stale_s / 60} min)`, age != null && age <= POLICY.feed_stale_s / 60);
       }
       const bl = await getRaw(`${base}/ledger/batches.jsonl`);
       add('feed', 'batch ledger reachable', bl.status === 200 || bl.status === 404, bl.status === 404 ? 'not yet: no batch closed' : `HTTP ${bl.status}`);

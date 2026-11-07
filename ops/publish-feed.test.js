@@ -859,7 +859,7 @@ test('the deploy template makes the operator choose the run name: QWATT_RUN is a
   const urls = [...values('QWATT_FEED_URL'), ...values('QWATT_VERIFIER_LOG_URL')];
   eq(urls.length, 4, 'the feed URL in verifier.env and watch.env, the log URL in watch.env and in live.env (V3-11: the proposer reads the refusals)');
   for (const u of urls) assert(u.endsWith(`/main/${runs[0]}`), `the URL names the same run: ${u}`);
-  assert(/public history is never rewritten/.test(tpl) && /`run` is only for the seven-day live run/.test(tpl) && /rehearsal-2026-10-29/.test(tpl), 'the comment says why: run vs rehearsal, and a published name can never be reused');
+  assert(/public history is never rewritten/.test(tpl) && /`run` is only for the seven-day live run/.test(tpl) && /rehearsal-2026-11-07/.test(tpl), 'the comment says why: run vs rehearsal, and a published name can never be reused');
   const rb = fs.readFileSync(path.join(__dirname, '..', 'docs', 'RUNBOOK.md'), 'utf8');
   assert(/env\.example` carries the placeholder `rehearsal-YYYY-MM-DD`/.test(rb), 'the RUNBOOK says what the template carries');
 });

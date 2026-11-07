@@ -148,7 +148,7 @@ this page where a form differs.
    - Optional: Settings → Pages on `qwatt-evidence` → Deploy from a branch → `main` / (root), so
      the github.io address opens in a browser. No service reads Pages.
    - Smoke test on the proposer host, with a run name and a feed directory of its own
-     (`rehearsal-2026-10-28`, `/var/lib/qwatt/smoke-feed`; T1 keeps `rehearsal-2026-10-29`):
+     (`rehearsal-2026-10-28`, `/var/lib/qwatt/smoke-feed`; T1 keeps `rehearsal-2026-11-07`):
      `sudo -u qwatt node ops/publish-feed.js --kind evidence --feed /var/lib/qwatt/smoke-feed --run rehearsal-2026-10-28 --remote git@github.com:academiaseul/qwatt-evidence.git --work /var/lib/qwatt/evidence-repo --ssh-key /home/qwatt/.ssh/qwatt-evidence --once`
      exits 0. A published run name is never reused, because the public history is never
      rewritten: a T1 published under the smoke test's name would be refused (`PUBLISH REFUSED`).
@@ -177,8 +177,8 @@ this page where a form differs.
    which never changes (wrong keys mean a new feed). Set `QWATT_RUN_START` for the run being
    started (`now` for the week-2 rehearsal on Thu 29 Oct; the live run's own start time for the
    live run) and `QWATT_RUN_DAYS`, the run length in whole days that `qwatt-live` passes as `--days`
-   (W3-4: 8 for the live run, so from `2026-11-07T03:00:00Z` it ends `2026-11-15T03:00:00Z`, one
-   soak day then the seven counted days; the faults stay on Sun 8 - Fri 13). Unset, `qwatt-live`
+   (DV-11: 7 for the live run, so from `2026-11-09T03:00:00Z` it ends `2026-11-16T03:00:00Z`, the
+   seven counted days with no soak day; the faults fall on Tue 10 - Sun 15). Unset, `qwatt-live`
    exits 2; a `live.env` kept from an earlier install lacks it, and `check.sh` AT-17 says so.
    Give each run an empty feed directory. `/opt/qwatt` must be a git checkout of the
    commit being run: the run publishes it as `code_commit`.
@@ -217,7 +217,10 @@ where it already was.
 
 ## Tests A–D and independence on the real account
 
-Once, on the week-2 account, right after setup (Thu 29 Oct; Fri 30 is the buffer). A, B, D and I
+Once, on the rehearsal account, on Sat 7 Nov, before the services are armed for the run (DV-11). That
+account is a separate 2/2/3 account with the same three public keys, set up with steps 4–6, because
+C lands an anchor and the run account must reach the start with none (OD-5). `<G_A>` below is the
+rehearsal account. A, B, D and I
 must run while the SAME proposal is live (its window is at most 60 minutes, V3-11; the proposer renews it 10 minutes before it ends, which changes its hash) and the
 verifier service is stopped; C is the verifier service then anchoring that very proposal. A, B and C
 are therefore one transaction body with one hash, and the verdict checks it. `$FEED` is the public
@@ -225,7 +228,7 @@ feed URL and `<G_A>` the anchoring account. Every file written is public data.
 
 | Step | Who, where | Do |
 |---|---|---|
-| T1 | Diego, proposer host; Jay, verifier host | Proposer host: in `/etc/qwatt/live.env` set `QWATT_RUN_START=now` (this week-2 run starts at once, as `ops/deploy/env.example` has it; the live run's November start is set only at the freeze, on a fresh feed; a restart keeps the start recorded in `faults.json`) and the three public keys `QWATT_PROPOSER_PUBLIC`, `QWATT_VERIFIER_PUBLIC` and `QWATT_THIRD_PUBLIC` (setup step 9). Set `QWATT_RUN` to a rehearsal name, for example `rehearsal-2026-10-29` (never the live run's `run`), in `/etc/qwatt/publish.env` and, on the verifier host, in `/etc/qwatt/verifier-log.env`; `QWATT_FEED_URL` and `QWATT_VERIFIER_LOG_URL` name that run (setup step 7). Start from an EMPTY `/var/lib/qwatt/feed` (the account starts at genesis). Verifier host: start from an EMPTY `/var/lib/qwatt/verifier` (no state from an earlier run carries over). Then, with the updated units (`--sign-with-key`), on the proposer host: `systemctl daemon-reload && systemctl enable --now qwatt-live qwatt-publish`. |
+| T1 | Diego, proposer host; Jay, verifier host | Proposer host: in `/etc/qwatt/live.env` set `QWATT_RUN_START=now` (the rehearsal starts at once, as `ops/deploy/env.example` has it; the live run's start is set only when it is armed, on a fresh feed; a restart keeps the start recorded in `faults.json`) and the three public keys `QWATT_PROPOSER_PUBLIC`, `QWATT_VERIFIER_PUBLIC` and `QWATT_THIRD_PUBLIC` (setup step 9). Set `QWATT_RUN` to a rehearsal name, for example `rehearsal-2026-11-07` (never the live run's `run`), in `/etc/qwatt/publish.env` and, on the verifier host, in `/etc/qwatt/verifier-log.env`; `QWATT_FEED_URL` and `QWATT_VERIFIER_LOG_URL` name that run (setup step 7). Start from an EMPTY `/var/lib/qwatt/feed` (the account starts at genesis). Verifier host: start from an EMPTY `/var/lib/qwatt/verifier` (no state from an earlier run carries over), then `systemctl start qwatt-verifier qwatt-verifier-log` and wait until `<QWATT_VERIFIER_LOG_URL>/status.json` loads: the proposer does not propose until it can read that file, and only the verifier writes it. Then, with the updated units (`--sign-with-key`), on the proposer host: `systemctl daemon-reload && systemctl enable --now qwatt-live qwatt-publish`. |
 | T2 | Jay, verifier host | `systemctl stop qwatt-verifier qwatt-watch`. They stay stopped until T8 (the watchdog would otherwise alert `VERIFIER_SILENT`). |
 | T3 | Diego, proposer host | `systemctl enable --now qwatt-proposer`, then wait for `journalctl -u qwatt-proposer` to show `"action":"proposed"` (the first batch closes about 60 min after the start at real-time pace). `curl -sf $FEED/pending/qwatt-chispa-01-000000.xdr` (the first batch; ids are `qwatt-chispa-01-` and the seq in six digits, FD-14) must return it publicly. |
 | T4 | Diego, proposer host or own computer | `node anchor/tests-abcd.js a --config /etc/qwatt/anchor.json --feed $FEED --out ~/abcd-A/abcd.json` must report refused `tx_bad_auth`. It needs no key: it submits the published proposal as it is. |
@@ -233,31 +236,48 @@ feed URL and `<G_A>` the anchoring account. Every file written is public data.
 | T6 | Jay, verifier host | `sudo -u qwatt -H node /opt/qwatt/anchor/tests-abcd.js d --config /etc/qwatt/anchor.json --feed $FEED --out /home/qwatt/abcd-V/abcd.json` must report refused `verifier.hash_mismatch`, with nothing submitted. |
 | T7 | Jay, verifier host | `sudo -u qwatt -H node /opt/qwatt/anchor/tests-abcd.js i --config /etc/qwatt/anchor.json --feed $FEED --out /home/qwatt/abcd-V/abcd.json` must report refused `verifier.not_published`, with nothing signed or submitted. The batch is withheld from the verifier's only input path by a local proxy on this host, which forwards every other file from the evidence commit I resolved after Horizon (recorded as `feed_commit`); the public feed is never touched (DV-7). |
 | T8 | Jay, verifier host | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch`. Within 30 s, `curl -s localhost:8090/status.json` must show `last_result.action` `anchored`. |
-| T9 | Either founder, any machine | `node anchor/tests-abcd.js c --config anchor.json --out ~/abcd-C/abcd.json` must report ok, pair `proposer+verifier`, and a stellar.expert link. |
-| T10 | Jay, own computer | Copy the three folders (public data), then `node anchor/tests-abcd.js combine --out evidence/account/<G_A>/abcd.json ~/abcd-A/abcd.json ~/abcd-V/abcd.json ~/abcd-C/abcd.json`: verdict PASS. It copies the raw A, B, C, D and I files beside it, each with its SHA-256 in `index.json`. Then `node anchor/capture.js account <G_A> --evidence evidence/account/<G_A>` (a final snapshot after C). |
+| T9 | Jay, verifier host | `sudo -u qwatt -H node /opt/qwatt/anchor/tests-abcd.js c --config /etc/qwatt/anchor.json --out /home/qwatt/abcd-V/abcd.json` must report ok, pair `proposer+verifier`, and a stellar.expert link. Using B's evidence file pins C to the body A and B tested, so a later anchor cannot stand in for it. |
+| T10 | Jay, own computer | Copy the two folders (public data), then `node anchor/tests-abcd.js combine --out evidence/account/<G_A>/abcd.json ~/abcd-A/abcd.json ~/abcd-V/abcd.json`: verdict PASS. It copies the raw A, B, C, D and I files beside it, each with its SHA-256 in `index.json`. Then `node anchor/capture.js account <G_A> --evidence evidence/account/<G_A>` (a final snapshot after C). |
 | T11 | Jay | Open the evidence PR. |
-| T12 | Both | Leave the week-2 account as it is. At the code freeze (Fri 6 Nov, OD-5) the run account is set up the same way (setup steps 4–6) with the same three public keys: no new keys and no new drill. After a testnet reset the keys survive; only the accounts are re-created. |
+| T12 | Both | Leave the rehearsal account as it is. The run account was set up the same way (setup steps 4–6) with the same three public keys on Fri 6 Nov (OD-5), and it stays unanchored until the run starts: no new keys and no new drill. After a testnet reset the keys survive; only the accounts are re-created. |
 
 If the proposal expires or is replaced between T4 and T7, the hashes no longer match and the verdict
 says FAIL: start again from T3 with the next proposal. A verdict of FAIL or INCOMPLETE is recorded as
 it is, never edited.
 
-## Starting the run (Day 21, latest Day 23)
+## Starting the run (Day 22, latest Day 23)
+
+The services are armed on Sat 7 Nov (Day 20) and the run starts by itself at
+`QWATT_RUN_START=2026-11-09T03:00:00Z`, with no manual step on Sun 8 Nov (DV-11). First empty what the
+rehearsal left: stop every service, then empty `/var/lib/qwatt/feed` and remove
+`/var/lib/qwatt/refused.json` on the proposer host, and empty `/var/lib/qwatt/verifier` and
+`/var/lib/qwatt/ops` on the verifier host. The publishers' worktrees stay. Point the env files and
+`/etc/qwatt/anchor.json` at the run account and at `run`.
 
 Start in this order, checking each before the next:
 
 | Step | Host | Command | Check |
 |---|---|---|---|
-| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log qwatt-watch` | `curl localhost:8090/status.json` shows `last_tick` within 1 min (port 8090 answers on the verifier host only); within 6 min `https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/status.json` shows it too (the CDN may lag up to 5 minutes more) |
+| 1 | verifier | `systemctl enable --now qwatt-verifier qwatt-verifier-log` | `curl localhost:8090/status.json` shows `last_tick` within 1 min (port 8090 answers on the verifier host only); within 6 min `https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/status.json` shows it too (the CDN may lag up to 5 minutes more) |
 | 2 | proposer | `systemctl enable --now qwatt-live` | `feed/faults.json` exists, with `label` = "Simulated input · assurance A0 · Stellar testnet", `anchoring.signers` = the three public keys from setup step 2 and `code_commit` = `git -C /opt/qwatt rev-parse HEAD`; `journalctl -u qwatt-live` shows "replaying …" |
 | 3 | proposer | `systemctl enable --now qwatt-publish` | `https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/<run>/index.json` (`<run>` = `QWATT_RUN`, `run` for the live run) loads (the CDN may lag up to 5 minutes); `journalctl -u qwatt-publish` shows `published …` |
 | 4 | proposer | `systemctl enable --now qwatt-proposer` | within an hour, the first batch shows **anchored** on the reconciliation page |
+| 5 | verifier | `systemctl enable --now qwatt-watch` | `<run>/faults.json` loads first: started earlier, the watchdog reads a source down. `journalctl -u qwatt-watch` shows no alert |
 
 No sample is public before its time (V3-13c). `qwatt-live` writes each hour's samples file to
 `feed/samples/` before it replays it, so the file is on the proposer host up to an hour ahead (and
 before `QWATT_RUN_START`, which `run.js` waits for); `qwatt-publish` publishes a file and its
 manifest line only once the line's `to` has passed. Enabling the services before the run start is
 therefore safe: until then only `faults.json` is published.
+
+While armed, three checks in the table read differently. `journalctl -u qwatt-live` shows
+`starting run …`, and `replaying …` only from the start. `<run>/faults.json` loads, and `index.json`
+arrives with the first batch, about an hour after the start. `journalctl -u qwatt-proposer` shows
+`idle`. The watchdog and the outside check stay quiet about the feed, the anchor and the proposer host
+until the start plus their limits; a verifier that stops still alerts, and the outside check still
+reports it if the whole verifier host goes down. Leave `qwatt-live` alone
+until the start: a restart repeats the first line of `samples/manifest.jsonl`, which `live/audit.js`
+accepts but the public file keeps.
 
 Reconciliation page:
 `https://qwatt.org/reconcile.html?feed=<QWATT_FEED_URL>&account=<anchoring account>`.
@@ -349,8 +369,10 @@ Actions: the variables `QWATT_ANCHOR_ACCOUNT` (G_A), `QWATT_FEED_URL` and `QWATT
 topic as the watchdog's, on the alert recipient's phone). Actions → outside-check → *Run workflow*
 once, by hand, must end green and print the observations. While the run is live it alerts on
 `NO_ANCHOR` (90 minutes), `PROPOSER_HOST_SILENT` and `VERIFIER_HOST_SILENT` (no commit to the run in
-`qwatt-evidence` or `qwatt-verifier-log` for 30 minutes: each host's dead man's switch),
-`VERIFIER_SILENT` and `SOURCE_DOWN`. A problem also fails the workflow run, so GitHub e-mails the
+`qwatt-evidence` or `qwatt-verifier-log` for 30 minutes: each host's dead man's switch; for the proposer
+host, 75 minutes from the start, since nothing can be pushed before the first batch closes),
+`VERIFIER_SILENT` and `SOURCE_DOWN`. Before the start it alerts on `VERIFIER_SILENT` and `SOURCE_DOWN`
+only. Set the variables once `<run>/faults.json` is public: without that file the check reports a problem. A problem also fails the workflow run, so GitHub e-mails the
 repository's owner. Both alerting paths count an alert as sent only when the webhook answers HTTP
 2xx; anything else is sent again on the next run or tick.
 
@@ -358,7 +380,7 @@ repository's owner. Both alerting paths count an alert as sent only when the web
 
 | Alert | Likely cause | Do |
 |---|---|---|
-| `PROPOSER_HOST_SILENT` / `VERIFIER_HOST_SILENT` | the outside check saw no commit to the run in that host's repository for 30 minutes: the host is down, offline, or its publisher stopped | Reach the host: on the proposer VPS the provider's console; on Jay's PC check power and network, then `systemctl status qwatt-publish` (proposer) or `qwatt-verifier-log` (verifier). An outage over 2 h breaks the continuity rule (OD-8): note its start and end for the write-up. |
+| `PROPOSER_HOST_SILENT` / `VERIFIER_HOST_SILENT` | the outside check saw no commit to the run in that host's repository for 30 minutes (for the proposer host, 75 from the start, until its first push): the host is down, offline, or its publisher stopped | Reach the host: on the proposer VPS the provider's console; on Jay's PC check power and network, then `systemctl status qwatt-publish` (proposer) or `qwatt-verifier-log` (verifier). An outage over 2 h breaks the continuity rule (OD-8): note its start and end for the write-up. |
 | `VERIFIER_SILENT` | the verifier's `status.json` in its public log is over 15 minutes old: the verifier host is down, `qwatt-verifier` crashed, or `qwatt-verifier-log` stopped publishing its log. (A healthy log can read up to about 6.5 minutes old: published at most every 5 minutes, plus the publisher's interval and the verifier's tick. The watchdog reads the log at its head commit, so the CDN cache adds nothing; a person opening the branch URL may still see a copy up to 5 minutes older.) | `systemctl status qwatt-verifier qwatt-verifier-log`; restart whichever stopped (`journalctl -u qwatt-verifier-log` for `PUBLISH REFUSED`: see below). Batches wait as *published, not anchored* and catch up in order on their own. Nothing to repair. |
 | `BACKLOG` | verifier is up but not signing | Read `refusals.jsonl` in the public verifier log (`https://raw.githubusercontent.com/academiaseul/qwatt-verifier-log/main/<run>/refusals.jsonl`; on the verifier host also `curl localhost:8090/refusals.jsonl`). A refusal means it found a real mismatch: **do not** work around it; see `NEW_REFUSAL`. With no refusal, check `journalctl -u qwatt-proposer` for `blocked`: the proposer runs the verifier's checks first and does not propose what the verifier would refuse. `blocked` with `verifier.walk_too_long`: see *A long run of rejected batches* below. `journalctl -u qwatt-verifier` shows reason `signer`, or either service exited 2 at start and stays `failed` (`systemctl status` shows `status=2`; it is not restarted, V3-13a): stellar-cli missing or identity not found for user qwatt (check with `sudo -u qwatt -H stellar keys address qwatt-verifier`, or `qwatt-proposer`). |
 | `NEW_REFUSAL` | the verifier refused a proposal | Since V3-11 a refusal is terminal: that batch is never anchored, the proposer moves to the next batch, the next batch links past it and carries the total before it, and a batch already built on it is refused too (`verifier.links_refused`). Anchoring goes on by itself; the reconciliation and `batch/verify-cli.js --verifier-log` accept the skip because the log shows the refusal. Read the reason in `refusals.jsonl` of the public verifier log (the same refusal is a `refused` line in `decisions.jsonl`). **Do not stop `qwatt-proposer`:** anchoring goes on with the next batch, and stopping it halts the run. `verifier.not_published` and `batch.raw_missing` mean that at the commit judged the batch or its raw file was not there: a publication defect, or a 404 from the CDN that outlasted the verifier's re-read 2 seconds later (`anchor/feed-client.js`). Check `journalctl -u qwatt-publish`, run `node ops/evidence-audit.js` on a fresh clone of `qwatt-evidence`, and open `https://github.com/academiaseul/qwatt-evidence/tree/<feed_commit>/<run>` (the decision line names `feed_commit`): if the files are there, it was the CDN. `verifier.hash_mismatch`, `verifier.head_mismatch` or any other `batch.*` code means the published evidence and the proposal disagreed. Either way, investigate and record the refused batch and its reason in the write-up. `verifier.walk_too_long` is not a disagreement: see *A long run of rejected batches* below. |
