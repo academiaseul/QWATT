@@ -1,0 +1,20 @@
+{
+  "files": {
+    "account.json": "c23761809457237278bf43162cd573a5833533e929528ca057c5cc09df40eac9",
+    "drill.horizon.json": "75c9b81bfb2705ecb9c3f8a513caa3b4972e9a05c6bf4d0b59880ac29bc87678",
+    "drill.json": "3a70d6251aa15dffca159794c8c51722d30add6cfada1fdc1f496866f840f71f",
+    "drill.merged.xdr": "179b7585a54547fd9397776b9e840fabae4b4ae047f35eafb20d5d8e278b4742",
+    "drill.proposer.xdr": "31df556bff1702534d39325c85caeeafd90a81ca212b4b872ea3b8b993494cb0",
+    "drill.third.xdr": "26cb5f44a499535536bbce6db526251c7de5f9659c91fc0be4ba67e9b5430c2d",
+    "drill.unsigned.xdr": "7be518a11d797cbc2fb758499b46cff6795d32c17ab8305ecded2d909631478d",
+    "drill.verifier.xdr": "d6f8f77277a209378374f0a3d36b9bd37a86fda80472206f71c46ba6a5461f76",
+    "setup.horizon.json": "a1db5fae174e9ee3ff884319a417cbf5d16a8726524855777816ac13b8bbae45",
+    "setup.signed.xdr": "cec6f0087c567b8d23358487751749bf11b2b2a496e3a4f0b9642cdea9c68c7e",
+    "setup.unsigned.xdr": "ee776d93a881c0b138b5b2f7a87b7a470676cd5e8b625613037e6ad062da4063"
+  },
+  "links": {
+    "account": "https://stellar.expert/explorer/testnet/account/GBQ4B36LUJUTNIRDMJGS5ATERINFIQBWMVL63DSNY3PPRNQOXJMRDROH",
+    "drill": "https://stellar.expert/explorer/testnet/tx/b572689383e4a410ee400192e4f8c540704d4295f1d7e0c72f57f6197ef93c5e",
+    "setup": "https://stellar.expert/explorer/testnet/tx/ee664ae385cd9385d74d4ac672916aeb272bdc4b219f8fcbe5dbdc0f69717b64"
+  }
+}
