@@ -429,6 +429,116 @@ test('V3-13c: in real time each samples file covers at most one UTC hour (the pu
   eq(iso(chunkEnd(t, end, 60)), '2026-11-08T00:00:00.000Z', 'a numeric speed: to the end of the UTC day');
 });
 
+/* ───────────── F-02: the energy claimed, re-derived offline from the published samples ───────────── */
+
+test('F-02: every interval of an honest run re-derives from the published samples, through the same builder', async () => {
+  const { rederive } = require('./rederive');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
+  const r = await rederive(dir, { now: START + 49 * 3600e3 });
+  assert(r.ok, r.problems.join('; '));
+  eq(r.intervals.compared, 2 * 288, 'every interval');
+  eq(r.intervals.pending, 0, 'none waiting');
+  eq(r.batches, 2 * 24, 'every batch');
+  eq(r.energy.rederived_mwh, r.energy.published_mwh, 'the total');
+  assert(r.energy.published_mwh > 0, 'and it is not zero');
+});
+
+test('F-02: a raised interval is caught, though it hashes and links: this is what verifyBatch does not see', async () => {
+  const { rederive } = require('./rederive');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
+  const name = fs.readdirSync(path.join(dir, 'batches')).sort()[14];
+  const file = path.join(dir, 'batches', name);
+  const b = JSON.parse(fs.readFileSync(file, 'utf8'));
+  const k = b.intervals.reduce((x, y) => (y.meters.a.mwh > x.meters.a.mwh ? y : x));
+  assert(k.meters.a.mwh > 0, 'a daylight interval');
+  k.meters.a.mwh += 1000;
+  fs.writeFileSync(file, JSON.stringify(b));
+  const r = await rederive(dir, { now: START + 25 * 3600e3 });
+  assert(!r.ok, 'caught');
+  assert(r.problems.some((p) => p.includes(k.ts_start) && p.includes('meters.a.mwh')), `names the interval and the field: ${r.problems.join('; ')}`);
+  assert(r.energy.rederived_mwh !== r.energy.published_mwh, 'and the totals differ');
+});
+
+test('F-02: a changed sample row is caught in the energy and in the raw hash', async () => {
+  const { rederive } = require('./rederive');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 20261103, speed: 'fast', log: quiet });
+  const files = fs.readdirSync(path.join(dir, 'samples')).filter((n) => n.endsWith('.csv')).sort();
+  const file = path.join(dir, 'samples', files[files.length - 1]);
+  const lines = fs.readFileSync(file, 'utf8').split('\n');
+  const i = lines.findIndex((l, n) => n > 0 && Number(l.split(',')[1]) > 10);
+  assert(i > 0, 'a daylight row');
+  const cells = lines[i].split(',');
+  cells[1] = String(Number(cells[1]) + 50);
+  lines[i] = cells.join(',');
+  fs.writeFileSync(file, lines.join('\n'));
+  const r = await rederive(dir, { now: START + 25 * 3600e3 });
+  assert(!r.ok, 'caught');
+  assert(r.problems.some((p) => p.includes('source.raw_sha256')), `the raw hash: ${r.problems.join('; ')}`);
+});
+
+test('F-02: a restart in fast mode, which replays a stretch two files cover, still re-derives', async () => {
+  const { rederive } = require('./rederive');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 5, speed: 'fast', log: quiet, stopAtMs: START + 31 * 3600e3 + 137e3 });
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 5, speed: 'fast', log: quiet });
+  const r = await rederive(dir, { now: START + 49 * 3600e3 });
+  assert(r.ok, r.problems.join('; '));
+  eq(r.intervals.compared, 2 * 288, 'every interval');
+  eq(r.sessions, 2, 'two sessions');
+});
+
+test('F-02: a real-time restart, an hour lost and resumed mid-interval by a new builder: the first interval after it re-derives from what that builder saw', async () => {
+  const { rederive } = require('./rederive');
+  const { IntervalBuilder } = require('../ingest/lib/normalize');
+  const csv = require('../ingest/adapters/csv');
+  const { Pipeline } = require('../batch/pipeline');
+  const crypto = require('crypto');
+  const H = 3600e3, dir = tmp();
+  await runLive({ feedDir: dir, days: 1, startMs: START, seed: 7, speed: 'fast', log: quiet, stopAtMs: START + 15 * H + 170e3 });
+  const def = JSON.parse(fs.readFileSync(path.join(dir, 'faults.json'), 'utf8'));
+  /* what live/run.js does when it resumes in real time: a new builder from the current time, no backfill */
+  const from = START + 16 * H + 130e3, to = from + 2 * H;
+  const text = sim.csvFor(def.seed, from, to, def.faults);
+  const name = `resume-${from}.csv`;
+  fs.writeFileSync(path.join(dir, 'samples', name), text);
+  fs.appendFileSync(path.join(dir, 'samples', 'manifest.jsonl'), `${JSON.stringify({ file: `samples/${name}`, from: new Date(from).toISOString(), to: new Date(to).toISOString(), rows: text.split('\n').length - 2, sha256: crypto.createHash('sha256').update(text).digest('hex') })}\n`);
+  const pipe = new Pipeline({ dir, site_id: def.site_id, node_id: def.node_id });
+  const builder = new IntervalBuilder({
+    site_id: def.site_id, node_id: def.node_id, adapter: 'csv', dt_s: 300, clock: 'replay', sample_s: sim.STEP_S,
+    meters: { a: { id: 'pzem-017:1', class: 'dc', energy: 'integrate' }, b: { id: 'epever-tracer:2', class: 'dc', energy: 'integrate' } },
+    onInterval: (rec) => { pipe.push(rec); },
+  });
+  await csv.replay({ file: path.join(dir, 'samples', name), ts_column: 'ts', meters: { a: { power_w: 'a_w' }, b: { power_w: 'b_w' } }, pace: 'fast', flush: false }, builder);
+  const r = await rederive(dir, { now: to + 60e3 });
+  assert(r.ok, r.problems.slice(0, 3).join('; '));
+  eq(r.sessions, 2, 'two sessions');
+  assert(r.intervals.compared > 0 && r.intervals.not_published > 0, `compared ${r.intervals.compared}, and the slots of the outage were never published (${r.intervals.not_published})`);
+});
+
+test('F-02: while the run is going, an interval whose samples are not public yet is pending; once it is over, it is a problem', async () => {
+  const { rederive } = require('./rederive');
+  const dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 5, speed: 'fast', log: quiet });
+  const m = path.join(dir, 'samples', 'manifest.jsonl');
+  const lines = fs.readFileSync(m, 'utf8').split('\n').filter(Boolean);
+  fs.writeFileSync(m, `${lines.slice(0, -1).join('\n')}\n`);                  // the publisher still holds the last file
+  const going = await rederive(dir, { now: START + 40 * 3600e3 });
+  assert(going.ok, going.problems.join('; '));
+  assert(going.intervals.pending > 0, 'counted as pending');
+  const over = await rederive(dir, { now: START + 49 * 3600e3 });
+  assert(!over.ok && over.problems.some((p) => /no published samples/.test(p)), `after the run: ${over.problems.join('; ')}`);
+});
+
+test('F-02: a feed that is not a CSV-adapter run is refused, not passed', async () => {
+  const { rederive } = require('./rederive');
+  let msg = '';
+  try { await rederive(path.join(__dirname, '..', 'evidence', 'feeds', 'muestra')); } catch (e) { msg = e.message; }
+  assert(/csv/i.test(msg), `says why: ${msg}`);
+});
+
 (async () => {
   console.log('\nlive run');
   for (const t of tests) {
