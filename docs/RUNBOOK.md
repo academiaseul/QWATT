@@ -239,7 +239,7 @@ feed URL and `<G_A>` the anchoring account. Every file written is public data.
 | T9 | Either founder, any machine | `node anchor/tests-abcd.js c --config anchor.json --out ~/abcd-C/abcd.json` must report ok, pair `proposer+verifier`, and a stellar.expert link. |
 | T10 | Jay, own computer | Copy the three folders (public data), then `node anchor/tests-abcd.js combine --out evidence/account/<G_A>/abcd.json ~/abcd-A/abcd.json ~/abcd-V/abcd.json ~/abcd-C/abcd.json`: verdict PASS. It copies the raw A, B, C, D and I files beside it, each with its SHA-256 in `index.json`. Then `node anchor/capture.js account <G_A> --evidence evidence/account/<G_A>` (a final snapshot after C). |
 | T11 | Jay | Open the evidence PR. |
-| T12 | Both | Leave the rehearsal account as it is. The run account was set up the same way (setup steps 4–6) with the same three public keys on Thu 5 Nov (OD-5), and it stays unanchored until the run starts: no new keys and no new drill. After a testnet reset the keys survive; only the accounts are re-created. |
+| T12 | Both | Leave the rehearsal account as it is. The run account was set up the same way (setup steps 4–6) with the same three public keys on Fri 6 Nov (OD-5), and it stays unanchored until the run starts: no new keys and no new drill. After a testnet reset the keys survive; only the accounts are re-created. |
 
 If the proposal expires or is replaced between T4 and T7, the hashes no longer match and the verdict
 says FAIL: start again from T3 with the next proposal. A verdict of FAIL or INCOMPLETE is recorded as
