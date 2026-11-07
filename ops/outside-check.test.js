@@ -49,6 +49,14 @@ test('no anchor for 90 minutes during the run → NO_ANCHOR (89 minutes: nothing
   eq(codes(O.decideOutside({ ...healthy(), last_anchor_at: null }, NOW)), 'NO_ANCHOR', 'no anchor at all during the run');
 });
 
+test('DV-11: at the start of a run armed ahead of it, the anchor and the proposer host count from the run start: quiet for 90 and 30 minutes, then they alert', () => {
+  const O = require('./outside-check');
+  const armed = (s) => ({ ...healthy(), last_anchor_at: null, evidence_pushed_at: ago(36 * 3600), run_start: ago(s) });
+  eq(codes(O.decideOutside(armed(60), NOW)), '', 'a minute in');
+  eq(codes(O.decideOutside(armed(31 * 60), NOW)), 'PROPOSER_HOST_SILENT', '31 minutes in, nothing pushed since it was armed');
+  eq(codes(O.decideOutside({ ...armed(91 * 60), evidence_pushed_at: ago(60) }, NOW)), 'NO_ANCHOR', '91 minutes in, no anchor');
+});
+
 test('a repository that stops moving is its host\'s dead man\'s switch: 30 minutes without a push from the proposer or the verifier host', () => {
   const O = require('./outside-check');
   eq(O.POLICY.host_silent_s, 30 * 60, '30 minutes');

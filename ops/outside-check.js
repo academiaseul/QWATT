@@ -37,7 +37,7 @@ const POLICY = {
 };
 
 /**
- * @param {{run_live:boolean, last_anchor_at?:string|null, evidence_pushed_at?:string, log_pushed_at?:string,
+ * @param {{run_live:boolean, run_start?:string, last_anchor_at?:string|null, evidence_pushed_at?:string, log_pushed_at?:string,
  *          verifier_last_tick?:string, errors:string[]}} obs  undefined: not checked (not configured)
  * @param {number} nowS
  * @returns {Array<{code:string, message:string}>}
@@ -47,10 +47,12 @@ function decideOutside(obs, nowS, policy = POLICY) {
   const age = (iso) => (iso ? nowS - Math.floor(Date.parse(iso) / 1000) : Infinity);
   if (obs.errors && obs.errors.length) out.push({ code: 'SOURCE_DOWN', message: `cannot read: ${obs.errors.join('; ')}` });
   if (!obs.run_live) return out;
-  if (obs.last_anchor_at !== undefined && age(obs.last_anchor_at) > policy.no_anchor_s) {
+  /* DV-11: a run armed ahead of its start has no anchor and no recent push when it starts */
+  const inRun = (iso) => Math.min(age(iso), age(obs.run_start));
+  if (obs.last_anchor_at !== undefined && inRun(obs.last_anchor_at) > policy.no_anchor_s) {
     out.push({ code: 'NO_ANCHOR', message: obs.last_anchor_at ? `no anchoring transaction since ${obs.last_anchor_at}` : 'no anchoring transaction during the run' });
   }
-  if (obs.evidence_pushed_at !== undefined && age(obs.evidence_pushed_at) > policy.host_silent_s) {
+  if (obs.evidence_pushed_at !== undefined && inRun(obs.evidence_pushed_at) > policy.host_silent_s) {
     out.push({ code: 'PROPOSER_HOST_SILENT', message: `qwatt-evidence: no commit to the run since ${obs.evidence_pushed_at} (the proposer host or its publisher is down)` });
   }
   if (obs.log_pushed_at !== undefined && age(obs.log_pushed_at) > policy.host_silent_s) {
@@ -95,6 +97,7 @@ async function observeOutside(o, nowS) {
     try {
       const run = await getJson(`${o.feed.replace(/\/+$/, '')}/faults.json`);
       obs.run_live = !!run && nowS * 1000 >= Date.parse(run.run_start) && nowS * 1000 < Date.parse(run.run_end);
+      if (run) obs.run_start = run.run_start;
     } catch (e) { obs.errors.push(`faults.json (${e.message})`); }
     try { obs.evidence_pushed_at = await lastPush(o.feed, o.token); } catch (e) { obs.errors.push(`qwatt-evidence commits (${e.message})`); }
   }

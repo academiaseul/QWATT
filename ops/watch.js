@@ -61,7 +61,7 @@ function decide(obs, state, nowS, policy = POLICY) {
 
   if (obs.errors && obs.errors.length) conditions.SOURCE_DOWN = `cannot read: ${obs.errors.join('; ')}`;
   if (obs.run_live) {
-    if (obs.last_anchor_at !== undefined && age(obs.last_anchor_at) > policy.no_anchor_s) {
+    if (obs.last_anchor_at !== undefined && Math.min(age(obs.last_anchor_at), age(obs.run_start)) > policy.no_anchor_s) {
       conditions.NO_ANCHOR = obs.last_anchor_at ? `no anchoring transaction since ${obs.last_anchor_at}` : 'no anchoring transaction yet';
     }
     if (obs.feed_last_interval_at !== undefined && age(obs.feed_last_interval_at) > policy.feed_stale_s) {
@@ -121,6 +121,25 @@ async function pinned(url, o) {
   return p.base;
 }
 
+/** The feed's head, and its oldest accepted batch still waiting for a second signature. */
+async function observeFeed(feed, obs) {
+  const idx = await getJson(`${feed}/index.json`);
+  obs.feed_last_interval_at = idx.last_ts_start || null;
+  const listed = (await getText(`${feed}/ledger/batches.jsonl`)).split('\n').filter(Boolean).map((l) => JSON.parse(l));
+  const anchoredDir = new Set();
+  for (const e of listed.slice(-50)) {
+    if (e.status !== 'accepted') continue;
+    const a = await getText(`${feed}/anchored/${e.batch_id}.json`).catch(() => '');
+    if (a) anchoredDir.add(e.batch_id);
+  }
+  const waiting = listed.slice(-50).filter((e) => e.status === 'accepted' && !anchoredDir.has(e.batch_id));
+  if (waiting.length) {
+    const b = await getJson(`${feed}/batches/${waiting[0].batch_id}.json`);
+    obs.oldest_unanchored_batch = waiting[0].batch_id;
+    obs.oldest_unanchored_published_at = b.ts_end;                 // a batch is published when its window closes
+  }
+}
+
 async function observe(o, nowS) {
   const obs = { errors: [] };
   try {
@@ -128,21 +147,11 @@ async function observe(o, nowS) {
     obs.feed_read_at = feed;
     const faults = await getJson(`${feed}/faults.json`).catch(() => null);
     obs.run_live = faults ? nowS * 1000 >= Date.parse(faults.run_start) && nowS * 1000 < Date.parse(faults.run_end) : !!o.assumeLive;
-    const idx = await getJson(`${feed}/index.json`);
-    obs.feed_last_interval_at = idx.last_ts_start || null;
-    const listed = (await getText(`${feed}/ledger/batches.jsonl`)).split('\n').filter(Boolean).map((l) => JSON.parse(l));
-    const anchoredDir = new Set();
-    for (const e of listed.slice(-50)) {
-      if (e.status !== 'accepted') continue;
-      const a = await getText(`${feed}/anchored/${e.batch_id}.json`).catch(() => '');
-      if (a) anchoredDir.add(e.batch_id);
-    }
-    const waiting = listed.slice(-50).filter((e) => e.status === 'accepted' && !anchoredDir.has(e.batch_id));
-    if (waiting.length) {
-      const b = await getJson(`${feed}/batches/${waiting[0].batch_id}.json`);
-      obs.oldest_unanchored_batch = waiting[0].batch_id;
-      obs.oldest_unanchored_published_at = b.ts_end;                 // a batch is published when its window closes
-    }
+    if (faults) obs.run_start = faults.run_start;
+    /* DV-11: a run is armed ahead of its start, and index.json arrives with its first batch, about an hour
+       after run_start. Until NO_ANCHOR could fire, no index.json is a run not there yet, not a source down. */
+    const early = faults && nowS * 1000 < Date.parse(faults.run_start) + POLICY.no_anchor_s * 1000;
+    if (!early || (await getText(`${feed}/index.json`))) await observeFeed(feed, obs);
   } catch (e) { obs.errors.push(`feed (${e.message})`); }
 
   try {

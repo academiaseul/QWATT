@@ -216,6 +216,37 @@ test('V3-13b: NO_ANCHOR fires after 90 minutes without an anchor during the run,
   assert(codes(decide({ ...healthy(), last_anchor_at: iso(91 * 60) }, {}, NOW)).includes('NO_ANCHOR:alert'), '91 minutes: NO_ANCHOR');
 });
 
+test('DV-11: a run armed ahead of its start has only faults.json public: no feed error before the start or in its first 90 minutes; a feed still empty after that is one', async () => {
+  const { serveDir } = require('../anchor/static-server');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-watch-armed-'));
+  fs.mkdirSync(path.join(dir, 'run'));
+  const START = NOW + 36 * 3600;
+  const at = (s) => new Date(s * 1000).toISOString();
+  fs.writeFileSync(path.join(dir, 'run', 'faults.json'), JSON.stringify({ run_start: at(START), run_end: at(START + 7 * 86400) }) + '\n');
+  const srv = await serveDir(dir);
+  let before, first, after;
+  const o = { feed: srv.url + '/run', horizon: 'http://127.0.0.1:9', account: 'GWATCHTEST' };
+  try {
+    before = await observe(o, NOW);
+    first = await observe(o, START + 60 * 60);
+    after = await observe(o, START + POLICY.no_anchor_s + 60);
+  } finally { await srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+  const feedErrors = (x) => x.errors.filter((e) => /^feed/.test(e));
+  eq(feedErrors(before).length, 0, `armed: ${before.errors.join('; ')}`);
+  eq(before.run_live, false, 'not live before the start');
+  eq(before.run_start, at(START), 'observe() keeps the run start');
+  eq(feedErrors(first).length, 0, `an hour in, before the first batch: ${first.errors.join('; ')}`);
+  eq(first.run_live, true, 'live from the start');
+  eq(feedErrors(after).length, 1, 'still no index.json after 90 minutes: the source is down');
+});
+
+test('DV-11: NO_ANCHOR counts from the run start, so an account last used days before the start does not alert at the start; 90 minutes in, it does', () => {
+  const started = (s) => ({ ...healthy(), feed_last_interval_at: undefined, last_anchor_at: iso(3 * 86400), run_start: iso(s) });
+  assert(!codes(decide(started(60), {}, NOW)).includes('NO_ANCHOR:alert'), 'a minute into the run: quiet');
+  assert(!codes(decide({ ...started(60), last_anchor_at: null }, {}, NOW)).includes('NO_ANCHOR:alert'), 'an account with no transaction, a minute in: quiet');
+  assert(codes(decide(started(91 * 60), {}, NOW)).includes('NO_ANCHOR:alert'), '91 minutes in: NO_ANCHOR');
+});
+
 test('V3-13b: deliver() reports each alert as sent only when the webhook answers 2xx', async () => {
   const hook = await webhook([500, 200, 404]);
   try {
