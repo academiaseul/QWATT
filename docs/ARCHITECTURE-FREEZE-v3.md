@@ -74,6 +74,11 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > anterior al rechazado más antiguo de su cadena, no siempre con el último anclado, y la referencia
 > de tiempo del procesamiento no retrocede. Hay un caso conocido en que el anclaje se detiene: un
 > lote publicado como rechazado encima de un lote que el verificador rechazó. El detalle está en §9.
+>
+> *Nota fechada (viernes 6 de noviembre de 2026, Jay Kim y Diego Ostertag).* OD-8: qué cuenta como siete
+> días consecutivos, tanto si se detiene el anclaje como si se apaga el host del proponente; este
+> nunca recupera intervalos: quedan como un hueco visible. OD-9: los rechazos esperados de la corrida
+> quedan publicados antes de que empiece, en `live/expected-run.json`. El detalle está en §9.
 
 ## 1. What stays frozen from v2
 
@@ -574,6 +579,35 @@ installed with the host package; its key and deploy key have not been sent yet.
 **OD-2 · Third signer's independence (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).**
 Diego Ostertag confirmed in writing (email to Jay Kim, Fri 6 Nov 2026) that the third signer does
 not work for QWATT, depends on neither founder and has no role in the Instawards sprint.
+
+**OD-8 and OD-9 (status note, Fri 6 Nov 2026, Jay Kim and Diego Ostertag).** Both were due Fri 6 Nov.
+
+**OD-8, "seven consecutive days".** The counted window is seven consecutive days if no outage breaks
+it, by this rule:
+
+- *Anchoring outage* (proposer, verifier, publisher, Horizon or the network, with the pipeline still
+  judging intervals): a restart that drains its backlog in order, with original timestamps, within
+  2 hours keeps the run continuous.
+- *Proposer-host outage* (nothing is judged): `live/run.js` resumes at the current time and never
+  backfills, because backfilling would fake liveness. The missing intervals stay a visible gap, and
+  `live/audit.js` lists them. A gap of at most 2 hours keeps the run continuous.
+- *Either outage for longer than 2 hours* breaks the run. The counted window starts again only if
+  seven days still fit, which means a start no later than Tue 10 Nov (V3-14). Otherwise the write-up
+  reports the longest continuous stretch and says that the SOW's seven days were not met.
+- Every outage, of any length, is listed in the write-up with its times and cause. The 2-hour limit
+  applies to each outage, not to their sum.
+
+**OD-9, expected results.** The refusals the run is expected to make are listed before it starts, in
+`live/expected-run.json` at the frozen tag. `live/expected.js` generates the list by running the
+simulator and gates fast with the run's seed (20261103), start (2026-11-08T03:00:00Z, DV-10) and length (8
+days). Of 2,304 intervals it lists 31 refusals: 24 inside the eight fault windows, 2 leading edges of
+the night injections, and 5 dawn and dusk refusals from G0's relative tolerance (B-3,
+`plausibility.energy_power`). The spec does not change. `live/audit.js --expected` compares the run
+with the list slot by slot, and any difference is recorded in the write-up. If the run's start
+moves, the list is regenerated and published before the new start. The list lives in the code
+repository at the frozen tag, not next to `faults.json` in `qwatt-evidence`, so the publisher does
+not change at the freeze.
+
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
