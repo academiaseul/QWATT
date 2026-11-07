@@ -318,7 +318,7 @@ anchors"). Any other pair is BROKEN.
    batches waiting; the account panel is all ✓; "Signed by" reads proposer + verifier (a stand-in only
    during a verifier outage, noted for the write-up).
 2. `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json` on the proposer host:
-   coverage has no gaps, every fault that is due shows *refused as expected*, the `expected refusals:`
+   coverage has no gaps (a gap of at most 2 hours keeps the run continuous under OD-8: note its cause for the write-up; a longer one fails the audit), every fault that is due shows *refused as expected*, the `expected refusals:`
    line reports no difference from the list published before the run (OD-9), and the `raw:` line
    counts the raw payloads, each tied to a row of a published samples file (any that is not is listed
    as a problem). A refusal that differs from the list is a finding for the write-up, not something

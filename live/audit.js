@@ -8,9 +8,12 @@
  *   1. every scheduled fault (faults.json): each 5-minute interval fully inside
  *      its window is in ledger/rejected.jsonl with one of the expected reasons,
  *      and none of them was accepted;
- *   2. coverage: every 5-minute slot from the run start to the last judged slot
- *      is judged exactly once (accepted or rejected). Gaps — the runner was
- *      down — and duplicates are listed;
+ *   2. coverage: every 5-minute slot from the run start is judged exactly once
+ *      (accepted or rejected), up to the last judged slot while the run is going
+ *      and up to run_end once it is over. Gaps (the runner was down) and duplicates
+ *      are listed. By OD-8 a gap of at most 2 hours keeps the run continuous and
+ *      is no problem; a longer one is, and so is a run that stopped before run_end
+ *      or has been silent for over 2 hours;
  *   3. raw samples: every published samples/*.csv hashes to its manifest entry;
  *   4. raw payloads: every payload entry in every raw/<batch_id>.jsonl (V3-5) is,
  *      byte for byte, a data row of one of those files plus "\n", the way the
@@ -29,6 +32,10 @@ const path = require('path');
 const crypto = require('crypto');
 
 const DT_MS = 300 * 1000;
+const OD8_LIMIT_S = 2 * 3600;                                         // OD-8: for each outage, not their sum
+const SEVEN_DAYS_S = 7 * 86400;
+
+const iso = (ms) => new Date(ms).toISOString();
 
 function readJsonl(f) {
   return fs.existsSync(f) ? fs.readFileSync(f, 'utf8').split('\n').filter((l) => l.trim()).map((l) => JSON.parse(l)) : [];
@@ -58,7 +65,23 @@ function compareExpected(def, bySlot, expected, problems) {
   return { listed: expected.refused.length, matching, not_judged: notJudged };
 }
 
-function auditLive(feedDir, { expected } = {}) {
+/**
+ * OD-8: the run split at every gap over the limit. A trailing gap never splits it: the run did not come
+ * back, so the last stretch simply ends at coveredEnd.
+ * @returns {{limit_s:number, continuous:boolean, longest:{from:string,to:string,seconds:number}, seven_days:boolean}}
+ */
+function continuityOf(gaps, runStart, coveredEnd) {
+  const breaks = gaps.filter((g) => !g.trailing && g.seconds > OD8_LIMIT_S);
+  const stretches = [];
+  let from = runStart;
+  for (const g of breaks) { stretches.push([from, Date.parse(g.from)]); from = Date.parse(g.to); }
+  stretches.push([from, coveredEnd]);
+  const [a, b] = stretches.reduce((best, s) => (s[1] - s[0] > best[1] - best[0] ? s : best));
+  const seconds = Math.max(0, (b - a) / 1000);
+  return { limit_s: OD8_LIMIT_S, continuous: breaks.length === 0, longest: { from: iso(a), to: iso(Math.max(a, b)), seconds }, seven_days: seconds >= SEVEN_DAYS_S };
+}
+
+function auditLive(feedDir, { expected, now = Date.now() } = {}) {
   const def = JSON.parse(fs.readFileSync(path.join(feedDir, 'faults.json'), 'utf8'));
   const accepted = readJsonl(path.join(feedDir, 'ledger', 'accepted.jsonl'));
   const rejected = readJsonl(path.join(feedDir, 'ledger', 'rejected.jsonl'));
@@ -84,7 +107,7 @@ function auditLive(feedDir, { expected } = {}) {
     const acceptedInside = seen.filter((l) => l.ok);
     const codes = {};
     for (const l of seen) for (const c of (l.reasons || [])) codes[c] = (codes[c] || 0) + 1;
-    const due = s + DT_MS <= Date.now() || seen.length > 0;
+    const due = s + DT_MS <= now || seen.length > 0;
     const status = !due ? 'not yet due'
       : seen.length < slots.length ? 'incomplete'
         : refused.length === slots.length && acceptedInside.length === 0 ? 'refused as expected' : 'NOT REFUSED';
@@ -94,17 +117,29 @@ function auditLive(feedDir, { expected } = {}) {
 
   /* 2. coverage */
   const keys = [...bySlot.keys()].sort((a, b) => a - b);
-  const runStart = Date.parse(def.run_start);
-  const last = keys.length ? keys[keys.length - 1] : runStart - DT_MS;
+  const runStart = Date.parse(def.run_start), runEnd = Date.parse(def.run_end);
+  const over = now >= runEnd;
+  const lastJudged = keys.length ? keys[keys.length - 1] : runStart - DT_MS;
+  const last = over ? Math.max(lastJudged, runEnd - DT_MS) : lastJudged;   // once it is over, every slot of the run is due
   const gaps = [];
   let gapStart = null;
+  const closeGap = (end, extra) => {
+    gaps.push({ from: iso(gapStart), to: iso(end), intervals: (end - gapStart) / DT_MS, seconds: (end - gapStart) / 1000, ...extra });
+    gapStart = null;
+  };
   for (let t = runStart; t <= last; t += DT_MS) {
     const has = bySlot.has(t);
     if (!has && gapStart == null) gapStart = t;
-    if (has && gapStart != null) { gaps.push({ from: new Date(gapStart).toISOString(), to: new Date(t).toISOString(), intervals: (t - gapStart) / DT_MS }); gapStart = null; }
+    if (has && gapStart != null) closeGap(t);
   }
-  const duplicates = keys.filter((k) => bySlot.get(k).length > 1).map((k) => new Date(k).toISOString());
-  if (gaps.length) problems.push(`${gaps.reduce((s, g) => s + g.intervals, 0)} interval(s) never judged, in ${gaps.length} gap(s)`);
+  if (gapStart != null) closeGap(last + DT_MS, { trailing: true });
+  for (const g of gaps) {
+    if (g.trailing) problems.push(`the run stopped early: ${g.intervals} interval(s) never judged from ${g.from} to run_end ${g.to}`);
+    else if (g.seconds > OD8_LIMIT_S) problems.push(`${g.intervals} interval(s) never judged from ${g.from} to ${g.to}: over the 2-hour limit, this outage breaks the run (OD-8)`);
+  }
+  const judgedUntil = lastJudged + DT_MS;
+  if (!over && now - judgedUntil > OD8_LIMIT_S * 1000) problems.push(`nothing judged since ${iso(judgedUntil)}: over the 2-hour limit (OD-8), and the run is not over`);
+  const duplicates = keys.filter((k) => bySlot.get(k).length > 1).map((k) => iso(k));
   if (duplicates.length) problems.push(`${duplicates.length} slot(s) judged more than once`);
 
   /* 3. raw samples */
@@ -135,12 +170,15 @@ function auditLive(feedDir, { expected } = {}) {
 
   const expectedSummary = expected ? compareExpected(def, bySlot, expected, problems) : null;
 
-  const expectedSlots = keys.length ? (last - runStart) / DT_MS + 1 : 0;
+  const expectedSlots = keys.length || over ? (last - runStart) / DT_MS + 1 : 0;
   return {
     ok: problems.length === 0,
     problems,
     run: { start: def.run_start, end: def.run_end, seed: def.seed },
-    coverage: { judged_slots: keys.length, expected_slots: expectedSlots, gaps, duplicates, accepted: accepted.length, rejected: rejected.length },
+    coverage: {
+      judged_slots: keys.length, expected_slots: expectedSlots, complete: over && !gaps.some((g) => g.trailing), gaps, duplicates, accepted: accepted.length, rejected: rejected.length,
+      continuity: continuityOf(gaps, runStart, keys.length ? judgedUntil : runStart),
+    },
     faults,
     samples: { files: manifest.length },
     raw: { files: rawFiles.length, payloads },
@@ -156,7 +194,9 @@ if (require.main === module) {
   if (process.argv.includes('--json')) console.log(JSON.stringify(r, null, 2));
   else {
     console.log(`live run ${r.run.start} → ${r.run.end}`);
-    console.log(`  coverage: ${r.coverage.judged_slots}/${r.coverage.expected_slots} intervals judged · ${r.coverage.accepted} accepted · ${r.coverage.rejected} rejected · ${r.coverage.gaps.length} gaps`);
+    console.log(`  coverage: ${r.coverage.judged_slots}/${r.coverage.expected_slots} intervals judged · ${r.coverage.accepted} accepted · ${r.coverage.rejected} rejected · ${r.coverage.gaps.length} gaps · ${r.coverage.complete ? 'run complete' : 'run not complete'}`);
+    for (const g of r.coverage.gaps) console.log(`  gap ${g.from.slice(0, 16)}Z → ${g.to.slice(0, 16)}Z  ${g.seconds / 60} min${g.trailing ? '  to run_end' : g.seconds > OD8_LIMIT_S ? '  over the 2-hour limit' : '  within the 2-hour limit: list it in the write-up'}`);
+    if (r.coverage.gaps.length) console.log(`  longest continuous stretch: ${r.coverage.continuity.longest.from.slice(0, 16)}Z → ${r.coverage.continuity.longest.to.slice(0, 16)}Z`);
     console.log(`  raw: ${r.raw.payloads} payload(s) in ${r.raw.files} raw file(s), each checked against the ${r.samples.files} published samples file(s)`);
     for (const f of r.faults) console.log(`  ${f.id.padEnd(24)} ${f.start.slice(0, 16)}Z  ${String(f.refused).padStart(2)}/${f.intervals} refused  ${f.status}  ${Object.keys(f.codes).join(', ')}`);
     if (r.expected) console.log(`  expected refusals: ${r.expected.matching}/${r.expected.listed} match · ${r.expected.not_judged} not judged`);
@@ -166,4 +206,4 @@ if (require.main === module) {
   process.exitCode = r.ok ? 0 : 1;
 }
 
-module.exports = { auditLive };
+module.exports = { auditLive, continuityOf };
