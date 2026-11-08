@@ -51,7 +51,7 @@ function solarExtreme(dayMs, want) {
 /**
  * @param {number} startMs   run start
  * @param {number} days      run length (the live run: 7, DV-11). Faults sit on day offsets 1-6 from the UTC
- *                           day of the start, whatever the length: from Mon 9 Nov that is Tue 10 - Sun 15,
+ *                           day of the start, whatever the length: from Tue 10 Nov that is Wed 11 - Mon 16,
  *                           inside the counted days; an offset >= days is left out
  * @returns {object[]} faults: { id, kind, startMs, endMs, start, end, expect, ...params }
  */

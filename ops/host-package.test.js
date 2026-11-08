@@ -210,15 +210,15 @@ test('every ${VAR} a unit passes is set in the env.example block of the env file
   }
 });
 
-test('W3-4: the run length comes from live.env: qwatt-live passes --days ${QWATT_RUN_DAYS}, and env.example sets 7 (the seven counted days to Mon 16 Nov 03:00 UTC, no soak day, DV-11)', () => {
+test('W3-4: the run length comes from live.env: qwatt-live passes --days ${QWATT_RUN_DAYS}, and env.example sets 7 (the seven counted days to Tue 17 Nov 03:00 UTC, no soak day, DV-11, DV-12)', () => {
   const exec = read('ops/deploy/qwatt-live.service').split(/\r?\n/).find((l) => l.startsWith('ExecStart=')) || '';
   assert(/ --days \$\{QWATT_RUN_DAYS\}( |$)/.test(exec), `qwatt-live passes --days \${QWATT_RUN_DAYS}: ${exec}`);
   assert(!/ --days \d/.test(exec), `no length fixed in the unit: ${exec}`);
   const live = envBlock('live');
   eq(live.QWATT_RUN_DAYS, '7', 'env.example live.env QWATT_RUN_DAYS');
   const tpl = read('ops/deploy/env.example');
-  assert(tpl.includes('2026-11-09T03:00:00Z') && tpl.includes('2026-11-16T03:00:00Z'), 'the comment gives the live run\'s start and its run_end');
-  eq(new Date(Date.parse('2026-11-09T03:00:00Z') + Number(live.QWATT_RUN_DAYS) * 86400e3).toISOString(), '2026-11-16T03:00:00.000Z', 'the live run\'s start plus QWATT_RUN_DAYS is the end of the counted window');
+  assert(tpl.includes('2026-11-10T03:00:00Z') && tpl.includes('2026-11-17T03:00:00Z'), 'the comment gives the live run\'s start and its run_end');
+  eq(new Date(Date.parse('2026-11-10T03:00:00Z') + Number(live.QWATT_RUN_DAYS) * 86400e3).toISOString(), '2026-11-17T03:00:00.000Z', 'the live run\'s start plus QWATT_RUN_DAYS is the end of the counted window');
   assert(/QWATT_RUN_DAYS/.test(read('docs/RUNBOOK.md')), 'the RUNBOOK (setup step 9) names QWATT_RUN_DAYS');
 });
 

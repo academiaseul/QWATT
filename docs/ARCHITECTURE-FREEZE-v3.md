@@ -84,6 +84,11 @@ and a summary of week 2) are in §9. They add to this document and change none o
 > corrida: parte el lunes 9 de noviembre a las 00:00 hora de Chile, dura 7 días sin día de prueba y
 > termina el lunes 16 a las 00:00. Las pruebas A–D corren antes en una cuenta 2/2/3 aparte, y la cuenta
 > de la corrida llega al inicio sin anclajes. El detalle está en §9.
+>
+> *Nota fechada (lunes 9 de noviembre de 2026, Jay Kim y Diego Ostertag).* DV-12, desviación de la
+> corrida: parte el martes 10 de noviembre a las 00:00 hora de Chile, el último inicio que permite
+> V3-14, dura 7 días sin día de prueba y termina el martes 17 a las 00:00, sin margen. El ensayo se
+> repite el lunes 9 en una cuenta de prueba nueva. El detalle está en §9.
 
 ## 1. What stays frozen from v2
 
@@ -630,6 +635,23 @@ not change at the freeze.
 | # | Departs from | Approved text | Built in | Approved |
 |---|---|---|---|---|
 | DV-11 | V3-14 as DV-10 moved it (start Sun 8 Nov 03:00 UTC, one soak day, 8 days) | **Start.** The live run starts Mon 9 Nov 2026 00:00 America/Santiago (`2026-11-09T03:00:00Z`), lasts 7 days with no soak day and ends Mon 16 Nov 00:00 America/Santiago (`2026-11-16T03:00:00Z`). The counted window DV-10 set does not move: Mon 9 to Mon 16 Nov, days 22 to 28. The latest start stays day 23. **Why.** Tests A–D, the independence test and the kill tests had not run by Fri 6 Nov. Test C lands an anchor, and the run's chain starts at genesis on its own account (OD-5), so they cannot run on the run account. **Rehearsal.** They run on Sat 7 Nov on a separate 2/2/3 account with the same three public keys, under a rehearsal name, and the run account `GDSE…4MDC` reaches the start with no anchor. **Armed ahead.** The services are armed the same day, at the frozen commit, and the run starts by itself, with no manual step on Sun 8 Nov. **Monitors.** A run armed ahead of its start has only `faults.json` public and no anchor. Until 90 minutes after `run_start`, the watchdog does not read a missing `index.json` as a source down. Its `NO_ANCHOR`, and the outside check's `NO_ANCHOR` and `PROPOSER_HOST_SILENT`, count from `run_start`, not from an account or repository last used before it. `index.json` moves once an hour, when a batch closes, so `FEED_STALE` alerts at 75 minutes, not 30, and does not fire on a healthy run. `PROPOSER_HOST_SILENT` allows 75 minutes from the start for the first push, and 30 after it. Before the start, the outside check alerts on `VERIFIER_SILENT`. It also reports a `faults.json` it cannot find, and the watchdog calls a run BROKEN only if a second read agrees. **Faults and OD-9.** The eight faults fall on Tue 10 to Sun 15 Nov. `live/expected-run.json` is regenerated for this start, with the seed unchanged: of 2,016 intervals it lists 30 refusals, 24 inside the eight fault windows, 2 leading edges of the night injections and 4 dawn and dusk refusals. | This pull request | Jay Kim and Diego Ostertag, by agreeing this note |
+
+### Mon 9 Nov 2026 (Day 22) · Jay Kim and Diego Ostertag
+
+> **Resumen (lunes 9 de noviembre de 2026, Jay Kim y Diego Ostertag).** La corrida parte el martes 10
+> de noviembre a las 00:00 hora de Chile, dura 7 días sin día de prueba y termina el martes 17 a las
+> 00:00, cuando empieza el día 30. Es el último inicio que permite V3-14: no queda margen. El ensayo
+> del sábado 7 rechazó las pruebas B, D e I como se esperaba y ancló la C, pero no corrieron la prueba
+> A, el simulacro de suplente, las pruebas de caída ni el go/no-go, así que los servicios no quedaron
+> armados para el lunes 9. El ensayo se repite el lunes 9 en una cuenta de prueba nueva, porque la del
+> sábado ya tiene su propia cadena. Las ocho fallas pasan al miércoles 11 – lunes 16, y la lista de
+> rechazos esperados se regenera para este inicio: siguen siendo 30 rechazos en 2.016 intervalos.
+
+**Deviation agreed on Mon 9 Nov 2026 (status note, Mon 9 Nov 2026, Jay Kim and Diego Ostertag).**
+
+| # | Departs from | Approved text | Built in | Approved |
+|---|---|---|---|---|
+| DV-12 | V3-14 as DV-11 moved it (start Mon 9 Nov 03:00 UTC, 7 days, no soak day) | **Start.** The live run starts Tue 10 Nov 2026 00:00 America/Santiago (`2026-11-10T03:00:00Z`), lasts 7 days with no soak day and ends Tue 17 Nov 00:00 America/Santiago (`2026-11-17T03:00:00Z`): days 23 to 29, ending as Day 30 begins. It is the latest start V3-14 allows, so no margin is left inside the SOW's 30 days: a run that OD-8 breaks cannot start again and still fit. **Why.** The rehearsal of Sat 7 Nov (DV-11), `rehearsal-2026-11-07` on the rehearsal account `GBIT…HFC2`, refused tests B, D and I as expected and anchored test C (proposer + verifier, transaction `13457b4b…`, ledger 5614274), but test A, the stand-in drill, the kill tests and the go/no-go did not run, so the services were not armed for Mon 9 Nov. **Rehearsal.** It runs again on Mon 9 Nov as `rehearsal-2026-11-09`, on a fresh 2/2/3 rehearsal account with the same three public keys, with tests A, B and C on one proposal. Saturday's account cannot host it: its on-chain head is the last anchor of `rehearsal-2026-11-07`, and the proposer refuses an account whose head is not a batch of its own feed (`anchor/chain.js`, `anchoredPrefix`). The run account `GDSE…4MDC` still reaches the start with no anchor. The rest of DV-11 stands: armed ahead at the frozen commit, no manual step at the start, the monitors' timings. **Faults and OD-9.** The eight faults move with the start day and fall on Wed 11 to Mon 16 Nov. `live/expected-run.json` is regenerated for this start, with the seed unchanged: of 2,016 intervals it lists 30 refusals, 24 inside the eight fault windows, 2 leading edges of the night injections and 4 dawn and dusk refusals. | This pull request | Jay Kim and Diego Ostertag, by agreeing this note |
 
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
