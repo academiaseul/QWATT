@@ -1,0 +1,139 @@
+{
+  "network": "testnet",
+  "public_keys": {
+    "account": "GCJ5LL6TWH27SEP7BE73TOKKKRSMZGMFY3H6YR7GBDRVSUH4KSPUE4GY"
+  },
+  "steps": {
+    "A_proposer_alone": {
+      "thresholds": {
+        "low_threshold": 2,
+        "med_threshold": 2,
+        "high_threshold": 3
+      },
+      "thresholds_match": true,
+      "body_hash": "d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a",
+      "signatures": 1,
+      "envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAVziIwgAAABAPiC58tHobiyeOUJmdcvvfrKjApkM62h71KM10er0pX5cVpugL6kLLlhvHR9mlxvePWFdAYq7vmUohaD0c6L3DA==",
+      "horizon_url": "https://horizon-testnet.stellar.org",
+      "submitted_at": "2026-11-09T21:58:12.217Z",
+      "ok": false,
+      "refused": true,
+      "codes": {
+        "transaction": "tx_bad_auth"
+      },
+      "horizon_response": {
+        "type": "https://stellar.org/horizon-errors/transaction_failed",
+        "title": "Transaction Failed",
+        "status": 400,
+        "detail": "The transaction failed when submitted to the stellar network. The `extras.result_codes` field on this response contains further details.  Descriptions of each code can be found at: https://developers.stellar.org/api/errors/http-status-codes/horizon-specific/transaction-failed/",
+        "extras": {
+          "envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAVziIwgAAABAPiC58tHobiyeOUJmdcvvfrKjApkM62h71KM10er0pX5cVpugL6kLLlhvHR9mlxvePWFdAYq7vmUohaD0c6L3DA==",
+          "result_codes": {
+            "transaction": "tx_bad_auth"
+          },
+          "result_xdr": "AAAAAAAAASz////6AAAAAA=="
+        }
+      },
+      "batch_id": "qwatt-chispa-01-000000",
+      "signer_public_key": "GDGTDIZGF5PY5UZHWLLRIF7O3VYR5ZSYBKG5GZOBNOCL7PC44IRQQT5T",
+      "signed_by": "proposer service via stellar-cli (the published proposal, unchanged)",
+      "expect": "refused",
+      "at": "2026-11-09T21:58:12.265Z"
+    },
+    "B_verifier_alone": {
+      "thresholds": {
+        "low_threshold": 2,
+        "med_threshold": 2,
+        "high_threshold": 3
+      },
+      "thresholds_match": true,
+      "body_hash": "d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a",
+      "signatures": 1,
+      "envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAeuClSwAAABAyq797to8ps3udgO5Zifa1Ex2NAXpcASqWLXdAty8G4vDM25tnlb9ssf3MyGdbASrhExV6CK6JcneXdVdnWisDw==",
+      "horizon_url": "https://horizon-testnet.stellar.org",
+      "submitted_at": "2026-11-09T21:59:22.034Z",
+      "ok": false,
+      "refused": true,
+      "codes": {
+        "transaction": "tx_bad_auth"
+      },
+      "horizon_response": {
+        "type": "https://stellar.org/horizon-errors/transaction_failed",
+        "title": "Transaction Failed",
+        "status": 400,
+        "detail": "The transaction failed when submitted to the stellar network. The `extras.result_codes` field on this response contains further details.  Descriptions of each code can be found at: https://developers.stellar.org/api/errors/http-status-codes/horizon-specific/transaction-failed/",
+        "extras": {
+          "envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAeuClSwAAABAyq797to8ps3udgO5Zifa1Ex2NAXpcASqWLXdAty8G4vDM25tnlb9ssf3MyGdbASrhExV6CK6JcneXdVdnWisDw==",
+          "result_codes": {
+            "transaction": "tx_bad_auth"
+          },
+          "result_xdr": "AAAAAAAAASz////6AAAAAA=="
+        }
+      },
+      "batch_id": "qwatt-chispa-01-000000",
+      "signer_public_key": "GAJCK4PA3CFEZNQD3TLVWWSMHIXGIBV33SIYWZM6CUTMLH7LQKKSYI3U",
+      "signed_by": "verifier key alone, re-signing the published body",
+      "stellar_cli_version": "28.1.0",
+      "expect": "refused",
+      "at": "2026-11-09T21:59:22.191Z"
+    },
+    "D_altered_after_proposer_signed": {
+      "ok": true,
+      "refused": true,
+      "reasons": [
+        "verifier.hash_mismatch"
+      ],
+      "detail": "pending anchor ≠ hash of the published batch",
+      "batch_id": "qwatt-chispa-01-000000",
+      "forged_sha256": "4d2d9f93bb0394fddcbc30f28657a2baeda4894161cfb5a982bdc292773364c8",
+      "pending_envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAVziIwgAAABAPiC58tHobiyeOUJmdcvvfrKjApkM62h71KM10er0pX5cVpugL6kLLlhvHR9mlxvePWFdAYq7vmUohaD0c6L3DA==",
+      "pending_tx_hash": "d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a",
+      "submitted": false,
+      "expect": "verifier refuses; nothing submitted, nothing published",
+      "at": "2026-11-09T21:59:47.753Z"
+    },
+    "I_withheld_refused": {
+      "refused": true,
+      "reasons": [
+        "verifier.not_published"
+      ],
+      "submitted": false,
+      "method": "the batch file is withheld from the verifier's only input path by a local proxy on the verifier host, which forwards every other file from one commit of the public evidence repository (feed_commit), and the real verifier code judges the live proposal; the public feed is never touched (DV-7)",
+      "expect": "verifier refuses (verifier.not_published); nothing signed or submitted",
+      "ok": true,
+      "action": "refused",
+      "detail": "pending transaction names a batch that is not in the public feed",
+      "batch_id": "qwatt-chispa-01-000000",
+      "withheld": "/batches/qwatt-chispa-01-000000.json",
+      "feed_commit": "2648c417f91436622290283be5b1430a539e9921",
+      "feed_base": "https://raw.githubusercontent.com/academiaseul/qwatt-evidence/2648c417f91436622290283be5b1430a539e9921/rehearsal-2026-11-09",
+      "pending_envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAVziIwgAAABAPiC58tHobiyeOUJmdcvvfrKjApkM62h71KM10er0pX5cVpugL6kLLlhvHR9mlxvePWFdAYq7vmUohaD0c6L3DA==",
+      "pending_tx_hash": "d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a",
+      "refusal_log": "/tmp/qwatt-test-i-qYsIT5/refusals.jsonl",
+      "refusals": "{\"at\":\"2026-11-09T21:59:52.866Z\",\"batch_id\":\"qwatt-chispa-01-000000\",\"pending_tx_hash\":\"d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a\",\"reasons\":[\"verifier.not_published\"],\"detail\":\"pending transaction names a batch that is not in the public feed\"}\n",
+      "at": "2026-11-09T21:59:52.868Z"
+    },
+    "C_proposer_plus_verifier": {
+      "ok": true,
+      "hash": "d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a",
+      "ledger": 5647595,
+      "memo": "QW#0",
+      "signatures": 2,
+      "signer_keys": [
+        "GDGTDIZGF5PY5UZHWLLRIF7O3VYR5ZSYBKG5GZOBNOCL7PC44IRQQT5T",
+        "GAJCK4PA3CFEZNQD3TLVWWSMHIXGIBV33SIYWZM6CUTMLH7LQKKSYI3U"
+      ],
+      "pair": "proposer+verifier",
+      "link": "https://stellar.expert/explorer/testnet/tx/d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a",
+      "envelope_xdr": "AAAAAgAAAACT1a/TsfX5Ef8JP7m5SlRkzJmFxs/sR+YI41lQ/FSfQgAAC7gAVieUAAAAAgAAAAEAAAAAavI+9QAAAABq8k0FAAAAAQAAAARRVyMwAAAAAwAAAAAAAAAKAAAAE3F3YXR0LmFuY2hvci5zaGEyNTYAAAAAAQAAAEBiNWVmYzI3YTE5Mzg4ZTdlYWM3NDU5NDFlMTdjY2MzY2U5Njc4MjcwZmVkOWNhMWNjNGY1NzAxNDA2NTQ1ZDQzAAAAAAAAAAoAAAAUcXdhdHQuY3VtdWxhdGl2ZV9td2gAAAABAAAABTM5NDQwAAAAAAAAAAAAAAEAAAAAo7SasYb+E3jV1p8+IHK4R1YsISb9lM5/eFwdnvfHlZkAAAACUVdBVFQAAAAAAAAAAAAAALpUnaQlF2EW7Xnonlaa/FxKqxvdRNbsaV1H3dW5/G93AAAAAAAAAAEAAAAAAAAAAlziIwgAAABAPiC58tHobiyeOUJmdcvvfrKjApkM62h71KM10er0pX5cVpugL6kLLlhvHR9mlxvePWFdAYq7vmUohaD0c6L3DOuClSwAAABAyq797to8ps3udgO5Zifa1Ex2NAXpcASqWLXdAty8G4vDM25tnlb9ssf3MyGdbASrhExV6CK6JcneXdVdnWisDw==",
+      "expect": "anchored with two signatures: proposer + verifier",
+      "at": "2026-11-09T22:00:29.960Z"
+    }
+  },
+  "combined_from": [
+    "abcd-A-1109/abcd.json",
+    "abcd-V-1109/abcd.json"
+  ],
+  "verdict": "PASS",
+  "verdict_detail": []
+}

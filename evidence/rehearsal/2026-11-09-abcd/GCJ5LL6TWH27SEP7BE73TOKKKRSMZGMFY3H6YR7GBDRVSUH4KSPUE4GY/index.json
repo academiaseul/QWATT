@@ -1,0 +1,21 @@
+{
+  "files": {
+    "A.envelope.xdr": "047f45d682d6a7d36ac0dfac1622d05514bc6d4d2f3f83d1412c1ff964eead82",
+    "A.horizon.json": "56884c40ffe4429f16e29cb7416d8a8efd5e26d6ee307e6a48c7de4a82abcaea",
+    "B.envelope.xdr": "29d626c2447490d33bad1f9c92cffa93b8cd3021f76dddf926ef340aa214e42f",
+    "B.horizon.json": "6c5255890769cced73650e089e46e473f84ddd570cf801e952c6a4c769dfd23b",
+    "C.transaction.json": "62c0df333fcedf33a22760fd7a67fbaec496ebde479be19c08a3c0dc3004eef6",
+    "D.pending.xdr": "047f45d682d6a7d36ac0dfac1622d05514bc6d4d2f3f83d1412c1ff964eead82",
+    "I.pending.xdr": "047f45d682d6a7d36ac0dfac1622d05514bc6d4d2f3f83d1412c1ff964eead82",
+    "I.refusals.jsonl": "ce14fd9659e1b7ff9a990a3a2b503b81be9b413487e4855fd6b11fb84305506d",
+    "abcd.json": "bd9df07d00b6b50ddf3863127bbd24b76f8d80ece1b55ed0550211885a1ed861",
+    "account.json": "10f5e7ac263ec49a8175288d2062db2374e5999afc2cd079fd383a4b48932152",
+    "setup.horizon.json": "12b8670cd5badfe92b546b9856f3a06974b7fff101ddb15a489474bb0f7d5f8a",
+    "setup.signed.xdr": "1d2372ca65ce9f8d5e53afc2338765dea9a958ab6d96ddd736719652f2b6fbd1",
+    "setup.unsigned.xdr": "1c18de43c2487bb2c9fe7ea2e1abc6d551fd76d402ec057e5c6ea7a07175a07d"
+  },
+  "links": {
+    "account": "https://stellar.expert/explorer/testnet/account/GCJ5LL6TWH27SEP7BE73TOKKKRSMZGMFY3H6YR7GBDRVSUH4KSPUE4GY",
+    "setup": "https://stellar.expert/explorer/testnet/tx/ef0ed7bd379c151fe1534b369b579f2a53df6b447d40e7b976b269c36d2e3b85"
+  }
+}
