@@ -1,0 +1,1 @@
+{"at":"2026-11-09T21:59:52.866Z","batch_id":"qwatt-chispa-01-000000","pending_tx_hash":"d75c10d78fa0dace388c4155e87e243d75bd32e3eb4ca43effea4e46fc55d86a","reasons":["verifier.not_published"],"detail":"pending transaction names a batch that is not in the public feed"}
