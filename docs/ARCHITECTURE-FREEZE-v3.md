@@ -653,5 +653,49 @@ not change at the freeze.
 |---|---|---|---|---|
 | DV-12 | V3-14 as DV-11 moved it (start Mon 9 Nov 03:00 UTC, 7 days, no soak day) | **Start.** The live run starts Tue 10 Nov 2026 00:00 America/Santiago (`2026-11-10T03:00:00Z`), lasts 7 days with no soak day and ends Tue 17 Nov 00:00 America/Santiago (`2026-11-17T03:00:00Z`): days 23 to 29, ending as Day 30 begins. It is the latest start V3-14 allows, so no margin is left inside the SOW's 30 days: a run that OD-8 breaks cannot start again and still fit. **Why.** The rehearsal of Sat 7 Nov (DV-11), `rehearsal-2026-11-07` on the rehearsal account `GBIT…HFC2`, refused tests B, D and I as expected and anchored test C (proposer + verifier, transaction `13457b4b…`, ledger 5614274), but test A, the stand-in drill, the kill tests and the go/no-go did not run, so the services were not armed for Mon 9 Nov. **Rehearsal.** It runs again on Mon 9 Nov as `rehearsal-2026-11-09`, on a fresh 2/2/3 rehearsal account with the same three public keys, with tests A, B and C on one proposal. Saturday's account cannot host it: its on-chain head is the last anchor of `rehearsal-2026-11-07`, and the proposer refuses an account whose head is not a batch of its own feed (`anchor/chain.js`, `anchoredPrefix`). The run account `GDSE…4MDC` still reaches the start with no anchor. The rest of DV-11 stands: armed ahead at the frozen commit, no manual step at the start, the monitors' timings. **Faults and OD-9.** The eight faults move with the start day and fall on Wed 11 to Mon 16 Nov. `live/expected-run.json` is regenerated for this start, with the seed unchanged: of 2,016 intervals it lists 30 refusals, 24 inside the eight fault windows, 2 leading edges of the night injections and 4 dawn and dusk refusals. | This pull request | Jay Kim and Diego Ostertag, by agreeing this note |
 
+**Rehearsal, go/no-go and arming (status note, Mon 9 Nov 2026, Jay Kim and Diego Ostertag).** What ran
+on Mon 9 Nov, and what did not.
+
+- **Rehearsal account.** `GCJ5LL6TWH27SEP7BE73TOKKKRSMZGMFY3H6YR7GBDRVSUH4KSPUE4GY`, set up with the
+  same three public keys (2/2/3, master weight 0, trustline to `QWATT:GC5F…O3SX`; setup `ef0ed7bd…`)
+  and funded with 1 QWATT from `GCR3…SWGN` (`e7ba593e…`).
+- **Tests A–D and independence: PASS.** Run `rehearsal-2026-11-09`, both hosts at `9ee4646` with no
+  FAIL in `check.sh`. All on one proposal, `d75c10d7…` (batch `qwatt-chispa-01-000000`):
+  - A, proposer alone: refused `tx_bad_auth` (21:58 UTC).
+  - B, verifier alone: refused `tx_bad_auth`, the same body hash (21:59 UTC).
+  - D: refused `verifier.hash_mismatch`, nothing submitted.
+  - I: refused `verifier.not_published`, nothing signed or submitted.
+  - C, proposer + verifier: anchored at 22:00:17 UTC, ledger 5,647,595, memo `QW#0`.
+  - Evidence: `evidence/rehearsal/2026-11-09-abcd/` ([PR #66](https://github.com/academiaseul/QWATT/pull/66)).
+- **Not done: the stand-in drill (V3-13).** The third signer's computer was prepared at `9ee4646`
+  with the rehearsal `anchor.json`. Run once at 22:14:50 UTC, before a second proposal existed, it
+  recognised the identity `qwatt-third` (`GCA6…MBSD`), answered `idle` and signed nothing. The drill
+  itself, an anchor signed by proposer + third, was not done: the founders stopped the rehearsal to
+  arm the run in time. No stand-in has been exercised on the 2/2/3 accounts. During the run, a stand-in
+  anchor is used only for a real verifier outage, never as a drill.
+- **Not done: the kill tests** (V3-13: each service, each host, the network, a tampered batch, an
+  expired proposal and the watchdog). Restart behaviour rests on the unit settings (V3-13a), on the
+  recovery tests in CI and on the earlier rehearsals, not on a kill test on these hosts.
+- **Go.** Both founders decided to go with the run on Mon 9 Nov 2026 at about 19:20 America/Santiago,
+  with the stand-in drill and the kill tests not done.
+- **Armed.** Both hosts are at `9ee4646` with no FAIL. They point at the run account
+  `GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC` (1 QWATT, no anchor) and at `run`, with
+  `QWATT_RUN_START=2026-11-10T03:00:00Z` and `QWATT_RUN_DAYS=7`. Each host's `keys.js check` reports
+  a signer of weight 1 on that account. The verifier's `run/status.json` was public from 22:20 UTC and
+  `run/faults.json` from 22:21 UTC (`run_start` 2026-11-10T03:00:00Z, `run_end`
+  2026-11-17T03:00:00Z, 7 days, `code_commit` `9ee4646`, the fixed label and the three keys). Services
+  active: `qwatt-live`, `qwatt-publish` and `qwatt-proposer` on the proposer host; `qwatt-verifier`,
+  `qwatt-verifier-log` and `qwatt-watch` on the verifier host.
+- **Not yet set up at the date of this note: the check from outside both hosts** (V3-13b): the outside
+  scheduler and the repository variables for the run.
+
+> **Resumen (lunes 9 de noviembre de 2026, Jay Kim y Diego Ostertag).** El ensayo del lunes en la
+> cuenta GCJ5…E4GY dio PASS en las pruebas A, B, C, D e I, todas sobre la misma propuesta. **El
+> simulacro de suplente no se hizo:** el computador del firmante externo quedó preparado y
+> reconoció su clave, pero no firmó nada porque no había propuesta, y no se repitió. **Las pruebas de
+> caída tampoco se hicieron.** Con eso, ambos fundadores decidieron seguir (go) y armaron la
+> corrida en la cuenta GDSE…4MDC: parte sola el martes 10 a las 00:00 y dura 7 días. El chequeo
+> externo a ambos hosts todavía no está configurado.
+
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
