@@ -49,7 +49,7 @@ founders send this brief once they have checked them on that release.
    - `stellar tx sign drill.xdr --sign-with-key qwatt-third-restored --network testnet` prints one
      line, the signed envelope. Email that line back to both founders; it is public data.
    - `stellar keys rm qwatt-third-restored`.
-6. **Be reachable through Day 30 (Tue 17 Nov).** In week 3 the founders run one stand-in drill
+6. **Be reachable through Day 30 (Tue 17 Nov).** Before the run the founders run one stand-in drill
    (proposer + third) and will ask you to co-sign it. When they confirm by voice that the verifier
    service is stopped and a proposal is published, you run, on your own computer (Node.js 24 and a
    copy of the repository at the commit they name, `npm ci --prefix anchor`):

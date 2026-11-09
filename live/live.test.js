@@ -123,10 +123,10 @@ test('OD-9: the expected refusals are a pure function of seed, start and days: e
   eq(a.intervals, 2 * 288, 'it counts every interval of the run');
 });
 
-test('OD-9: the list committed for the live run is what the code gives for seed 20261103, Mon 9 Nov 03:00 UTC, 7 days (DV-11)', async () => {
+test('OD-9: the list committed for the live run is what the code gives for seed 20261103, Tue 10 Nov 03:00 UTC, 7 days (DV-12)', async () => {
   const { expectedRefusals, render, RUN } = require('./expected');
   eq(RUN.seed, 20261103, 'the seed of the run');
-  eq(RUN.start, '2026-11-09T03:00:00.000Z', 'its start');
+  eq(RUN.start, '2026-11-10T03:00:00.000Z', 'its start');
   eq(RUN.days, 7, 'its length');
   const fresh = render(await expectedRefusals({ seed: RUN.seed, startMs: Date.parse(RUN.start), days: RUN.days }));
   eq(fs.readFileSync(path.join(__dirname, 'expected-run.json'), 'utf8').replace(/\r\n/g, '\n'), fresh, 'live/expected-run.json');
@@ -352,10 +352,10 @@ test('the audit ties every published raw payload to a row of a published samples
 
 /* ───────────── week 3 (W3-4, DV-11): the run length, the seven counted days ───────────── */
 
-const RUN_START = '2026-11-09T03:00:00Z';   // Mon 9 Nov 03:00 UTC (freeze v3 V3-14, moved by DV-11)
-const COUNTED = { from: Date.parse('2026-11-09T03:00:00Z'), to: Date.parse('2026-11-16T03:00:00Z') };   // Mon 9 to Mon 16, 03:00 UTC
+const RUN_START = '2026-11-10T03:00:00Z';   // Tue 10 Nov 03:00 UTC (freeze v3 V3-14, moved by DV-11 and DV-12)
+const COUNTED = { from: Date.parse('2026-11-10T03:00:00Z'), to: Date.parse('2026-11-17T03:00:00Z') };   // Tue 10 to Tue 17, 03:00 UTC
 
-test('W3-4: a 7-day run from Mon 9 Nov 03:00 UTC ends Mon 16 Nov 03:00 UTC, when the counted window closes; its faults fall on Tue 10 - Sun 15; faults.json calls it the seven-day live run, naming no city', async () => {
+test('W3-4: a 7-day run from Tue 10 Nov 03:00 UTC ends Tue 17 Nov 03:00 UTC, when the counted window closes; its faults fall on Wed 11 - Mon 16; faults.json calls it the seven-day live run, naming no city', async () => {
   const s = Date.parse(RUN_START);
   /* the schedule does not move with the extra day: day offsets 1-6 from the start day, the same eight windows as a 7-day run */
   eq(JSON.stringify(S.buildSchedule(s, 8)), JSON.stringify(S.buildSchedule(s, 7)), 'the 8-day schedule is the 7-day one');
@@ -363,12 +363,12 @@ test('W3-4: a 7-day run from Mon 9 Nov 03:00 UTC ends Mon 16 Nov 03:00 UTC, when
   await runLive({ feedDir: dir, days: 7, startMs: s, seed: 20261103, speed: 'realtime', log: quiet, stopAtMs: s, signers: SIGNERS, codeCommit: 'f'.repeat(40) });
   const def = readDef(dir);
   eq(def.days, 7, 'days');
-  eq(def.run_start, '2026-11-09T03:00:00.000Z', 'run_start');
-  eq(def.run_end, '2026-11-16T03:00:00.000Z', 'run_end: the counted window closes then');
+  eq(def.run_start, '2026-11-10T03:00:00.000Z', 'run_start');
+  eq(def.run_end, '2026-11-17T03:00:00.000Z', 'run_end: the counted window closes then');
   eq(def.faults.length, 8, 'all eight injections');
   for (const f of def.faults) {
     assert(Date.parse(f.start) >= COUNTED.from && Date.parse(f.end) <= COUNTED.to, `${f.id} inside the counted window: ${f.start}`);
-    assert(f.start.slice(0, 10) >= '2026-11-10' && f.end.slice(0, 10) <= '2026-11-15', `${f.id} on Tue 10 - Sun 15: ${f.start} → ${f.end}`);
+    assert(f.start.slice(0, 10) >= '2026-11-11' && f.end.slice(0, 10) <= '2026-11-16', `${f.id} on Wed 11 - Mon 16: ${f.start} → ${f.end}`);
   }
   assert(/seven-day live run/.test(def.description) && !/soak/.test(def.description), `the description reads as the seven-day live run, with no soak: ${def.description}`);
   assert(!/\b8-day\b|eight-day/i.test(def.description), `never an "8-day live run": ${def.description}`);

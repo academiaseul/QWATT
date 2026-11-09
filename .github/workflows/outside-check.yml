@@ -7,7 +7,7 @@ name: outside-check
 # Actions → Variables): QWATT_ANCHOR_ACCOUNT, QWATT_FEED_URL, QWATT_VERIFIER_LOG_URL. The alert webhook is
 # a secret: QWATT_ALERT_WEBHOOK. Without QWATT_ANCHOR_ACCOUNT the job says so and passes. A problem fails
 # the run, so GitHub also notifies the repository's owner. GitHub pauses scheduled workflows after 60 days
-# without repository activity; the run (7-15 Nov) is well inside that.
+# without repository activity; the run (10-17 Nov) is well inside that.
 
 on:
   schedule:

@@ -45,7 +45,7 @@ step by step: `docs/RUNBOOK.md`, one-time setup, step 7.
 
 | # | What | Who | How |
 |---|---|---|---|
-| 5 | Third signer is reachable through Day 30, signs the **backup drill** once (a throwaway testnet transaction, V3-8c) and, in week 3, the stand-in drill (V3-13) | Third signer | Routine anchoring never needs them; they are the recovery key. The drill proves that their paper backup restores the key they sent. |
+| 5 | Third signer is reachable through Day 30, signs the **backup drill** once (a throwaway testnet transaction, V3-8c) and, before the run (Mon 9 Nov, Day 22), the stand-in drill (V3-13) | Third signer | Routine anchoring never needs them; they are the recovery key. The drill proves that their paper backup restores the key they sent. |
 | 6 | **Fund the anchoring account with QWATT**: one payment of 1 QWATT from the treasury `GCLS6…OKW` to the new anchoring account, after it adds a QWATT trustline | Jay (treasury key holder) | Each batch pays 0.0000001 QWATT back to the treasury, so 1 QWATT covers 10 million batches. `node anchor/setup-account.js build` and `submit` set up the account from the three public keys (`docs/RUNBOOK.md`, setup step 4); `node anchor/setup-account.js fund-xdr --account G…` prints the **unsigned** funding transaction, and Jay checks, signs and submits it with stellar-cli on his own computer: `node anchor/setup-account.js fund-submit funding.xdr --account G… --sign-with-key qwatt-treasury --evidence evidence/account/G…`, which refuses any envelope that is not exactly that payment before stellar-cli signs (decision D-1). The tool never sees the treasury secret. Rehearsed end to end: `evidence/asset-rehearsal/`. |
 | 7b | **One deploy key per repository** | each host's operator; Jay adds it | Each host generates its own deploy key (ed25519) and sends only the `.pub`; Jay adds it with write access to that one repository. The private key file never leaves its host. Then the smoke test and `node ops/evidence-audit.js` on a fresh clone. |
 
@@ -62,14 +62,14 @@ step by step: `docs/RUNBOOK.md`, one-time setup, step 7.
 
 | # | What | Who |
 |---|---|---|
-| 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run; someone who will act on it within hours, Days 20–30 | Founders |
-| 11 | **Go / no-go for the live run.** The first 2-of-3 anchor on the rehearsal account is planned for Sat 7 Nov (tests A–D, V3-4, DV-11); the run uses its own account, with the same three public keys (OD-5). Decide by **Sat 7 Nov (Day 20)**, before the services are armed. | Founders |
+| 10 | **Alert recipient**: an email address that gets "no anchor for 2 hours" alerts during the live run; someone who will act on it within hours, Days 22–30 | Founders |
+| 11 | **Go / no-go for the live run.** The first 2-of-3 anchor on the rehearsal account landed on Sat 7 Nov (test C, DV-11); tests A–D run together on Mon 9 Nov (V3-4, DV-12); the run uses its own account, with the same three public keys (OD-5). Decide by **Mon 9 Nov (Day 22)**, before the services are armed. | Founders |
 
-## Days 22–28 (Mon 9 Nov – Mon 16 Nov 00:00) — the seven-day live run
+## Days 23–29 (Tue 10 Nov – Tue 17 Nov 00:00) — the seven-day live run
 
-The live run starts on **Mon 9 Nov (Day 22)** with no soak day (DV-11). The counted seven-day window
-runs from **Mon 9 Nov 00:00 America/Santiago (03:00 UTC)** to **Mon 16 Nov 00:00 America/Santiago
-(03:00 UTC)**, that is Days 22–28.
+The live run starts on **Tue 10 Nov (Day 23)**, the latest start that fits, with no soak day (DV-11,
+DV-12). The counted seven-day window runs from **Tue 10 Nov 00:00 America/Santiago (03:00 UTC)** to
+**Tue 17 Nov 00:00 America/Santiago (03:00 UTC)**, that is Days 23–29.
 
 | # | What | Who |
 |---|---|---|
