@@ -274,9 +274,13 @@ test('evidence() reads same-origin evidence only', async () => {
 
 test('ready(): anchor.account null stays null; a valid G… is taken; a failed read keeps null and the built-in label', async () => {
   const S = JSON.parse(fs.readFileSync(path.join(ROOT, 'assets', 'status.json'), 'utf8'));
-  let L = load(stub([['/assets/status.json', S]]));
+  const S0 = JSON.parse(JSON.stringify(S)); S0.anchor.account = null;
+  let L = load(stub([['/assets/status.json', S0]]));
   await L.ready();
-  eq(L.CONFIG.ANCHOR_ACCOUNT, null, 'null while week 2 has not created the account');
+  eq(L.CONFIG.ANCHOR_ACCOUNT, null, 'null while no account is named');
+  L = load(stub([['/assets/status.json', S]]));
+  await L.ready();
+  eq(L.CONFIG.ANCHOR_ACCOUNT, S.anchor.account, 'the committed status.json names the run account, and it is taken');
   eq(L.CONFIG.SIM_LABEL, S.labels.sim, 'simulated-input label from status.json');
   const G = encodeG(Array.from({ length: 32 }, (_, i) => (i * 37 + 11) & 255));
   const S2 = JSON.parse(JSON.stringify(S)); S2.anchor.account = G;

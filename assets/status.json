@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated": "2026-11-06",
+  "updated": "2026-11-10",
   "sprint": {
     "name": "Instawards Chile",
     "day1": "2026-10-19",
@@ -13,7 +13,7 @@
     "sim": { "es": "Entrada simulada · assurance A0 · Stellar testnet", "en": "Simulated input · assurance A0 · Stellar testnet" }
   },
   "anchor": {
-    "account": null,
+    "account": "GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC",
     "target": { "low": 2, "med": 2, "high": 3, "signers": 3, "signer_weight": 1, "master_weight": 0 }
   },
   "feeds": [
@@ -23,9 +23,9 @@
     { "id": "muestra", "base": "/evidence/feeds/muestra/", "label": "prototipo", "prior": false,
       "title": { "es": "Feed de muestra", "en": "Sample feed" },
       "note": { "es": "Un día simulado en el formato actual, con intervalos rechazados y sus motivos. No está anclado: no enviamos transacciones.", "en": "A simulated day in the current format, with refused intervals and their reasons. Not anchored: we send no transactions." } },
-    { "id": "corrida", "base": null, "label": "planificado", "prior": false,
+    { "id": "corrida", "base": "https://raw.githubusercontent.com/academiaseul/qwatt-evidence/main/run/", "label": "testnet", "prior": false,
       "title": { "es": "Feed público de la corrida", "en": "Public run feed" },
-      "note": { "es": "Los lotes de la cuenta definitiva, en el repositorio público de evidencia qwatt-evidence, que ya existe. En preparación: el primer lote se publicará cuando exista la cuenta.", "en": "The real account's batches, in the public evidence repository qwatt-evidence, which now exists. In preparation: the first batch will be published once the account exists." } }
+      "note": { "es": "Los lotes de la corrida de siete días (10 al 17 de noviembre de 2026), anclados en Stellar testnet en la cuenta de la corrida, publicados en el repositorio público qwatt-evidence. Entrada simulada · assurance A0 · Stellar testnet.", "en": "The batches of the seven-day run (10 to 17 November 2026), anchored on Stellar testnet on the run account and published in the public repository qwatt-evidence. Simulated input · assurance A0 · Stellar testnet." } }
   ],
   "tests": {
     "worked_example": {
