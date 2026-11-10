@@ -39,7 +39,7 @@
         es: 'La red dice que no · pruebas A–D', en: 'The network says no · tests A–D' },
       { id: 'proof', href: '/proof.html', file: 'proof.html', status: 'testnet', parts: ['testnet'], dot: 'testnet', es: 'Explorador de anclajes', en: 'Anchor explorer' },
       { id: 'respaldo', href: '/respaldo.html', file: 'respaldo.html', status: 'mixto', parts: ['testnet', 'prototipo', 'planificado'], dot: 'testnet', es: 'Cuentas públicas y evidencia', en: 'Public accounts and evidence' },
-      /* V3-9.3: a real link. Dot "planificado" until status.json names the public run feed and the real account. */
+      /* V3-9.3: a real link. Dot "testnet" now that status.json names the public run feed and the real account. */
       { id: 'reconcile', href: '/reconcile.html', file: 'reconcile.html', status: 'testnet', parts: ['testnet'], dot: 'testnet',
         es: 'Conciliación', en: 'Reconciliation' }] },
     { group: { es: 'Stellar testnet en vivo', en: 'Live on Stellar testnet' }, items: [
