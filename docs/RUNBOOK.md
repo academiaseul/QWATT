@@ -372,7 +372,7 @@ once, by hand, must end green and print the observations. While the run is live 
 `qwatt-evidence` or `qwatt-verifier-log` for 30 minutes: each host's dead man's switch; for the proposer
 host, 75 minutes from the start, since nothing can be pushed before the first batch closes),
 `VERIFIER_SILENT` and `SOURCE_DOWN`. Before the start it alerts on `VERIFIER_SILENT` and `SOURCE_DOWN`
-only. Set the variables once `<run>/faults.json` is public: without that file the check reports a problem. A problem also fails the workflow run, so GitHub e-mails the
+only. Set the variables together, once `<run>/faults.json` is public: without that file the check reports a problem, and so it does for an account Horizon does not know or for an account set without both URLs. A problem also fails the workflow run, so GitHub e-mails the
 repository's owner. Both alerting paths count an alert as sent only when the webhook answers HTTP
 2xx; anything else is sent again on the next run or tick.
 

@@ -80,6 +80,28 @@ test('DV-11: observeOutside() reads run_start from the served faults.json, and a
   assert(missing.errors.some((e) => /^faults\.json/.test(e)), `a wrong feed address is reported: ${missing.errors.join('; ')}`);
 });
 
+test('a configured account Horizon does not know is a problem, not an account with no anchors yet', async () => {
+  const O = require('./outside-check');
+  const os = require('os');
+  const { serveDir } = require('../anchor/static-server');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-outside-'));
+  const srv = await serveDir(dir);                                    // answers 404 for everything, as Horizon does for an unknown account
+  let obs;
+  try {
+    obs = await O.observeOutside({ account: 'GOUTSIDETEST', horizon: srv.url, feed: 'http://127.0.0.1:9/run', verifierLog: 'http://127.0.0.1:9/run' }, NOW);
+  } finally { await srv.close(); fs.rmSync(dir, { recursive: true, force: true }); }
+  assert(obs.errors.some((e) => /^Horizon/.test(e)), `a wrong account is reported: ${obs.errors.join('; ')}`);
+  assert(codes(O.decideOutside(obs, NOW)).includes('SOURCE_DOWN'), 'it alerts');
+});
+
+test('an account set without the feed or the verifier log is a problem: the check must not pass having looked at less than it was asked to', async () => {
+  const O = require('./outside-check');
+  const none = await O.observeOutside({ account: 'GOUTSIDETEST', horizon: 'http://127.0.0.1:9' }, NOW);
+  assert(none.errors.some((e) => /QWATT_FEED_URL/.test(e)), `no feed is reported: ${none.errors.join('; ')}`);
+  assert(none.errors.some((e) => /QWATT_VERIFIER_LOG_URL/.test(e)), `no verifier log is reported: ${none.errors.join('; ')}`);
+  assert(codes(O.decideOutside(none, NOW)).includes('SOURCE_DOWN'), 'it alerts');
+});
+
 test('DV-11: before the start a verifier that stopped alerts, so a PC that went off on Sunday is known before the run needs it; after the run it does not', () => {
   const O = require('./outside-check');
   const armed = { run_live: false, run_start: new Date((NOW + 6 * 3600) * 1000).toISOString(), verifier_last_tick: ago(16 * 60), evidence_pushed_at: ago(36 * 3600), log_pushed_at: ago(16 * 60), errors: [] };
