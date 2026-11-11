@@ -71,10 +71,10 @@ function compareExpected(def, bySlot, expected, problems) {
  * @returns {{limit_s:number, continuous:boolean, longest:{from:string,to:string,seconds:number}, seven_days:boolean}}
  */
 function continuityOf(gaps, runStart, coveredEnd) {
-  const breaks = gaps.filter((g) => !g.trailing && g.seconds > OD8_LIMIT_S);
+  const breaks = gaps.filter((g) => !g.trailing && g.seconds > OD8_LIMIT_S).sort((x, y) => Date.parse(x.from) - Date.parse(y.from));
   const stretches = [];
   let from = runStart;
-  for (const g of breaks) { stretches.push([from, Date.parse(g.from)]); from = Date.parse(g.to); }
+  for (const g of breaks) { stretches.push([from, Date.parse(g.from)]); from = Math.max(from, Date.parse(g.to)); }   // the write-up's outages may overlap
   stretches.push([from, coveredEnd]);
   const [a, b] = stretches.reduce((best, s) => (s[1] - s[0] > best[1] - best[0] ? s : best));
   const seconds = Math.max(0, (b - a) / 1000);
@@ -176,7 +176,8 @@ function auditLive(feedDir, { expected, now = Date.now() } = {}) {
     problems,
     run: { start: def.run_start, end: def.run_end, seed: def.seed },
     coverage: {
-      judged_slots: keys.length, expected_slots: expectedSlots, complete: over && !gaps.some((g) => g.trailing), gaps, duplicates, accepted: accepted.length, rejected: rejected.length,
+      judged_slots: keys.length, expected_slots: expectedSlots, over, complete: over && !gaps.some((g) => g.trailing), gaps, duplicates, accepted: accepted.length, rejected: rejected.length,
+      judged_until: iso(keys.length ? judgedUntil : runStart),
       continuity: continuityOf(gaps, runStart, keys.length ? judgedUntil : runStart),
     },
     faults,
