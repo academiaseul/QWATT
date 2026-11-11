@@ -185,8 +185,80 @@ test('the audit catches a fault that was not refused, a gap, and an altered samp
   const a = auditLive(dir);
   assert(!a.ok, 'must fail');
   assert(a.problems.some((p) => p.startsWith(f.id)), 'unrefused fault reported');
-  assert(a.problems.some((p) => /never judged/.test(p)), 'gap reported');
+  eq(a.coverage.gaps.length, 1, 'the gap is listed');
   assert(a.problems.some((p) => /does not hash/.test(p)), 'altered sample file reported');
+});
+
+/* what a proposer-host outage leaves in the feed: nothing judged in [from, to) */
+function dropSlots(dir, from, to) {
+  for (const n of ['accepted', 'rejected']) {
+    const f = path.join(dir, 'ledger', `${n}.jsonl`);
+    const kept = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).filter((l) => {
+      const t = Date.parse((JSON.parse(l).interval || JSON.parse(l)).ts_start);
+      return t < from || t >= to;
+    });
+    fs.writeFileSync(f, kept.map((l) => `${l}\n`).join(''));
+  }
+}
+
+test('F-05: a run that stopped before run_end fails once the run is over; while it is going it passes, until it has been silent for over 2 hours', async () => {
+  const H = 3600e3, dir = tmp();
+  await runLive({ feedDir: dir, days: 2, startMs: START, seed: 5, speed: 'fast', log: quiet, stopAtMs: START + 10 * H });
+  const over = auditLive(dir, { now: START + 49 * H });
+  assert(!over.ok && over.problems.some((p) => /stopped early/.test(p)), `stopped after 10 of 48 hours: ${over.problems.join('; ')}`);
+  eq(over.coverage.expected_slots, 2 * 288, 'every slot of a finished run is due');
+  eq(over.coverage.complete, false, 'and the run is not complete');
+  const going = auditLive(dir, { now: START + 10 * H + 600e3 });
+  assert(going.ok, `ten minutes after its last interval: ${going.problems.join('; ')}`);
+  eq(going.coverage.complete, false, 'a run still going is not complete');
+  const silent = auditLive(dir, { now: START + 13 * H });
+  assert(!silent.ok && silent.problems.some((p) => /nothing judged since/.test(p)), `three silent hours: ${silent.problems.join('; ')}`);
+});
+
+test('F-06, OD-8: a gap of at most 2 hours keeps the run continuous and is listed; a longer one fails; the limit is for each outage, not their sum', async () => {
+  const H = 3600e3, src = tmp();
+  await runLive({ feedDir: src, days: 2, startMs: START, seed: 5, speed: 'fast', log: quiet });
+  const audit = (...holes) => {
+    const d = tmp();
+    fs.cpSync(src, d, { recursive: true });
+    for (const [a, b] of holes) dropSlots(d, START + a * H, START + b * H);
+    return auditLive(d, { now: START + 49 * H });
+  };
+  const whole = audit();
+  assert(whole.ok, whole.problems.join('; '));
+  eq(whole.coverage.complete, true, 'every slot judged');
+  const one = audit([6, 7]);
+  assert(one.ok, `a 1-hour gap: ${one.problems.join('; ')}`);
+  eq(one.coverage.gaps.length, 1, 'and it is listed');
+  eq(one.coverage.gaps[0].intervals, 12, 'twelve intervals');
+  eq(one.coverage.gaps[0].seconds, 3600, 'one hour');
+  eq(one.coverage.complete, true, 'a run with an allowed gap reached its end');
+  eq(one.coverage.continuity.continuous, true, 'continuous');
+  const limit = audit([6, 8]);
+  assert(limit.ok, `exactly 2 hours: ${limit.problems.join('; ')}`);
+  const more = audit([6, 8 + 1 / 12]);
+  assert(!more.ok && more.problems.some((p) => /2-hour limit/.test(p)), `2 hours 5 minutes: ${more.problems.join('; ')}`);
+  eq(more.coverage.continuity.continuous, false, 'broken');
+  eq(more.coverage.continuity.longest.from, new Date(START + (8 + 1 / 12) * H).toISOString(), 'the longest stretch starts after the gap');
+  eq(more.coverage.continuity.longest.to, new Date(START + 48 * H).toISOString(), 'and runs to the end');
+  const each = audit([6, 7.5], [20, 21.5]);
+  assert(each.ok, `two gaps of 90 minutes, 3 hours in all: ${each.problems.join('; ')}`);
+  const tail = audit([47.5, 48]);
+  assert(!tail.ok && tail.problems.some((p) => /stopped early/.test(p)), `no comeback from the last gap: ${tail.problems.join('; ')}`);
+  eq(tail.coverage.gaps[0].trailing, true, 'a gap that runs to run_end is marked');
+  eq(tail.coverage.continuity.longest.to, new Date(START + 47.5 * H).toISOString(), 'the stretch ends at the last judged interval');
+});
+
+test('OD-8: seven days are met only by a stretch of seven days; a gap within the limit does not shorten it, a longer one splits it', () => {
+  const { continuityOf } = require('./audit');
+  const H = 3600e3, end = START + 7 * 24 * H;
+  const gap = (a, b, extra) => ({ from: new Date(START + a * H).toISOString(), to: new Date(START + b * H).toISOString(), seconds: (b - a) * 3600, ...extra });
+  eq(continuityOf([], START, end).seven_days, true, 'no gap');
+  eq(continuityOf([gap(50, 51)], START, end).seven_days, true, 'one hour out');
+  const split = continuityOf([gap(50, 53)], START, end);
+  eq(split.seven_days, false, 'three hours out');
+  eq(split.longest.seconds, (7 * 24 - 53) * 3600, 'the longer side is what is left after the gap');
+  eq(continuityOf([gap(167, 168, { trailing: true })], START, end - H).seven_days, false, 'stopped an hour early');
 });
 
 /* ───────────── week 2 (V3-9): the fixed label, who signs, and the code the run was started from ───────────── */

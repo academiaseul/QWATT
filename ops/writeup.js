@@ -4,7 +4,11 @@
  * ---------------------------------------------------------------------------
  *   node ops/writeup.js --feed <feed URL> --account G… [--feed-dir <local copy>] \
  *        [--proposer G… --verifier G… --third G…] \
- *        [--tests evidence/rehearsal/<file>.json] [--title "…"] [--out WRITEUP.md]
+ *        [--tests evidence/rehearsal/<file>.json] [--outages evidence/outages.json] [--title "…"] [--out WRITEUP.md]
+ *
+ * --outages: the operators' notes, a JSON array of { from, to, cause, kind? } with ISO times. Nothing
+ * public records why an outage happened, so OD-8's causes come from here, and so does any outage neither
+ * the feed nor the chain shows. The times of the others are still generated.
  *
  * SOW D4: "Public write-up linking every transaction." Every number and every
  * hash below the narrative is generated here — from Horizon and the published
@@ -27,6 +31,10 @@ const EXPLORER = 'https://stellar.expert/explorer/testnet';
 const txl = (h) => `[\`${h.slice(0, 10)}…${h.slice(-6)}\`](${EXPLORER}/tx/${h})`;
 const kwh = (mwh) => (mwh / 1e6).toLocaleString('en-US', { maximumFractionDigits: 3 });
 const wh = (mwh) => (mwh / 1000).toLocaleString('en-US', { minimumFractionDigits: 3, maximumFractionDigits: 3 });
+const when = (t) => t.slice(0, 16).replace('T', ' ');
+const span = (s) => { const m = Math.round(s / 60); return `${Math.floor(m / 60)} h ${m % 60} min`; };
+/* the watchdog's VERIFIER_SILENT limit: a batch later than this waited for something */
+const LATE_ANCHOR_S = 15 * 60;
 
 function testsSection(file) {
   if (!file || !fs.existsSync(file)) return '_Tests A–D: evidence file not supplied (run `node anchor/tests-abcd.js` on the real account and pass `--tests`)._\n';
@@ -59,10 +67,8 @@ function testsSection(file) {
   ].join('\n');
 }
 
-function auditSection(feedDir) {
-  if (!feedDir) return '_Fault audit: pass `--feed-dir` (a local copy of the feed) to include it._\n';
-  const { auditLive } = require('../live/audit');
-  const a = auditLive(feedDir);
+function auditSection(a) {
+  if (!a) return '_Fault audit: pass `--feed-dir` (a local copy of the feed) to include it._\n';
   return [
     `Coverage: **${a.coverage.judged_slots} of ${a.coverage.expected_slots}** five-minute intervals judged · ${a.coverage.gaps.length} gap(s) · ${a.coverage.duplicates.length} duplicate(s). Audit verdict: **${a.ok ? 'OK' : 'FAILED'}**.`,
     '',
@@ -70,6 +76,76 @@ function auditSection(feedDir) {
     '|---|---|---|---|---|',
     ...a.faults.map((f) => `| ${f.id} | ${f.start.slice(0, 16).replace('T', ' ')} → ${f.end.slice(11, 16)} | \`${f.expect.join('` or `')}\` | ${f.refused}/${f.intervals} | ${f.status} |`),
     ...(a.problems.length ? ['', ...a.problems.map((p) => `- ✗ ${p}`)] : []),
+    '',
+  ].join('\n');
+}
+
+/**
+ * OD-8, the anchoring outages the chain shows: consecutive batches anchored over LATE_ANCHOR_S after they
+ * closed are one outage, from the first one closing to the anchor that cleared the backlog.
+ * @param {object[]} rows      anchored rows of the reconciliation, in order
+ * @param {object} batches     the feed's batches, by id
+ */
+function anchoringOutages(rows, batches) {
+  const out = [];
+  let cur = null;
+  for (const r of rows) {
+    const closed = Date.parse(batches[r.batch_id].ts_end), anchored = Date.parse(r.anchor.created_at);
+    if ((anchored - closed) / 1000 <= LATE_ANCHOR_S) { cur = null; continue; }
+    if (!cur) { cur = { from: closed, to: anchored, batches: 0 }; out.push(cur); }
+    cur.to = anchored;
+    cur.batches++;
+  }
+  return out.map((o) => ({ from: new Date(o.from).toISOString(), to: new Date(o.to).toISOString(), seconds: (o.to - o.from) / 1000, batches: o.batches }));
+}
+
+/** The operators' notes (--outages), checked: a note with a bad time would silently match nothing. */
+function readOutageNotes(file) {
+  const notes = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (!Array.isArray(notes)) throw new Error(`${file}: expected a JSON array of { from, to, cause, kind? }`);
+  notes.forEach((n, i) => {
+    if (!(Date.parse(n.from) < Date.parse(n.to)) || !n.cause) throw new Error(`${file}, entry ${i + 1}: needs from, to (ISO times, from before to) and cause`);
+  });
+  return notes;
+}
+
+/**
+ * OD-8: every outage, of any length, with its times and cause; the limit applies to each, not to their sum.
+ * @param {object} audit       live/audit.js auditLive()
+ * @param {object[]} anchoring anchoringOutages()
+ * @param {object[]} notes     readOutageNotes()
+ */
+function outagesSection(audit, anchoring, notes) {
+  const { continuityOf } = require('../live/audit');
+  const c = audit.coverage;
+  const overlaps = (a, b) => Date.parse(a.from) < Date.parse(b.to) && Date.parse(a.to) > Date.parse(b.from);
+  const found = [
+    ...c.gaps.map((g) => ({ ...g, kind: g.trailing ? 'proposer host: the run did not come back' : 'proposer host: nothing judged' })),
+    ...anchoring.map((o) => ({ ...o, kind: `anchoring: ${o.batches} batch(es) waited` })),
+  ];
+  const rows = [
+    ...found.map((o) => ({ ...o, cause: notes.filter((n) => overlaps(n, o)).map((n) => n.cause).join('; ') || null })),
+    ...notes.filter((n) => !found.some((o) => overlaps(n, o))).map((n) => ({ ...n, kind: n.kind || 'from the operators\' notes', seconds: (Date.parse(n.to) - Date.parse(n.from)) / 1000 })),
+  ].sort((a, b) => Date.parse(a.from) - Date.parse(b.from));
+  const cont = continuityOf(rows, Date.parse(audit.run.start), Date.parse(c.judged_until));
+  const effect = (r) => (r.trailing ? 'ends the run early' : r.seconds > cont.limit_s ? 'breaks the run: over 2 hours' : 'within the 2-hour limit');
+  const cell = (t) => String(t).replace(/\s+/g, ' ').replace(/\|/g, '\\|');
+  const unnamed = rows.filter((r) => !r.cause).length;
+  const { from, to, seconds } = cont.longest;
+  const verdict = !c.over ? '_The run is still going: this list is as of generation time._'
+    : c.complete && cont.seven_days ? `**Seven consecutive days: met.** ${rows.length ? 'Every outage is within the 2-hour limit.' : 'No outage.'}`
+      : `**Seven consecutive days: not met.** Longest continuous stretch: ${when(from)} → ${when(to)} UTC, ${span(seconds)}.`;
+  return [
+    `Every outage, of any length, with its times and cause. Gaps come from the audit above, anchoring outages from the chain (a batch anchored more than ${LATE_ANCHOR_S / 60} minutes after it closed), and causes, with anything neither shows, from the operators' notes. The 2-hour limit applies to each outage, not to their sum.`,
+    '',
+    verdict,
+    ...(rows.length ? [
+      '',
+      '| From (UTC) | To (UTC) | Length | Kind | Cause | Effect |',
+      '|---|---|---:|---|---|---|',
+      ...rows.map((r) => `| ${when(r.from)} | ${when(r.to)} | ${span(r.seconds)} | ${cell(r.kind)} | ${r.cause ? cell(r.cause) : '**not recorded**'} | ${effect(r)} |`),
+    ] : []),
+    ...(unnamed ? ['', `**${unnamed} outage(s) have no cause recorded.** OD-8 requires one: add it to the notes passed with \`--outages\`.`] : []),
     '',
   ].join('\n');
 }
@@ -118,6 +194,7 @@ async function build(o) {
   const now = new Date().toISOString();
   const recLink = `${o.reconcileBase}?feed=${encodeURIComponent(o.feed)}&account=${o.account}`;
   const anchoredRows = rep.rows.filter((r) => r.anchor);
+  const audit = o.feedDir ? require('../live/audit').auditLive(o.feedDir) : null;
   const readAt = feed.commit ? `\`${PIN.describe(o.feed, feed.commit, o.feedOptions)}\` (commit \`${feed.commit}\`)` : `\`${feed.base}\` (not a repository, so not pinned to a commit)`;
 
   /* who signed each anchor, from its signatures checked against the signer keys (V3-9) */
@@ -158,7 +235,10 @@ async function build(o) {
     testsSection(o.tests),
     '## Fault injections during the live run',
     '',
-    auditSection(o.feedDir),
+    auditSection(audit),
+    '## Outages (OD-8)',
+    '',
+    audit ? outagesSection(audit, anchoringOutages(anchoredRows, feed.batches), o.outages || []) : '_Outages: pass `--feed-dir` (a local copy of the feed) to include them._\n',
     '## Every anchoring transaction',
     '',
     `Each row: the batch, the hash recomputed from the published file (equal to the value the transaction carries in \`qwatt.anchor.sha256\`), and the transaction that anchored it. Energy: _${R.INPUT_LABEL}_.`,
@@ -190,10 +270,11 @@ async function cli() {
     horizon: opt('--horizon', 'https://horizon-testnet.stellar.org'),
     feedDir: opt('--feed-dir') ? path.resolve(opt('--feed-dir')) : null,
     tests: opt('--tests') ? path.resolve(opt('--tests')) : null,
+    outages: opt('--outages') ? readOutageNotes(path.resolve(opt('--outages'))) : [],
     title: opt('--title', 'QWATT — seven-day live run on Stellar Testnet'),
     reconcileBase: opt('--reconcile-page', 'https://qwatt.org/reconcile.html'),
   };
-  if (!o.feed || !o.account) { console.error('usage: node ops/writeup.js --feed <URL> --account G… [--proposer G… --verifier G… --third G…] [--feed-dir dir] [--tests file] [--out WRITEUP.md]'); process.exit(2); }
+  if (!o.feed || !o.account) { console.error('usage: node ops/writeup.js --feed <URL> --account G… [--proposer G… --verifier G… --third G…] [--feed-dir dir] [--tests file] [--outages file] [--out WRITEUP.md]'); process.exit(2); }
   /* who is who: from the run's faults.json, or given here for a feed that does not declare it (all three or none) */
   const given = R.ROLE_NAMES.filter((r) => opt('--' + r));
   if (given.length && given.length !== 3) { console.error('pass --proposer, --verifier and --third together (public keys)'); process.exit(2); }
@@ -206,4 +287,4 @@ async function cli() {
 
 if (require.main === module) cli().catch((e) => { console.error('writeup failed:', e.message); process.exitCode = 1; });
 
-module.exports = { build, accountSection };
+module.exports = { build, accountSection, anchoringOutages, outagesSection, readOutageNotes };

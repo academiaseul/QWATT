@@ -303,6 +303,103 @@ test('V3-9.3: with no signer roles (a faults.json that declares none, none given
   } finally { await w.close(); }
 });
 
+/* ───────────── OD-8: every outage is listed, with its times and its cause ───────────── */
+
+const HOUR = 3600e3, RUN_START = Date.parse('2026-11-03T03:00:00Z');
+const at = (h) => new Date(RUN_START + h * HOUR).toISOString();
+
+/** A finished two-day run, with nothing judged in each [from, to) hour window. */
+async function feedWithHoles(...holes) {
+  const { runLive } = require('../live/run');
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-writeup-od8-'));
+  await runLive({ feedDir: dir, days: 2, startMs: RUN_START, seed: 5, speed: 'fast', log: () => {} });
+  for (const n of ['accepted', 'rejected']) {
+    const f = path.join(dir, 'ledger', `${n}.jsonl`);
+    const kept = fs.readFileSync(f, 'utf8').split('\n').filter(Boolean).filter((l) => {
+      const t = Date.parse((JSON.parse(l).interval || JSON.parse(l)).ts_start);
+      return !holes.some(([a, b]) => t >= RUN_START + a * HOUR && t < RUN_START + b * HOUR);
+    });
+    fs.writeFileSync(f, kept.map((l) => `${l}\n`).join(''));
+  }
+  return dir;
+}
+const section = (md) => md.slice(md.indexOf('## Outages (OD-8)'), md.indexOf('## Every anchoring transaction'));
+
+test('OD-8: a gap in the feed is listed with its times and kind; with no cause recorded the write-up says so', async () => {
+  stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  const dir = await feedWithHoles([6, 7]);
+  const s = section((await build(opts({ feedDir: dir }))).markdown);
+  assert(s.includes('2026-11-03 09:00'), `the start of the gap: ${s}`);
+  assert(s.includes('2026-11-03 10:00'), 'its end');
+  assert(s.includes('1 h 0 min'), 'its length');
+  assert(s.includes('proposer host'), 'its kind');
+  assert(/not recorded/.test(s), 'no cause is said plainly');
+  assert(/1 outage\(s\) .*no cause/.test(s), 'and counted');
+});
+
+test('OD-8: a cause comes from the operators\' notes; a note that matches nothing found still gets its own row', async () => {
+  stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  const dir = await feedWithHoles([6, 7]);
+  const notes = [
+    { from: at(6.1), to: at(6.9), cause: 'host | rebooted by the provider' },
+    { from: at(20), to: at(20.2), kind: 'verifier', cause: 'restarted by hand; no batch waited' },
+  ];
+  const s = section((await build(opts({ feedDir: dir, outages: notes }))).markdown);
+  assert(s.includes('host \\| rebooted by the provider'), `the cause, safe inside a table: ${s}`);
+  assert(!/not recorded/.test(s), 'every outage has its cause');
+  assert(s.includes('restarted by hand; no batch waited') && s.includes('verifier'), 'the note with no match has its row');
+});
+
+test('OD-8: a gap over 2 hours says the seven days were not met, and gives the longest stretch', async () => {
+  stubFetch(accountResponse({ low: 2, med: 2, high: 3 }));
+  const s = section((await build(opts({ feedDir: await feedWithHoles([6, 9]) }))).markdown);
+  assert(s.includes('Seven consecutive days: not met'), `not met: ${s}`);
+  assert(s.includes('Longest continuous stretch') && s.includes('2026-11-03 12:00'), 'the stretch after the gap');
+  assert(/breaks the run/.test(s), 'the row says it broke the run');
+});
+
+test('OD-8: a notes file with a bad time or no cause is refused: such a note would silently match nothing', () => {
+  const { readOutageNotes } = require('./writeup');
+  const file = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'qwatt-writeup-notes-')), 'outages.json');
+  const write = (v) => { fs.writeFileSync(file, JSON.stringify(v)); return file; };
+  eq(readOutageNotes(write([{ from: at(1), to: at(2), cause: 'reboot' }])).length, 1, 'a good note');
+  const refused = (v) => { try { readOutageNotes(write(v)); return false; } catch (e) { return true; } };
+  assert(refused({ from: at(1) }), 'not an array');
+  assert(refused([{ from: 'yesterday', to: at(2), cause: 'x' }]), 'a bad time');
+  assert(refused([{ from: at(2), to: at(1), cause: 'x' }]), 'from after to');
+  assert(refused([{ from: at(1), to: at(2) }]), 'no cause');
+});
+
+test('OD-8: seven days with outages inside the limit are met; a run still going says so and claims neither', () => {
+  const { outagesSection } = require('./writeup');
+  const gap = { from: at(50), to: at(51), intervals: 12, seconds: 3600 };
+  const audit = (over) => ({ run: { start: at(0) }, coverage: { over, complete: over, judged_until: at(over ? 168 : 60), gaps: [gap] } });
+  const met = outagesSection(audit(true), [], [{ from: at(50), to: at(51), cause: 'reboot' }]);
+  assert(met.includes('Seven consecutive days: met'), met);
+  const going = outagesSection(audit(false), [], []);
+  assert(!/Seven consecutive days: (met|not met)/.test(going) && /still going/.test(going), going);
+});
+
+test('OD-8: anchoring outages come from the chain: consecutive late batches are one outage, from the first close to the last anchor; over 2 hours it breaks the run', () => {
+  const { anchoringOutages, outagesSection } = require('./writeup');
+  const row = (h, lateMin) => ({ batch_id: `b${h}`, anchor: { created_at: new Date(RUN_START + h * HOUR + lateMin * 60e3).toISOString() } });
+  const batches = {};
+  for (const h of [1, 2, 3, 4, 5, 6]) batches[`b${h}`] = { ts_end: at(h) };
+  const rows = [row(1, 2), row(2, 50), row(3, 20), row(4, 3), row(5, 16), row(6, 1)];
+  const out = anchoringOutages(rows, batches);
+  eq(out.length, 2, 'two outages');
+  eq(out[0].from, at(2), 'from the first late batch closing');
+  eq(out[0].to, new Date(RUN_START + 3 * HOUR + 20 * 60e3).toISOString(), 'to the anchor that cleared it');
+  eq(out[0].batches, 2, 'two batches waited');
+  eq(out[1].batches, 1, 'sixteen minutes late is listed');
+  const long = anchoringOutages([row(2, 121)], batches);
+  const audit = { run: { start: at(0) }, coverage: { over: true, complete: true, judged_until: at(168), gaps: [] } };
+  const s = outagesSection(audit, long, [{ from: at(2), to: at(4), cause: 'verifier host down' }]);
+  assert(s.includes('Seven consecutive days: not met'), s);
+  assert(s.includes('anchoring'), 'its kind');
+  assert(/breaks the run/.test(s), 'and the row says so');
+});
+
 (async () => {
   console.log('\nops write-up generator');
   for (const t of tests) {

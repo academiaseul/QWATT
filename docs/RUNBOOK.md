@@ -318,7 +318,7 @@ anchors"). Any other pair is BROKEN.
    batches waiting; the account panel is all ✓; "Signed by" reads proposer + verifier (a stand-in only
    during a verifier outage, noted for the write-up).
 2. `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json` on the proposer host:
-   coverage has no gaps, every fault that is due shows *refused as expected*, the `expected refusals:`
+   coverage has no gaps (a gap of at most 2 hours keeps the run continuous under OD-8: note its cause for the write-up; a longer one fails the audit), every fault that is due shows *refused as expected*, the `expected refusals:`
    line reports no difference from the list published before the run (OD-9), and the `raw:` line
    counts the raw payloads, each tied to a row of a published samples file (any that is not is listed
    as a problem). A refusal that differs from the list is a finding for the write-up, not something
@@ -507,6 +507,7 @@ The feed is off-chain and complete, so a reset loses no evidence.
 2. Leave proposer and verifier running until the reconciliation page says **RECONCILED**.
 3. Run the final audit: `node live/audit.js /var/lib/qwatt/feed --expected live/expected-run.json --json > evidence/live-audit.json`.
 4. Generate the write-up:
-   `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/account/<G_A>/abcd.json --out WRITEUP.md`.
+   `node ops/writeup.js --feed <QWATT_FEED_URL> --account G… --feed-dir /var/lib/qwatt/feed --tests evidence/account/<G_A>/abcd.json --outages evidence/outages.json --out WRITEUP.md`.
+   `evidence/outages.json` holds what was noted during the run: a JSON array of `{ "from", "to", "cause", "kind" }` with ISO times, `kind` optional. Gaps and late anchors are found by themselves; the notes give their causes, and add any outage neither the feed nor the chain shows. An outage with no note reads **not recorded**: OD-8 requires a cause for each, so fill them in and generate again.
 5. Stop the services. The two repositories and the chain remain as the public history. After the
    write-up is submitted, Jay may archive both repositories (Settings → Archive this repository).
