@@ -36,7 +36,7 @@
 <script defer src="/assets/qwatt-reconcile.js"></script>
 <script defer src="/assets/pages/reconcile.js"></script>
 </head>
-<body data-page="reconcile" data-status="mixto" data-parts="testnet planificado">
+<body data-page="reconcile" data-status="testnet" data-parts="testnet">
 <!-- q:header -->
 <a class="q-skip" href="#main"><span data-l="es">Saltar al contenido</span><span data-l="en">Skip to content</span></a>
 <header class="q-top">
@@ -63,7 +63,7 @@
     <p class="q-hero-note"><span data-l="es">Durante el sprint toda la entrada es simulada (nivel A0): esto prueba el software, los filtros y el anclaje, no que una instalación haya producido energía.</span><span data-l="en">During the sprint all input is simulated (level A0): this tests the software, the filters and the anchoring, not that an installation produced energy.</span></p>
     <p class="q-status" role="note">
       <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">lee en vivo de Stellar testnet la cuenta de anclaje, sus firmantes, sus umbrales y las firmas de cada anclaje</span><span data-l="en">reads live from Stellar testnet the anchoring account, its signers, its thresholds and every anchor's signatures</span></span></span>
-      <span class="q-part"><span class="q-chip" data-st="planificado"><span data-l="es">PLANIFICADO</span><span data-l="en">PLANNED</span></span><span><span data-l="es">el feed público de la corrida y la cuenta definitiva (semana 2): hasta entonces no hay datos de la corrida que conciliar</span><span data-l="en">the public run feed and the real account (week 2): until then there is no run data to reconcile</span></span></span>
+      <span class="q-part"><span class="q-chip" data-st="testnet"><span data-l="es">TESTNET</span><span data-l="en">TESTNET</span></span><span><span data-l="es">el feed público de la corrida de 7 días (10–17 nov) y su cuenta de anclaje, configurados en este sitio: la página los abre sola</span><span data-l="en">the public feed of the 7-day run (10–17 Nov) and its anchoring account, configured on this site: the page opens them by itself</span></span></span>
     </p>
   </div>
 </section>
@@ -74,7 +74,7 @@
     <p class="q-sub"><span data-l="es">Un feed de evidencia publicado y la cuenta que lo ancla. La página lee <code>?feed=</code> y <code>?account=</code> (y, si los das, <code>?proposer=</code>, <code>?verifier=</code> y <code>?third=</code>) desde su dirección, así un enlace lleva la comprobación exacta. Lo que escribes aquí (URLs y claves públicas) solo sirve para leer datos públicos desde tu navegador. Al conciliar, la página lo escribe en su dirección: queda en el historial de tu navegador y, como cualquier dirección, llega a qwatt.org cuando la página se carga o se recarga con ella, por ejemplo al abrir un enlace.</span><span data-l="en">A published evidence feed and the account that anchors it. The page reads <code>?feed=</code> and <code>?account=</code> (and, when given, <code>?proposer=</code>, <code>?verifier=</code> and <code>?third=</code>) from its address, so a link carries the exact check. What you type here (URLs and public keys) is only used to read public data from your browser. When you reconcile, the page writes it into its address: it stays in your browser history and, like any address, reaches qwatt.org when the page is loaded or reloaded with it, for example when a link is opened.</span></p>
     <p class="q-nojs"><span data-l="es">La conciliación corre en tu navegador y necesita JavaScript. Sin él, la misma comprobación está en tu terminal: más abajo, «Hazlo sin esta página».</span><span data-l="en">The reconciliation runs in your browser and needs JavaScript. Without it, the same check runs in your terminal: below, "Do it without this page".</span></p>
     <p class="q-runfeed" id="runFeed" role="status"></p>
-    <p class="q-note"><span data-l="es">Mientras no exista el feed de la corrida, en</span><span data-l="en">Until the run feed exists, in</span> <a class="q-link" href="/verificacion.html#derivar"><span data-l="es">Compruébalo tú</span><span data-l="en">Check it yourself</span></a> <span data-l="es">puedes volver a derivar, lote por lote, el ensayo del 8 oct y el feed de muestra.</span><span data-l="en">you can re-derive, batch by batch, the 8 Oct rehearsal and the sample feed.</span></p>
+    <p class="q-note"><span data-l="es">Además, en</span><span data-l="en">Also, in</span> <a class="q-link" href="/verificacion.html#derivar"><span data-l="es">Compruébalo tú</span><span data-l="en">Check it yourself</span></a> <span data-l="es">puedes volver a derivar, lote por lote, el ensayo del 8 oct y el feed de muestra.</span><span data-l="en">you can re-derive, batch by batch, the 8 Oct rehearsal and the sample feed.</span></p>
 
     <div class="q-rsrc" id="srcBox" role="group" aria-labelledby="hSrc">
       <p class="q-field q-f-feed"><label for="feedIn"><span data-l="es">URL del feed de evidencia</span><span data-l="en">Evidence feed URL</span></label><input id="feedIn" type="url" inputmode="url" placeholder="https://…" spellcheck="false" autocomplete="off"></p>
