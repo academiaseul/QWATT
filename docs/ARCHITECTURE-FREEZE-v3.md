@@ -725,5 +725,41 @@ What ran on Mon 9 Nov, what did not, and two findings from the first day of the 
 > vaciado del estado no borró nada); el verificador estuvo detenido el lunes 19:30–20:18, antes del
 > inicio, sin causa establecida; el chequeo externo quedó configurado el martes 10.
 
+### Wed 11 Nov 2026 (Day 24) · Jay Kim and Diego Ostertag
+
+**Correction to the Tue 10 note: the verifier stop of Mon 9 Nov had a known cause (status note, Wed 11 Nov 2026, Jay Kim and Diego Ostertag).**
+
+- **What the Tue 10 note says.** That the verifier "came back without anyone touching the host" and
+  that the cause was not established. Both statements are wrong.
+- **What happened.** The verifier host's system log shows `qwatt-verifier` and `qwatt-watch` stopped by
+  command at 19:30:04 America/Santiago (22:30:04 UTC) and started again by command at 20:18:16
+  (23:18:16 UTC), the `started_at` the Tue 10 note quotes:
+
+  ```
+  2026-11-09T19:30:04-03:00 systemd[1]: Stopped qwatt-verifier.service - QWATT independent verifier.
+  2026-11-09T19:30:04-03:00 systemd[1]: Stopped qwatt-watch.service - QWATT watchdog.
+  2026-11-09T20:18:16-03:00 systemd[1]: Started qwatt-verifier.service - QWATT independent verifier.
+  2026-11-09T20:18:16-03:00 systemd[1]: Started qwatt-watch.service - QWATT watchdog.
+  ```
+
+  The AI assistant that operates the verifier host for Jay Kim ran both commands, with Jay Kim's
+  approval. It took the armed verifier for the rehearsal's verifier and stopped it so that tests could
+  run on the rehearsal's next proposal, without first checking that `run/faults.json` was already
+  published. It found the armed run at 20:17 and started both services again with
+  `systemctl enable --now`. The watchdog raised `VERIFIER_SILENT` at 20:18:19 and cleared it at 20:23:23.
+- **Effect.** None on the run. The stop fell before the run's start (Tue 10 Nov 03:00 UTC), so no batch
+  waited on it, and it is not an outage under OD-8.
+- **Rule from now on.** Before stopping or starting any service on either host, check which run it
+  serves: whether `run/faults.json` is published, and which feed the verifier's `status.json` names.
+  While the run is live, no service is stopped at all (RUNBOOK).
+
+> **Resumen (miércoles 11 de noviembre de 2026, Jay Kim y Diego Ostertag).** Corrección a la nota del
+> martes 10: la detención del verificador del lunes 9 (19:30–20:18) sí tiene causa conocida. El
+> registro del sistema del host del verificador muestra que el verificador y el vigilante se
+> detuvieron por comando a las 19:30:04 y volvieron a partir por comando a las 20:18:16. Los comandos
+> los corrió el asistente de IA que opera ese host para Jay Kim, con su aprobación, creyendo que
+> seguía el ensayo. No afectó la corrida, que partió el martes 10 a las 00:00. Desde ahora, antes de
+> detener o arrancar un servicio, se revisa qué corrida atiende.
+
 Status notes agreed by Jay Kim and Diego Ostertag: Diego Ostertag approves the pull request that
 adds them and Jay Kim merges it; the merge date is the date of agreement.
