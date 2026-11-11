@@ -1042,6 +1042,25 @@ test('V3-11: verify-cli accepts a batch published as rejected on a refused batch
   eq([...V3].sort().join(','), 'r,x', 'V.leftOut: the refused batch and what is built on it, not a batch built elsewhere');
 });
 
+test('verify-cli says no for a folder that is not a published feed, and creates nothing there: freeze section 7 sends reviewers to this command', () => {
+  const { spawnSync } = require('child_process');
+  const cli = path.join(__dirname, 'verify-cli.js');
+  const run = (d) => spawnSync(process.execPath, [cli, d], { encoding: 'utf8' });
+  const root = tmpDir();
+  const typo = path.join(root, 'no-such-run');
+  const a = run(typo);
+  assert(a.status !== 0, `a missing folder exits non-zero, got ${a.status}: ${a.stdout}`);
+  assert(!/\bOK\b/.test(a.stdout), `a missing folder is never OK: ${a.stdout}`);
+  assert(!fs.existsSync(typo), 'a missing folder is not created');
+  const clone = path.join(root, 'clone');                            // a clone's root, not the run's folder inside it
+  fs.mkdirSync(clone);
+  const b = run(clone);
+  assert(b.status !== 0, `an empty folder exits non-zero, got ${b.status}: ${b.stdout}`);
+  eq(fs.readdirSync(clone).length, 0, 'nothing is created inside it');
+  const real = run(path.join(__dirname, '..', 'evidence', 'feeds', 'muestra'));
+  eq(real.status, 0, `a published feed still verifies: ${real.stdout}${real.stderr}`);
+});
+
 /* ───────────────────────────── runner ───────────────────────────── */
 
 if (process.argv.includes('--write')) {

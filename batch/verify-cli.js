@@ -18,7 +18,8 @@
  *
  * Exit 0: every batch published as "accepted" verifies, and every batch
  * published as "rejected" really fails and carries the previous total
- * forward unchanged (F6). Exit 1 otherwise.
+ * forward unchanged (F6). Exit 1 otherwise. Exit 2, creating nothing, when the folder is not a published
+ * feed (no ledger/batches.jsonl): a mistyped path, or a clone's root instead of the run's folder.
  * This is the offline core the Deliverable 3 verifier service wraps.
  */
 
@@ -111,6 +112,11 @@ if (require.main === module) {
   const dir = args.find((a, i) => !a.startsWith('--') && !VALUED.has(args[i - 1]));
   if (!dir) { console.error('usage: node batch/verify-cli.js <feed-dir> [--profile bench] [--verifier-log <clone of the run in qwatt-verifier-log, or its refusals.jsonl>] [--json]'); process.exit(2); }
   const fs = require('fs');
+  /* before new Feed(), which creates the folders: a path that holds no feed is never "OK" */
+  if (!fs.existsSync(path.join(path.resolve(dir), 'ledger', 'batches.jsonl'))) {
+    console.error(`no published feed at ${path.resolve(dir)}: no ledger/batches.jsonl there. Give the run's folder, for example qwatt-evidence/<run>`);
+    process.exit(2);
+  }
   const pi = args.indexOf('--profile'), di = args.indexOf('--dataset'), li = args.indexOf('--verifier-log');
   const profile = di >= 0 ? JSON.parse(fs.readFileSync(args[di + 1], 'utf8')).profile : (pi >= 0 ? args[pi + 1] : undefined);
   /* V3-11: the verifier log of the run says which batches a link may skip */
