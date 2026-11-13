@@ -173,11 +173,12 @@
     return chipHTML(chip(label));
   }
   function highlightCard(h, w) {
+    var day = S && S.updated && S.updated < w.to ? S.updated : w.to;   // never a date after the data was written
     var sc = chip(h.status, w.n);
     var live = h.live === 'week-tx'
       ? '<div class="q-live-slot" data-widget="week-tx" data-week="' + w.n + '" data-set="core" data-compact="1">' + FALLBACK + '</div>' : '';
     var src = h.status === 'done' || h.status === 'prior'
-      ? '<p class="q-src" data-src="dato">' + pair({ es: 'Dato del repositorio · ' + fmtDay(w.to, 'es'), en: 'Repository fact · ' + fmtDay(w.to, 'en') }) + '</p>' : '';
+      ? '<p class="q-src" data-src="dato">' + pair({ es: 'Dato del repositorio · ' + fmtDay(day, 'es'), en: 'Repository fact · ' + fmtDay(day, 'en') }) + '</p>' : '';
     return '<article class="q-card q-hl" id="hl-' + esc(h.id) + '">' +
       '<div class="q-head"><h3>' + pair(h.title) + '</h3><span class="q-chips">' + chipHTML(sc) + labelChip(h.label, sc) + '</span></div>' +
       '<p>' + pair(h.text) + '</p>' + live + src + evidenceList(h.evidence) + '</article>';
