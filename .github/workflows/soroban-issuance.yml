@@ -1,0 +1,92 @@
+name: soroban-issuance
+
+# qwatt-issuance prototype (Instaward #2 groundwork). Local only: no job here touches a
+# public network or holds a key. The contract and the BigInt model must agree byte for
+# byte on every conformance case and on 1,000 seeded random sequences.
+# The local-network spike runs in its own job against stellar/quickstart --local.
+
+on:
+  push:
+    paths: ['soroban/**', '.github/workflows/soroban-issuance.yml']
+  pull_request:
+    paths: ['soroban/**', '.github/workflows/soroban-issuance.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  STELLAR_CLI_VERSION: 28.1.0
+  STELLAR_CLI_SHA256: c1680deee94301d33ada7a17f98411e642a4248c727afbd2e43050d345746462
+
+jobs:
+  conformance:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soroban
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.1
+      - name: Rust toolchain and wasm32v1-none target
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32v1-none
+      - name: stellar-cli (pinned release, checksum verified)
+        run: |
+          f=stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSL -o "$RUNNER_TEMP/$f" "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/$f"
+          echo "${STELLAR_CLI_SHA256}  $RUNNER_TEMP/$f" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP" stellar
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            soroban/target
+          key: soroban-${{ hashFiles('soroban/Cargo.lock') }}
+      - name: All checks (build, interface, model, native + wasm conformance, random differential, properties, unit)
+        run: ./run-all.sh
+      - name: Transcripts
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: conformance-transcripts
+          path: soroban/target/conformance/
+
+  local-network:
+    needs: conformance
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: soroban
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24.14.1
+      - name: Rust toolchain and stellar-cli
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup target add wasm32v1-none
+          f=stellar-cli-${STELLAR_CLI_VERSION}-x86_64-unknown-linux-gnu.tar.gz
+          curl -fsSL -o "$RUNNER_TEMP/$f" "https://github.com/stellar/stellar-cli/releases/download/v${STELLAR_CLI_VERSION}/$f"
+          echo "${STELLAR_CLI_SHA256}  $RUNNER_TEMP/$f" | sha256sum -c -
+          tar -xzf "$RUNNER_TEMP/$f" -C "$RUNNER_TEMP" stellar
+          echo "$RUNNER_TEMP" >> "$GITHUB_PATH"
+      - name: Build
+        run: stellar contract build
+      - name: Local standalone network (stellar/quickstart --local)
+        run: scripts/local-network.sh
+      - name: Mechanics spike and refusals on the local network
+        run: |
+          cd scripts && npm ci --no-audit --no-fund
+          node local-spike.mjs --out "$RUNNER_TEMP/evidence"
+      - name: Evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: local-network-evidence
+          path: ${{ runner.temp }}/evidence/

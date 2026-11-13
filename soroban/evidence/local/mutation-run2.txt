@@ -1,0 +1,11 @@
+# after the O09/O10/R06 cases and the property bias were added (13 Nov 2026)
+overlap-allowed        cases=CAUGHT  props=CAUGHT  differential=CAUGHT
+replay-allowed         cases=CAUGHT  props=missed  differential=CAUGHT
+no-burn                cases=CAUGHT  props=missed  differential=CAUGHT
+round-up               cases=CAUGHT  props=CAUGHT  differential=CAUGHT
+one-key-relay          cases=CAUGHT  props=CAUGHT  differential=CAUGHT
+no-dup-check           cases=CAUGHT  props=missed  differential=CAUGHT
+no-contamination       cases=CAUGHT  props=missed  differential=CAUGHT
+frozen-ignored-retire  cases=CAUGHT  props=missed  differential=CAUGHT
+no-pause-on-retire     cases=CAUGHT  props=missed  differential=CAUGHT
+over-retire            cases=CAUGHT  props=CAUGHT  differential=CAUGHT

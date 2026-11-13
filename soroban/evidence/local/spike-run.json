@@ -1,0 +1,499 @@
+{
+  "generated_at": "2026-11-13T19:47:37.624Z",
+  "network": {
+    "rpc": "http://localhost:8000/rpc",
+    "passphrase": "Standalone Network ; February 2017",
+    "protocol": 30,
+    "kind": "local standalone (stellar/quickstart --local)"
+  },
+  "wasm": {
+    "bytes": 14155,
+    "sha256": "94ab691868115134544eaa127f4dad09d523cd01cc5cccf5a55532768603d618"
+  },
+  "contract": "CD2T3OXGFRYFFH3UMDN227KQBSAGU5G4IMVIBCNB6HUMJTEJGP3YN5YI",
+  "assets": {
+    "QWATT": {
+      "sac": "CBYEAFZZ4MEM2ABFTWOFZSOIZJUBEDN6X6VPO2KON7FUUJFAYDEUEWN2",
+      "issuer": "GDKAZ32I4B5MSVOLFN7BMYPWL372LTZSEY7TLEOPTQPT3QNDIG6AYM4B"
+    },
+    "QWA0SIM": {
+      "sac": "CD73JQ32OAAHGSRDVCOL5JEKYYIQQBWF2AYC7ZJ7QRAUUL7MJQEZX4XR",
+      "issuer": "GCESWBYTCLWDZGSWWL7G2HUPLDLV3F3E5WBHFDCG3LTKBWYTTLMTDBXF"
+    }
+  },
+  "public_keys": {
+    "deployer": "GB45RLR7AOEJ5UOZU3VXWZQ6Q4BSZNJD55HQ2APRW5WLXGCSJKMMNHZ2",
+    "issuerLive": "GDKAZ32I4B5MSVOLFN7BMYPWL372LTZSEY7TLEOPTQPT3QNDIG6AYM4B",
+    "issuerSim": "GCESWBYTCLWDZGSWWL7G2HUPLDLV3F3E5WBHFDCG3LTKBWYTTLMTDBXF",
+    "gov": "GDWHGJL4LTPIVH4W5HOMV7GXM2XDLVFU7HKTKOCCLG4FF2HVLIJGXQQT",
+    "g1": "GBL23XL6EFQF5XIVTUM4KIMDLTXUAIIOFBN3C46WLNQQ7QYYFXI6EY4R",
+    "g2": "GAA3YDZ2UE7YITMQ2RU6AOZZAZ5QENZQ52TXNT67D45ATULASIQSF55Z",
+    "g3": "GDTSJIGNKQOI5FCAKMUBAQVBCWBK63S7HPHJVOWXH53YSASLPUQQL5RB",
+    "proposer": "GCIWLVUBECS6C5VUTZ3BHD2MBQKZ2PQDUFNI4QK2M4FACEDT5CG2U6QY",
+    "verifier": "GABWKLERWGRVSNWDPORO3WGZBUUWINRJ2MMKBM2VAR65IDNPQC27DF7C",
+    "relayer": "GBYEAZ4XHFFJA6I3QMO3DVYPNS5NHPCE6YJIMMXSCINS3MRTZ5TRZDVZ",
+    "alice": "GAUCELRPFQGCB3EUNPFNVPTDLML4POGE5DJ4VOTKVEFRXSMAIESH2YZW",
+    "mallory": "GBW5W7H5VG3BDVJNKFFZ4R7AJ6GWO5SRRVV2T5BDJOPND2NZALR6OOMH"
+  },
+  "note": "Public keys only. Every secret was Keypair.random() held in memory for this run and discarded.",
+  "checks": [
+    {
+      "id": "M1",
+      "title": "SAC admin of both assets is the issuance contract",
+      "result": "PASS",
+      "detail": "QWATT admin CD2T3OXGFRYFFH3UMDN227KQBSAGU5G4IMVIBCNB6HUMJTEJGP3YN5YI"
+    },
+    {
+      "id": "M2",
+      "title": "both issuers locked: master weight 0, no signers",
+      "result": "PASS",
+      "detail": "QWATT issuer thresholds {\"master_weight\":0,\"low\":0,\"medium\":0,\"high\":0,\"signers\":[]}"
+    },
+    {
+      "id": "M3",
+      "title": "locked issuer: classic payment refused",
+      "result": "PASS",
+      "detail": "REJECTED_AT_SUBMIT txBadAuth"
+    },
+    {
+      "id": "M3b",
+      "title": "locked issuer cannot take the SAC admin back",
+      "result": "PASS",
+      "detail": "FAILED txFailed/opInner/invokeHostFunction/invokeHostFunctionTrapped"
+    },
+    {
+      "id": "M4",
+      "title": "direct SAC mint refused for the issuer key and for any other key",
+      "result": "PASS",
+      "detail": "REFUSED_IN_SIMULATION; FAILED txFailed/opInner/invokeHostFunction/invokeHostFunctionTrapped"
+    },
+    {
+      "id": "M6",
+      "title": "governance: one signature refused, two accepted",
+      "result": "PASS",
+      "detail": "REJECTED_AT_SUBMIT txBadAuth; SUCCESS"
+    },
+    {
+      "id": "M7",
+      "title": "accrual: one relay key refused, both accepted",
+      "result": "PASS",
+      "detail": "FAILED txFailed/opInner/invokeHostFunction/invokeHostFunctionTrapped; SUCCESS"
+    },
+    {
+      "id": "M5",
+      "title": "retire mints and burns 4,120,000 stroops (0.412 QWATT) in one call; contract balance 0 after",
+      "result": "PASS",
+      "detail": "SUCCESS; balance 0; minted 4120000; burned 4120000; events SAC:mint SAC:burn issuance:retired"
+    },
+    {
+      "id": "M8",
+      "title": "zero outstanding: contract SAC balances 0 (QWATT and QWA0SIM), the only classic trustline holds 0",
+      "result": "PASS",
+      "detail": "QWATT 0, QWA0SIM 0, trustline 0"
+    },
+    {
+      "id": "R",
+      "title": "every scripted refusal was refused",
+      "result": "PASS",
+      "detail": "12/12"
+    }
+  ],
+  "site_after": {
+    "accrual_digest": "da02354833e0dbfc86c621086ea4f7ba32563b5af849cd463901dae2c13155ec",
+    "accrued_wh": "413000",
+    "class": 1,
+    "cumulative_mwh": "413000000",
+    "frozen": false,
+    "next_seq": "2",
+    "responsible": "GAUCELRPFQGCB3EUNPFNVPTDLML4POGE5DJ4VOTKVEFRXSMAIESH2YZW",
+    "retired_wh": "412000",
+    "retirements": 1
+  },
+  "statement_record": {
+    "class": 1,
+    "commitment": "6276be11db576ac3dbb572f1904f512c96dd5b2fd6413f6fa02b725748b8b25f",
+    "end_wh": "412000",
+    "ledger": 2878,
+    "site_id": "8a20c5324b97a89e3f8b7fb82c667f3efb0431a1906d90e995c91a9f964068a6",
+    "start_wh": "0"
+  },
+  "transactions": [
+    {
+      "step": "gov.setup 2-of-3",
+      "hash": "6e71fda5d4393f5760256f67adfe5f2946413a53a47173c722d8cb2e104f94e6",
+      "status": "SUCCESS",
+      "ledger": 2860,
+      "result": "txSuccess/opInner/setOptions/setOptionsSuccess",
+      "fee_charged_stroops": 400
+    },
+    {
+      "step": "sac.deploy QWATT",
+      "hash": "36da91adc41dc533178120c8de0912c8be69e8dc97886256a5b62b56fb51d0fd",
+      "sim_min_resource_fee_stroops": 63737,
+      "resources": {
+        "instructions": 177793,
+        "disk_read_bytes": 0,
+        "write_bytes": 488,
+        "footprint_read_only": 0,
+        "footprint_read_write": 1,
+        "resource_fee": 63737
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2861,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 51711,
+      "return": "CBYEAFZZ4MEM2ABFTWOFZSOIZJUBEDN6X6VPO2KON7FUUJFAYDEUEWN2"
+    },
+    {
+      "step": "sac.deploy QWA0SIM",
+      "hash": "bb8e85cef866c494245e0425233cd72ffb1adc3e9c004c53b458e25f1c371aa6",
+      "sim_min_resource_fee_stroops": 63737,
+      "resources": {
+        "instructions": 177577,
+        "disk_read_bytes": 0,
+        "write_bytes": 488,
+        "footprint_read_only": 0,
+        "footprint_read_write": 1,
+        "resource_fee": 63737
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2862,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 51711,
+      "return": "CD73JQ32OAAHGSRDVCOL5JEKYYIQQBWF2AYC7ZJ7QRAUUL7MJQEZX4XR"
+    },
+    {
+      "step": "wasm.upload",
+      "hash": "982f951cf2f6475814dc7c278382a07c21ea857075c0fbaa62b785a07725840b",
+      "sim_min_resource_fee_stroops": 43380,
+      "resources": {
+        "instructions": 13509218,
+        "disk_read_bytes": 0,
+        "write_bytes": 0,
+        "footprint_read_only": 1,
+        "footprint_read_write": 0,
+        "resource_fee": 43380
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2863,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 36243,
+      "return": "94ab691868115134544eaa127f4dad09d523cd01cc5cccf5a55532768603d618"
+    },
+    {
+      "step": "contract.deploy",
+      "hash": "fa7c91440e04bb26d36c0067e4beed00df1ee3a3f9959a8bf56e097f539e5e7a",
+      "sim_min_resource_fee_stroops": 244681,
+      "resources": {
+        "instructions": 1071018,
+        "disk_read_bytes": 0,
+        "write_bytes": 488,
+        "footprint_read_only": 1,
+        "footprint_read_write": 1,
+        "resource_fee": 244681
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2864,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 209272,
+      "return": "CD2T3OXGFRYFFH3UMDN227KQBSAGU5G4IMVIBCNB6HUMJTEJGP3YN5YI"
+    },
+    {
+      "step": "sac.set_admin QWATT → contract",
+      "hash": "8681764d30c86c3500eea3ba3c49fbf67aed006327c826bdf913dc9673dcf73a",
+      "sim_min_resource_fee_stroops": 8576,
+      "resources": {
+        "instructions": 213189,
+        "disk_read_bytes": 0,
+        "write_bytes": 484,
+        "footprint_read_only": 0,
+        "footprint_read_write": 1,
+        "resource_fee": 8576
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2865,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 3786,
+      "return": null
+    },
+    {
+      "step": "sac.set_admin QWA0SIM → contract",
+      "hash": "29523c745e96359d1c1878de8dbbdf67414b69a081522f08c88ead8ce16a8342",
+      "sim_min_resource_fee_stroops": 8576,
+      "resources": {
+        "instructions": 212761,
+        "disk_read_bytes": 0,
+        "write_bytes": 484,
+        "footprint_read_only": 0,
+        "footprint_read_write": 1,
+        "resource_fee": 8576
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2866,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 3786,
+      "return": null
+    },
+    {
+      "step": "issuer.lock QWATT (master weight 0)",
+      "hash": "815e710ed8fc181c43f55748843fedd6b30faacec92209644d5fbbf70e8f1f89",
+      "status": "SUCCESS",
+      "ledger": 2867,
+      "result": "txSuccess/opInner/setOptions/setOptionsSuccess",
+      "fee_charged_stroops": 100
+    },
+    {
+      "step": "issuer.lock QWA0SIM (master weight 0)",
+      "hash": "5dab3a222770202c030acd8b2e2b814c1beeb98a12f264058c2f638a6fd5009f",
+      "status": "SUCCESS",
+      "ledger": 2868,
+      "result": "txSuccess/opInner/setOptions/setOptionsSuccess",
+      "fee_charged_stroops": 100
+    },
+    {
+      "step": "mallory trustline QWATT",
+      "hash": "0187509d79605adbcd6bd721931a3fbe7c432b9c0fd81574b8a5b38440bc3097",
+      "status": "SUCCESS",
+      "ledger": 2869,
+      "result": "txSuccess/opInner/changeTrust/changeTrustSuccess",
+      "fee_charged_stroops": 100
+    },
+    {
+      "step": "REFUSAL locked issuer classic payment",
+      "hash": "a82fa0d0febd615d802f823f1c9ee65e891c07a5db9b43738e48b7c76cd7ce9b",
+      "status": "REJECTED_AT_SUBMIT",
+      "result": "txBadAuth"
+    },
+    {
+      "step": "REFUSAL locked issuer tries set_admin back",
+      "hash": "ea3bd724f6893d28a0d2efb911dfd6b84fb9405e284707345d2eba1991e61801",
+      "simulation_error": "HostError: Error(Auth, InvalidAction)",
+      "unsigned_auth_entries": 1,
+      "status": "FAILED",
+      "ledger": 2870,
+      "result": "txFailed/opInner/invokeHostFunction/invokeHostFunctionTrapped",
+      "fee_charged_stroops": 12100
+    },
+    {
+      "step": "REFUSAL direct SAC mint by issuer key",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Auth, InvalidAction)",
+      "unsigned_auth_entries": 1
+    },
+    {
+      "step": "REFUSAL direct SAC mint by mallory",
+      "hash": "34a1c046c1a68642d4cd631d3cb6ca14a0cc1a20ce60de3982ad0d79994a5136",
+      "simulation_error": "HostError: Error(Auth, InvalidAction)",
+      "unsigned_auth_entries": 1,
+      "status": "FAILED",
+      "ledger": 2871,
+      "result": "txFailed/opInner/invokeHostFunction/invokeHostFunctionTrapped",
+      "fee_charged_stroops": 13000
+    },
+    {
+      "step": "REFUSAL register_site with 1 of 3 governance signatures",
+      "hash": "2b706944192f13063d74614dfbc5366a1f5fb7c98a6175428902c5e7ddc718ad",
+      "sim_min_resource_fee_stroops": 244001,
+      "resources": {
+        "instructions": 743159,
+        "disk_read_bytes": 0,
+        "write_bytes": 488,
+        "footprint_read_only": 2,
+        "footprint_read_write": 1,
+        "resource_fee": 244001
+      },
+      "unsigned_auth_entries": 0,
+      "status": "REJECTED_AT_SUBMIT",
+      "result": "txBadAuth"
+    },
+    {
+      "step": "register_site LIVE (2 of 3 governance)",
+      "hash": "2b706944192f13063d74614dfbc5366a1f5fb7c98a6175428902c5e7ddc718ad",
+      "sim_min_resource_fee_stroops": 244001,
+      "resources": {
+        "instructions": 743159,
+        "disk_read_bytes": 0,
+        "write_bytes": 488,
+        "footprint_read_only": 2,
+        "footprint_read_write": 1,
+        "resource_fee": 244001
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2872,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 208762,
+      "return": null
+    },
+    {
+      "step": "register_site SIMULATED (2 of 3 governance)",
+      "hash": "e3c4da6aaa80b2f77faaa1390a680be950f272e719880deae41474b1d48c2d7d",
+      "sim_min_resource_fee_stroops": 244001,
+      "resources": {
+        "instructions": 743159,
+        "disk_read_bytes": 0,
+        "write_bytes": 488,
+        "footprint_read_only": 2,
+        "footprint_read_write": 1,
+        "resource_fee": 244001
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2873,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 208762,
+      "return": null
+    },
+    {
+      "step": "REFUSAL accrue with proposer key only",
+      "hash": "6a0b69147b86a7fbc8c4d6dcea5784bc4594a4c812ffe31bea36bd030404b1ac",
+      "simulation_error": "HostError: Error(Auth, InvalidAction)",
+      "unsigned_auth_entries": 1,
+      "status": "FAILED",
+      "ledger": 2874,
+      "result": "txFailed/opInner/invokeHostFunction/invokeHostFunctionTrapped",
+      "fee_charged_stroops": 17783
+    },
+    {
+      "step": "accrue LIVE seq 0 (both relay keys)",
+      "hash": "3af5c42e9fdb11dc2ea09ebfe85026a56bfd160092f665f7798578ed8828bb2d",
+      "sim_min_resource_fee_stroops": 19626,
+      "resources": {
+        "instructions": 2629084,
+        "disk_read_bytes": 288,
+        "write_bytes": 640,
+        "footprint_read_only": 4,
+        "footprint_read_write": 3,
+        "resource_fee": 19626
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2875,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 14360,
+      "return": {
+        "accrued_wh": "412000",
+        "digest": "c01f3c762f7ab35ca780be38fabde2710589d6f4f73ea967b9036bd65535ee0f"
+      }
+    },
+    {
+      "step": "accrue SIMULATED seq 0",
+      "hash": "5fdc3b9d2d7256f81bdd30a5e3a6461bd031f4c3e67018f8db475d3112ceb428",
+      "sim_min_resource_fee_stroops": 19626,
+      "resources": {
+        "instructions": 2629084,
+        "disk_read_bytes": 288,
+        "write_bytes": 640,
+        "footprint_read_only": 4,
+        "footprint_read_write": 3,
+        "resource_fee": 19626
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2876,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 14360,
+      "return": {
+        "accrued_wh": "5000",
+        "digest": "01bc4a222e4780390575f167cafaee8a2b7bb4b00e8ea5d374b88a0c203828a5"
+      }
+    },
+    {
+      "step": "REFUSAL simulated (A0) batch on the LIVE site",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Contract, #7)"
+    },
+    {
+      "step": "accrue LIVE seq 1",
+      "hash": "d95a0a8bbff94eff871f66a7804ac2127abeee33da684dfc8fcc23cf2c6953c6",
+      "sim_min_resource_fee_stroops": 19626,
+      "resources": {
+        "instructions": 2629084,
+        "disk_read_bytes": 288,
+        "write_bytes": 640,
+        "footprint_read_only": 4,
+        "footprint_read_write": 3,
+        "resource_fee": 19626
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2877,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 14360,
+      "return": {
+        "accrued_wh": "413000",
+        "digest": "da02354833e0dbfc86c621086ea4f7ba32563b5af849cd463901dae2c13155ec"
+      }
+    },
+    {
+      "step": "retire LIVE [0, 412000) Wh",
+      "hash": "260acbf914d6830d7ac88f7bc106aac5f48d93acaa75efabc453b0c2808b2d9f",
+      "sim_min_resource_fee_stroops": 305698,
+      "resources": {
+        "instructions": 1363400,
+        "disk_read_bytes": 144,
+        "write_bytes": 1088,
+        "footprint_read_only": 4,
+        "footprint_read_write": 3,
+        "resource_fee": 305698
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2878,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 262839,
+      "return": "6276be11db576ac3dbb572f1904f512c96dd5b2fd6413f6fa02b725748b8b25f"
+    },
+    {
+      "step": "REFUSAL same statement again (next range)",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Contract, #16)"
+    },
+    {
+      "step": "REFUSAL overlapping range",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Contract, #13)"
+    },
+    {
+      "step": "REFUSAL over-retire (beyond accrued 413,000 Wh)",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Contract, #15)"
+    },
+    {
+      "step": "REFUSAL SAC transfer out of the contract by mallory",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Contract, #10)"
+    },
+    {
+      "step": "REFUSAL retire signed by mallory (not responsible)",
+      "status": "REFUSED_IN_SIMULATION",
+      "error": "HostError: Error(Auth, InvalidAction)",
+      "unsigned_auth_entries": 1
+    },
+    {
+      "step": "retire SIMULATED [0, 5000) Wh on QWA0SIM",
+      "hash": "2a82ac277923698963eca2fb67de3ac2de0005fd850f73f231d7f6ba5e565afc",
+      "sim_min_resource_fee_stroops": 305697,
+      "resources": {
+        "instructions": 1362728,
+        "disk_read_bytes": 144,
+        "write_bytes": 1088,
+        "footprint_read_only": 4,
+        "footprint_read_write": 3,
+        "resource_fee": 305697
+      },
+      "unsigned_auth_entries": 0,
+      "status": "SUCCESS",
+      "ledger": 2879,
+      "result": "txSuccess/opInner/invokeHostFunction/invokeHostFunctionSuccess",
+      "fee_charged_stroops": 262838,
+      "return": "3ee8d3b8d3338a7be4a43a7ad9e51e1f6954afb9e4a1809ed4a1e1d34f8897bb"
+    }
+  ]
+}

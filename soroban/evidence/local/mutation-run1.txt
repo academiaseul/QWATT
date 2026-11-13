@@ -1,0 +1,11 @@
+# first run (13 Nov 2026), before the off-by-one cases: overlap-allowed was missed by every suite
+no-burn                  conformance=CAUGHT   props=missed   unit=CAUGHT
+round-up                 conformance=CAUGHT   props=CAUGHT   unit=missed
+one-key-relay            conformance=CAUGHT   props=CAUGHT   unit=missed
+replay-allowed           conformance=CAUGHT   props=missed   unit=missed
+no-dup-check             conformance=CAUGHT   props=missed   unit=missed
+overlap-allowed          conformance=missed   props=missed   unit=missed
+no-contamination         conformance=CAUGHT   props=missed   unit=missed
+frozen-ignored-retire    conformance=CAUGHT   props=missed   unit=missed
+no-pause-on-retire       conformance=CAUGHT   props=missed   unit=missed
+over-retire              conformance=CAUGHT   props=CAUGHT   unit=missed

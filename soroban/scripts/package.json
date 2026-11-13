@@ -1,0 +1,9 @@
+{
+  "name": "qwatt-issuance-scripts",
+  "private": true,
+  "type": "module",
+  "description": "Local-network spike and evidence for qwatt-issuance. Standalone network only.",
+  "dependencies": {
+    "@stellar/stellar-sdk": "17.4.0"
+  }
+}

@@ -1,0 +1,3889 @@
+{
+ "spec": "qwatt-issuance conformance cases v1",
+ "note": "Integers are decimal strings. site/batch/statement are labels hashed with domain tags (model/model.mjs siteId, batchHash, statementHash). auth lists the actors who authorized the call; AUTH means a required authorization was missing.",
+ "actors": [
+  "governance",
+  "proposer",
+  "verifier",
+  "alice",
+  "bob",
+  "mallory",
+  "relay2a",
+  "relay2b"
+ ],
+ "setup": {
+  "governance": "governance",
+  "proposer": "proposer",
+  "verifier": "verifier"
+ },
+ "cases": [
+  {
+   "id": "I01",
+   "title": "SOW example: 412,000 Wh accrued and retired once (0.412 QWATT minted and burned in one call)",
+   "covers": [
+    "accrual",
+    "retirement",
+    "zero-supply"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "412000000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "412000"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "412000",
+      "statement": "January allocation to six apartments (fictional)"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "accrued_wh": "412000",
+     "retired_wh": "412000",
+     "next_seq": "1"
+    }
+   }
+  },
+  {
+   "id": "I02",
+   "title": "Flooring: 999 mWh verifies 0 Wh; nothing can be retired",
+   "covers": [
+    "flooring",
+    "min-ab"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "999",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "0"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "1",
+      "statement": "s"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "OverRetire"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "accrued_wh": "0",
+     "retired_wh": "0"
+    }
+   }
+  },
+  {
+   "id": "I03",
+   "title": "Flooring: 1,000 mWh verifies exactly 1 Wh",
+   "covers": [
+    "flooring"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "1"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "1",
+      "statement": "s"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "accrued_wh": "1",
+     "retired_wh": "1"
+    }
+   }
+  },
+  {
+   "id": "I04",
+   "title": "Flooring: 1,001 mWh verifies 1 Wh; the remainder is carried, never rounded up",
+   "covers": [
+    "flooring"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1001",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "1"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "1999",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "1"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "2",
+      "cumulative_mwh": "2000",
+      "batch": "roof#2",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "2"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "cumulative_mwh": "2000",
+     "accrued_wh": "2"
+    }
+   }
+  },
+  {
+   "id": "I05",
+   "title": "min(A,B) rule: a claim equal to the verified amount passes, one Wh more is refused",
+   "covers": [
+    "min-ab",
+    "over-retire"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "500000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "500"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "501",
+      "statement": "too much"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "OverRetire"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "500",
+      "statement": "exact"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "500"
+    }
+   }
+  },
+  {
+   "id": "I06",
+   "title": "Rejected batch carries no energy: equal cumulative is accepted and accrues nothing",
+   "covers": [
+    "accrual",
+    "monotonic"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "10000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "2",
+     "accrued_wh": "10"
+    }
+   }
+  },
+  {
+   "id": "I07",
+   "title": "Contiguous retirements consume [0,a), [a,b), [b,c)",
+   "covers": [
+    "ranges"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "100",
+      "end_wh": "250",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "250",
+      "end_wh": "300",
+      "statement": "r3"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "300",
+     "retirements": "3"
+    }
+   }
+  },
+  {
+   "id": "I08",
+   "title": "Retire, accrue more, retire the new range",
+   "covers": [
+    "ranges",
+    "accrual"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "250000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "250"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "100",
+      "end_wh": "250",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "250",
+     "accrued_wh": "250"
+    }
+   }
+  },
+  {
+   "id": "I09",
+   "title": "Simulated site retires on QWA0SIM; the live asset is untouched",
+   "covers": [
+    "simulated",
+    "zero-supply"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "sim",
+      "responsible": "alice",
+      "class": 0,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "sim",
+      "seq": "0",
+      "cumulative_mwh": "50000",
+      "batch": "sim#0",
+      "level": 0
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "50"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "sim",
+      "start_wh": "0",
+      "end_wh": "50",
+      "statement": "flow A fictional"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "sim": {
+     "retired_wh": "50"
+    }
+   }
+  },
+  {
+   "id": "I10",
+   "title": "Sequence continues from a registered start (post-reset continuation)",
+   "covers": [
+    "sequence"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "1200"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1199",
+      "cumulative_mwh": "1000",
+      "batch": "roof#1199",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqReplay"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1200",
+      "cumulative_mwh": "1000",
+      "batch": "roof#1200",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "1"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "1201"
+    }
+   }
+  },
+  {
+   "id": "R01",
+   "title": "Replay: the same seq accepted once, the second time refused",
+   "covers": [
+    "replay"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqReplay"
+     }
+    }
+   ]
+  },
+  {
+   "id": "R02",
+   "title": "Stale seq: an older batch after newer ones is refused",
+   "covers": [
+    "replay"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "20000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "2",
+      "cumulative_mwh": "30000",
+      "batch": "roof#2",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "40000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqReplay"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "3",
+     "accrued_wh": "30"
+    }
+   }
+  },
+  {
+   "id": "R03",
+   "title": "Sequence gap: seq ahead of the expected next is refused",
+   "covers": [
+    "invalid-sequence"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "2",
+      "cumulative_mwh": "20000",
+      "batch": "roof#2",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqGap"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "20000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "2"
+    }
+   }
+  },
+  {
+   "id": "R04",
+   "title": "Cumulative regression is refused (accrual is monotonic)",
+   "covers": [
+    "monotonic"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "9999",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "CumulativeRegression"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "1",
+     "cumulative_mwh": "10000"
+    }
+   }
+  },
+  {
+   "id": "R05",
+   "title": "First accrual with seq below the registered start is a replay",
+   "covers": [
+    "invalid-sequence"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "5"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqReplay"
+     }
+    }
+   ]
+  },
+  {
+   "id": "D01",
+   "title": "Duplicate statement on the same site is refused",
+   "covers": [
+    "duplicate"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "200000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "200"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "same text"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "100",
+      "end_wh": "200",
+      "statement": "same text"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "DuplicateStatement"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "100"
+    }
+   }
+  },
+  {
+   "id": "D02",
+   "title": "Duplicate statement across sites (simulated → live) is refused",
+   "covers": [
+    "duplicate",
+    "contamination"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "sim",
+      "responsible": "alice",
+      "class": 0,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "sim",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "sim#0",
+      "level": 0
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "sim",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "one statement"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "one statement"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "DuplicateStatement"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "0"
+    },
+    "sim": {
+     "retired_wh": "100"
+    }
+   }
+  },
+  {
+   "id": "D03",
+   "title": "Duplicate site registration is refused and the original responsible is kept",
+   "covers": [
+    "duplicate",
+    "authorization"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "bob",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "SiteExists"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "5000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "5",
+      "statement": "bob tries"
+     },
+     "auth": [
+      "bob"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "5",
+      "statement": "alice"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "O01",
+   "title": "Overlapping range (starts inside a retired range) is refused",
+   "covers": [
+    "overlap"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "150",
+      "end_wh": "300",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "RangeOverlap"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O02",
+   "title": "A range entirely inside a retired range is refused",
+   "covers": [
+    "overlap"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "10",
+      "end_wh": "20",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "RangeOverlap"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O03",
+   "title": "The exact same range again (new statement) is refused",
+   "covers": [
+    "overlap",
+    "replay"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1 bis"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "RangeOverlap"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O04",
+   "title": "A range that leaves a gap is refused",
+   "covers": [
+    "ranges"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "1",
+      "end_wh": "100",
+      "statement": "gap"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "RangeGap"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O05",
+   "title": "Empty range (end = start) is refused",
+   "covers": [
+    "ranges"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "0",
+      "statement": "empty"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "EmptyRange"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O06",
+   "title": "Reversed range (end < start) is refused",
+   "covers": [
+    "ranges"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "100",
+      "end_wh": "50",
+      "statement": "rev"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "EmptyRange"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O07",
+   "title": "Over-retire after a partial retirement is refused",
+   "covers": [
+    "over-retire",
+    "min-ab"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "200",
+      "end_wh": "301",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "OverRetire"
+     }
+    }
+   ]
+  },
+  {
+   "id": "O09",
+   "title": "Off-by-one: a range starting 1 Wh before the retired head is an overlap",
+   "covers": [
+    "overlap",
+    "boundary"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "199",
+      "end_wh": "300",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "RangeOverlap"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "200",
+      "end_wh": "300",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "300"
+    }
+   }
+  },
+  {
+   "id": "O10",
+   "title": "Off-by-one: a range starting 1 Wh after the retired head is a gap",
+   "covers": [
+    "ranges",
+    "boundary"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "200",
+      "statement": "r1"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "201",
+      "end_wh": "300",
+      "statement": "r2"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "RangeGap"
+     }
+    }
+   ]
+  },
+  {
+   "id": "R06",
+   "title": "Off-by-one: seq = next − 1 is a replay, seq = next + 1 is a gap",
+   "covers": [
+    "replay",
+    "invalid-sequence",
+    "boundary"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "10"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "9",
+      "cumulative_mwh": "1000",
+      "batch": "roof#9",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqReplay"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "11",
+      "cumulative_mwh": "1000",
+      "batch": "roof#11",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SeqGap"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "10",
+      "cumulative_mwh": "1000",
+      "batch": "roof#10",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "O08",
+   "title": "A refused retirement changes nothing: the same start then succeeds",
+   "covers": [
+    "atomicity"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "300000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "300"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "301",
+      "statement": "too much"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "OverRetire"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "300",
+      "statement": "too much"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "300",
+     "retirements": "1"
+    }
+   }
+  },
+  {
+   "id": "V01",
+   "title": "Sequence overflow: an accrual at seq = u64::MAX is refused (no next seq exists)",
+   "covers": [
+    "overflow",
+    "invalid-sequence"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "18446744073709551615"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "18446744073709551615",
+      "cumulative_mwh": "1000",
+      "batch": "roof#18446744073709551615",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "Overflow"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "18446744073709551615",
+     "cumulative_mwh": "0"
+    }
+   }
+  },
+  {
+   "id": "V02",
+   "title": "Seq u64::MAX − 1 is the last accrual that can be accepted",
+   "covers": [
+    "overflow",
+    "boundary"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "18446744073709551614"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "18446744073709551614",
+      "cumulative_mwh": "1000",
+      "batch": "roof#18446744073709551614",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "1"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "18446744073709551615",
+      "cumulative_mwh": "2000",
+      "batch": "roof#18446744073709551615",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "Overflow"
+     }
+    }
+   ],
+   "final": {
+    "roof": {
+     "next_seq": "18446744073709551615"
+    }
+   }
+  },
+  {
+   "id": "V03",
+   "title": "u128::MAX cumulative is accepted and floors exactly",
+   "covers": [
+    "overflow",
+    "flooring",
+    "boundary"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "340282366920938463463374607431768211455",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "340282366920938463463374607431768211"
+     }
+    }
+   ]
+  },
+  {
+   "id": "V04",
+   "title": "A retirement above the classic asset limit (i64::MAX stroops) is refused",
+   "covers": [
+    "overflow",
+    "limit"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "340282366920938463463374607431768211455",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "922337203685477581",
+      "statement": "huge"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "AmountTooLarge"
+     }
+    }
+   ]
+  },
+  {
+   "id": "V05",
+   "title": "The largest allowed retirement (922,337,203,685,477,580 Wh) passes",
+   "covers": [
+    "limit",
+    "boundary"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "340282366920938463463374607431768211455",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "922337203685477580",
+      "statement": "largest"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ],
+   "final": {
+    "roof": {
+     "retired_wh": "922337203685477580"
+    }
+   }
+  },
+  {
+   "id": "V06",
+   "title": "A range of the whole u128 accrual is refused as too large, not wrapped",
+   "covers": [
+    "overflow",
+    "limit"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "340282366920938463463374607431768211455",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "340282366920938463463374607431768211",
+      "statement": "all"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "AmountTooLarge"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A01",
+   "title": "Accrual by an unrelated key is refused",
+   "covers": [
+    "unauthorized"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A02",
+   "title": "One-key relay: proposer alone is refused",
+   "covers": [
+    "unauthorized",
+    "two-key-relay"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A03",
+   "title": "One-key relay: verifier alone is refused",
+   "covers": [
+    "unauthorized",
+    "two-key-relay"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "verifier"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A04",
+   "title": "Retirement by someone other than the responsible party is refused",
+   "covers": [
+    "unauthorized"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "m"
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "g"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A05",
+   "title": "The relay cannot retire",
+   "covers": [
+    "unauthorized",
+    "separation"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "relay"
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A06",
+   "title": "Only governance registers sites",
+   "covers": [
+    "unauthorized"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A07",
+   "title": "Only governance freezes and pauses",
+   "covers": [
+    "unauthorized"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "roof",
+      "frozen": true
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": true
+     },
+     "auth": [
+      "proposer"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "A08",
+   "title": "Governance cannot accrue on its own",
+   "covers": [
+    "unauthorized",
+    "separation"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "A09",
+   "title": "Relay rotation: the old keys stop working, the new pair works",
+   "covers": [
+    "authorization",
+    "rotation"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_relay",
+     "args": {
+      "proposer": "relay2a",
+      "verifier": "relay2b"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "relay2a",
+      "relay2b"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "A10",
+   "title": "Relay rotation to one key for both roles is refused",
+   "covers": [
+    "two-key-relay"
+   ],
+   "steps": [
+    {
+     "op": "set_relay",
+     "args": {
+      "proposer": "relay2a",
+      "verifier": "relay2a"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "SameRelayKey"
+     }
+    },
+    {
+     "op": "set_relay",
+     "args": {
+      "proposer": "relay2a",
+      "verifier": "relay2b"
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    }
+   ]
+  },
+  {
+   "id": "E01",
+   "title": "Simulated (A0) batch on a live site is refused",
+   "covers": [
+    "contamination"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 0
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "LevelMismatch"
+     }
+    }
+   ]
+  },
+  {
+   "id": "E02",
+   "title": "Measured (A2) batch on a simulated site is refused",
+   "covers": [
+    "contamination"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "sim",
+      "responsible": "alice",
+      "class": 0,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "sim",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "sim#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "LevelMismatch"
+     }
+    }
+   ]
+  },
+  {
+   "id": "E03",
+   "title": "Single-meter (A1) batch on a simulated site is refused; A1 on a live site passes",
+   "covers": [
+    "contamination",
+    "evidence-level"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "sim",
+      "responsible": "alice",
+      "class": 0,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "sim",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "sim#0",
+      "level": 1
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "LevelMismatch"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 1
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "E04",
+   "title": "Unknown evidence level is refused",
+   "covers": [
+    "evidence-level"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 3
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "InvalidLevel"
+     }
+    }
+   ]
+  },
+  {
+   "id": "E05",
+   "title": "Unknown data class is refused at registration",
+   "covers": [
+    "evidence-level"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 2,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "InvalidClass"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SiteNotFound"
+     }
+    }
+   ]
+  },
+  {
+   "id": "E06",
+   "title": "Contamination is refused even with an otherwise valid next batch, and the site continues",
+   "covers": [
+    "contamination",
+    "atomicity"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "20000",
+      "batch": "roof#1",
+      "level": 0
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "LevelMismatch"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "20000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "20"
+     }
+    }
+   ]
+  },
+  {
+   "id": "F01",
+   "title": "Frozen site: accrual and retirement refused; unfrozen they pass",
+   "covers": [
+    "frozen"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "roof",
+      "frozen": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "200000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SiteFrozen"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "f"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "SiteFrozen"
+     }
+    },
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "roof",
+      "frozen": false
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "200000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "f"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "F02",
+   "title": "Freezing an unknown site is refused",
+   "covers": [
+    "frozen"
+   ],
+   "steps": [
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "ghost",
+      "frozen": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "SiteNotFound"
+     }
+    }
+   ]
+  },
+  {
+   "id": "F03",
+   "title": "Freeze is checked before the sequence (frozen + replay → SiteFrozen)",
+   "covers": [
+    "frozen",
+    "order"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "roof",
+      "frozen": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SiteFrozen"
+     }
+    }
+   ]
+  },
+  {
+   "id": "F04",
+   "title": "Freezing one site leaves the others running",
+   "covers": [
+    "frozen"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "a",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "register_site",
+     "args": {
+      "site": "b",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "a",
+      "frozen": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "a",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "a#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SiteFrozen"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "b",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "b#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "P01",
+   "title": "Paused: register, accrue and retire refused; unpaused they pass",
+   "covers": [
+    "pause"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "register_site",
+     "args": {
+      "site": "b",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "Paused"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "200000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "Paused"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "p"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": {
+      "err": "Paused"
+     }
+    },
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": false
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "200000",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "100",
+      "statement": "p"
+     },
+     "auth": [
+      "alice"
+     ],
+     "expect": "ok"
+    }
+   ]
+  },
+  {
+   "id": "P02",
+   "title": "Freeze still works while paused (emergency control)",
+   "covers": [
+    "pause",
+    "frozen"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_frozen",
+     "args": {
+      "site": "roof",
+      "frozen": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": false
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SiteFrozen"
+     }
+    }
+   ]
+  },
+  {
+   "id": "P03",
+   "title": "Order: an unauthorized accrual while paused is AUTH; an unauthorized retirement while paused is Paused",
+   "covers": [
+    "pause",
+    "order"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "100000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "100"
+     }
+    },
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "1",
+      "cumulative_mwh": "1",
+      "batch": "roof#1",
+      "level": 2
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "AUTH"
+     }
+    },
+    {
+     "op": "retire",
+     "args": {
+      "site": "roof",
+      "start_wh": "0",
+      "end_wh": "1",
+      "statement": "x"
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "Paused"
+     }
+    }
+   ]
+  },
+  {
+   "id": "P04",
+   "title": "Relay rotation is refused while paused",
+   "covers": [
+    "pause",
+    "rotation"
+   ],
+   "steps": [
+    {
+     "op": "set_paused",
+     "args": {
+      "paused": true
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "set_relay",
+     "args": {
+      "proposer": "relay2a",
+      "verifier": "relay2b"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": {
+      "err": "Paused"
+     }
+    }
+   ]
+  },
+  {
+   "id": "N01",
+   "title": "Accrual for an unregistered site is refused",
+   "covers": [
+    "unknown-site"
+   ],
+   "steps": [
+    {
+     "op": "accrue",
+     "args": {
+      "site": "ghost",
+      "seq": "0",
+      "cumulative_mwh": "1000",
+      "batch": "ghost#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "SiteNotFound"
+     }
+    }
+   ]
+  },
+  {
+   "id": "N02",
+   "title": "Retirement for an unregistered site is refused before any signature is checked",
+   "covers": [
+    "unknown-site",
+    "order"
+   ],
+   "steps": [
+    {
+     "op": "retire",
+     "args": {
+      "site": "ghost",
+      "start_wh": "0",
+      "end_wh": "1",
+      "statement": "x"
+     },
+     "auth": [
+      "mallory"
+     ],
+     "expect": {
+      "err": "SiteNotFound"
+     }
+    }
+   ]
+  },
+  {
+   "id": "N03",
+   "title": "Level is checked before the sequence (contamination + replay → LevelMismatch)",
+   "covers": [
+    "order",
+    "contamination"
+   ],
+   "steps": [
+    {
+     "op": "register_site",
+     "args": {
+      "site": "roof",
+      "responsible": "alice",
+      "class": 1,
+      "next_seq": "0"
+     },
+     "auth": [
+      "governance"
+     ],
+     "expect": "ok"
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 2
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": "ok",
+     "expect_value": {
+      "accrued_wh": "10"
+     }
+    },
+    {
+     "op": "accrue",
+     "args": {
+      "site": "roof",
+      "seq": "0",
+      "cumulative_mwh": "10000",
+      "batch": "roof#0",
+      "level": 0
+     },
+     "auth": [
+      "proposer",
+      "verifier"
+     ],
+     "expect": {
+      "err": "LevelMismatch"
+     }
+    }
+   ]
+  }
+ ]
+}

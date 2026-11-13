@@ -1,0 +1,19 @@
+[package]
+name = "qwatt-issuance"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+publish = false
+description = "QWATT issuance prototype (Stellar testnet / local network only)"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { workspace = true }
+
+[dev-dependencies]
+soroban-sdk = { workspace = true, features = ["testutils"] }
+serde_json = { version = "1", features = ["preserve_order"] }
+proptest = "1"

@@ -1,0 +1,10 @@
+no-burn|        tok.burn(&me, &amount);|        // mutant: no burn
+round-up|        let accrued_wh = cumulative_mwh / MWH_PER_WH; // floor, never round|        let accrued_wh = (cumulative_mwh + 999) / MWH_PER_WH;
+one-key-relay|        cfg.verifier.require_auth();|        // mutant: verifier not required
+replay-allowed|        if seq < site.next_seq {|        if seq + 1 < site.next_seq {
+no-dup-check|        if env.storage().persistent().has(&skey) {|        if false {
+overlap-allowed|        if start_wh < site.retired_wh {|        if start_wh + 1 < site.retired_wh {
+no-contamination|        if level_is_sim != (site.class == CLASS_SIMULATED) {|        if false {
+frozen-ignored-retire|        site.responsible.require_auth();\n        if site.frozen {|        site.responsible.require_auth();\n        if false {
+no-pause-on-retire|    ) -> Result<BytesN<32>, Error> {\n        ensure_not_paused(&env)?;|    ) -> Result<BytesN<32>, Error> {
+over-retire|        if end_wh > site.accrued_wh {|        if end_wh > site.accrued_wh + 1 {

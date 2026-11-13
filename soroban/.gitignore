@@ -1,0 +1,5 @@
+target/
+scripts/node_modules/
+fixtures/random-sequences.json
+**/test_snapshots/
+contracts/qwatt-issuance/tests/*.proptest-regressions
