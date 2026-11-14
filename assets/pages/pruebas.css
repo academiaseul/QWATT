@@ -24,12 +24,12 @@
 .q-tcard{background:var(--panel);padding:16px 16px 14px;border-top:2px solid color-mix(in srgb,var(--red) 70%,var(--line));display:flex;flex-direction:column;gap:10px;min-width:0}
 .q-tcard.is-yes{border-top-color:var(--green)}
 .q-tcard-h{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 10px;align-items:baseline}
-.q-tcard-h b{font-family:var(--mono);font-size:22px;color:var(--copper);grid-row:span 2;line-height:1}
+.q-tcard-h b{font-family:var(--mono);font-size:22px;color:var(--accent);grid-row:span 2;line-height:1}
 .q-tcard-h h3{margin:0;font-size:15px}
 .q-tcard-h .q-chip{justify-self:start}
 .q-tcard p{font-size:13.5px;color:var(--ink-2);line-height:1.6}
 .q-tline{margin-top:auto;font-family:var(--mono);font-size:11px !important;letter-spacing:.06em;color:var(--copper) !important;border-top:1px solid var(--line);padding-top:8px}
-.q-callout{margin-top:16px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
+.q-callout{margin-top:16px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
 .q-sec .q-src{margin-top:12px}
 
 /* ── 2 · real-account evidence, 3 · worked example ── */
@@ -75,7 +75,7 @@ html:not(.js) .q-live-checks [data-slot="state"]{visibility:hidden}
 
 /* ── reasons ── */
 .q-why{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr);gap:8px 16px;max-width:86ch}
-.q-why dt code{color:var(--copper)}
+.q-why dt code{color:var(--accent)}
 .q-why dd{font-size:14px;color:var(--ink-2);line-height:1.55}
 @media(max-width:560px){.q-why{grid-template-columns:1fr}.q-why dd{margin-bottom:6px}}
 

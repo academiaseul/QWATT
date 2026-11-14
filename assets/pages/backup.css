@@ -16,7 +16,7 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 /* the three key holders */
 .q-holders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
 @media(max-width:980px){.q-holders{grid-template-columns:1fr}}
-.q-holder{border-top:2px solid var(--copper);padding-top:18px}
+.q-holder{border-top:2px solid var(--accent);padding-top:18px}
 .q-holder-dl{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)}
 .q-holder-dl dd{font-family:var(--sans);font-size:13px;color:var(--ink);line-height:1.45}
 .q-holder-dl dd .q-state{font-size:12px}
@@ -46,4 +46,4 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-loss th[scope="row"] small{display:block;font-weight:400;font-size:13px;line-height:1.5;color:var(--ink-2);margin-top:4px;white-space:normal;max-width:52ch}
 .q-loss thead th:first-child{width:52%}
 .q-card .q-fact-v{font-family:var(--mono);font-size:40px;font-weight:500;line-height:1;color:var(--green)}
-.q-card .q-holder-n{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1;color:var(--copper)}
+.q-card .q-holder-n{font-family:var(--mono);font-size:26px;font-weight:500;line-height:1;color:var(--accent)}

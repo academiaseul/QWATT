@@ -2,8 +2,8 @@
    Shared design values, chips, header and footer live in /assets/site.css. */
 
 /* hero */
-.q-dhero{border-bottom:1px solid var(--line);padding:56px 0 40px;background:linear-gradient(180deg,color-mix(in srgb,var(--copper) 6%,transparent),transparent 75%)}
-.q-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--copper);margin-bottom:18px}
+.q-dhero{border-bottom:1px solid var(--line);padding:56px 0 40px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 6%,transparent),transparent 75%)}
+.q-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
 .q-dhero h1{max-width:18ch}
 .q-dhero .q-lead{max-width:60ch}
 .q-updated{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-3)}
@@ -15,20 +15,20 @@
 @media(max-width:600px){.q-toc ol{grid-template-columns:1fr}}
 .q-toc li{border-bottom:1px solid var(--line)}
 .q-toc a{display:flex;gap:12px;align-items:baseline;padding:10px 0;min-height:44px;color:var(--ink);text-decoration:none;font-size:14.5px}
-.q-toc a:hover{color:var(--copper)}
-.q-toc-n{font-family:var(--mono);font-size:11px;color:var(--copper);min-width:2ch}
+.q-toc a:hover{color:var(--accent)}
+.q-toc-n{font-family:var(--mono);font-size:11px;color:var(--accent);min-width:2ch}
 
 /* body */
 .q-doc{padding-top:8px;padding-bottom:72px}
 .q-dsec{max-width:760px;padding:44px 0 6px;border-bottom:1px solid var(--line);scroll-margin-top:calc(var(--nav-h) + 12px)}
 .q-dsec:last-child{border-bottom:0}
 .q-dsec h2{display:flex;gap:14px;align-items:baseline;font-size:clamp(1.35rem,1.1rem + 1vw,1.85rem);font-weight:600;letter-spacing:-.01em;margin-bottom:16px}
-.q-dsec-n{font-family:var(--mono);font-size:.62em;font-weight:500;color:var(--copper);letter-spacing:.06em}
+.q-dsec-n{font-family:var(--mono);font-size:.62em;font-weight:500;color:var(--accent);letter-spacing:.06em}
 .q-dsec h3{font-size:16px;margin:26px 0 10px}
 .q-dsec p{font-size:15.5px;line-height:1.7;color:var(--ink-2);margin-bottom:14px;max-width:68ch}
 .q-dlist{margin:0 0 16px 1.1em;display:grid;gap:8px;max-width:68ch}
 .q-dlist li{font-size:15px;line-height:1.6;color:var(--ink-2);padding-left:4px}
-.q-dlist li::marker{color:var(--copper)}
+.q-dlist li::marker{color:var(--accent)}
 
 /* the disclaimer, set apart */
 .q-disc{border-left:2px solid var(--copper);background:var(--panel);padding:14px 16px;margin:6px 0 18px;display:grid;gap:8px}

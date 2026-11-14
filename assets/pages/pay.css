@@ -27,11 +27,11 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-step h3{font-size:15px;line-height:1.3}
 .q-step p{font-size:13.5px;line-height:1.6;color:var(--ink-2);margin-top:8px}
 .q-step .q-code{margin-top:8px;white-space:pre-wrap;word-break:break-all;font-size:11.5px}
-.q-step-n{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--copper);line-height:1;min-width:1.4em;margin-top:0 !important}
+.q-step-n{font-family:var(--mono);font-size:22px;font-weight:500;color:var(--accent);line-height:1;min-width:1.4em;margin-top:0 !important}
 .q-step-v:empty{display:none}
 .q-step-v{font-size:13px !important;color:var(--ink) !important;border-top:1px dashed var(--line);padding-top:8px}
 .q-step-v .q-state{margin-right:6px}
-.q-step.is-on{border-left-color:var(--copper);background:color-mix(in srgb,var(--copper) 9%,var(--panel))}
+.q-step.is-on{border-left-color:var(--accent);background:color-mix(in srgb,var(--accent) 9%,var(--panel))}
 .q-step[data-step="5"],.q-step[data-step="6"]{border-left-color:color-mix(in srgb,var(--green) 55%,var(--line))}
 .q-step[data-step="5"].is-on,.q-step[data-step="6"].is-on{border-left-color:var(--green)}
 
