@@ -16,7 +16,7 @@
     if (!cv || !cv.getContext) return;
     var ctx = cv.getContext('2d'), ph = 0, on = true, raf = 0;
     function size() { var r = cv.parentElement.getBoundingClientRect(), k = root.devicePixelRatio || 1; cv.width = r.width * k; cv.height = r.height * k; }
-    function colour() { return root.getComputedStyle(d.documentElement).getPropertyValue('--accent').trim() || '#d08a57'; }
+    function colour() { return root.getComputedStyle(d.documentElement).getPropertyValue('--accent').trim() || '#7fcb9d'; }
     function draw() {
       var w = cv.width, h = cv.height, k = root.devicePixelRatio || 1, c = colour();
       ctx.clearRect(0, 0, w, h);

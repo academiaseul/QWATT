@@ -1,14 +1,14 @@
 /* QWATT — one design system for every page.
-   Earth palette: background #16100a, panels #231a10, lines #3b2d1d, copper #d08a57.
-   Status colours: gold = prior work, green = done / live on testnet, copper = planned,
-   red = refused, neutral = prototype / info. Inter for text, IBM Plex Mono for labels. */
+   --accent is the brand green; inside anything planned it turns copper. Status: gold = prior
+   work, green = done / live on testnet, copper = planned or caution, red = refused,
+   neutral = prototype / info. Inter for text, IBM Plex Mono for labels. */
 
 :root{
-  --bg:#16100a; --panel:#231a10; --panel-2:#1c140c; --panel-3:#2b2015; --line:#3b2d1d; --line-2:#2b2115;
-  --ink:#f0e8dc; --ink-2:#b3a48f; --ink-3:#9d8f7c;
-  --accent:#d08a57; --accent-ink:#16100a; --copper:#d08a57; --gold:#d9b26a; --green:#3cb87f; --red:#e05c5c; --neutral:#b3a48f;
-  --navy:#120c07; --top-bg:rgba(18,12,7,.92);
-  --qlogo-ink:#f0e8dc; --qlogo-bolt:#d08a57;
+  --bg:#0f1813; --panel:#16221b; --panel-2:#121c16; --panel-3:#1c2d23; --line:#2c4034; --line-2:#1f2e25;
+  --ink:#e4efe8; --ink-2:#a2b8ab; --ink-3:#8fa598;
+  --accent:#7fcb9d; --accent-2:#a5dcbb; --accent-ink:#0f1813; --copper:#d08a57; --gold:#d9b26a; --green:#3cb87f; --red:#e66a62; --neutral:#a2b8ab;
+  --navy:#0a110d; --top-bg:rgba(10,17,13,.92);
+  --qlogo-ink:#e4efe8; --qlogo-bolt:#d08a57;
   --sans:'Inter',-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
   --mono:'IBM Plex Mono','SF Mono',Consolas,ui-monospace,monospace;
   --gut:16px; --nav-h:52px; --maxw:1040px; --maxw-wide:1240px; --drawer-w:300px;
@@ -16,12 +16,13 @@
   --cut-s:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,0 100%);
 }
 html[data-theme="light"]{
-  --bg:#faf8f2; --panel:#f1ecdf; --panel-2:#ebe4d3; --panel-3:#e6dfcd; --line:#e2dccd; --line-2:#ebe5d8;
-  --ink:#1b1a14; --ink-2:#474334; --ink-3:#676151;
-  --accent:#984c29; --accent-ink:#fff; --copper:#984c29; --gold:#7b5c2a; --green:#127035; --red:#b42318; --neutral:#676151;
-  --navy:#291d13; --top-bg:rgba(250,248,242,.92);
-  --qlogo-ink:#1b1a14; --qlogo-bolt:#b0582f;
+  --bg:#f6faf7; --panel:#eaf3ed; --panel-2:#e2eee6; --panel-3:#d9e8de; --line:#cfdfd5; --line-2:#dde9e1;
+  --ink:#16261e; --ink-2:#3e5247; --ink-3:#536659;
+  --accent:#1f5a3f; --accent-2:#174630; --accent-ink:#fff; --copper:#984c29; --gold:#7b5c2a; --green:#127035; --red:#b42318; --neutral:#536659;
+  --navy:#163526; --top-bg:rgba(246,250,247,.92);
+  --qlogo-ink:#16261e; --qlogo-bolt:#b0582f;
 }
+.is-plan,.q-plan-card,[data-st="planificado"],[data-status="planned"],[data-status="open"],[data-status="in_progress"],[data-state="planned"]{--accent:var(--copper);--accent-2:var(--gold)}
 @media(min-width:600px){:root{--gut:28px}}
 
 *,*::before,*::after{box-sizing:border-box}
@@ -98,7 +99,7 @@ h3{font-size:16px}
 }
 
 /* ── drawer: the single navigation ── */
-.q-overlay{position:fixed;inset:0;z-index:98;background:rgba(10,7,4,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.q-overlay{position:fixed;inset:0;z-index:98;background:rgba(5,10,7,.55);-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
 .q-drawer{position:fixed;top:0;left:0;bottom:0;width:var(--drawer-w);max-width:86vw;z-index:99;background:var(--navy);border-right:1px solid var(--line);
   transform:translateX(-102%);visibility:hidden;transition:transform .28s cubic-bezier(.22,1,.36,1),visibility .28s;display:flex;flex-direction:column;overflow-y:auto;
   scrollbar-width:thin;scrollbar-color:var(--line) transparent}
@@ -209,7 +210,7 @@ a.q-d-link:hover{color:var(--ink);background:linear-gradient(90deg,color-mix(in 
   border:1px solid var(--line);border-radius:3px;color:var(--ink);background:var(--panel);transition:border-color .15s,color .15s,background .15s}
 .q-btn:hover{border-color:var(--accent);color:var(--accent)}
 .q-btn.is-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:500}
-.q-btn.is-primary:hover{background:var(--gold);border-color:var(--gold);color:var(--accent-ink)}
+.q-btn.is-primary:hover{background:var(--accent-2);border-color:var(--accent-2);color:var(--accent-ink)}
 .q-btn.is-small{min-height:32px;padding:4px 10px;font-size:11px}
 .q-btn[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
 @media(max-width:520px){.q-cta .q-btn{flex:1 1 100%}}
