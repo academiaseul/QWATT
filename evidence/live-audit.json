@@ -1,0 +1,169 @@
+{
+  "ok": true,
+  "problems": [],
+  "run": {
+    "start": "2026-11-10T03:00:00.000Z",
+    "end": "2026-11-17T03:00:00.000Z",
+    "seed": 20261103
+  },
+  "coverage": {
+    "judged_slots": 2016,
+    "expected_slots": 2016,
+    "gaps": [],
+    "duplicates": [],
+    "accepted": 1986,
+    "rejected": 30
+  },
+  "faults": [
+    {
+      "id": "F01-shaded_sensor",
+      "kind": "shaded_sensor",
+      "start": "2026-11-11T16:05:00.000Z",
+      "end": "2026-11-11T16:25:00.000Z",
+      "expect": [
+        "agreement.diverge"
+      ],
+      "intervals": 4,
+      "judged": 4,
+      "refused": 4,
+      "accepted": 0,
+      "codes": {
+        "agreement.diverge": 4
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F02-disconnected_meter",
+      "kind": "disconnected_meter",
+      "start": "2026-11-12T15:05:00.000Z",
+      "end": "2026-11-12T15:25:00.000Z",
+      "expect": [
+        "agreement.diverge",
+        "agreement.missing_meter"
+      ],
+      "intervals": 4,
+      "judged": 4,
+      "refused": 4,
+      "accepted": 0,
+      "codes": {
+        "agreement.diverge": 4
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F03-night_injection",
+      "kind": "night_injection",
+      "start": "2026-11-13T04:35:00.000Z",
+      "end": "2026-11-13T04:50:00.000Z",
+      "expect": [
+        "elevation.night"
+      ],
+      "intervals": 3,
+      "judged": 3,
+      "refused": 3,
+      "accepted": 0,
+      "codes": {
+        "elevation.night": 3
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F04-implausible_ramp",
+      "kind": "implausible_ramp",
+      "start": "2026-11-13T17:35:00.000Z",
+      "end": "2026-11-13T17:40:00.000Z",
+      "expect": [
+        "nameplate.over"
+      ],
+      "intervals": 1,
+      "judged": 1,
+      "refused": 1,
+      "accepted": 0,
+      "codes": {
+        "nameplate.over": 1
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F05-shaded_sensor",
+      "kind": "shaded_sensor",
+      "start": "2026-11-14T17:20:00.000Z",
+      "end": "2026-11-14T17:40:00.000Z",
+      "expect": [
+        "agreement.diverge"
+      ],
+      "intervals": 4,
+      "judged": 4,
+      "refused": 4,
+      "accepted": 0,
+      "codes": {
+        "agreement.diverge": 4
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F06-disconnected_meter",
+      "kind": "disconnected_meter",
+      "start": "2026-11-15T17:05:00.000Z",
+      "end": "2026-11-15T17:25:00.000Z",
+      "expect": [
+        "agreement.diverge",
+        "agreement.missing_meter"
+      ],
+      "intervals": 4,
+      "judged": 4,
+      "refused": 4,
+      "accepted": 0,
+      "codes": {
+        "agreement.diverge": 4
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F07-night_injection",
+      "kind": "night_injection",
+      "start": "2026-11-15T04:50:00.000Z",
+      "end": "2026-11-15T05:05:00.000Z",
+      "expect": [
+        "elevation.night"
+      ],
+      "intervals": 3,
+      "judged": 3,
+      "refused": 3,
+      "accepted": 0,
+      "codes": {
+        "elevation.night": 3
+      },
+      "status": "refused as expected"
+    },
+    {
+      "id": "F08-implausible_ramp",
+      "kind": "implausible_ramp",
+      "start": "2026-11-16T15:35:00.000Z",
+      "end": "2026-11-16T15:40:00.000Z",
+      "expect": [
+        "nameplate.over"
+      ],
+      "intervals": 1,
+      "judged": 1,
+      "refused": 1,
+      "accepted": 0,
+      "codes": {
+        "nameplate.over": 1
+      },
+      "status": "refused as expected"
+    }
+  ],
+  "samples": {
+    "files": 168
+  },
+  "raw": {
+    "files": 168,
+    "payloads": 60480
+  },
+  "expected": {
+    "listed": 30,
+    "matching": 30,
+    "not_judged": 0
+  }
+}
