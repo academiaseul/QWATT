@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "problems": [],
+  "sessions": 1,
+  "batches": 168,
+  "intervals": {
+    "compared": 2016,
+    "equal": 2016,
+    "pending": 0,
+    "not_published": 0
+  },
+  "energy": {
+    "published_mwh": 4494421,
+    "rederived_mwh": 4494421
+  },
+  "mismatches": []
+}
