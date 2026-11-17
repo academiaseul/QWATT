@@ -4,6 +4,22 @@ What we did each week of the Instawards Chile sprint, which started on 19 Oct 20
 
 *Versión en español: [CHANGELOG.es.md](CHANGELOG.es.md).*
 
+## Week 4 — 10 to 17 November 2026
+
+### Summary
+The 7-day live run on Stellar testnet finished on Tue 17 Nov at 00:00 Chile (03:00 UTC). It anchored 168 batches on the 2-of-3 run account, every one with two signatures, no failed transaction and no gap over about one hour. All 30 refusals listed before the run, including the 8 planned faults, were published at the expected slot with the expected reason, and none more. All input was simulated, assurance A0, Stellar testnet only.
+
+### Added
+- **The live run** (Tue 10 Nov 03:00 UTC to Tue 17 Nov 03:00 UTC) on [`GDSEQAD3…4MDC`](https://stellar.expert/explorer/testnet/account/GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC): anchors QW#0 to QW#167, code frozen at `9ee4646`. Evidence in `qwatt-evidence/run` and `qwatt-verifier-log/run`.
+- **30 of 30 expected refusals matched** against `live/expected-run.json`: 6 at dawn or dusk, shaded sensor ×8 (F01, F05), disconnected meter ×8 (F02, F06), night injection ×6 (F03, F07), implausible ramp ×2 (F04, F08).
+- **The independent verifier** signed every anchor (193 signatures in its log) and refused nothing. The outside check ran every 15 minutes all week.
+
+### Changed
+- **Site colours:** the site moves to the green palette of the certification blueprint, and opens in the light look by default. Planned items stay copper so they never read as done. Theme choice is still remembered per visitor.
+
+### Next
+Final audit and public write-up, outside QA by the third signer, and an archive of the run's transactions before the testnet reset in December.
+
 ## Week 3 — 2 to 6 November 2026
 
 ### Summary
