@@ -2,7 +2,7 @@
    then the filter lab and the explainer. Shared design values live in /assets/site.css. */
 
 /* ── page hero (the same pattern as the August pages) ── */
-.q-phero{border-bottom:1px solid var(--line);padding:56px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--copper) 7%,transparent),transparent 70%)}
+.q-phero{border-bottom:1px solid var(--line);padding:56px 0 44px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 7%,transparent),transparent 70%)}
 @media(max-width:600px){.q-phero{padding:40px 0 32px}}
 .q-phero h1{max-width:20ch}
 .q-hero-note{font-size:14px;color:var(--ink-3);max-width:66ch;margin-top:10px;line-height:1.6}
@@ -10,7 +10,7 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-sub{color:var(--ink-2);font-size:15px;line-height:1.65;max-width:70ch;margin:12px 0 18px}
 .q-sec h3{margin:30px 0 12px;font-size:16.5px}
 .q-head h2,.q-head h3{margin-top:0}
-.q-n{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--copper);font-weight:500;margin-bottom:8px}
+.q-n{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--accent);font-weight:500;margin-bottom:8px}
 .q-nojs{font-size:13.5px;color:var(--ink-2);border:1px dashed var(--line);padding:10px 12px;margin-top:14px}
 .js .q-nojs{display:none}
 html:not(.js) .q-vrow [data-slot="state"]{display:none}
@@ -18,10 +18,10 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 /* ── 1 · sources ── */
 .q-srcs{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));gap:12px}
 .q-srcard{position:relative;display:flex;flex-direction:column;gap:8px;background:var(--panel);border:1px solid var(--line);padding:16px 16px 16px 46px;cursor:pointer;min-width:0;transition:border-color .15s,background .15s}
-.q-srcard:hover{border-color:color-mix(in srgb,var(--copper) 55%,var(--line))}
-.q-srcard input{position:absolute;left:16px;top:18px;width:18px;height:18px;accent-color:var(--copper);margin:0}
-.q-srcard:has(input:checked){border-color:var(--copper);background:color-mix(in srgb,var(--copper) 8%,var(--panel))}
-.q-srcard:has(input:focus-visible){outline:2px solid var(--copper);outline-offset:3px}
+.q-srcard:hover{border-color:color-mix(in srgb,var(--accent) 55%,var(--line))}
+.q-srcard input{position:absolute;left:16px;top:18px;width:18px;height:18px;accent-color:var(--accent);margin:0}
+.q-srcard:has(input:checked){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--panel))}
+.q-srcard:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:3px}
 .q-srcard.is-off{cursor:not-allowed}
 .q-srcard.is-off .q-srcard-p{color:var(--ink-3)}
 .q-srcard-h{display:flex;flex-direction:column;gap:8px}
@@ -35,7 +35,7 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-pick{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px}
 .q-pick label{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
 .q-pick select{min-height:44px;min-width:min(100%,340px);flex:1 1 280px;max-width:520px;background:var(--panel-2);color:var(--ink);border:1px solid var(--line);border-radius:3px;padding:8px 10px;font:inherit;font-size:14px}
-.q-pick select:focus-visible{outline:2px solid var(--copper);outline-offset:2px}
+.q-pick select:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .q-feed-err{margin-top:12px;font-size:13.5px;color:var(--ink-2);border:1px dashed var(--red);padding:10px 12px}
 
 /* ── 3 · the checklist ── */
@@ -53,7 +53,7 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-vrow-v{font-size:13px;line-height:1.6;color:var(--ink-2);margin-top:6px}
 .q-vrow-v:empty{display:none}
 .q-vrow-how{font-size:11.5px;color:var(--ink-3);margin-top:8px;line-height:1.5}
-.q-vrow-how a code{color:var(--copper)}
+.q-vrow-how a code{color:var(--accent)}
 .q-vrow-how .q-chip{margin-left:6px}
 .q-kv{display:grid;grid-template-columns:minmax(0,max-content) minmax(0,1fr);gap:2px 12px;margin-top:4px}
 .q-kv dt{color:var(--ink-3);font-size:12px}
@@ -62,7 +62,7 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-codes{font-family:var(--mono);font-size:12px;color:var(--red)}
 .q-vrow details{margin-top:6px}
 .q-vrow summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);min-height:30px;display:inline-flex;align-items:center}
-.q-vrow summary:hover{color:var(--copper)}
+.q-vrow summary:hover{color:var(--accent)}
 .q-mtab{width:100%;border-collapse:collapse;font-size:12px;margin-top:6px}
 .q-mtab caption{text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);padding-bottom:6px}
 .q-mtab th,.q-mtab td{text-align:left;padding:5px 8px;border-top:1px solid var(--line);font-family:var(--mono);white-space:nowrap}
@@ -112,9 +112,9 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-ctl{margin-top:10px}
 .q-ctl label{display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--ink-2)}
 .q-ctl .v{font-family:var(--mono);color:var(--ink)}
-.q-ctl input[type="range"]{width:100%;accent-color:var(--copper);min-height:32px}
+.q-ctl input[type="range"]{width:100%;accent-color:var(--accent);min-height:32px}
 .q-toggle{margin-top:10px;font-size:13px;color:var(--ink-2)}
-.q-toggle input{accent-color:var(--copper);width:16px;height:16px;vertical-align:-3px;margin-right:6px}
+.q-toggle input{accent-color:var(--accent);width:16px;height:16px;vertical-align:-3px;margin-right:6px}
 .q-verdict{display:flex;flex-direction:column;gap:4px;padding:14px 16px;border:1px solid var(--line);border-left:3px solid var(--green)}
 .q-verdict.is-no{border-left-color:var(--red)}
 .q-verdict-big{font-family:var(--mono);font-size:20px;font-weight:600;letter-spacing:.08em;color:var(--green)}
@@ -132,7 +132,7 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-vcard.is-plan{background:color-mix(in srgb,var(--panel) 60%,transparent);border:1px dashed color-mix(in srgb,var(--copper) 45%,var(--line));clip-path:none}
 .q-vcard.is-two{border:1px solid color-mix(in srgb,var(--copper) 45%,var(--line));clip-path:none}
 .q-vcard-h{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.q-vcard-h b{font-family:var(--mono);font-size:16px;color:var(--copper)}
+.q-vcard-h b{font-family:var(--mono);font-size:16px;color:var(--accent)}
 .q-vcard h3{margin:0;font-size:15px}
 .q-vcard p{font-size:13.5px;color:var(--ink-2);line-height:1.6}
 .q-adv{font-family:var(--mono);font-size:11px !important;color:var(--ink-3) !important;margin-top:auto}
@@ -154,13 +154,13 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 .q-ladder li.is-now .q-lv,.q-ladder li.is-now .q-where{color:var(--green)}
 .q-nm{font-weight:600;font-size:14.5px}
 .q-nm small{display:block;font-weight:400;font-size:13px;color:var(--ink-2);margin-top:2px;line-height:1.55}
-.q-where{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--copper);text-align:right}
+.q-where{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--accent);text-align:right}
 @media(max-width:560px){.q-ladder li{grid-template-columns:38px minmax(0,1fr)}.q-where{grid-column:2;text-align:left}}
 
 /* ── 05 · on chain ── */
 .q-ops{display:grid;gap:8px;margin-bottom:18px}
 .q-op{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;align-items:baseline;background:var(--panel);padding:12px 14px}
-.q-op-k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--copper)}
+.q-op-k{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
 .q-op p{font-size:13.5px;color:var(--ink-2);line-height:1.6}
 .q-princ{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,230px),1fr));gap:16px}
 .q-princ h3{margin:0 0 6px;font-size:14.5px}
@@ -169,8 +169,8 @@ html:not(.js) .q-vrow [data-slot="state"]{display:none}
 /* ── 07 · steps ── */
 .q-steps{display:grid;gap:10px;max-width:80ch;padding-left:22px}
 .q-steps li{font-size:14.5px;line-height:1.65;color:var(--ink-2)}
-.q-steps li::marker{font-family:var(--mono);color:var(--copper)}
-.q-callout{margin-top:18px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--copper) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
+.q-steps li::marker{font-family:var(--mono);color:var(--accent)}
+.q-callout{margin-top:18px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--line));font-size:14px;color:var(--ink-2);max-width:80ch}
 .q-sec .q-head{margin-bottom:6px}
 .q-tamper [hidden],.q-feed-err[hidden]{display:none !important}
 .q-vrow .q-state{white-space:normal;text-align:right;max-width:100%}

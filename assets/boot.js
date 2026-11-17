@@ -2,7 +2,7 @@
    Reads only the two UI preferences; never anything else. */
 (function () {
   var html = document.documentElement;
-  var theme = 'dark', lang = 'es';
+  var theme = 'light', lang = 'es';
   try {
     var t = window.localStorage.getItem('qwatt.theme');
     if (t === 'light' || t === 'dark') theme = t;

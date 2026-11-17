@@ -287,7 +287,7 @@
       var i = b.querySelector('.q-theme-i'); if (i) i.textContent = th === 'light' ? '☾' : '☀';
     }
     var m = d.querySelector('meta[name="theme-color"]');
-    if (m) m.setAttribute('content', th === 'light' ? '#faf8f2' : '#16100a');
+    if (m) m.setAttribute('content', th === 'light' ? '#f6faf7' : '#0f1813');
   }
   function toggleTheme() {
     var html = doc().documentElement;

@@ -4,6 +4,22 @@ Lo que hicimos cada semana del sprint Instawards Chile, que empezó el 19 oct 20
 
 *Traducción al español. El texto oficial es [CHANGELOG.md](CHANGELOG.md), en inglés.*
 
+## Semana 4 — 10 al 17 de noviembre de 2026
+
+### Resumen
+La corrida en vivo de 7 días en Stellar testnet terminó el martes 17 de noviembre a las 00:00 de Chile (03:00 UTC). Ancló 168 lotes en la cuenta 2 de 3 de la corrida, todos con dos firmas, sin transacciones fallidas y sin huecos de más de una hora aproximadamente. Los 30 rechazos anunciados antes de la corrida, incluidas las 8 fallas planificadas, se publicaron en el intervalo y con el motivo esperados, y ninguno más. Toda la entrada fue simulada, assurance A0, solo Stellar testnet.
+
+### Agregado
+- **La corrida en vivo** (martes 10 nov 03:00 UTC a martes 17 nov 03:00 UTC) en [`GDSEQAD3…4MDC`](https://stellar.expert/explorer/testnet/account/GDSEQAD3B5YTX3TYA6L3U65X6IGAGET67OHQFMKNC4O5AJFVEIVL4MDC): anclas QW#0 a QW#167, código congelado en `9ee4646`. Evidencia en `qwatt-evidence/run` y `qwatt-verifier-log/run`.
+- **30 de 30 rechazos esperados coinciden** con `live/expected-run.json`: 6 al amanecer o atardecer, sensor sombreado ×8 (F01, F05), medidor desconectado ×8 (F02, F06), inyección nocturna ×6 (F03, F07), salto imposible ×2 (F04, F08).
+- **El verificador independiente** firmó cada ancla (193 firmas en su registro) y no rechazó nada. El chequeo externo corrió cada 15 minutos toda la semana.
+
+### Cambiado
+- **Colores del sitio:** el sitio pasa a la paleta verde del plan de certificación y abre en el modo claro por defecto. Lo planificado sigue en cobre para que nunca parezca hecho. La elección de tema se sigue recordando por visitante.
+
+### Próximo
+Auditoría final e informe público, control de calidad externo del tercer firmante, y archivo de las transacciones de la corrida antes del reinicio de testnet de diciembre.
+
 ## Semana 3 — 2 al 6 de noviembre de 2026
 
 ### Resumen

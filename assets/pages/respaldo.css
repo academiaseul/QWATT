@@ -2,10 +2,10 @@
 
 /* ── page hero (same shape as the other restored August pages) ── */
 .q-phero{position:relative;border-bottom:1px solid var(--line);
-  background:radial-gradient(900px 340px at 92% -12%,color-mix(in srgb,var(--copper) 12%,transparent),transparent 62%)}
+  background:radial-gradient(900px 340px at 92% -12%,color-mix(in srgb,var(--accent) 12%,transparent),transparent 62%)}
 .q-phero .q-wrap{padding-top:58px;padding-bottom:46px}
 @media(max-width:600px){.q-phero .q-wrap{padding-top:40px;padding-bottom:34px}}
-.q-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--copper);margin-bottom:16px}
+.q-eyebrow{font-family:var(--mono);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
 .q-phero h1{max-width:22ch}
 html:not([data-lang="en"]) .q-en-note{display:none}
 .q-wk{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:8px 24px;align-items:start;margin-top:26px;padding:14px 16px;
@@ -25,7 +25,7 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-mini{list-style:none;font-size:12px;color:var(--ink-2);margin-top:6px;display:grid;gap:3px}
 .q-more{margin-top:8px}
 .q-more summary{cursor:pointer;font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);min-height:28px;display:flex;align-items:center}
-.q-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--copper)}
+.q-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;color:var(--accent)}
 .q-dim{color:var(--ink-3)}
 .q-loading{font-size:12.5px;color:var(--ink-3);padding:6px 0}
 .q-go{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}

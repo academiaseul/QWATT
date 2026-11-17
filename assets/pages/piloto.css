@@ -2,7 +2,7 @@
    exist in software labeled. Shared design values live in /assets/site.css. */
 
 /* ── page hero (same pattern on the August pages) ── */
-.q-phero{border-bottom:1px solid var(--line);padding:56px 0 40px;background:linear-gradient(180deg,color-mix(in srgb,var(--copper) 6%,transparent),transparent 70%)}
+.q-phero{border-bottom:1px solid var(--line);padding:56px 0 40px;background:linear-gradient(180deg,color-mix(in srgb,var(--accent) 6%,transparent),transparent 70%)}
 @media(max-width:600px){.q-phero{padding:40px 0 30px}}
 .q-phero h1{max-width:24ch}
 html:not([data-lang="en"]) .q-en-note{display:none}
@@ -38,16 +38,16 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-doc p b,.q-doc li b{color:var(--ink);font-weight:600}
 .q-list{margin:12px 0 0 20px;color:var(--ink-2);display:grid;gap:8px;max-width:72ch}
 .q-list li{padding-left:4px}
-.q-callout{background:var(--panel);border-left:3px solid var(--copper);padding:14px 18px;margin-top:18px;font-size:14px;color:var(--ink-2);line-height:1.6;max-width:72ch}
-.q-callout b{color:var(--copper)}
+.q-callout{background:var(--panel);border-left:3px solid var(--accent);padding:14px 18px;margin-top:18px;font-size:14px;color:var(--ink-2);line-height:1.6;max-width:72ch}
+.q-callout b{color:var(--accent)}
 .q-callout.is-warn{border-left-color:var(--red)}
 .q-callout.is-warn b{color:var(--red)}
-.q-sec-n{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--copper);display:block;margin-bottom:10px}
+.q-sec-n{font-family:var(--mono);font-size:11px;letter-spacing:.18em;color:var(--accent);display:block;margin-bottom:10px}
 
 /* steps with their own label */
 .q-steps{list-style:none;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,190px),1fr));gap:10px;margin-top:18px}
 .q-step{background:var(--panel);padding:16px;clip-path:var(--cut-s);display:flex;flex-direction:column;gap:8px;min-width:0}
-.q-step .q-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--copper);text-transform:uppercase}
+.q-step .q-k{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;color:var(--accent);text-transform:uppercase}
 .q-step p{margin:0;font-size:13.5px;line-height:1.55}
 .q-step .q-chips{margin-top:auto}
 
@@ -60,7 +60,7 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 /* cycle of a record (figure 2) */
 .q-cycle{list-style:none;display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin-top:16px}
 .q-cycle li{display:flex;align-items:stretch}
-.q-cycle li+li::before{content:'→';display:flex;align-items:center;padding:0 8px;color:var(--copper)}
+.q-cycle li+li::before{content:'→';display:flex;align-items:center;padding:0 8px;color:var(--accent)}
 .q-cycle span.q-cy{background:var(--panel);border:1px solid var(--line);padding:9px 12px;font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
 @media(max-width:560px){.q-cycle{flex-direction:column}.q-cycle li{flex-direction:column}.q-cycle li+li::before{content:'↓';justify-content:center;padding:4px 0}}
 .q-figcap{font-family:var(--mono);font-size:11.5px;color:var(--ink-3);margin-top:10px;line-height:1.5}
@@ -71,21 +71,21 @@ html:not([data-lang="en"]) .q-en-note{display:none}
 .q-fig .f-band{font-family:var(--mono);font-size:11px;letter-spacing:2px}
 .q-fig .f-band.is-e{fill:var(--gold)}
 .q-fig .f-band.is-d{fill:var(--neutral)}
-.q-fig .f-band.is-v{fill:var(--copper)}
+.q-fig .f-band.is-v{fill:var(--accent)}
 .q-fig .f-box{fill:var(--panel-3);stroke:var(--line);stroke-width:1.2}
 .q-fig .f-box.is-dash{fill:none;stroke-dasharray:5 4}
-.q-fig .f-box.is-key{stroke:color-mix(in srgb,var(--copper) 60%,var(--line))}
+.q-fig .f-box.is-key{stroke:color-mix(in srgb,var(--accent) 60%,var(--line))}
 .q-fig .f-box.is-net{stroke:color-mix(in srgb,var(--green) 55%,var(--line))}
 .q-fig .f-t{font-family:var(--sans);font-size:13px;font-weight:600;fill:var(--ink);text-anchor:middle}
 .q-fig .f-s{font-family:var(--mono);font-size:10.5px;fill:var(--ink-2);text-anchor:middle}
 .q-fig .f-l{font-family:var(--mono);font-size:10px;fill:var(--ink-3)}
 .q-fig .f-ln{stroke:var(--ink-3);stroke-width:1.5;fill:none}
 .q-fig .f-ln.is-e{stroke:var(--gold)}
-.q-fig .f-ln.is-v{stroke:var(--copper)}
+.q-fig .f-ln.is-v{stroke:var(--accent)}
 .q-fig .f-ln.is-dash{stroke-dasharray:5 4}
 .q-fig .f-arw{fill:var(--ink-3)}
 .q-fig .f-arw.is-e{fill:var(--gold)}
-.q-fig .f-arw.is-v{fill:var(--copper)}
+.q-fig .f-arw.is-v{fill:var(--accent)}
 .q-fig .f-sun{fill:none;stroke:var(--gold);stroke-width:2.5;stroke-linecap:round}
 
 /* tables in the document */
