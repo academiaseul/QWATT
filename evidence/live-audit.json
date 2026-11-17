@@ -9,23 +9,10 @@
   "coverage": {
     "judged_slots": 2016,
     "expected_slots": 2016,
-    "over": true,
-    "complete": true,
     "gaps": [],
     "duplicates": [],
     "accepted": 1986,
-    "rejected": 30,
-    "judged_until": "2026-11-17T03:00:00.000Z",
-    "continuity": {
-      "limit_s": 7200,
-      "continuous": true,
-      "longest": {
-        "from": "2026-11-10T03:00:00.000Z",
-        "to": "2026-11-17T03:00:00.000Z",
-        "seconds": 604800
-      },
-      "seven_days": true
-    }
+    "rejected": 30
   },
   "faults": [
     {
