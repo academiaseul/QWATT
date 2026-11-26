@@ -45,7 +45,7 @@ async function preflight(o) {
   catch (e) { add('config', `config readable (${o.config})`, false, e.message); }
   if (cfg) {
     const pub = (k) => typeof cfg[k] === 'string' && /^G[A-Z2-7]{55}$/.test(cfg[k]);
-    add('config', 'anchor_account and payment_destination are public keys', pub('anchor_account') && pub('payment_destination'));
+    add('config', cfg.anchor_format === 'v2' ? 'anchor_account is a public key (format v2: no marker payment)' : 'anchor_account and payment_destination are public keys', pub('anchor_account') && (cfg.anchor_format === 'v2' || pub('payment_destination')));
     add('config', 'no secret in the config file', !/S[A-Z2-7]{55}/.test(JSON.stringify(cfg)), 'a secret key must never be in anchor.json');
   }
   /* the three signer keys: the flags, else anchor.json's signers by role (setup-account.js writes them) */

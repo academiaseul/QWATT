@@ -76,6 +76,28 @@ test('three atomic operations: anchor hash, cumulative total, nominal payment; m
   eq(tx.source, cfg.anchor_account, 'source is the anchoring account');
 });
 
+test('D1 format v2: two operations only (anchor hash, cumulative total), no payment; needs no asset or destination', () => {
+  const [, b1] = batches(2);
+  const c2 = { network_passphrase: cfg.network_passphrase, anchor_account: cfg.anchor_account, base_fee: cfg.base_fee, anchor_format: 'v2', signers: cfg.signers };
+  const tx = T.buildAnchorTx(b1, c2, params());
+  eq(tx.operations.length, 2, 'operation count');
+  eq(tx.operations[0].name, T.ANCHOR_KEY, 'op0'); eq(tx.operations[1].name, T.CUMULATIVE_KEY, 'op1');
+  assert(!tx.operations.some((o) => o.type === 'payment'), 'no payment');
+  eq(tx.memo.value.toString(), 'QW#1', 'memo'); eq(tx.fee, String(2 * cfg.base_fee), 'fee: base fee per operation, two operations');
+  const r = T.matchPending(propose(b1, c2), b1, c2, NOW);
+  assert(r.match, 'the verifier rebuilds and matches a v2 proposal: ' + r.detail);
+});
+
+test('D1: v1 and v2 never cross-match, and an unknown format is refused', () => {
+  const [b] = batches(1);
+  const c2 = { ...cfg, anchor_format: 'v2' };
+  eq(T.matchPending(propose(b, cfg), b, c2, NOW).match, false, 'v1 proposal, v2 verifier');
+  eq(T.matchPending(propose(b, c2), b, cfg, NOW).match, false, 'v2 proposal, v1 verifier');
+  let threw = false; try { T.buildAnchorTx(b, { ...cfg, anchor_format: 'v3' }, params()); } catch (e) { threw = /anchor_format/.test(e.message); }
+  assert(threw, 'v3 refused');
+  eq(T.formatOf(cfg), 'v1', 'default stays v1 (Instaward #1 frozen format)');
+});
+
 test('Test C path: the verifier rebuilds the proposal from the published batch and it matches', () => {
   const [b] = batches(1);
   const xdr = propose(b);

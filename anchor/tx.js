@@ -6,8 +6,13 @@
  *
  *   1. manageData  qwatt.anchor.sha256   = batch sha256 (64 ASCII hex bytes)
  *   2. manageData  qwatt.cumulative_mwh  = decimal string of cumulative_mwh
- *   3. payment     nominal amount of the anchoring asset to a fixed account
+ *   3. payment     nominal amount of the anchoring asset to a fixed account (format v1 only)
  *   memo text QW#<seq> · the fixed fee of the public config (OD-6) · timebounds ≤ 60 min (V3-11)
+ *
+ * Formats (cfg.anchor_format): "v1" (default, Instaward #1, frozen) has all three operations.
+ * "v2" drops the marker payment (engineering agreement D1): two manageData operations only, so
+ * anchoring needs no asset, no treasury and no payment destination. Proposer and verifier must
+ * use the same format; a v1 proposal never matches a v2 rebuild and the reverse.
  *
  * Everything that matters is derived from the PUBLISHED batch plus public
  * config. Only three values are not evidence and come from the proposal: the
@@ -36,8 +41,9 @@ const OD6_FEE = 1000;
  * @property {string} anchor_account      G… the multisig anchoring account (transaction source)
  * @property {string} asset_code          anchoring vehicle asset (e.g. QWATT); "native" for XLM
  * @property {string} [asset_issuer]
- * @property {string} payment_destination G… fixed account receiving the nominal payment
- * @property {string} payment_amount      nominal amount, e.g. "0.0000001"
+ * @property {"v1"|"v2"} [anchor_format] "v1" (default) with the marker payment; "v2" without it (D1)
+ * @property {string} [payment_destination] G… fixed account receiving the nominal payment (v1 only)
+ * @property {string} [payment_amount]      nominal amount, e.g. "0.0000001" (v1 only)
  * @property {number} base_fee            stroops, fixed (OD-6: 1,000); a whole number, at least 100
  * @property {{proposer:string, verifier:string, third:string}} [signers]  public keys by role
  */
@@ -46,13 +52,24 @@ function assetOf(cfg) {
   return cfg.asset_code === 'native' ? S.Asset.native() : new S.Asset(cfg.asset_code, cfg.asset_issuer);
 }
 
+/** "v1" (default) or "v2"; anything else is refused. */
+function formatOf(cfg) {
+  const f = cfg && cfg.anchor_format !== undefined ? cfg.anchor_format : 'v1';
+  if (f !== 'v1' && f !== 'v2') throw new Error('anchor config: anchor_format must be "v1" or "v2"');
+  return f;
+}
+
 function checkConfig(cfg) {
-  for (const k of ['network_passphrase', 'anchor_account', 'asset_code', 'payment_destination', 'payment_amount']) {
+  const v1 = formatOf(cfg) === 'v1';
+  const need = v1 ? ['network_passphrase', 'anchor_account', 'asset_code', 'payment_destination', 'payment_amount'] : ['network_passphrase', 'anchor_account'];
+  for (const k of need) {
     if (!cfg || !cfg[k]) throw new Error(`anchor config: ${k} is required`);
   }
-  if (cfg.asset_code !== 'native' && !cfg.asset_issuer) throw new Error('anchor config: asset_issuer is required for a non-native asset');
   if (!S.StrKey.isValidEd25519PublicKey(cfg.anchor_account)) throw new Error('anchor config: anchor_account is not a G… key');
-  if (!S.StrKey.isValidEd25519PublicKey(cfg.payment_destination)) throw new Error('anchor config: payment_destination is not a G… key');
+  if (v1) {
+    if (cfg.asset_code !== 'native' && !cfg.asset_issuer) throw new Error('anchor config: asset_issuer is required for a non-native asset');
+    if (!S.StrKey.isValidEd25519PublicKey(cfg.payment_destination)) throw new Error('anchor config: payment_destination is not a G… key');
+  }
   if (!Number.isSafeInteger(cfg.base_fee) || cfg.base_fee < 100) throw new Error('anchor config: base_fee (the fixed fee, OD-6) must be a whole number of stroops, at least 100');
 }
 
@@ -73,16 +90,15 @@ function buildAnchorTx(batch, cfg, p) {
   if (!(p.maxTime > p.minTime) || p.maxTime - p.minTime > MAX_WINDOW_S) throw new Error('timebounds must be a window of at most 60 minutes (V3-11)');
 
   const source = new S.Account(cfg.anchor_account, (BigInt(p.sequence) - 1n).toString());
-  return new S.TransactionBuilder(source, {
+  let b = new S.TransactionBuilder(source, {
     fee: String(cfg.base_fee),
     networkPassphrase: cfg.network_passphrase,
     timebounds: { minTime: p.minTime, maxTime: p.maxTime },
   })
     .addOperation(S.Operation.manageData({ name: ANCHOR_KEY, value: Buffer.from(batch.sha256, 'ascii') }))
-    .addOperation(S.Operation.manageData({ name: CUMULATIVE_KEY, value: Buffer.from(String(batch.cumulative_mwh), 'ascii') }))
-    .addOperation(S.Operation.payment({ destination: cfg.payment_destination, asset: assetOf(cfg), amount: cfg.payment_amount }))
-    .addMemo(S.Memo.text(`QW#${batch.seq}`))
-    .build();
+    .addOperation(S.Operation.manageData({ name: CUMULATIVE_KEY, value: Buffer.from(String(batch.cumulative_mwh), 'ascii') }));
+  if (formatOf(cfg) === 'v1') b = b.addOperation(S.Operation.payment({ destination: cfg.payment_destination, asset: assetOf(cfg), amount: cfg.payment_amount }));
+  return b.addMemo(S.Memo.text(`QW#${batch.seq}`)).build();
 }
 
 /** Five minutes of slack below "now", so a proposer clock running slightly fast still yields a valid transaction. */
@@ -151,4 +167,4 @@ function matchPending(pendingXdr, batch, cfg, nowS = Math.floor(Date.now() / 100
   };
 }
 
-module.exports = { buildAnchorTx, proposalParams, matchPending, checkConfig, ANCHOR_KEY, CUMULATIVE_KEY, MAX_WINDOW_S, OD6_FEE };
+module.exports = { formatOf, buildAnchorTx, proposalParams, matchPending, checkConfig, ANCHOR_KEY, CUMULATIVE_KEY, MAX_WINDOW_S, OD6_FEE };
