@@ -8,7 +8,10 @@ node_modules/
 mining-rig/node_modules/
 
 .vercel
+# every .env file stays local; only the placeholder template is committed
+.env
 .env*
+!.env.example
 
 # anchoring services: local config and verifier state (public keys only, but host-specific)
 anchor/config.json
